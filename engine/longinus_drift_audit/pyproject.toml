@@ -14,6 +14,7 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 longinus-audit = "audit_runner:main"
+bhgman-daemon = "daemon_cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -30,6 +31,8 @@ py-modules = [
   "ged_metric",
   "reverse_orphan_scan",
   "audit_runner",
+  "daemon",
+  "daemon_cli",
 ]
 
 [tool.pytest.ini_options]
