@@ -1,0 +1,37 @@
+[project]
+name = "longinus-drift-audit"
+version = "0.1.0"
+description = "Longinus methodology v3.2 — 7-Layer Reference Model + BX Lens Laws + 5 drift detector + GED quantification + Reverse Orphan Scan runtime prototype"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.9",
+  "neo4j>=5.20.0",
+  "tenacity>=9.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+longinus-audit = "audit_runner:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+  "models",
+  "kg_client",
+  "code_scanner",
+  "reference_layers",
+  "bx_lens",
+  "drift_detector",
+  "ged_metric",
+  "reverse_orphan_scan",
+  "audit_runner",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

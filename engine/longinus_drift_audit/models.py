@@ -1,0 +1,214 @@
+"""Pydantic v2 schemas — ReferenceSite (Frege Sinn/Bedeutung), DriftRecord, AuditReport.
+
+롱기누스 SKILL.md v3.2 1:1.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import re
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
+
+class DriftType(str, Enum):
+    MISSING = "Missing"           # PutGet violation: 코드 존재 ∧ KG ref 부재
+    ORPHAN = "Orphan"             # GetPut violation: KG ref 존재 ∧ 코드 부재
+    SIG_MISMATCH = "SigMismatch"  # PutGet violation: ref ↔ 시그니처 불일치
+    PATTERN_DIV = "PatternDiv"    # PutPut violation: 동일 대상 ↔ 상충 ref
+    LABEL_ROT = "LabelRot"        # PutPut violation: 라벨/이름 변경 미반영
+
+
+class ReferenceLayer(str, Enum):
+    L1_ADDRESS = "L1_AddressIndirection"
+    L2_LIFETIME = "L2_Lifetime"
+    L3_TYPE = "L3_TypePermission"
+    L4_SEMIOTIC = "L4_SemioticBinding"  # Frege Sinn↔Bedeutung
+    L5_DISTRIBUTED = "L5_DistributedIdentity"
+    L6_COMPRESSION = "L6_InformationCompression"
+    L7_AESTHETIC = "L7_AestheticIntentional"
+
+
+class Confidence(str, Enum):
+    """3-tier confidence enum absorbed from graphify ARCHITECTURE.md (2026-05-13).
+
+    KG: longinus-confidence-schema-3tier-2026-05-13 (:ConfidenceSchema:Canonical).
+    Lean: MIND/lean_formalization/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean (7 theorem PASS).
+    """
+
+    EXTRACTED = "EXTRACTED"    # explicitly stated in source (import / direct call / type)
+    INFERRED = "INFERRED"      # reasonable deduction (call-graph 2-pass / co-occurrence)
+    AMBIGUOUS = "AMBIGUOUS"    # uncertain, flagged for human review → :PRELIMINARY
+
+
+def requires_human_verdict(c: Confidence) -> bool:
+    """T1 Lean mirror: AMBIGUOUS is the unique human-gate tier."""
+    return c == Confidence.AMBIGUOUS
+
+
+def trust_level(c: Confidence) -> int:
+    """T3 Lean mirror: EXTRACTED (2) > INFERRED (1) > AMBIGUOUS (0)."""
+    return {Confidence.EXTRACTED: 2, Confidence.INFERRED: 1, Confidence.AMBIGUOUS: 0}[c]
+
+
+def any_ambiguous(sites: "list[ReferenceSite]") -> bool:
+    """T6 Lean mirror: AMBIGUOUS contagion in aggregates.
+    If any site is AMBIGUOUS, the aggregate requires :PRELIMINARY label."""
+    return any(s.confidence == Confidence.AMBIGUOUS for s in sites)
+
+
+# ─── Branded source identifiers ──────────────────────────────────────────
+
+_SOURCE_ID_PATTERN = re.compile(r"^[A-Z][a-zA-Z0-9]*\.[a-zA-Z_][a-zA-Z0-9_]*$|^[a-z][a-z0-9-]+-[a-z0-9-]+$")
+"""Two flavours:
+   - PascalCase.symbol (e.g. `Prometheus.cycle_runner` or KG `lesson-foo-bar-2026`).
+   The KG dash-pattern is also accepted (lesson-/finding-/seed- prefixes).
+"""
+_SOURCE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9/_.\-]+:[0-9]+(-[0-9]+)?$")
+"""file:line or file:line-end."""
+
+
+class ReferenceSite(BaseModel):
+    """Frege Sinn (sourceId) + Bedeutung (sourcePath) bundle.
+
+    SKILL.md 의 *7-layer 관통 통일 entity*. ``# KG: xxx`` 한 줄이 이 객체 1개에 대응.
+    """
+
+    sourceId: str = Field(..., description="L4 Sinn — semantic id (KG node name)")
+    sourcePath: str = Field(..., description="L1+L4 Bedeutung — file:line")
+    pierced_at: str = Field(
+        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
+    )
+    drift_detected_at: Optional[str] = None  # L2 lifetime
+    drift_score: float = Field(default=0.0, ge=0.0, le=1.0)  # GED-normalized
+    confidence: Confidence = Field(
+        default=Confidence.EXTRACTED,
+        description="3-tier confidence (graphify absorbed 2026-05-13). AMBIGUOUS triggers :PRELIMINARY + human verdict gate.",
+    )
+
+    @field_validator("sourceId")
+    @classmethod
+    def _check_id(cls, v: str) -> str:
+        if not _SOURCE_ID_PATTERN.match(v):
+            # 너무 엄격하지 않게 — KG-style names accepted via dash-form.
+            if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_\-./]*$", v):
+                raise ValueError(f"invalid sourceId: {v}")
+        return v
+
+    @field_validator("sourcePath")
+    @classmethod
+    def _check_path(cls, v: str) -> str:
+        if not _SOURCE_PATH_PATTERN.match(v):
+            raise ValueError(f"sourcePath must match 'file:line(-end)' — got {v!r}")
+        return v
+
+    @property
+    def file(self) -> str:
+        return self.sourcePath.split(":", 1)[0]
+
+    @property
+    def line_start(self) -> int:
+        rng = self.sourcePath.split(":", 1)[1]
+        return int(rng.split("-")[0])
+
+    @property
+    def line_end(self) -> Optional[int]:
+        rng = self.sourcePath.split(":", 1)[1]
+        return int(rng.split("-")[1]) if "-" in rng else None
+
+
+# ─── Drift record ────────────────────────────────────────────────────────
+
+
+class DriftRecord(BaseModel):
+    drift_type: DriftType
+    sourceId: str
+    sourcePath: Optional[str] = None
+    expected: Optional[str] = None
+    actual: Optional[str] = None
+    layer_violated: ReferenceLayer
+    lens_law_violated: str  # "GetPut" | "PutGet" | "PutPut"
+    detected_at: str = Field(
+        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
+    )
+
+
+# ─── Code symbol (scanner output) ────────────────────────────────────────
+
+
+class CodeSymbol(BaseModel):
+    sourcePath: str  # file:line
+    name: str        # symbol/function/class name
+    kind: str = "unknown"  # function | class | module | const
+    signature: Optional[str] = None
+    kg_refs: list[str] = Field(default_factory=list)  # `# KG: xxx` lines found
+
+
+# ─── KG ref record (KG side) ─────────────────────────────────────────────
+
+
+class KgRefRecord(BaseModel):
+    """Mirror of `(:ReferenceSite)` KG node."""
+
+    sourceId: str
+    sourcePath: str
+    label: Optional[str] = None
+    kg_node_kind: str = "ReferenceSite"
+
+
+# ─── BX Lens result ──────────────────────────────────────────────────────
+
+
+class LensVerification(BaseModel):
+    get_put: bool = True
+    put_get: bool = True
+    put_put: bool = True
+    violations: list[str] = Field(default_factory=list)
+
+
+# ─── GED report ──────────────────────────────────────────────────────────
+
+
+class GedReport(BaseModel):
+    kg_node_count: int
+    code_node_count: int
+    insertions: int
+    deletions: int
+    relabels: int
+    ged_total: int
+    normalized_score: float = Field(..., ge=0.0, le=1.0)
+
+
+# ─── Audit final ─────────────────────────────────────────────────────────
+
+
+class LayerCoverage(BaseModel):
+    L1_address: float = 1.0
+    L2_lifetime: float = 1.0
+    L3_type: float = 1.0
+    L4_semiotic: float = 1.0
+    L5_distributed: float = 1.0
+    L6_compression: float = 1.0
+    L7_aesthetic_pierce_rate: float = 1.0
+
+
+class AuditReport(BaseModel):
+    audit_id: str
+    drifts_by_type: dict[str, int] = Field(default_factory=dict)
+    drift_records: list[DriftRecord] = Field(default_factory=list)
+    reverse_orphans: list[str] = Field(default_factory=list)  # code symbols with no KG ref
+    layer_coverage: LayerCoverage = Field(default_factory=LayerCoverage)
+    lens_verification: LensVerification = Field(default_factory=LensVerification)
+    ged_report: Optional[GedReport] = None
+    completed_at: str = Field(
+        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
+    )
+
+    @property
+    def total_drifts(self) -> int:
+        return sum(self.drifts_by_type.values())
+
+    @property
+    def is_clean(self) -> bool:
+        return self.total_drifts == 0 and len(self.reverse_orphans) == 0
