@@ -41,6 +41,9 @@ dev = [
     "mypy>=1.10",
 ]
 
+[project.scripts]
+bhgman-tool = "engine.cli.main:cli"
+
 [project.urls]
 Homepage = "https://github.com/gj3447/bhgman_tool"
 Repository = "https://github.com/gj3447/bhgman_tool"

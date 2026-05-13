@@ -92,8 +92,10 @@ cd ../../lean
 lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean
 # exit 0, 0 sorry, 7 theorems PASS
 
-# 4. Install Claude Code skills
-cp -R ../skills/* ~/.claude/skills/
+# 4. Install Claude Code skills (one-liner, replaces manual cp)
+cd ../..   # back to repo root
+uv run bhgman-tool install-skills           # default target: ~/.claude/skills
+# add --dry-run to preview, --force to overwrite existing skill dirs.
 # Restart Claude Code, then in chat:
 # /apt   /prom   /tpa   /tlb   /longinus   /harness   /jaebaeman
 ```
