@@ -1,0 +1,231 @@
+{
+  "name": "bhgman_tool",
+  "displayName": "bhgman_tool marketplace",
+  "description": "Academic-grounded Harness toolkit for the Airplane Man (#4 apostle). Install individual sub-plugins or the full toolkit.",
+  "version": "0.1.0",
+  "owner": "gj3447",
+  "license": "MIT",
+  "homepage": "https://github.com/gj3447/bhgman_tool",
+  "plugins": [
+    {
+      "id": "bhgman-core",
+      "name": "bhgman-core",
+      "displayName": "bhgman core (Harness + base)",
+      "description": "Core Harness diagnostics — 4-axis model (Inform/Constrain/Verify/Correct) + 3-tier family (L_MC/L_RT/L_IDE). Foundational skill for any bhgman_tool use.",
+      "path": "skills/harness",
+      "version": "0.1.0",
+      "size": 50000,
+      "type": "skill",
+      "categories": ["official", "core"],
+      "tags": ["harness", "agent-scaffolding", "diagnostics"],
+      "commands": ["harness"],
+      "permissions": ["read"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "Lawvere 1969 FPT",
+        "Yanofsky 2003",
+        "Cherns 1976 STS Principle 5",
+        "Smith 1984 MOP"
+      ]
+    },
+    {
+      "id": "bhgman-longinus",
+      "name": "bhgman-longinus",
+      "displayName": "Longinus — KG ↔ code reference binding",
+      "description": "Bidirectional KG ↔ source code reference audit. 7-Layer Reference Model + BX Lens Laws + 3-tier confidence schema (EXTRACTED/INFERRED/AMBIGUOUS). 5 drift types detection. Pydantic v2 runtime, 77 pytest PASS.",
+      "path": "skills/longinus",
+      "version": "0.1.0",
+      "size": 80000,
+      "type": "skill",
+      "categories": ["official", "kg-code-binding"],
+      "tags": ["longinus", "drift-detection", "bx-lens", "reference-binding"],
+      "commands": ["longinus"],
+      "permissions": ["read", "write"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "Foster-Pierce-Walker 2007 BX Lens",
+        "Frege 1892 Sense-Reference",
+        "Sanfeliu-Fu 1983 GED",
+        "graphify 2026 (industry instance, STRONG_MIRROR)"
+      ],
+      "depends_on": ["bhgman-core"]
+    },
+    {
+      "id": "bhgman-prometheus",
+      "name": "bhgman-prometheus",
+      "displayName": "Prometheus — knowledge-action spiral",
+      "description": "9+1 cycle: knowledge-first research + Hegel synthesis. N parallel subagent dispatch (default 4/8/16). UNWIND batch KG write + W3C PROV provenance + filesystem dispersion gate.",
+      "path": "skills/prometheus",
+      "version": "0.1.0",
+      "size": 60000,
+      "type": "skill",
+      "categories": ["official", "research"],
+      "tags": ["prometheus", "knowledge-first", "research-cycle", "hegel-synthesis"],
+      "commands": ["prometheus", "prom"],
+      "permissions": ["read", "write", "network"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "Hegel Phenomenology Begriff",
+        "OODA loop (Boyd)",
+        "Lean Startup (Ries)"
+      ],
+      "depends_on": ["bhgman-core", "bhgman-jaebaeman"]
+    },
+    {
+      "id": "bhgman-taliban",
+      "name": "bhgman-taliban",
+      "displayName": "Taliban — adversarial validation",
+      "description": "GAN-style discriminator. Pluggable LensSet — constitutional (default 9) / mathematical (113) / solid (5) / longinus / lakatos. Anti-rubber-stamp (RTI/FVR). Enforces executor != reviewer.",
+      "path": "skills/taliban",
+      "version": "0.1.0",
+      "size": 70000,
+      "type": "skill",
+      "categories": ["official", "validation"],
+      "tags": ["taliban", "adversarial", "lensset", "anti-rubber-stamp"],
+      "commands": ["taliban", "tlb", "88-taliban"],
+      "permissions": ["read"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "GAN (Goodfellow 2014)",
+        "Popper falsifiability",
+        "Goodhart 1975 + Strathern 1997"
+      ],
+      "depends_on": ["bhgman-core"]
+    },
+    {
+      "id": "bhgman-jaebaeman",
+      "name": "bhgman-jaebaeman",
+      "displayName": "Jaebaeman — SOP (Subagent Orchestration Protocol)",
+      "description": "4-phase parent process protocol: Pre-fetch → Dispatch → Collect → Write. Stateless subagents (Wooldridge BDI distinct). Foundation for all multi-agent operations.",
+      "path": "skills/jaebaeman",
+      "version": "0.1.0",
+      "size": 55000,
+      "type": "skill",
+      "categories": ["official", "orchestration"],
+      "tags": ["jaebaeman", "sop", "subagent", "orchestration"],
+      "commands": ["jaebaeman"],
+      "permissions": ["read", "write"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "Holacracy (Robertson 2015)",
+        "Wooldridge BDI agent (contrast — distinct concept)"
+      ],
+      "depends_on": ["bhgman-core"]
+    },
+    {
+      "id": "bhgman-apt-cycle",
+      "name": "bhgman-apt-cycle",
+      "displayName": "APT cycle (forward methodology)",
+      "description": "Full forward methodology: SemanticAnchor → SemanticPyramid → SemanticTwin → SourceCodeWorld → MetaReview → Cleanup. Gate Check Hook + Taliban adversarial validation per phase.",
+      "path": "skills/apt",
+      "version": "0.1.0",
+      "size": 200000,
+      "type": "skill-bundle",
+      "categories": ["official", "methodology"],
+      "tags": ["apt", "cycle", "tdd", "design"],
+      "commands": ["apt", "apt-sa", "apt-sp", "apt-st", "apt-scw", "apt-meta-review", "apt-cleanup"],
+      "permissions": ["read", "write"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "TDD (Beck)",
+        "OODA loop (Boyd)",
+        "Lakatos progressive/degenerating",
+        "Robert Martin Package Principles"
+      ],
+      "depends_on": ["bhgman-core", "bhgman-longinus", "bhgman-taliban", "bhgman-jaebaeman"]
+    },
+    {
+      "id": "bhgman-tpa-cycle",
+      "name": "bhgman-tpa-cycle",
+      "displayName": "TPA cycle (reverse methodology)",
+      "description": "Reverse: TargetCodeWorld → TargetTwin → TargetPyramid → TargetAnchor. Code → design recovery + 5-drift audit + Pattern Library matching.",
+      "path": "skills/tpa",
+      "version": "0.1.0",
+      "size": 180000,
+      "type": "skill-bundle",
+      "categories": ["official", "methodology", "reverse-engineering"],
+      "tags": ["tpa", "reverse-engineering", "design-recovery", "drift-audit"],
+      "commands": ["tpa", "tpa-tcw", "tpa-st", "tpa-sp", "tpa-ta"],
+      "permissions": ["read"],
+      "verified": true,
+      "trustLevel": "official",
+      "minClaudeCodeVersion": "2.0.0",
+      "lastUpdated": "2026-05-13",
+      "external_canonical_grounding": [
+        "Reverse engineering (Chikofsky-Cross 1990)",
+        "DesignPattern Library (GoF)",
+        "Longinus 5 drift types"
+      ],
+      "depends_on": ["bhgman-core", "bhgman-longinus", "bhgman-taliban", "bhgman-jaebaeman"]
+    }
+  ],
+  "categories": [
+    {
+      "id": "official",
+      "name": "Official",
+      "description": "Officially maintained bhgman_tool plugins",
+      "pluginCount": 7
+    },
+    {
+      "id": "core",
+      "name": "Core",
+      "description": "Foundation plugins required by others",
+      "pluginCount": 1
+    },
+    {
+      "id": "kg-code-binding",
+      "name": "KG ↔ Code Binding",
+      "description": "Reference binding and drift detection",
+      "pluginCount": 1
+    },
+    {
+      "id": "validation",
+      "name": "Validation",
+      "description": "Adversarial validation and quality gates",
+      "pluginCount": 1
+    },
+    {
+      "id": "research",
+      "name": "Research",
+      "description": "Knowledge-first research and synthesis",
+      "pluginCount": 1
+    },
+    {
+      "id": "orchestration",
+      "name": "Orchestration",
+      "description": "Multi-agent subagent orchestration",
+      "pluginCount": 1
+    },
+    {
+      "id": "methodology",
+      "name": "Methodology",
+      "description": "Full development cycle methodologies (APT/TPA)",
+      "pluginCount": 2
+    }
+  ],
+  "featured": [
+    "bhgman-core",
+    "bhgman-longinus",
+    "bhgman-apt-cycle"
+  ],
+  "totalPlugins": 7,
+  "lastRegistryUpdate": "2026-05-13"
+}

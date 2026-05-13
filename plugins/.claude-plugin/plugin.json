@@ -1,0 +1,146 @@
+{
+  "name": "bhgman_tool",
+  "version": "0.1.0",
+  "displayName": "bhgman_tool — Airplane Man Harness toolkit",
+  "description": "Engineering crystallization of the Airplane Man (#4 apostle in the SYMPOSIUM 12-apostle framework). Academic-grounded multi-agent ontology for Claude Code. 17 axes external canonical grounding + 50 Lean 4 verified theorems (Mathlib-free, 0 sorry) + Goodhart safeguard + EXTRACTED/INFERRED/AMBIGUOUS confidence schema. Tool layer only — apostle essence + philosophical implications live in a separate repo.",
+  "author": {
+    "name": "gj3447",
+    "displayName": "gj3447 (METAHUMOTONIC)",
+    "email": "gj3447@gmail.com",
+    "url": "https://github.com/gj3447"
+  },
+  "homepage": "https://github.com/gj3447/bhgman_tool",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/bhgman_tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gj3447/bhgman_tool/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "claudeCode": ">=2.0.0",
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "multi-agent",
+    "claude-code",
+    "harness",
+    "longinus",
+    "formal-verification",
+    "lean4",
+    "knowledge-graph",
+    "reference-binding",
+    "drift-detection",
+    "goodhart-safeguard",
+    "academic-grounding"
+  ],
+  "category": "development",
+  "tags": [
+    "agent-scaffolding",
+    "kg-code-binding",
+    "adversarial-validation",
+    "formal-methods",
+    "lean4",
+    "self-reference-safety"
+  ],
+  "skills": [
+    "skills/harness",
+    "skills/longinus",
+    "skills/prometheus",
+    "skills/taliban",
+    "skills/jaebaeman",
+    "skills/apt",
+    "skills/apt-sa",
+    "skills/apt-sp",
+    "skills/apt-st",
+    "skills/apt-scw",
+    "skills/apt-meta-review",
+    "skills/apt-cleanup",
+    "skills/tpa",
+    "skills/tpa-tcw",
+    "skills/tpa-st",
+    "skills/tpa-sp",
+    "skills/tpa-ta",
+    "skills/prom",
+    "skills/tlb",
+    "skills/88-taliban",
+    "skills/solve",
+    "skills/skill-creator"
+  ],
+  "agents": [],
+  "hooks": [],
+  "commands": [
+    {
+      "name": "harness",
+      "description": "Diagnose where an agent/framework instance sits in the Harness 3-tier family (L_MC / L_RT / L_IDE) and which of the 4 axes (Inform/Constrain/Verify/Correct) is failing."
+    },
+    {
+      "name": "longinus",
+      "description": "KG ↔ code reference binding audit. Detects 5 drift types (Missing / Orphan / SigMismatch / PatternDiv / LabelRot) via BX Lens Laws (Foster-Pierce-Walker 2007). Pydantic v2 runtime, 77 pytest PASS."
+    },
+    {
+      "name": "prometheus",
+      "description": "Knowledge-action spiral (9+1 cycle). Knowledge-first research + Hegel synthesis. N parallel subagent dispatch via Jaebaeman SOP."
+    },
+    {
+      "name": "prom",
+      "description": "Alias for /prometheus. Usage: /prom <N> <topic>"
+    },
+    {
+      "name": "taliban",
+      "description": "Adversarial validation. Pluggable LensSet — constitutional (9) / mathematical (113) / solid (5) / longinus / lakatos. Enforces executor != reviewer."
+    },
+    {
+      "name": "tlb",
+      "description": "Alias for /taliban."
+    },
+    {
+      "name": "jaebaeman",
+      "description": "SOP (Subagent Orchestration Protocol). 4-phase: Pre-fetch → Dispatch → Collect → Write. Foundation for all subagent operations."
+    },
+    {
+      "name": "apt",
+      "description": "Forward methodology cycle: SemanticAnchor → SemanticPyramid → SemanticTwin → SourceCodeWorld → MetaReview → Cleanup. With Gate Check Hook + Taliban adversarial validation per phase."
+    },
+    {
+      "name": "tpa",
+      "description": "Reverse methodology cycle: TargetCodeWorld → TargetTwin → TargetPyramid → TargetAnchor. Code → design recovery + 5-drift audit."
+    }
+  ],
+  "mcpServers": {},
+  "documentation": {
+    "quickstart": "docs/01-quickstart.md",
+    "concepts": "docs/02-concepts/",
+    "tutorials": "docs/03-tutorials/",
+    "references": "docs/04-references/",
+    "papers": "docs/05-papers/",
+    "philosophy": "docs/06-philosophy/",
+    "metahumotonic_trace": "docs/07-metahumotonic-trace.md"
+  },
+  "scope": {
+    "this_repo": "tool_layer (Harness + Longinus + Prometheus + Taliban + Jaebaeman tools, packaged for use)",
+    "essence_layer_separate": "bhgman_essence (planned)",
+    "framework_canon": "SYMPOSIUM (internal)",
+    "related_apostle_repos_planned": ["chu", "omc", "333"]
+  },
+  "external_canonical_grounding": {
+    "axes_count": 17,
+    "lean_theorems_verified": 50,
+    "lean_sorry_count": 0,
+    "lean_version": "4.29.1",
+    "primary_canon": [
+      "Lawvere 1969 FPT",
+      "Tarski 1936 undefinability",
+      "Godel 1931 incompleteness",
+      "Yanofsky 2003 universal self-reference",
+      "Foster-Pierce-Walker 2007 BX Lens Laws",
+      "Frege 1892 Sense vs Reference",
+      "Goodhart 1975 + Strathern 1997",
+      "Cherns 1976 STS",
+      "Evans 2003 DDD",
+      "Smith 1984 MOP",
+      "Hofstadter 1979 strange loop"
+    ]
+  }
+}
