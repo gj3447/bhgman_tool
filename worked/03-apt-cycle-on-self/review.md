@@ -34,8 +34,24 @@
 
 ## Lakatos verdict
 
-- **Status**: PROGRESSIVE_CONDITIONAL
-- **Rationale**: The Phase 3 sprint produces novel content (3 new tools + CLI + worked example), each backed by passing tests rather than narrative claims — that is the progressive signature. The CONDITIONAL is because the SA→SP and SP→ST gates ran informally; a strict Lakatos audit would demand explicit adversarial-round artifacts. The implementation is solid; the methodology meta-application is sloppier than its own SKILL.md prescribes.
+- **Original self-assignment**: ~~PROGRESSIVE_CONDITIONAL~~ (rejected by external review)
+- **Revised verdict after Taliban ensemble review (2026-05-13T20:00 KST)**: **REJECT_PENDING_REMEDIATION**
+- **External reviewer**: `taliban-ensemble-critic` agent (4-lens UNION: constitutional-9 + longinus-7 + lensset-solid + lens-set-lakatos)
+- **Reviewer ValidationResult**: `taliban-ensemble-bhgman_tool-phase3-2026-05-13` (KG node), coverage_score=0.92, blocker_count=5, total_findings=25
+- **5 BLOCKER findings** (must be remediated before re-classification):
+    - `C9-01` run.sh `pass=4` summary line allows SKIP to be misread as PASS — gate-enforced vs step-executed conflation
+    - `C9-02` `tpa_drift_audit` schema returns `Missing=0 / SigMismatch=0 / PatternDiv=0` for deferred fields rather than a `NotImplemented` sentinel
+    - `L7-01` 3 new `# KG: span-mcp-tool-*` citations have no `:ReferenceSite + sha256 baseline` — Longinus L4 violation
+    - `L7-02` no `:REALIZES_PHASE` edges from new MCP tools to BHGMAN 5-phase canon
+    - `K-01` original `PROGRESSIVE_CONDITIONAL` self-assignment had zero novel corroborated predictions → Lakatos degenerating-shift indicator (this very revision is a partial remediation)
+- **Rationale**: The Phase 3 sprint produces novel content (3 new tools + CLI + worked example) backed by passing tests. The K-01 finding correctly observed that "passing tests" alone is not the Lakatos progressive signature — the work needs *novel empirical content* corroborated by independent observation. The Taliban agent's review *is* that independent observation; this revised verdict captures it honestly.
+- **Counterexamples discovered**: Phase 1 SA was created without a Root Span; cross-tier lens HR12 mentioned as note but not enforced; `# KG:` citations exist without matching ReferenceSite nodes.
+- **Lemma incorporations**: see KG nodes
+    - `lesson-apt-phase1-sa-without-root-span-2026-05-13`
+    - `errorpattern-cross-tier-lens-no-enforcement-2026-05-13`
+    - `lesson-apt-fast-path-vs-full-prescription-2026-05-13`
+    - `taliban-blocker-{C9-01,C9-02,L7-01,L7-02,K-01}-2026-05-13` (5 BlockerFinding nodes)
+- **Remediation backlog** (separate sprint): full L7-01/L7-02 binding work (ReferenceSite + sha256 + REALIZES_PHASE edges) requires Longinus subskill invocation per tool; tpa.py schema correction (`NotImplemented` sentinel for deferred drift types) is lightweight but changes the public schema and warrants its own change-set.
 - **Counterexamples discovered**: The Phase 1 SA was created without a Root Span — this is an SA→SP gate evasion that the v22 Gate Check Hook should have rejected at the time. The fact that this sprint had to repair it retroactively is itself a counterexample to "v22 Hook is enforcing".
 - **Lemma incorporations**: `lesson-apt-phase1-sa-without-root-span-2026-05-13` (suggested) — SA bootstrap must MERGE Root Span + DECOMPOSES_TO atomic, not as a follow-up.
 

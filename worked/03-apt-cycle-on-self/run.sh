@@ -64,8 +64,14 @@ else
 fi
 
 # Summary --------------------------------------------------------------------
+# C9-01 remediation: distinguish gate-enforced (PASS) from step-executed-without-verification (SKIP).
+# Exit 0 here means "no FAIL was recorded"; it does NOT mean "all gates passed". Consumers must
+# check $SKIP > 0 separately — skipped steps were not verified, just not failed.
 print_step "Summary"
 echo "pass=$PASS  fail=$FAIL  skip=$SKIP"
+if [ "$SKIP" -gt 0 ]; then
+  echo "NOTE: $SKIP step(s) were SKIPPED — those gates are NOT verified. See per-step output above."
+fi
 if [ "$FAIL" -gt 0 ]; then
   exit 1
 fi
