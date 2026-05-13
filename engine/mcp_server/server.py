@@ -26,9 +26,15 @@ def build_server() -> Any:
     # Register tools (each module attaches its @mcp.tool() functions to `mcp`)
     from .tools.longinus import register as register_longinus
     from .tools.harness import register as register_harness
+    from .tools.apt import register as register_apt
+    from .tools.taliban import register as register_taliban
+    from .tools.tpa import register as register_tpa
 
     register_longinus(mcp)
     register_harness(mcp)
+    register_apt(mcp)
+    register_taliban(mcp)
+    register_tpa(mcp)
 
     return mcp
 
@@ -41,4 +47,7 @@ def list_registered_tool_names() -> list[str]:
     return [
         "longinus_audit",
         "harness_diagnose",
+        "apt_phase_detect",
+        "taliban_lens_check",
+        "tpa_drift_audit",
     ]
