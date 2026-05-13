@@ -1,0 +1,14 @@
+{
+  "lesson-greet-user-2026-05-13": {
+    "expected_signature": "greet(name: str) -> str",
+    "layer": "L4_SemioticBinding"
+  },
+  "lesson-validate-email-2026-05-13": {
+    "expected_signature": "validate(addr: str, strict: bool = False) -> bool",
+    "layer": "L3_TypePermission"
+  },
+  "lesson-add-numbers-2026-05-13": {
+    "expected_signature": "add(a: int, b: int) -> int",
+    "layer": "L3_TypePermission"
+  }
+}

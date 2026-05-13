@@ -1,0 +1,29 @@
+[project]
+name = "bhgman-tool-mcp-server"
+version = "0.1.0"
+description = "MCP server exposing bhgman_tool 5-weapons + APT/TPA cycle as Claude-Code-callable tools. Skeleton stage (Phase 1 sprint 2026-05-13)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "gj3447 (METAHUMOTONIC)", email = "gj3447@gmail.com" }]
+dependencies = [
+  "fastmcp>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+bhgman-tool-mcp = "mcp_server.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mcp_server*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

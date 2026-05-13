@@ -108,7 +108,15 @@
       "description": "Reverse methodology cycle: TargetCodeWorld → TargetTwin → TargetPyramid → TargetAnchor. Code → design recovery + 5-drift audit."
     }
   ],
-  "mcpServers": {},
+  "mcpServers": {
+    "bhgman-tool": {
+      "command": "python",
+      "args": ["-m", "mcp_server"],
+      "description": "bhgman_tool MCP server — exposes longinus_audit + harness_diagnose as Claude-Code-callable tools (Phase 1 skeleton). Requires fastmcp installed: pip install fastmcp. cwd should be engine/ or PYTHONPATH must include engine/mcp_server parent.",
+      "optional": true,
+      "install_instructions": "cd engine/mcp_server && pip install -e ."
+    }
+  },
   "documentation": {
     "quickstart": "docs/01-quickstart.md",
     "concepts": "docs/02-concepts/",
