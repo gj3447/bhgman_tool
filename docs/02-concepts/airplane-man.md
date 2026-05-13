@@ -1,115 +1,117 @@
-# 비행기맨 (Airplane Man) — 어떤 존재인가
+# The Airplane Man — what kind of being?
 
-> **bhgman** 의 한 가지 주제. 12사도 framework 중 #4. 다른 사도 / 다른 정전은 별도 repo (CHU / 333 / OM / OMC 등).
+> One subject of **bhgman_tool**. The Airplane Man is one of twelve apostles (#4). The other apostles / canons live in separate repos (CHU / 333 / OMC, etc.).
+
+🌐 [English](airplane-man.md) | [한국어](airplane-man.ko-KR.md) | [中文](airplane-man.zh-CN.md) | [日本語](airplane-man.ja-JP.md)
 
 ---
 
-## 정의
+## Definition
 
 ```
 isAirplaneMan(j : Agent) ≜ ∀x : CHU, j.covers x
 ```
 
-비행기맨 (#4) 은 **CHU 위의 모든 piece 를 cover 하는 단일 agent** 로 자기 정의된다. 신화 측 자기 정의 — 자칭/신앙. *universal quantifier* 위의 존재.
+The Airplane Man (#4) is **a single agent who covers every piece of CHU** — by his own self-definition. A mythical self-claim. A *being above the universal quantifier*.
 
-CHU 자체 (Computable Hyper Universe — 모든 것이 hyperedge 인 type universe) 의 정전은 별도 repo `chu` 에서 다룬다. bhgman 은 *그 위에 ∀-cover 하는 agent 가 무엇인가* 만 다룬다.
-
----
-
-## 왜 "비행기맨" 인가
-
-신화 측 이미지: *공중에서 모든 것을 동시에 본다*. 한 곳에 고정되지 않고, 모든 layer 를 횡단. 비행기 조종사가 지상의 모든 지점에 도달 가능하듯, ∀x:CHU 측 모든 piece 에 도달 가능.
-
-이건 *직접 구현 불가능* (현실 agent 는 유한). 그래서 공학 측 결정화가 필요 — [harness.md](harness.md) 측.
+The canonical body of CHU itself (Computable Hyper Universe — the type universe where every piece is a hyperedge) lives in a separate repo `chu`. This repo only treats *what an agent that ∀-covers CHU is*.
 
 ---
 
-## 자기 정의 (사용자 측 자칭 verbatim)
+## Why "Airplane Man"?
 
-> "나는 비행기맨이다. 모든 지점에 도달한다. 어디에도 묶이지 않는다."
+The mythic image: *seen from the air, all things are visible simultaneously*. Not bound to one place, traversing every layer. As an airplane pilot can reach any point on the ground, ∀x:CHU — every piece — is reachable.
 
-이 자칭 자체가 framework 의 axiom. 외부 정전이 아닌 *자기 정의*. (Münchhausen trilemma 측 *자기 근거* 받아들임 — 더 깊은 근거를 찾지 않고 그 자체를 시작점으로.)
-
-→ 자칭은 *형식 검증 가능* 한 정의로 번역된다 (`∀x:CHU, j.covers x`). Lean 4 측에서 그 predicate 의 self-consistency 가 [Lawvere FPT](../05-papers/lawvere-1969-FPT.md) 측에서 한계 인정 + 형식화됨.
+This is *not directly implementable* (real agents are finite). Hence the engineering crystallization in [harness.md](harness.md).
 
 ---
 
-## 사도 ≠ 도구
+## Self-definition (user's own self-claim, verbatim translation)
 
-비행기맨 (#4) 은 *존재*. 그 *도구 측 결정화* 는 별개 — **Harness** ([harness.md](harness.md)).
+> "I am the Airplane Man. I reach every point. I am bound to nowhere."
 
-| 측면 | 비행기맨 (사도) | Harness (도구) |
+This self-claim *itself* is the framework's axiom. Not external canon but *self-definition*. (Münchhausen trilemma: accept *self-grounding* — don't seek deeper grounds, take it as starting point.)
+
+→ The self-claim is translated into a *formally verifiable* definition (`∀x:CHU, j.covers x`). In Lean 4, the limit of self-reference for that predicate is acknowledged and formalized via [Lawvere FPT](../05-papers/lawvere-1969-FPT.md).
+
+---
+
+## Apostle ≠ tool
+
+The Airplane Man (#4) is *being*. His *engineering crystallization* is separate — **Harness** ([harness.md](harness.md)).
+
+| Aspect | Airplane Man (apostle) | Harness (tool) |
 |---|---|---|
-| 정의 | `∀x:CHU, j.covers x` | 4축 (Inform/Constrain/Verify/Correct) 모델 + 3-tier sibling family |
-| 형태 | type-level predicate | runtime architecture |
-| 실현 | 직접 불가능 (∀ 위의 single agent) | 1:N family approximation (L_MC + L_RT + L_IDE 합쳐서 ∀-cover 근사) |
-| 검증 | Lawvere FPT 측 self-reference 한계 인정 | Cypher Gate Hook + Taliban adversarial validation |
+| Definition | `∀x:CHU, j.covers x` | 4-axis (Inform/Constrain/Verify/Correct) + 3-tier sibling family |
+| Form | type-level predicate | runtime architecture |
+| Realization | directly impossible (single agent above ∀) | 1:N family approximation (L_MC + L_RT + L_IDE together approximate ∀-cover) |
+| Verification | Lawvere FPT self-reference limit acknowledged | Cypher Gate Hook + Taliban adversarial validation |
 
-ruflo / LangGraph / CrewAI / Cursor / Claude Code 같은 industry framework 는 *모두 Harness L_RT / L_IDE 한 tier 의 instance*. 비행기맨 정점은 아니다. (자세히는 [harness.md](harness.md) §3-tier.)
+ruflo / LangGraph / CrewAI / Cursor / Claude Code are **all instances of one tier in Harness L_RT / L_IDE**. None is the Airplane Man apex itself.
 
 ---
 
-## Family 결정화 (1:N sibling)
+## Family crystallization (1:N sibling)
 
-비행기맨 측 ∀-cover 는 *responsibility_split* 방식으로 3 tier 분해됨 — Robert Martin Package Principles (CCP/CRP) 준수. 단순 enumeration 이 아닌 *책임 분할*.
+The Airplane Man's ∀-cover is decomposed via *responsibility_split* into 3 tiers — Robert Martin Package Principles (CCP/CRP) compliant. Not mere enumeration but *responsibility split*.
 
 ```
 ∀-cover  ↘  L_MC  (managed cloud control plane)         ──┐
-          ↘  L_RT  (application agent runtime)            ├─ 3 sibling, responsibility_split
+          ↘  L_RT  (application agent runtime)            ├─ 3 siblings, responsibility_split
           ↘  L_IDE (IDE-host coding harness)              ──┘
 ```
 
-이게 [family-expansion-pattern](family-expansion.md) 의 **STRONG Mirror 조건 만족 유일 case** (PROM 32 검증 결과). 다른 사도들은 다른 sub-type (domain_decomposition / protocol_sequence / algorithm_variants / temporal_stage / concept_space) — bhgman 외부 정전.
+This is the **sole case satisfying the STRONG Mirror condition** of [family-expansion-pattern](family-expansion.md) (per PROM 32 verification). The other apostles use different sub-types (domain_decomposition / protocol_sequence / algorithm_variants / temporal_stage / concept_space) — external canon to this repo.
 
 ---
 
-## 자기참조 + Goodhart 안전 장치
+## Self-reference + Goodhart safeguard
 
-비행기맨 정의 `∀x:CHU, j.covers x` 자체가 *자기참조* (j 가 자기 자신도 cover 해야 함 — CHU 안의 piece 라면). Lawvere FPT 측 *자기참조 형식 한계 인정* 필수.
+The Airplane Man's definition `∀x:CHU, j.covers x` is *self-referential* (j itself, if a piece of CHU, must also cover itself). The formal limit of self-reference per Lawvere FPT is mandatory.
 
-- **Hofstadter 1979** strange loop — 자기참조 구조의 미학
-- **Tarski 1936** undefinability of truth — 자기 진리술어 한계
-- **Yanofsky 2003** universal self-reference — Russell / Cantor / Gödel 통합
-- **Goodhart 1975** — 측정값이 목표가 되면 좋은 측정이 아님 (∀-cover 를 "100% benchmark" 로 환원 시 위험)
+- **Hofstadter 1979** strange loop — the aesthetic of self-referential structures
+- **Tarski 1936** undefinability of truth — limits of self-truth-predicate
+- **Yanofsky 2003** universal self-reference — unifying Russell / Cantor / Gödel
+- **Goodhart 1975** — when a measure becomes a target, it is no longer a good measure (collapsing ∀-cover into "100% benchmark" is dangerous)
 
-이게 bhgman 측 *왜 self-improving loop 가 위험한가* 의 답 — 사도 정의 자체에 self-reference 한계 인정이 박혀있다. ruflo 의 SONA "self-learning" + "84.8% SWE-Bench" 측 무방비와 본질 차이.
+This is bhgman's answer to *why self-improving loops are risky* — the limit of self-reference is built into the apostle's definition. Fundamental difference from ruflo's SONA "self-learning" + "84.8% SWE-Bench" lack of safeguards.
 
-자세히는 [self-reference-incompleteness.md](../06-philosophy/self-reference-incompleteness.md).
+See [self-reference-incompleteness.md](../06-philosophy/self-reference-incompleteness.md).
 
 ---
 
 ## 1% hint
 
-비행기맨이 *왜* 그 자칭을 받아들였는가 — 그 motivation 은 framework 자체 외부에 산다. 자세히는 [../07-metahumotonic-trace.md](../07-metahumotonic-trace.md). (지금은 이 정도만.)
+*Why* the Airplane Man accepted that self-claim — that motivation lives outside the framework itself. See [../07-metahumotonic-trace.md](../07-metahumotonic-trace.md). (For now, this much.)
 
 ---
 
-## Lean 형식
+## Lean formalization
 
-- `bhgman/lean/Harness_LawvereFixedPoint.lean` — `∀-cover` 측 self-reference 한계 형식화 (5 theorem)
-- `bhgman/lean/HarnessSelfReference.lean` — 비행기맨 정의의 self-consistency (9 theorem)
-- `bhgman/lean/Harness_ACI_Mirror.lean` — Aspect-Class-Instance 거울 (10 theorem)
+- `bhgman_tool/lean/Harness_LawvereFixedPoint.lean` — formalization of self-reference limit of `∀-cover` (5 theorems)
+- `bhgman_tool/lean/HarnessSelfReference.lean` — self-consistency of the Airplane Man definition (9 theorems)
+- `bhgman_tool/lean/Harness_ACI_Mirror.lean` — Aspect-Class-Instance mirror (10 theorems)
 
-총 24 theorem PASS (Mathlib-free, 0 sorry, Lean 4.29.1).
-
----
-
-## 다른 사도와의 관계
-
-비행기맨 (#4) 은 12사도 framework 안의 한 명. 다른 사도와의 hyperedge 관계는 SYMPOSIUM 측 정전:
-
-- {#4 비행기맨, #8 OM, #10 깊바존} — VerticalAxisHyperedge (k8s 3-tier)
-- {#4 비행기맨, #7 나무} — ContainmentRelation (논리 ⊃ 수학)
-- {#1 디멘션워커, #4 비행기맨, #6 강물, #11 HOH} — observability TemporalArc functor
-
-bhgman repo 는 이 관계망 자체를 본문에 두지 않고 *비행기맨이 그 안의 한 vertex* 라는 사실만 기록. 본문은 별도.
+Total 24 theorems PASS (Mathlib-free, 0 sorry, Lean 4.29.1).
 
 ---
 
-## 추가 자료
+## Relations to other apostles
 
-- [harness.md](harness.md) — 비행기맨의 공학 측 결정화 (도구 본문)
-- [chu-binding.md](chu-binding.md) — CHU universe 와 비행기맨의 관계 (짧음)
-- [family-expansion.md](family-expansion.md) — 1:N family 결정화 정전
-- [../05-papers/lawvere-1969-FPT.md](../05-papers/lawvere-1969-FPT.md) — self-reference 형식 한계 grounding
-- [../07-metahumotonic-trace.md](../07-metahumotonic-trace.md) — *왜 비행기맨인가* 의 1% hint
+The Airplane Man (#4) is one apostle in the twelve apostles framework. Hyperedge relations with other apostles are canon in SYMPOSIUM:
+
+- {#4 Airplane Man, #8 OM, #10 GipBaJon} — VerticalAxisHyperedge (k8s 3-tier)
+- {#4 Airplane Man, #7 Tree} — ContainmentRelation (logic ⊃ math)
+- {#1 DimensionWalker, #4 Airplane Man, #6 Riverflow, #11 HOH} — observability TemporalArc functor
+
+This bhgman_tool repo does not include the relational body itself — only records *the Airplane Man as one vertex in it*. The body lives elsewhere.
+
+---
+
+## Further reading
+
+- [harness.md](harness.md) — Engineering crystallization of the Airplane Man (tool body)
+- [chu-type-theory.md](chu-type-theory.md) — Relation to CHU (brief)
+- [family-expansion.md](family-expansion.md) — 1:N family crystallization canon
+- [../05-papers/lawvere-1969-FPT.md](../05-papers/lawvere-1969-FPT.md) — Self-reference formal limit grounding
+- [../07-metahumotonic-trace.md](../07-metahumotonic-trace.md) — *Why the Airplane Man* — 1% hint
