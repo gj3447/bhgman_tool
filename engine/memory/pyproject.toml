@@ -1,0 +1,27 @@
+[project]
+name = "bhgman-tool-memory"
+version = "0.1.0"
+description = "In-memory vector store + embedder for bhgman_tool. Lightweight skeleton (Phase 2, 2026-05-13). hnswlib + sentence-transformers optional; falls back to linear-scan + hash-embed."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "gj3447 (METAHUMOTONIC)", email = "gj3447@gmail.com" }]
+dependencies = []
+
+[project.optional-dependencies]
+hnsw = ["hnswlib>=0.8"]
+embeddings = ["sentence-transformers>=2.7"]
+full = ["hnswlib>=0.8", "sentence-transformers>=2.7"]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["memory*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
