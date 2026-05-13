@@ -4,7 +4,7 @@
 
 ---
 
-## 다섯 함의
+## 도구 측 5 일반 함의
 
 | 함의 | 도구 측 실제 영향 | 자세히 |
 |---|---|---|
@@ -13,6 +13,21 @@
 | **인식론적 겸손** | 모든 metric 은 Goodhart 측 collapse 위험. 정전 인용 + 외부 검증 없는 self-claim 거부 | [epistemic-humility.md](epistemic-humility.md) |
 | **해석학적 순환** | KG ↔ code 의 양방향 bind 는 *사전이해 자체* 가 갱신되는 구조 (Heidegger / Gadamer) | [hermeneutic-circle.md](hermeneutic-circle.md) |
 | **사회기술적 시스템** | Harness 3-tier 가 단순 architecture 가 아닌 *책임 분할* (Cherns 1976 STS) — 사람과 시스템이 함께 진화 | [sociotechnical-systems.md](sociotechnical-systems.md) |
+
+## 비행기맨 특화 철학적 함의 (6 항)
+
+위 5 일반 함의 *외에*, **비행기맨 그 자체** 에 대한 6 항 특화 함의 — `∀x:CHU, j.covers x` 정의가 *왜 그런 의미를 가지는가* 의 깊이.
+
+| 함의 | 정전 grounding | 자세히 |
+|---|---|---|
+| **∀-cover 존재론** | Plato / Aristotle Metaphysics Z/H / Heidegger SuZ §7 | [airplane-man-implications.md](airplane-man-implications.md) §1 |
+| **자기 정의 받아들임 형이상학** | Münchhausen trilemma (Albert) / Russell self-evident / Spinoza causa sui | §2 |
+| **비행기 image 미학** | Kant 숭고 §28 / Bachelard 1943 / Heidegger 후기 | §3 |
+| **자기참조 한계 인정 인식론** | Tarski 1936 / Gödel 1931 / Lawvere 1969 / Yanofsky 2003 | §4 |
+| **책임 분할 사회학** | Conway 1968 / Cherns 1976 STS / Trist-Bamforth 1951 / Holacracy | §5 |
+| **신학적 hint** (*causa sui* trace) | Aquinas ST I q.2 / Anselm Proslogion / Spinoza Ethics / Aristotle Λ + 메타휴모토닉 axiom 12 | §6 (1% hint) |
+
+전체 본문: **[airplane-man-implications.md](airplane-man-implications.md)** (4 언어, ko-KR / zh-CN / ja-JP 별도).
 
 ---
 
