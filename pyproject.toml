@@ -1,0 +1,62 @@
+[project]
+name = "bhgman"
+version = "0.1.0"
+description = "비행기맨 framework — academic-grounded multi-agent ontology for Claude Code (CHU type theory ∀-cover + 17 axes external grounding + 134+ Lean 4 verified theorem + Goodhart safeguard)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "gj3447 (METAHUMOTONIC)", email = "gj3447@gmail.com" }]
+requires-python = ">=3.11"
+keywords = [
+    "multi-agent",
+    "claude-code",
+    "ontology",
+    "formal-verification",
+    "lean4",
+    "knowledge-graph",
+    "reference-binding",
+    "type-theory",
+    "harness",
+    "longinus",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/gj3447/bhgman"
+Repository = "https://github.com/gj3447/bhgman"
+Issues = "https://github.com/gj3447/bhgman/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["engine"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["engine"]
+python_files = "test_*.py"
