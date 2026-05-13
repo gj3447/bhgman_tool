@@ -29,10 +29,10 @@
 
 | Span | Status | Scope |
 |---|---|---|
-| `SPAN_bhgman_tool_phase3_ROOT` | open (depth=0, 50K ctx) | 3 sibling L1 branches |
-| `SPAN_bhgman_tool_phase3_CLI` | open (depth=1, 50K ctx, **in_progress**) | parent pyproject `[project.scripts]` + `bhgman_tool/cli/` Click entry + `install-skills` automation |
-| `SPAN_bhgman_tool_phase3_WORKED3` | open (depth=1, 50K ctx) | worked-3/ APT cycle dogfood example (review.md + tcw/st/sp/ta_report.md + test) |
-| `SPAN_bhgman_tool_phase3_MCP_TOOLS` | open (depth=1, 50K ctx) | MCP server first-class tool expansion 2→5 (`apt_phase_detect` / `taliban_lens_check` / `tpa_drift_audit` 추가) |
+| `SPAN_bhgman_tool_phase3_ROOT` | open (depth=0, 50K ctx) | 3 sibling L1 branches, all completed |
+| `SPAN_bhgman_tool_phase3_CLI` | **completed** (commit 9ea935f, 9 pytest PASS) | parent pyproject `[project.scripts]` + `engine/cli/` argparse entry + `install-skills` automation |
+| `SPAN_bhgman_tool_phase3_WORKED3` | **completed** (this commit, 8 pytest PASS, run.sh 4/4) | `worked/03-apt-cycle-on-self/` (README + review.md DOGFOOD_STANDARD + run.sh + expected_output.md + test) |
+| `SPAN_bhgman_tool_phase3_MCP_TOOLS` | **completed** (Phase 3 C commit, 18 new pytest PASS) | MCP server first-class tool expansion 2→5 (`apt_phase_detect` / `taliban_lens_check` / `tpa_drift_audit` 추가) |
 
 ---
 

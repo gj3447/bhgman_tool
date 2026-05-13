@@ -11,7 +11,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/pytest-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest](https://img.shields.io/badge/pytest-90%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
 
 </div>
 
