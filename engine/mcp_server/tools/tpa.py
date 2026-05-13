@@ -91,6 +91,37 @@ def _truncate(items: list[Any], limit: int = EXAMPLE_LIMIT) -> list[Any]:
     return items[:limit]
 
 
+_NOTE_AUDIT = (
+    "Skeleton-level detection. Missing/SigMismatch/PatternDiv need AST + Pattern Library; "
+    "the skeleton returns 0 with a 'deferred' marker rather than guessing. Orphan requires "
+    "kg_simulated.json at the repo root; otherwise it reports 0 (kg_simulated_present=false). "
+    "Goodhart safeguard: no coverage_ratio scalar; consumers must judge from per-type counts + "
+    "examples."
+)
+
+
+def _detect_orphans(refs: list[dict[str, Any]], known_kg: set[str] | None) -> list[dict[str, Any]]:
+    if known_kg is None:
+        return []
+    return [r for r in refs if r["kg_id"] not in known_kg]
+
+
+def _detect_label_rot(root: Path) -> list[dict[str, Any]]:
+    """KG ref + DEPRECATED/STALE marker on the same line."""
+    findings: list[dict[str, Any]] = []
+    for path in root.rglob("*.py"):
+        if any(part in _SKIP_DIRS for part in path.parts):
+            continue
+        try:
+            source = path.read_text(errors="replace")
+        except OSError:
+            continue
+        for i, line in enumerate(source.splitlines(), start=1):
+            if KG_REF_RE.search(line) and ("DEPRECATED" in line or "STALE" in line):
+                findings.append({"file": str(path.relative_to(root)), "line": i})
+    return findings
+
+
 def tpa_drift_audit_impl(repo_path: str) -> dict[str, Any]:
     """Count the 5 drift types for a target repo.
 
@@ -103,26 +134,11 @@ def tpa_drift_audit_impl(repo_path: str) -> dict[str, Any]:
     counts = {d: 0 for d in DRIFT_TYPES}
     examples: dict[str, list[dict[str, Any]]] = {d: [] for d in DRIFT_TYPES}
 
-    orphan_findings: list[dict[str, Any]] = []
-    if known_kg is not None:
-        for r in refs:
-            if r["kg_id"] not in known_kg:
-                orphan_findings.append(r)
-        counts["Orphan"] = len(orphan_findings)
-        examples["Orphan"] = _truncate(orphan_findings)
+    orphans = _detect_orphans(refs, known_kg)
+    counts["Orphan"] = len(orphans)
+    examples["Orphan"] = _truncate(orphans)
 
-    # LabelRot heuristic: kg_id followed by an explicit deprecation marker on the same line.
-    label_rot: list[dict[str, Any]] = []
-    for path in root.rglob("*.py"):
-        if any(part in _SKIP_DIRS for part in path.parts):
-            continue
-        try:
-            source = path.read_text(errors="replace")
-        except OSError:
-            continue
-        for i, line in enumerate(source.splitlines(), start=1):
-            if KG_REF_RE.search(line) and ("DEPRECATED" in line or "STALE" in line):
-                label_rot.append({"file": str(path.relative_to(root)), "line": i})
+    label_rot = _detect_label_rot(root)
     counts["LabelRot"] = len(label_rot)
     examples["LabelRot"] = _truncate(label_rot)
 
@@ -137,13 +153,7 @@ def tpa_drift_audit_impl(repo_path: str) -> dict[str, Any]:
         "drift_counts": counts,
         "drift_examples": examples,
         "deferred_drift_types": deferred,
-        "note": (
-            "Skeleton-level detection. Missing/SigMismatch/PatternDiv need AST + Pattern "
-            "Library; the skeleton returns 0 with a 'deferred' marker rather than guessing. "
-            "Orphan requires kg_simulated.json at the repo root; otherwise it reports 0 "
-            "(kg_simulated_present=false). Goodhart safeguard: no coverage_ratio scalar; "
-            "consumers must judge from per-type counts + examples."
-        ),
+        "note": _NOTE_AUDIT,
     }
 
 

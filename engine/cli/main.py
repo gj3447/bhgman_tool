@@ -97,40 +97,49 @@ def cmd_install_skills(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_engine(root: Path) -> str | None:
+    engine = root / "engine"
+    print(f"[verify] running pytest in {engine}")
+    rc = subprocess.call(
+        ["uv", "run", "--with", "pytest", "pytest", str(engine), "-q"],
+        cwd=root,
+    )
+    print(f"[verify] pytest exit={rc}")
+    return f"pytest:{rc}" if rc != 0 else None
+
+
+def _verify_lean(root: Path) -> list[str]:
+    lean = root / "lean"
+    if not lean.is_dir():
+        print(f"[verify] skip lean: {lean} not present")
+        return []
+    files = sorted(lean.glob("*.lean"))
+    print(f"[verify] lean: {len(files)} file(s) found")
+    failures: list[str] = []
+    for f in files:
+        rc = subprocess.call(["lean", str(f)], cwd=root)
+        marker = "OK" if rc == 0 else f"FAIL({rc})"
+        print(f"  [{marker}] {f.name}")
+        if rc != 0:
+            failures.append(f"lean:{f.name}:{rc}")
+    return failures
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     """Smoke-verify the repo: pytest on engine, optional lean.
 
     Not a coverage report. Reports exit codes of the underlying tools.
-    Goodhart safeguard: this prints raw exit codes, not a single
-    summary score.
+    Goodhart safeguard: this prints raw exit codes, not a single summary score.
     """
     root = _repo_root()
     failures: list[str] = []
 
     if args.scope in ("engine", "all"):
-        engine = root / "engine"
-        print(f"[verify] running pytest in {engine}")
-        rc = subprocess.call(
-            ["uv", "run", "--with", "pytest", "pytest", str(engine), "-q"],
-            cwd=root,
-        )
-        print(f"[verify] pytest exit={rc}")
-        if rc != 0:
-            failures.append(f"pytest:{rc}")
+        if (failure := _verify_engine(root)) is not None:
+            failures.append(failure)
 
     if args.scope in ("lean", "all"):
-        lean = root / "lean"
-        if not lean.is_dir():
-            print(f"[verify] skip lean: {lean} not present")
-        else:
-            files = sorted(lean.glob("*.lean"))
-            print(f"[verify] lean: {len(files)} file(s) found")
-            for f in files:
-                rc = subprocess.call(["lean", str(f)], cwd=root)
-                marker = "OK" if rc == 0 else f"FAIL({rc})"
-                print(f"  [{marker}] {f.name}")
-                if rc != 0:
-                    failures.append(f"lean:{f.name}:{rc}")
+        failures.extend(_verify_lean(root))
 
     if failures:
         print(f"[verify] FAILURES: {', '.join(failures)}", file=sys.stderr)

@@ -66,6 +66,57 @@ def _current_phase(detected: dict[str, bool]) -> str:
     return "unknown"
 
 
+_NOTE_NO_ARTIFACTS = (
+    "No apt-progress.md or feature-spans.json at repo root. The project may "
+    "track APT state in KG only — call this tool against a path that contains "
+    "the on-disk artifact, or upgrade to KG-backed detection (Phase 4)."
+)
+
+_NOTE_DETECTION = (
+    "File-based detection only; phase progression markers parsed from apt-progress.md "
+    "via regex. confidence=EXTRACTED requires apt-progress.md present. No scalar "
+    "score is reported — the boolean phase map and confidence tag are the canonical output."
+)
+
+
+def _empty_report(root: Path) -> dict[str, Any]:
+    return {
+        "repo_path": str(root),
+        "current_phase": "unknown",
+        "phases_detected": {p: False for p in APT_PHASES},
+        "evidence_sources": [],
+        "confidence": "AMBIGUOUS",
+        "note": _NOTE_NO_ARTIFACTS,
+    }
+
+
+def _read_progress_markers(progress: Path, detected: dict[str, bool]) -> None:
+    text = progress.read_text(errors="replace")
+    for phase, found in _detect_phases_in_text(text).items():
+        if found:
+            detected[phase] = True
+
+
+def _read_spans_file(spans_file: Path) -> list[dict[str, Any]]:
+    try:
+        data = json.loads(spans_file.read_text(errors="replace"))
+    except json.JSONDecodeError:
+        return []
+    if not (isinstance(data, dict) and isinstance(data.get("spans"), list)):
+        return []
+    summary: list[dict[str, Any]] = []
+    for s in data["spans"]:
+        if isinstance(s, dict) and isinstance(s.get("name"), str):
+            summary.append({"name": s["name"], "depth": s.get("depth"), "status": s.get("status")})
+    return summary
+
+
+def _confidence_for(phase: str, has_progress: bool) -> str:
+    if phase == "unknown":
+        return "AMBIGUOUS"
+    return "EXTRACTED" if has_progress else "INFERRED"
+
+
 def apt_phase_detect_impl(repo_path: str) -> dict[str, Any]:
     """Detect current APT phase by reading on-disk artifacts.
 
@@ -76,63 +127,30 @@ def apt_phase_detect_impl(repo_path: str) -> dict[str, Any]:
     spans_file = _find_feature_spans(root)
 
     if progress is None and spans_file is None:
-        return {
-            "repo_path": str(root),
-            "current_phase": "unknown",
-            "phases_detected": {p: False for p in APT_PHASES},
-            "evidence_sources": [],
-            "confidence": "AMBIGUOUS",
-            "note": (
-                "No apt-progress.md or feature-spans.json at repo root. The project may "
-                "track APT state in KG only — call this tool against a path that contains "
-                "the on-disk artifact, or upgrade to KG-backed detection (Phase 4)."
-            ),
-        }
+        return _empty_report(root)
 
     detected = {p: False for p in APT_PHASES}
     sources: list[str] = []
     spans_summary: list[dict[str, Any]] = []
 
     if progress is not None:
-        text = progress.read_text(errors="replace")
-        for phase, found in _detect_phases_in_text(text).items():
-            if found:
-                detected[phase] = True
+        _read_progress_markers(progress, detected)
         sources.append(progress.name)
 
     if spans_file is not None:
-        try:
-            data = json.loads(spans_file.read_text(errors="replace"))
-        except json.JSONDecodeError:
-            data = None
-        if isinstance(data, dict) and isinstance(data.get("spans"), list):
-            for s in data["spans"]:
-                if isinstance(s, dict) and isinstance(s.get("name"), str):
-                    spans_summary.append({
-                        "name": s["name"],
-                        "depth": s.get("depth"),
-                        "status": s.get("status"),
-                    })
+        spans_summary = _read_spans_file(spans_file)
+        if spans_summary:
             sources.append(spans_file.name)
 
     phase = _current_phase(detected)
-    confidence = "EXTRACTED" if progress is not None else "INFERRED"
-    if phase == "unknown":
-        confidence = "AMBIGUOUS"
-
     return {
         "repo_path": str(root),
         "current_phase": phase,
         "phases_detected": detected,
         "evidence_sources": sources,
         "spans_summary": spans_summary,
-        "confidence": confidence,
-        "note": (
-            "File-based detection only; phase progression markers parsed from apt-progress.md "
-            "via regex. confidence=EXTRACTED requires apt-progress.md present. No scalar "
-            "score is reported — the boolean phase map and confidence tag are the canonical "
-            "output."
-        ),
+        "confidence": _confidence_for(phase, progress is not None),
+        "note": _NOTE_DETECTION,
     }
 
 
