@@ -8,6 +8,7 @@
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
+[![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
@@ -72,6 +73,26 @@ The engineering crystallization (called **Harness**) of the Airplane Man (#4)'s 
 - ❌ OMC (Orbital Motion Cloud, OM=OMC, apostle #8) canon → separate repo `omc` (planned)
 - ❌ 333 (Hypervoid Volunteer, apostle #3) canon → separate repo `333` (planned)
 - ❌ Other 4 weapons (Longinus / Prometheus / Taliban / Jaebaeman) canon → reference only here, body in SYMPOSIUM
+
+---
+
+## Install from PyPI
+
+```bash
+# minimal (CLI + Pydantic-only models)
+pip install bhgman_tool
+
+# with APT v27 resolver (frontmatter + Jinja2 + Neo4j)
+pip install "bhgman_tool[resolver]"
+
+# with APT v27 gate endpoint (FastAPI + Redis + tenacity)
+pip install "bhgman_tool[gate]"
+
+# everything (resolver + gate + longinus runtime)
+pip install "bhgman_tool[all]"
+```
+
+> **Honest scope (Goodhart safeguard):** the PyPI wheel ships `engine/` only. Cohort A subcommands (`install-skills`, `verify`, `version`) require the source repo (`skills/` + `lean/`) to be present alongside — clone the repo for full functionality. The wheel is sufficient for `resolver` + `gate` + `engine.longinus_drift_audit` runtime use. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md) for publish protocol.
 
 ---
 

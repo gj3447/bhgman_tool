@@ -39,6 +39,8 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4",
     "mypy>=1.10",
+    "build>=1.2",
+    "twine>=5.1",
 ]
 # APT v27 A6 pre-prompt resolver (engine/resolver, Wave 7 P3-H 2026-05-14)
 resolver = [
@@ -56,6 +58,11 @@ gate = [
     "structlog>=24.4",
     "httpx>=0.27",
 ]
+# engine.longinus_drift_audit (Pydantic v2 runtime + Neo4j client + retry)
+longinus = [
+    "neo4j>=5.20.0",
+    "tenacity>=9.0",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
@@ -67,6 +74,18 @@ gate-test = [
     "httpx>=0.27",
     "fakeredis>=2.24",
 ]
+# Convenience aggregate — everything except dev tools
+all = [
+    "python-frontmatter>=1.1.0",
+    "Jinja2>=3.1.4",
+    "neo4j>=5.20.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "redis>=5.0",
+    "tenacity>=9.0",
+    "structlog>=24.4",
+    "httpx>=0.27",
+]
 
 [project.scripts]
 bhgman-tool = "engine.cli.main:cli"
@@ -75,13 +94,40 @@ bhgman-tool = "engine.cli.main:cli"
 Homepage = "https://github.com/gj3447/bhgman_tool"
 Repository = "https://github.com/gj3447/bhgman_tool"
 Issues = "https://github.com/gj3447/bhgman_tool/issues"
+Documentation = "https://github.com/gj3447/bhgman_tool/tree/main/docs"
+Changelog = "https://github.com/gj3447/bhgman_tool/commits/main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["engine"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/engine",
+  "/skills",
+  "/docs",
+  "/lean",
+  "/bin",
+  "/README.md",
+  "/README.ko-KR.md",
+  "/README.zh-CN.md",
+  "/README.ja-JP.md",
+  "/LICENSE",
+  "/pyproject.toml",
+]
+exclude = [
+  "**/__pycache__",
+  "**/*.pyc",
+  "**/.pytest_cache",
+  "**/.complexipy_cache",
+  "**/*.egg-info",
+  "/.venv",
+  "/dist",
+  "/build",
+]
 
 [tool.ruff]
 line-length = 100
