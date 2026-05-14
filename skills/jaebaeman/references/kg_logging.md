@@ -27,7 +27,8 @@ SET he.cycle_id = $cycle_id,
     he.cardinality_match = ($intent_N = $actual_N),
     he.dispatch_pattern = 'single-message-multi-call',  // SUB-OPTIMAL if 'sequential'
     he.parent_model = $parent_model,
-    he.subagent_type = $subagent_type,                  // 'taliban-ensemble-critic'|'prometheus-expert'|...
+    he.subagent_type = $subagent_type,                  // KG metadata ONLY (archetype label). NOT passed as Agent tool param — Anthropic Agent tool sig = (model, run_in_background, prompt) 만. 본문 §v2.3.
+                                                         // values: 'taliban-ensemble-critic'|'prometheus-expert'|...
     he.created_at = datetime()
 WITH he
 UNWIND $finding_names AS fn

@@ -86,6 +86,170 @@ RETURN m.formal_signature, collect(inst.name) AS instances
 
 # KG: rfc-apt-cs-axiom-visibility-drift-2026-04-29, rfc-apt-two-tier-cleanup-2026-04-29, Apt_FourPlusOne
 
+### v26.1-D. APT essence — S-functor factorization (2026-05-14)
+
+> APT 본질 정리: `F : MeaningSpace^∞ → SourceCode = F_SCW ∘ F_ST ∘ F_SP ∘ F_SA`.
+> 4-phase 파이프라인은 *철학적 비유*가 아니라 **Mac Lane CWM II.3 의미의 functor 합성**이다.
+
+```cypher
+// Essence canonical
+MATCH (e:AptEssence {name:'APT_essence_canonical_2026-05-14'})
+RETURN e.factorization, e.lean_proof_path, e.theorem_count
+// expected: factorization='F = F_SCW ∘ F_ST ∘ F_SP ∘ F_SA',
+//           theorem_count=12
+```
+
+**4 stage-functor** (각각 Aristotle αἰτία 매핑):
+
+| Functor | 출발 | 도착 | Aristotle 원인 |
+|---|---|---|---|
+| `F_SA`  | MeaningSpace  | AnchorCtx       | Material (질료) |
+| `F_SP`  | AnchorCtx     | SpanDecomp      | Formal (형상) |
+| `F_ST`  | SpanDecomp    | ContractSchema  | Efficient (작용) |
+| `F_SCW` | ContractSchema| SourceCode      | Final (목적) |
+
+**핵심 정리** (12 theorem / 0 sorry / Lean 4.29.1 PASS):
+- T1 `F_total_well_typed` / T2 `factorization_associative` / T3 `factorization_matches_seed`
+- T4 `F_total_obj_chain` / T5-T8 `F_{SA,SP,ST,SCW}_id` (각 stage functoriality)
+- T9 `cardinality_monotonic_4stage` (Hegel Aufhebung) / T10 `cardinality_endpoints_bound`
+- T11 `apt_essence_witnessed` (6 본질 불변량) / T12 `essence_seed_equation`
+
+Sister Lean: `APT_Cycle_Functor.lean` (phase-level, 9 thm) + `APT_FunctorFactorization.lean` (morphism-level, 12 thm — functor laws, NEW 2026-05-14).
+
+# KG: APT_essence_canonical_2026-05-14, span-essence-S-functor-2026-05-14, apt-philosophical-foundations-2026-05-11
+
+---
+
+## 🛠 5무기 Phase Integration Matrix — Active Weapon Calls (NEW 2026-05-14)
+
+> **APT 는 indirect MIC slot reference 만으로는 살아있지 않다.** 각 phase 가 *어느 무기*를 *어느 step*에서 *어떻게* 호출하는지 명시적이지 않으면 5무기는 dormant slot 으로 남는다. 본 섹션은 그 활성 호출망을 1:1 표화한 *integration matrix*. MIC slot indirect → 명시적 invocation pattern 으로 격상.
+
+### A. Integration Matrix — Phase × Weapon × Step × Invocation
+
+| Phase | Primary Weapons | Step in Phase | Invocation Pattern | Output |
+|-------|----------------|---------------|--------------------|--------|
+| **SA** (1/5) | **Prometheus** + **Longinus** | Step 1 KG 탐색 / Step 2 anchor 결정 / Step 3 5 core fields | `/prom <N> "<sa_topic>"` (지식 선행) + Longinus L1-L2 reverse binding (KG anchor → 기존 SemanticAnchor 후보) | `SemanticAnchor` 노드 + `ResearchFinding` N 개 (verified=true) + L1-L2 ReferenceSite |
+| **SP** (2/5) | **재배맨** + **Taliban** | Step 4 D(S) 재귀 분해 / Step 5 wave_index 할당 / Step 6 C(S) 5-predicate gate | `재배맨` SubagentTaskSpec seed per Span (parallel decomposition) + `/tlb <SPAN> --lens constitutional` per Crystallization Frontier 진입 후보 | `Span` DAG (모든 leaf = `AtomicSpan`) + `VerdictRecord` per gate |
+| **ST** (3/5) | **Longinus** + **재배맨** | Step 7 Contract DTO 결정화 / Step 8 ReferenceSite 7-tuple binding / Step 9 1:1:1:1 (AtomicSpan : Contract : Task : Seed) | Longinus L3-L4 binding (Contract → AtomicSpan ReferenceSite) + 재배맨 per-AtomicSpan SubagentTaskSpec seed (TDD RED → GREEN test 4-tuple) | `Contract` (DbC 4-측면) + `SemanticTask` + `SubagentTaskSpec` (per AtomicSpan) + Longinus 7-tuple |
+| **SCW** (4/5) | **재배맨** + **Taliban** + **Longinus** | Step 10 wave dispatch (single-message N parallel) / Step 11 RED→GREEN→REFACTOR / Step 12 Code→KG ref comment / Step 13 FulfillmentGate | 재배맨 single-message parallel `Task` dispatch (max=`parallel_max_agents`) + Longinus L5-L7 forward binding (Code → KG ref `# KG: <node>` comment) + `/tlb` FulfillmentGate 7-check | `SourceCodeNode` (with `# KG:` refs) + `MATERIALIZES` edges + Taliban `FulfillmentGate` verdict |
+| **MetaReview** (5/5) | **Taliban** + **Prometheus** | Step 14 의심 발견 / Step 15 Lesson 결정화 / Step 16 SKILL.md 패치 / Step 17 Taliban Gate 자체재검증 | `/tlb <MetaReview output> --lens constitutional` (rubber-stamp 방지) + `/prom <small N> "<lesson_topic>"` (lesson distillation, 외부 정전 grounding) | `Lesson` node + SKILL.md MIC slot patch + `VerdictRecord` Taliban gate APPROVED |
+| **Cleanup** (6/5, RFC2) | **Harness** + **Taliban** | Step 18 3-tier package audit / Step 19 4-tool ratchet / Step 20 folder-level CCP/ADP gate | Harness 3-tier (IDE-host / runtime / managed) 매핑 진단 + `/88-taliban <folder>` mathematical lens (CCP/CRP/REP/ADP/SDP/SAP folder-level audit) + `tach + complexipy + lizard + vulture + deptry` 4-tool ratchet | `CleanupVerdict` (PASS/NEEDS_REFACTOR/BLOCK) + Harness tier 라벨 + folder-level Lesson |
+
+### B. Cypher Snippet — Weapon Invocation per Phase
+
+```cypher
+// SA phase: Prometheus 호출 (knowledge pre-fetch via MIC ResearchProvider slot)
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+      -[:HAS_SLOT]->(s:MethodologySlot {name:'ResearchProvider'})
+RETURN s.currentConcrete AS weapon, s.invocation AS pattern
+// expected: weapon='Prometheus', pattern='/prom <N> "<topic> — <subgoal>"'
+// trigger: SA Step 1 (KG sparse: INFORMED_BY < density_min_informed_by) OR Step 3 (new SemanticAnchor 5 core fields 미충족)
+
+// SA phase: Longinus 호출 (KG anchor binding via 7-Layer Reference slot)
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+      -[:HAS_SLOT]->(s:MethodologySlot {name:'KgCodeBinder'})
+RETURN s.currentConcrete AS weapon, s.invocation AS pattern
+// expected: weapon='Longinus', pattern='L1-L7 ReferenceSite 7-tuple binding'
+// trigger: SA Step 2 (anchor 재사용/브랜치 결정 시 기존 SemanticAnchor 후보 reverse scan)
+
+// SP phase: 재배맨 호출 (Span DAG decomposition seed via SubagentSeeder slot)
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+      -[:HAS_SLOT]->(s:MethodologySlot {name:'SubagentSeeder'})
+RETURN s.currentConcrete AS weapon, s.invocation AS pattern
+// expected: weapon='재배맨/JaebaeMan', pattern='SubagentTaskSpec UNWIND batch, parent Pre-fetch → Dispatch → Collect → Write'
+// trigger: SP Step 4 (D(S) recursive decomposition — 자식 Span 후보 N 개 parallel research)
+
+// SP phase: Taliban 호출 (Crystallization Frontier 진입 gate via AdversarialValidator slot)
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+      -[:HAS_SLOT]->(s:MethodologySlot {name:'AdversarialValidator'})
+MATCH (ls:LensSet {name:'constitutional'}) WHERE ls.deprecated <> true
+RETURN s.currentConcrete AS weapon, s.invocation AS pattern, ls.lens_count AS lens_count
+// expected: weapon='Taliban', pattern='/tlb <SPAN_id> --lens constitutional'
+// trigger: SP Step 6 (Span → AtomicSpan 격상 후보 C(S) 5-predicate gate 진입)
+
+// ST phase: Longinus 호출 (Contract → ReferenceSite 7-tuple binding)
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+      -[:HAS_SLOT]->(s:MethodologySlot {name:'KgCodeBinder'})
+RETURN s.currentConcrete AS weapon, s.invocation AS pattern
+// trigger: ST Step 8 (Contract 결정화 직후 AtomicSpan 측 ReferenceSite 7-tuple 작성)
+
+// ST phase: 재배맨 호출 (per-AtomicSpan 1:1:1:1 Contract+Task+Seed)
+// trigger: ST Step 9 (Crystallization Frontier 통과 후 AtomicSpan 마다 SubagentTaskSpec seed 자동 생성)
+
+// SCW phase: 재배맨 wave dispatch (single-message N parallel Task call)
+MATCH (cfg:MethodologyConfig {name:'MethodologyConfig_default_v26'})
+RETURN cfg.parallel_max_agents AS max_parallel, cfg.parallel_strategy AS strategy
+// trigger: SCW Step 10 (wave_index 같은 SubagentTaskSpec batch → single-message Task() dispatch)
+
+// SCW phase: Longinus Code→KG ref comment (forward binding L5-L7)
+// trigger: SCW Step 12 (GREEN 통과 후 코드 작성 시 모든 함수/클래스에 `# KG: <node_name>` 주석 강제)
+
+// SCW phase: Taliban FulfillmentGate 7-check
+MATCH (ls:LensSet {name:'constitutional'}) RETURN ls.lens_count
+// trigger: SCW Step 13 (cargo test PASS + 7-check)
+
+// MetaReview phase: Taliban 자체재검증 + Prometheus lesson distillation
+MATCH (s1:MethodologySlot {name:'AdversarialValidator'}),
+      (s2:MethodologySlot {name:'ResearchProvider'})
+RETURN s1.invocation AS taliban_call, s2.invocation AS prometheus_call
+// trigger: MetaReview Step 17
+
+// Cleanup phase: Harness 3-tier + Taliban folder-level audit
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+      -[:HAS_SLOT]->(s:MethodologySlot {name:'Harness'})
+RETURN s.currentConcrete AS weapon, s.invocation AS pattern
+// expected: weapon='Harness', pattern='3-tier instance routing (L_MC/L_RT/L_IDE)'
+// trigger: Cleanup Step 18
+
+MATCH (ls:LensSet {name:'mathematical'}) WHERE ls.deprecated <> true RETURN ls.lens_count
+// trigger: Cleanup Step 19-20 (88-taliban mathematical lens 측 folder-level CCP/ADP audit)
+```
+
+### C. KnowledgeHub Cross-Link (Active Hub Resolve)
+
+> 본 matrix 측 각 weapon 측 정전 hub 노드는 KG 측 `hub-*` KnowledgeHub 노드. SKILL.md drift 시 hub 측 resolve 로 대체.
+
+```cypher
+MATCH (h:KnowledgeHub) WHERE h.name STARTS WITH 'hub-'
+  AND h.name IN [
+    'hub-prometheus-research', 'hub-jaebaeman-sop', 'hub-taliban-immunity',
+    'hub-longinus-reference', 'hub-harness-3tier'
+  ]
+RETURN h.name AS hub, h.canonical_skill AS skill_path, h.essence AS essence_one_liner
+ORDER BY h.name
+```
+
+| Hub | Skill path | Essence (one-liner) |
+|-----|------------|---------------------|
+| `hub-prometheus-research` | `skills/prometheus/SKILL.md` | 지식-행동 spiral (Hegel reframe), N parallel subagent UNWIND batch |
+| `hub-jaebaeman-sop` | `skills/jaebaeman/SKILL.md` | Subagent Orchestration Protocol — KG 측 SubagentTaskSpec 씨앗 기반 |
+| `hub-taliban-immunity` | `skills/taliban/SKILL.md` | 적대적 검증 GAN-D, LensSet 플러거블 (constitutional/mathematical/solid) |
+| `hub-longinus-reference` | `skills/longinus/SKILL.md` | 7-Layer Reference Model + BX Lens Laws, KG ↔ Code 양방향 binding |
+| `hub-harness-3tier` | `skills/harness/SKILL.md` | Industry agent scaffolding 3-tier (IDE-host / runtime / managed) sibling family |
+
+### D. Phase Transition mini-RGR — Weapon Call Trigger (RFC2 v26.1)
+
+> Two-tier cleanup 측 *local* mini-RGR (RFC2) 도 5무기 측 호출 trigger 가 박혀있다.
+
+| Transition | RED beat | GREEN beat | REFACTOR beat |
+|-----------|----------|-----------|---------------|
+| SA → SP | (없음 — SA 결정화 직후) | Taliban `--lens constitutional` (SA 5 core fields 완전성 gate) | 재배맨 (SP Span 첫 분해 SubagentTaskSpec seed) |
+| SP → ST | Taliban prior contract conflict 검사 | Taliban Crystallization Frontier gate (모든 leaf=AtomicSpan) | Longinus 중복 ReferenceSite 통합 |
+| ST → SCW | Taliban prior code conflict 검사 (file move/delete plan) | 재배맨 wave dispatch GO/NO-GO | Harness 3-tier file placement audit (atomic-span dump 평면 누적 차단) |
+
+### E. Anti-Pattern — Weapon Bypass Failure Modes
+
+| Anti-pattern | Phase | 위반 무기 | 위반 결과 | 정정 |
+|--------------|-------|-----------|-----------|------|
+| KG-skip framing (R1-R5 미수행) | 임의 | Prometheus | 외부 정전 grounding 없는 가설 | `MIC_v1.ReasoningProtocol → KGFirstCheck_v1` 강제 |
+| Same-model critic | Gate 전체 | Taliban | Rubber-stamp 자기재검증 | HR3 (Critic model differs from design model) |
+| No KG ref comment | SCW | Longinus | Code orphan, drift detect 불가 | SCW Step 12 강제 `# KG:` 주석 |
+| Sequential Task dispatch | SCW | 재배맨 | wave-batch ≠ true parallel | single-message N Task() in one assistant turn |
+| Folder flat dump | Cleanup | Harness | CCP/ADP 위반, 평면 누적 | 4-tool ratchet + 3-tier 매핑 진단 |
+| Self-application | MetaReview | Taliban | 무한 recursion (max_depth=1, delta=0) | `self_application_forbidden=true` 강제 |
+
+# KG: hub-prometheus-research, hub-jaebaeman-sop, hub-taliban-immunity, hub-longinus-reference, hub-harness-3tier, MIC_v1, lesson-feedback-is-emergent-not-weapon-2026-04-16
+
 ---
 
 ## 🔗 MIC Binding (SOLID-DIP) — 재배맨 진짜 구조

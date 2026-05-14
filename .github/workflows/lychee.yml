@@ -1,0 +1,105 @@
+# bhgman_tool — Link Checker + License/Plugin Manifest Validation
+# Wave 7 P2-B CI/CD — absorbed from SYMPOSIUM (ad-symposium-cicd-lychee-workflow-2026-05-14)
+# trigger: push to main, PR (all branches)
+# KG: span-bhgman-cicd-absorption-wave7-2026-05-14
+
+name: lychee-and-manifest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write   # lychee-action creates issue on broken-link batch (optional)
+
+jobs:
+  link-check:
+    name: Markdown / HTML link audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Restore lychee cache
+        uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: lychee-cache-${{ github.run_id }}
+          restore-keys: |
+            lychee-cache-
+
+      - name: Run lychee link checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # honors lychee.toml at repo root
+          args: >-
+            --config lychee.toml
+            --no-progress
+            --cache
+            --max-cache-age 1d
+            './**/*.md'
+            './**/*.html'
+          fail: true
+          jobSummary: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  manifest-validate:
+    name: LICENSE + plugin.json + frontmatter
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: LICENSE presence check
+        run: |
+          set -e
+          test -f LICENSE && echo "LICENSE present at repo root" || (echo "::error::LICENSE missing"; exit 1)
+          head -1 LICENSE
+
+      - name: Install validators
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml jsonschema python-frontmatter
+
+      - name: Validate plugin.json files (JSON well-formed)
+        run: |
+          set -e
+          fail=0
+          # Find every .claude-plugin/plugin.json across plugins/ and skills/
+          while IFS= read -r f; do
+            python -c "import json,sys; json.load(open('$f')); print('OK', '$f')" || fail=1
+          done < <(find . -name 'plugin.json' -print 2>/dev/null | grep -F '.claude-plugin/')
+          exit $fail
+
+      - name: Validate SKILL.md frontmatter (name/description required)
+        run: |
+          python - <<'PY'
+          import sys, pathlib, frontmatter
+          fail = []
+          for p in pathlib.Path('.').rglob('SKILL.md'):
+              if any(part in {'node_modules', '.git', '.venv', '__pycache__'} for part in p.parts):
+                  continue
+              try:
+                  post = frontmatter.load(p)
+                  meta = post.metadata or {}
+                  for key in ('name', 'description'):
+                      if key not in meta or not str(meta[key]).strip():
+                          fail.append(f"{p}: missing '{key}' in frontmatter")
+              except Exception as e:
+                  fail.append(f"{p}: parse error {e}")
+          if fail:
+              print("::error::Frontmatter validation failed")
+              for line in fail:
+                  print(f"  {line}")
+              sys.exit(1)
+          print(f"All SKILL.md frontmatter validated")
+          PY

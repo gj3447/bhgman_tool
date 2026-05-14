@@ -1,7 +1,7 @@
 [project]
 name = "longinus-drift-audit"
-version = "0.1.0"
-description = "Longinus methodology v3.2 — 7-Layer Reference Model + BX Lens Laws + 5 drift detector + GED quantification + Reverse Orphan Scan runtime prototype"
+version = "0.2.0"
+description = "Longinus methodology v3.3 — 7-Layer Reference Model + BX Lens Laws + 5 drift detector + GED + Reverse Orphan Scan + sha256 baseline + Forward Orphan Scan (Wave 6 absorbed 2026-05-14)"
 requires-python = ">=3.11"
 dependencies = [
   "pydantic>=2.9",
@@ -30,6 +30,8 @@ py-modules = [
   "drift_detector",
   "ged_metric",
   "reverse_orphan_scan",
+  "sha256_baseline",
+  "forward_orphan_scan",
   "audit_runner",
   "daemon",
   "daemon_cli",

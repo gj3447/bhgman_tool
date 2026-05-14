@@ -13,12 +13,14 @@ from pathlib import Path
 
 import code_scanner
 import drift_detector
+import forward_orphan_scan
 import ged_metric
 import reference_layers
 import reverse_orphan_scan
+import sha256_baseline
 from bx_lens import make_dict_lens
 from kg_client import KgClient, MockKgClient
-from models import AuditReport, KgRefRecord
+from models import AuditReport, KgRefRecord, Sha256Status
 
 
 class LonginusAudit:
@@ -40,7 +42,13 @@ class LonginusAudit:
         ).hexdigest()[:12]
         return f"longinus-audit-{h}"
 
-    def run_full(self) -> AuditReport:
+    def run_full(self, *, verify_sha256: bool = True) -> AuditReport:
+        """Full Longinus audit cycle.
+
+        Wave 6 additions (2026-05-14):
+            - sha256 baseline verify (BX PutGet roundtrip on disk hash)
+            - forward orphan scan (KG :KnowledgeHub → package_path materialization)
+        """
         # 1. Scan code
         symbols, _flat_refs = code_scanner.scan_root(self.code_root)
 
@@ -52,8 +60,24 @@ class LonginusAudit:
         drift_records = drift_detector.detect_all(symbols=symbols, kg_refs=kg_refs)
         drift_summary = drift_detector.summarize_drifts(drift_records)
 
-        # 4. Reverse Orphan
+        # 4. Reverse Orphan (Code → KG)
         orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=symbols)
+
+        # 4b. Forward Orphan (KG hub → disk) — Wave 6
+        hubs = self.kg.list_knowledge_hubs()
+        forward_orphans = forward_orphan_scan.scan_forward_orphans(hubs)
+
+        # 4c. sha256 baseline verify — Wave 6
+        sha256_sites = self.kg.list_reference_site_states()
+        sha256_baseline_count = sum(
+            1 for s in sha256_sites if s.sha256_baseline
+        )
+        sha256_drift_events: list = []
+        if verify_sha256 and sha256_sites:
+            verify_result = sha256_baseline.verify_baseline(
+                kg=self.kg, sites=sha256_sites
+            )
+            sha256_drift_events = verify_result.drift_events
 
         # 5. GED
         ged_report = ged_metric.compute_ged(kg_refs=kg_refs, code_symbols=symbols)
@@ -92,6 +116,9 @@ class LonginusAudit:
             drifts_by_type=drift_summary,
             drift_records=drift_records,
             reverse_orphans=orphans,
+            forward_orphans=forward_orphans,
+            sha256_drift_events=sha256_drift_events,
+            sha256_baseline_count=sha256_baseline_count,
             layer_coverage=layer_cov,
             lens_verification=lens_verif,
             ged_report=ged_report,

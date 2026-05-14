@@ -1,0 +1,59 @@
+{
+  "_comment": "예시 OPA Rego input.json — kg_sync/cypher_to_rego_translator.py 산출 형식",
+  "_use": "conftest verify --policy policies/ example_input.json",
+
+  "gate_name": "G_SP_to_ST",
+  "cycle_id": "prom16-apt-v26-unresolved-4-2026-04-30",
+
+  "kg": {
+    "methodology_config": {
+      "vibe_coding_sweet_min": 200,
+      "vibe_coding_sweet_max": 500,
+      "lens_count_constitutional": 9,
+      "contract_default_fields": 7,
+      "st_decision_areas": 8
+    },
+    "related_lessons": [
+      "lesson-prom16-apt-v26-unresolved-4-issues-2026-04-30",
+      "lesson-apt-gdsl-narray-hypergraph-2026-04-17"
+    ],
+    "skill_md_inline_numbers_count": 0,
+    "cfg_orphan_field_count": 0
+  },
+
+  "lens_results": {
+    "evidence-backed":            { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["finding_prom16apt_A1S1"] },
+    "non-rubber-stamp":           { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["finding_prom16apt_A2S2"] },
+    "executor-not-equal-critic":  { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["audit-G3.5-abc123"] },
+    "lensset-completeness":       { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["LensSet_constitutional_v1"] },
+    "min-findings-per-lens":      { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["finding_prom16apt_A3S1"] },
+    "ground-truth-anchored":      { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["lesson-prom16-apt-v26-unresolved-4-issues-2026-04-30"] },
+    "post-gate-reflection":       { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["lesson-meta-apt-methodology-improvement-cycle-2026-04-30"] },
+    "longinus-binding-checked":   { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["longinus_l7_drift_check"] },
+    "feedback-loop-instance":     { "verdict": "PASS", "evidence_cited": true,  "evidence_findings": ["agent-feedback-loop-canonical-2026-04-27"] }
+  },
+
+  "sp": {
+    "leaves": [
+      {
+        "name": "leaf-1",
+        "is_atomic": true,
+        "objective": "...",
+        "definition": "...",
+        "keyAssertion": "...",
+        "verification": "...",
+        "c_s_predicate": "..."
+      }
+    ]
+  },
+
+  "taliban_verdict": "APPROVED",
+  "taliban_lens_count": 9,
+
+  "gate_decision": {
+    "audit_id": "audit-G_SP_to_ST-2026-04-30T12-34-56",
+    "executor": "haiku-A1S1",
+    "critic": "haiku-A4S4",
+    "break_glass_token_valid": false
+  }
+}

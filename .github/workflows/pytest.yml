@@ -1,0 +1,98 @@
+# bhgman_tool — Python pytest matrix
+# Wave 7 P2-B CI/CD — absorbed from SYMPOSIUM (ad-symposium-cicd-pytest-workflow-2026-05-14)
+#   suites: engine/cli, engine/mcp_server, engine/longinus_drift_audit
+# Note: complements existing ci.yml (broader py3.11/3.12/3.13 matrix on longinus_drift_audit);
+#       this file is path-filtered and runs full suite per engine subpackage.
+# trigger: push main + PR with path filter
+# KG: span-bhgman-cicd-absorption-wave7-2026-05-14
+
+name: pytest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'engine/cli/**'
+      - 'engine/mcp_server/**'
+      - 'engine/longinus_drift_audit/**'
+      - '.github/workflows/pytest.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'engine/cli/**'
+      - 'engine/mcp_server/**'
+      - 'engine/longinus_drift_audit/**'
+      - '.github/workflows/pytest.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (${{ matrix.suite }} / py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12']
+        suite:
+          - cli
+          - mcp_server
+          - longinus_drift_audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install pytest core
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov
+
+      # ── suite: engine/cli
+      - name: Install deps — engine/cli
+        if: matrix.suite == 'cli'
+        run: |
+          # cli imports from engine.* package layout — install repo root in editable mode
+          pip install -e . || pip install pyyaml python-frontmatter httpx
+
+      - name: Run engine/cli tests
+        if: matrix.suite == 'cli'
+        run: |
+          pytest engine/cli/tests/ --tb=short -v
+
+      # ── suite: engine/mcp_server
+      - name: Install deps — engine/mcp_server
+        if: matrix.suite == 'mcp_server'
+        working-directory: engine/mcp_server
+        run: |
+          pip install -e ".[dev]" || pip install -e .
+          # Common deps regardless of pyproject extras
+          pip install httpx pyyaml python-frontmatter
+
+      - name: Run engine/mcp_server tests
+        if: matrix.suite == 'mcp_server'
+        working-directory: engine/mcp_server
+        run: |
+          pytest tests/ --tb=short -v
+
+      # ── suite: engine/longinus_drift_audit
+      - name: Install deps — engine/longinus_drift_audit
+        if: matrix.suite == 'longinus_drift_audit'
+        working-directory: engine/longinus_drift_audit
+        run: |
+          pip install -e ".[dev]" || pip install -e .
+
+      - name: Run engine/longinus_drift_audit tests
+        if: matrix.suite == 'longinus_drift_audit'
+        working-directory: engine/longinus_drift_audit
+        run: |
+          pytest tests/ --tb=short -v

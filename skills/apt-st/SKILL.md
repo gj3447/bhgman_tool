@@ -11,6 +11,7 @@ description: >
   v26 A2 — Contract v2 (9 canonical axes + access_rights_closure + ArchitectureContract subtype + 6 CrossAxisInvariant + ReferenceSite/DriftMorphism) via ContractSchema slot.
   v25: SharedType → Contract.shared=true flag. SemanticTask = MethodologyConfig.vibe_coding_sweet 200-500 line.
   v24: KG 정본 기반 재설계. AptClarificationNote 반영.
+  Active Weapons (2026-05-14): Longinus L3-L4 binding (Contract → AtomicSpan ReferenceSite 7-tuple, Step 8) + 재배맨 per-AtomicSpan SubagentTaskSpec seed (1:1:1:1 Contract:Task:Seed:AtomicSpan, Step 9) + Taliban `/tlb <Contract> --lens constitutional` RefinementGate (Step 9.5). hub-longinus-reference + hub-jaebaeman-sop + hub-taliban-immunity resolve.
   # KG: ATOM_Skill_apt_st_v27, lesson-st-cover-scope-exhaustive-2026-04-29, lesson-st-cover-tier1-complete-2026-04-29, APT_v26_RFC_draft_2026-04-21, SA_Contract_v2_DbC_Interface_2026-04-21_v2
 ---
 
@@ -68,6 +69,28 @@ RETURN s.name, s.currentConcrete, s.invocation
 ```
 
 # KG: MIC_v1, lesson-apt-not-truly-jaebaeman-2026-04-14
+
+---
+
+## ⚔ Active Weapons — Phase ST (3/5)
+
+> ST 측 활성 5무기 (parent /apt orchestrator §"5무기 Phase Integration Matrix" mirror).
+
+| Step | Weapon | Invocation | Trigger | Output |
+|------|--------|-----------|---------|--------|
+| Step 7 (Contract DTO 결정화) | **재배맨** (SubagentSeeder) | per-AtomicSpan parallel research → Contract DbC 4-측면 합의 | Crystallization Frontier 통과 직후 (all leaves = AtomicSpan) | `Contract` (input_type/output_type/pre/post/invariant) |
+| Step 8 (ReferenceSite 7-tuple binding) | **Longinus** (KgCodeBinder) | L3-L4 forward binding: `(:Contract)-[:HAS_REFERENCE_SITE]->(:ReferenceSite {name, kind, source, target, cardinality, label, provenance})` | Contract 결정화 직후 | `ReferenceSite` per Contract (7-tuple complete) + Longinus L3-L4 trace |
+| Step 9 (1:1:1:1 seed) | **재배맨** (SubagentSeeder) | per-AtomicSpan SubagentTaskSpec seed (TDD RED test 4-tuple: file/contract_ref/test_id/expected) | Contract APPROVED 직후 | `SubagentTaskSpec` per AtomicSpan (SCW wave dispatch 준비) |
+| Step 9.5 (RefinementGate) | **Taliban** (AdversarialValidator) | `/tlb <Contract_id> --lens constitutional` (LensSet completeness mandatory) | Contract + SubagentTaskSpec 작성 직후 | `VerdictRecord` APPROVED + SCW 진입 trigger |
+
+**ST→SCW mini-RGR** (RFC2 transition):
+- RED: Taliban prior code conflict 검사 (작성할 file path 측 sibling 충돌)
+- GREEN: 재배맨 wave dispatch GO/NO-GO (wave_index 같은 SubagentTaskSpec batch 측 readiness)
+- REFACTOR: Harness 3-tier file placement audit (atomic-span dump 평면 누적 차단 — IDE-host / runtime / managed 측 정확 layer 배치)
+
+**ST 진입 hub**: `hub-longinus-reference` (Contract ReferenceSite 7-tuple) + `hub-jaebaeman-sop` (1:1:1:1 seed) + `hub-taliban-immunity` (RefinementGate).
+
+# KG: hub-longinus-reference, hub-jaebaeman-sop, hub-taliban-immunity, MIC_v1.KgCodeBinder, MIC_v1.SubagentSeeder, MIC_v1.AdversarialValidator
 
 ---
 

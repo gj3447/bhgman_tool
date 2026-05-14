@@ -10,6 +10,7 @@ description: >
   v26 A5: FulfillmentGate 7 checks enforced via apt-gate-check.sh Cypher query (executor!=critic + LensSet completeness + prior VR APPROVED). TDAD (impact_tests mandatory).
   v26 A4: vibe_coding_sweet/min/hard_max via MethodologyConfig slot (no more hardcoded 500).
   v24: KG 정본 기반 재설계. AptClarificationNote 반영.
+  Active Weapons (2026-05-14): 재배맨 single-message N parallel Task dispatch (wave_index batch, Step 10) + Longinus L5-L7 forward binding (Code → `# KG:` ref comment, Step 12) + Taliban `/tlb <SourceCodeNode> --lens constitutional` FulfillmentGate 7-check (Step 13). hub-jaebaeman-sop + hub-longinus-reference + hub-taliban-immunity resolve.
   # KG: ATOM_Skill_apt_scw, CONTRACT_apt_scw, APT_v26_RFC_draft_2026-04-21, ATOM_APT_v26_Gate_Hook_Lens_Enforcement_2026-04-21
 ---
 
@@ -51,6 +52,28 @@ RETURN s.name, s.currentConcrete, s.invocation
 ```
 
 # KG: MIC_v1, lesson-apt-not-truly-jaebaeman-2026-04-14
+
+---
+
+## ⚔ Active Weapons — Phase SCW (4/5)
+
+> SCW 측 활성 5무기 (parent /apt orchestrator §"5무기 Phase Integration Matrix" mirror).
+
+| Step | Weapon | Invocation | Trigger | Output |
+|------|--------|-----------|---------|--------|
+| Step 10 (wave dispatch) | **재배맨** (SubagentSeeder) | single-message N parallel `Task()` calls (max=`cfg.parallel_max_agents`, wave_index 같은 SubagentTaskSpec batch) | ST APPROVED + AtomicSpan.wave_index 결정 + SubagentTaskSpec FK 준비 | N 개 parallel implementation results (single assistant turn) |
+| Step 11 (TDD RED→GREEN→REFACTOR) | **재배맨** + **Taliban** | per-Task: RED test write → GREEN code → impact_tests verify → mini-RGR | wave dispatch 후 각 Task 내부 | Code + test (per AtomicSpan, ≤ `cfg.vibe_coding_hard_max` LOC) |
+| Step 12 (Code → KG ref comment) | **Longinus** (KgCodeBinder) | L5-L7 forward binding: 모든 함수/클래스/모듈에 `# KG: <node_name>` 주석 강제 | GREEN 통과 직후 (PostToolUse Write/Edit hook) | `SourceCodeNode` + `MATERIALIZES` edge + Longinus 7-tuple binding |
+| Step 13 (FulfillmentGate 7-check) | **Taliban** (AdversarialValidator) | `/tlb <SourceCodeNode> --lens constitutional`: (1) executor!=critic (2) LensSet completeness (3) prior VR APPROVED (4) Contract 4-측면 충족 (5) `# KG:` ref 존재 (6) impact_tests PASS (7) fat-file ratchet 통과 | 모든 wave task GREEN + Longinus binding 완료 | `VerdictRecord` APPROVED + Cleanup 진입 trigger |
+
+**SCW 진입 hub**: `hub-jaebaeman-sop` (wave dispatch parallel) + `hub-longinus-reference` (Code↔KG binding) + `hub-taliban-immunity` (FulfillmentGate).
+
+**Anti-pattern 금지**:
+- Sequential Task dispatch (= 재배맨 위반) — 반드시 *single assistant turn* 측 N parallel.
+- Code orphan (= Longinus 위반) — `# KG:` 주석 없는 함수/클래스는 PostToolUse hook 측 차단.
+- Same-model critic (= Taliban HR3 위반) — design model ≠ critic model 강제.
+
+# KG: hub-jaebaeman-sop, hub-longinus-reference, hub-taliban-immunity, MIC_v1.SubagentSeeder, MIC_v1.KgCodeBinder, MIC_v1.AdversarialValidator
 
 ---
 

@@ -10,6 +10,7 @@ description: >
   Then Crystallization Frontier → ST.
   v26: C(S) 5-predicate fields (objective/definition/keyAssertion/verification/c_s_predicate) MUST be non-null on every Span. v26 A3/A5: SP→ST gate enforces LensSet completeness via Cypher (lesson-taliban-shortcut-antipattern-2026-04-21). δ_infra exception via ATOM_APT_delta_infra_exception_2026-04-21. Magic number 500/200-500 → MethodologyConfig slot (A4).
   v24: KG 정본 기반 재설계. v5~v21 AptClarificationNote 22개 반영.
+  Active Weapons (2026-05-14): 재배맨 SubagentTaskSpec seed per Span (D(S) parallel decomposition, Step 4) + Taliban `/tlb <SPAN> --lens constitutional` per Crystallization Frontier 진입 후보 (C(S) 5-predicate gate, Step 6). hub-jaebaeman-sop + hub-taliban-immunity resolve.
   # KG: ATOM_Skill_apt_sp, CONTRACT_apt_sp, APT_v26_RFC_draft_2026-04-21, lesson-taliban-shortcut-antipattern-2026-04-21
 ---
 
@@ -53,6 +54,28 @@ RETURN s.name, s.currentConcrete, s.invocation
 ```
 
 # KG: MIC_v1, lesson-apt-not-truly-jaebaeman-2026-04-14
+
+---
+
+## ⚔ Active Weapons — Phase SP (2/5)
+
+> SP 측 활성 5무기 (parent /apt orchestrator §"5무기 Phase Integration Matrix" mirror).
+
+| Step | Weapon | Invocation | Trigger | Output |
+|------|--------|-----------|---------|--------|
+| Step 4 (D(S) recursive decomposition) | **재배맨** (SubagentSeeder) | per-Span `SubagentTaskSpec` seed (parent Pre-fetch → Dispatch → Collect → Write) | parent Span 측 자식 후보 N 개 결정 필요 (LOC > `cfg.vibe_coding_sweet_max` OR multi-concern) | 자식 Span N 개 (each carrying objective/definition/keyAssertion) |
+| Step 5 (wave_index 할당) | **재배맨** | `MATCH (s:Span) SET s.wave_index = $level` | 자식 Span 생성 직후 (parallel dispatch wave 결정) | `Span.wave_index` (same wave = single-message parallel) |
+| Step 6 (C(S) 5-predicate gate) | **Taliban** (AdversarialValidator) | `/tlb <SPAN_id> --lens constitutional` (LensSet completeness 강제) | leaf Span → AtomicSpan 격상 후보 | `VerdictRecord` APPROVED + `:AtomicSpan` 라벨 |
+| Step 7 (Crystallization Frontier 통과) | **Taliban** (mathematical lens optional) | `/88-taliban <Frontier>` (sibling-wellformedness A3 axiom) | 모든 leaf=AtomicSpan 도달 시 | Frontier APPROVED → ST 진입 trigger |
+
+**SP→ST mini-RGR** (RFC2 transition):
+- RED: Taliban prior contract conflict 검사
+- GREEN: Taliban Crystallization Frontier gate (모든 leaf=AtomicSpan)
+- REFACTOR: Longinus 중복 ReferenceSite 통합
+
+**SP 진입 hub**: `hub-jaebaeman-sop` (Span DAG decomposition seed) + `hub-taliban-immunity` (C(S) gate).
+
+# KG: hub-jaebaeman-sop, hub-taliban-immunity, MIC_v1.SubagentSeeder, MIC_v1.AdversarialValidator
 
 ---
 

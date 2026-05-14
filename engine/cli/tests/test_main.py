@@ -19,12 +19,23 @@ def test_repo_root_resolves():
     assert (root / "pyproject.toml").is_file()
 
 
-def test_parser_has_four_subcommands():
+def test_parser_has_native_subcommands():
+    """Cohort A (native): install-skills / verify / version / daemon must remain."""
     parser = build_parser()
     actions = [a for a in parser._actions if a.dest == "cmd"]
     assert actions, "subparsers action missing"
-    choices = sorted(actions[0].choices.keys())
-    assert choices == ["daemon", "install-skills", "verify", "version"]
+    choices = set(actions[0].choices.keys())
+    native = {"daemon", "install-skills", "verify", "version"}
+    assert native.issubset(choices), f"native cohort missing: {native - choices}"
+
+
+def test_parser_has_symposium_absorbed_subcommands():
+    """Cohort B (Wave 7 P2-A absorbed): apt/tpa/prom/tlb/longinus/harness/status."""
+    parser = build_parser()
+    actions = [a for a in parser._actions if a.dest == "cmd"]
+    choices = set(actions[0].choices.keys())
+    symposium = {"apt", "tpa", "prom", "tlb", "longinus", "harness", "status"}
+    assert symposium.issubset(choices), f"symposium cohort missing: {symposium - choices}"
 
 
 def test_version_command_writes_to_stdout(capsys):

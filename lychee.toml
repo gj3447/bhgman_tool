@@ -1,0 +1,60 @@
+# lychee config for bhgman_tool markdown link check
+# Wave 7 P2-B absorption from SYMPOSIUM lychee.toml (2026-05-14)
+# KG: span-bhgman-cicd-absorption-wave7-2026-05-14
+
+cache = true
+max_cache_age = "1d"
+
+# Skip private/research data dirs (none currently — keep minimal exclude list)
+exclude_path = [
+  ".git",
+  ".venv",
+  "node_modules",
+  "__pycache__",
+  # Don't scan this config file itself
+  "lychee.toml",
+  # External clones if any added later
+  "GIT",
+]
+
+# Skip dev-internal but keep file:// (local relative links must be checked)
+# Known-flaky external URLs that move/return non-200 frequently
+exclude = [
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+  "^https?://100\\.64\\.",
+  # Anthropic blog/news posts move frequently
+  "^https?://www\\.anthropic\\.com/news/",
+  # arxiv often returns 403 from automated clients
+  "^https?://arxiv\\.org/abs/",
+  # GitHub API rate limits + private repo URLs cause transient 401/404
+  "^https?://api\\.github\\.com/",
+  # Substack/Medium return 403 to bots
+  "^https?://[^/]+\\.substack\\.com/",
+  "^https?://medium\\.com/",
+  # Shell-variable interpolation patterns in install scripts (literal ${VAR})
+  "\\$%7B",
+  "\\$\\{",
+  # Lean/Hurkens canonical mirrors that 404 on bot UA
+  "^https?://leanprover\\.github\\.io/theorem_proving_in_lean4/",
+  "^https?://www\\.cs\\.ru\\.nl/",
+  # ResearchProvider / deepresearch external service
+  "^https?://www\\.deepresearch\\.wiki/",
+]
+
+# Markdown fragment validation (anchor links)
+include_fragments = "full"
+
+# Throttle (per host, ms)
+max_concurrency = 16
+timeout = 20
+
+# Retry transient failures
+max_retries = 2
+retry_wait_time = 1
+
+# Methods
+method = "get"
+
+# Accept transient 4xx/5xx that don't indicate broken links
+accept = ["200..=299", "401", "403", "429", "500", "502", "503", "504"]

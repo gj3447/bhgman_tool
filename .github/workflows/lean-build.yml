@@ -1,0 +1,103 @@
+# bhgman_tool — Lean 4 build verification
+# Wave 7 P2-B CI/CD + P3-D activation — absorbed from SYMPOSIUM
+#   (ad-symposium-cicd-lean-build-workflow-2026-05-14 + span-bhgman-mathlib-sister-absorption-wave7-2026-05-14)
+# trigger: weekly schedule + manual dispatch + push to lean/**
+#
+# NOTE: bhgman_tool/lean/ holds:
+#   (a) 5 standalone .lean files (Mathlib-free, ~50 theorem) — built by ci.yml 'lean' job (lean <file> loop).
+#   (b) `apt_functor_with_mathlib/` Mathlib sister project (lakefile.toml + 12 theorem, 0 sorry) — built here.
+# P3-D activated 2026-05-14: discovery path now scans nested sister-project layout
+# `lean/<project>/lakefile.{toml,lean}` (matches SYMPOSIUM MIND/lean_formalization/<project>/ pattern).
+# KG: span-bhgman-cicd-absorption-wave7-2026-05-14 (P2-B), span-bhgman-mathlib-sister-absorption-wave7-2026-05-14 (P3-D ACTIVATED)
+
+name: lean-build
+
+on:
+  schedule:
+    # Weekly Mondays 03:00 UTC — Mathlib builds are heavy, off-peak
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Lake target (default: discovered automatically)'
+        required: false
+        default: ''
+  push:
+    branches: [main]
+    paths:
+      - 'lean/**'
+      - '.github/workflows/lean-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lean-mathlib-build:
+    name: lake build (Mathlib sister project, P3-D activated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # Mathlib initial build can exceed 1h even with cache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Discover Lean lakefile
+        id: discover
+        run: |
+          # Scan order:
+          #   1. lean/lakefile.{toml,lean}        (top-level — unused at present)
+          #   2. lean/<project>/lakefile.{toml,lean}  (nested sister project — P3-D pattern)
+          # First hit wins. Multi-sister support is future work (matrix expansion).
+          if [ -f "lean/lakefile.toml" ] || [ -f "lean/lakefile.lean" ]; then
+            echo "path=lean" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Lake project found at lean/"
+          else
+            nested=$(find lean -mindepth 2 -maxdepth 2 \( -name 'lakefile.toml' -o -name 'lakefile.lean' \) -print -quit 2>/dev/null || true)
+            if [ -n "$nested" ]; then
+              project_dir=$(dirname "$nested")
+              echo "path=$project_dir" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Lake project found at $project_dir"
+            else
+              echo "::warning::no lakefile.{toml,lean} present under lean/ — Mathlib build skipped. Standalone .lean files covered by ci.yml 'lean' job."
+              echo "found=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Install elan (Lean toolchain manager)
+        if: steps.discover.outputs.found == 'true'
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: ${{ steps.discover.outputs.path }}
+          # auto-pickup of lean-toolchain
+          auto-config: true
+          use-mathlib-cache: true     # lake exe cache get
+          build: true                  # lake build
+          test: false                  # no `lake test` defined
+          lint: false
+
+      - name: Verify olean artifacts
+        if: steps.discover.outputs.found == 'true'
+        working-directory: ${{ steps.discover.outputs.path }}
+        run: |
+          set -e
+          if [ ! -d .lake/build/lib ]; then
+            echo "::error::.lake/build/lib not produced"
+            exit 1
+          fi
+          olean_count=$(find .lake/build/lib -name '*.olean' | wc -l)
+          echo "olean count: $olean_count"
+          test "$olean_count" -gt 0 || (echo "::error::no .olean produced"; exit 1)
+
+      - name: Upload olean artifact
+        if: steps.discover.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          # Path may contain `/` (e.g. lean/apt_functor_with_mathlib); GitHub Actions tolerates this in artifact name? No — sanitize.
+          # Use a fixed name; identification is by run + workflow context.
+          name: bhgman-tool-lean-mathlib-olean
+          path: ${{ steps.discover.outputs.path }}/.lake/build/lib/
+          retention-days: 14
+          if-no-files-found: warn

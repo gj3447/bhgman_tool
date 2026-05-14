@@ -69,10 +69,30 @@ _SOURCE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9/_.\-]+:[0-9]+(-[0-9]+)?$")
 """file:line or file:line-end."""
 
 
+class Sha256Status(str, Enum):
+    """SYMPOSIUM Wave 6 absorbed (2026-05-14) — sha256 baseline lifecycle.
+
+    KG: longinus-sha256-daemon-canonical-2026-05-06 + Wave 6 LONGINUS_BINDING.md.
+    """
+
+    BASELINE = "BASELINE"          # initial sha256 recorded, no drift yet
+    VERIFIED = "VERIFIED"          # last verify matched baseline
+    DRIFT = "DRIFT"                # current sha256 != baseline
+    FILE_MISSING = "FILE_MISSING"  # sourcePath no longer resolves on disk
+    DIRECTORY_SKIP = "DIRECTORY_SKIP"  # sourcePath is a directory, not file
+    UNKNOWN = "UNKNOWN"            # never initialized
+
+
 class ReferenceSite(BaseModel):
     """Frege Sinn (sourceId) + Bedeutung (sourcePath) bundle.
 
     SKILL.md 의 *7-layer 관통 통일 entity*. ``# KG: xxx`` 한 줄이 이 객체 1개에 대응.
+
+    Wave 6 additions (2026-05-14):
+      - sha256 / sha256_baseline / sha256_status — KG-anchored disk-state baseline
+      - kg_anchor — explicit upstream KG node name (Provenance L6 cross-link)
+      - layer — explicit 7-layer Reference Model classification
+      - last_validated — drift verification timestamp
     """
 
     sourceId: str = Field(..., description="L4 Sinn — semantic id (KG node name)")
@@ -85,6 +105,32 @@ class ReferenceSite(BaseModel):
     confidence: Confidence = Field(
         default=Confidence.EXTRACTED,
         description="3-tier confidence (graphify absorbed 2026-05-13). AMBIGUOUS triggers :PRELIMINARY + human verdict gate.",
+    )
+
+    # ── Wave 6 (2026-05-14) — sha256 baseline + 7-tuple expansion ────────
+    sha256: Optional[str] = Field(
+        default=None,
+        description="Current sha256 hex digest of `sourcePath` file (L7 drift detection).",
+    )
+    sha256_baseline: Optional[str] = Field(
+        default=None,
+        description="Frozen baseline sha256 captured at --init. Mismatch with current = drift.",
+    )
+    sha256_status: Sha256Status = Field(
+        default=Sha256Status.UNKNOWN,
+        description="sha256 baseline lifecycle state. BASELINE→VERIFIED→DRIFT transitions.",
+    )
+    kg_anchor: Optional[str] = Field(
+        default=None,
+        description="Upstream KG node name (e.g. 'lesson-foo-2026-05-14') this site materializes.",
+    )
+    layer: Optional[ReferenceLayer] = Field(
+        default=None,
+        description="Explicit 7-layer Reference Model assignment (L1-L7).",
+    )
+    last_validated: Optional[str] = Field(
+        default=None,
+        description="ISO-8601 timestamp of last sha256 verification round (Wave 6).",
     )
 
     @field_validator("sourceId")
@@ -157,6 +203,70 @@ class KgRefRecord(BaseModel):
     kg_node_kind: str = "ReferenceSite"
 
 
+# ─── KnowledgeHub (Forward Orphan target) ────────────────────────────────
+
+
+class KnowledgeHubRecord(BaseModel):
+    """SYMPOSIUM Wave 6 (2026-05-14) — :KnowledgeHub KG node mirror.
+
+    Forward Orphan = KG hub node lacking ``package_path`` (KG → FS direction blind-spot).
+    Complementary to Reverse Orphan (Code → KG direction).
+
+    KG: hub-* nodes (e.g. ``hub-apt-methodology``, ``hub-longinus-reference``).
+    """
+
+    name: str = Field(..., description="KG hub name, e.g. 'hub-longinus-reference'")
+    package_path: Optional[str] = Field(
+        default=None,
+        description="Filesystem path materializing this hub (e.g. 'THEORY/LONGINUS/').",
+    )
+    source_file: Optional[str] = Field(
+        default=None,
+        description="Canonical source file (e.g. 'THEORY/LONGINUS/README.md').",
+    )
+    ruflo_grade: Optional[str] = Field(
+        default=None,
+        description="Industry-grade rating (Wave 6 forward orphan resolution metric).",
+    )
+
+
+class ForwardOrphanRecord(BaseModel):
+    """A KG :KnowledgeHub node missing ``package_path`` or ``source_file``.
+
+    Wave 6 (2026-05-14): 7 hubs resolved (apt/tpa/jaebaeman/taliban/prometheus/longinus/harness).
+    """
+
+    hub_name: str
+    missing_field: str  # 'package_path' | 'source_file' | 'ruflo_grade'
+    detected_at: str = Field(
+        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
+    )
+    layer_violated: ReferenceLayer = ReferenceLayer.L3_TYPE
+    lens_law_violated: str = "GetPut"  # KG asserts hub exists, but FS cannot be resolved
+
+
+# ─── Drift Event (sha256 baseline mismatch) ──────────────────────────────
+
+
+class SourceCodeDriftEvent(BaseModel):
+    """SYMPOSIUM Wave 6 (2026-05-14) — :SourceCodeDriftEvent KG node mirror.
+
+    Emitted by sha256 baseline daemon on mismatch. PROV evidence trail.
+    """
+
+    name: str
+    ref_site: str
+    path: str
+    baseline_sha256: Optional[str] = None
+    current_sha256: Optional[str] = None
+    kind: str = "SHA256_MISMATCH"  # SHA256_MISMATCH | FILE_MISSING
+    detected_by: str = "longinus_drift_audit.sha256_baseline"
+    created_at: str = Field(
+        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
+    )
+    resolved: bool = False
+
+
 # ─── BX Lens result ──────────────────────────────────────────────────────
 
 
@@ -198,6 +308,9 @@ class AuditReport(BaseModel):
     drifts_by_type: dict[str, int] = Field(default_factory=dict)
     drift_records: list[DriftRecord] = Field(default_factory=list)
     reverse_orphans: list[str] = Field(default_factory=list)  # code symbols with no KG ref
+    forward_orphans: list[ForwardOrphanRecord] = Field(default_factory=list)  # Wave 6 — KG hubs lacking package_path
+    sha256_drift_events: list[SourceCodeDriftEvent] = Field(default_factory=list)  # Wave 6 — baseline mismatches
+    sha256_baseline_count: int = 0       # Wave 6 — total :ReferenceSite with sha256_baseline set
     layer_coverage: LayerCoverage = Field(default_factory=LayerCoverage)
     lens_verification: LensVerification = Field(default_factory=LensVerification)
     ged_report: Optional[GedReport] = None
@@ -207,8 +320,12 @@ class AuditReport(BaseModel):
 
     @property
     def total_drifts(self) -> int:
-        return sum(self.drifts_by_type.values())
+        return sum(self.drifts_by_type.values()) + len(self.sha256_drift_events)
 
     @property
     def is_clean(self) -> bool:
-        return self.total_drifts == 0 and len(self.reverse_orphans) == 0
+        return (
+            self.total_drifts == 0
+            and len(self.reverse_orphans) == 0
+            and len(self.forward_orphans) == 0
+        )

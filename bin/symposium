@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# symposium — bhgman_tool CLI alias (SYMPOSIUM-absorbed Wave 7 P2-A, 2026-05-14)
+#
+# Usage:
+#   symposium <command> [args...]
+#
+# Commands:
+#   apt <task>       — APT cycle (SA → SP → ST → SCW), dispatch only
+#   tpa <path>       — TPA reverse cycle (TCW → ST → SP → TA)
+#   prom <N> <topic> — Prometheus N-subagent research
+#   tlb <target>     — Taliban adversarial verification
+#   longinus <op>    — Longinus reference binding (sha256/ged/reverse-scan)
+#   harness <action> — Harness 3-tier scaffolding (industry agent)
+#   status           — KG audit (ssh dgx → cypher-shell)
+#   verify           — Run pytest smoke verification
+#   help             — Show this message
+#
+# Skill routing (slash command alias):
+#   symposium apt <task>   ≡  /apt <task>
+#   symposium prom 16 "Q"  ≡  /prom 16 "Q"
+#
+# This script is a thin alias that delegates to:
+#   python -m engine.cli.main <command>
+#
+# Drift prevention: actual logic lives in engine/cli/main.py (Python argparse).
+# Bash kept for sysadmins / CI that prefers shell-script entry points.
+#
+# KG: rs-bin-symposium-bash-alias-2026-05-14
+# Provenance: SYMPOSIUM/bin/symposium (absorbed Wave 7 P2-A)
+
+set -euo pipefail
+
+BHGMAN_ROOT="${BHGMAN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+readonly BHGMAN_ROOT
+
+# Honor SYMPOSIUM_ROOT if set (cross-repo invocation), else default to bhgman_tool root.
+SYMPOSIUM_ROOT="${SYMPOSIUM_ROOT:-$BHGMAN_ROOT}"
+export SYMPOSIUM_ROOT
+
+# Prefer `bhgman-tool` console script if installed, else fall back to module invocation.
+# Try multiple python paths: venv → python3 → python.
+if command -v bhgman-tool >/dev/null 2>&1; then
+  exec bhgman-tool "$@"
+fi
+
+cd "$BHGMAN_ROOT"
+for py in "$BHGMAN_ROOT/.venv/bin/python" python3 python; do
+  if command -v "$py" >/dev/null 2>&1; then
+    exec "$py" -m engine.cli.main "$@"
+  fi
+done
+
+echo "symposium: no python interpreter found (.venv/bin/python, python3, python)" >&2
+exit 127

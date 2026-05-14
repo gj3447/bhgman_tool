@@ -20,15 +20,27 @@ from mcp_server.tools.tpa import DRIFT_TYPES, tpa_drift_audit_impl
 from mcp_server.server import list_registered_tool_names
 
 
-# ─── server scaffold (expanded 2 → 5 tools) ─────────────────────────────
+# ─── server scaffold (expanded 2 → 5 native, then +4 SYMPOSIUM-absorbed → 9) ──
 
 
-def test_five_tools_registered():
-    tools = list_registered_tool_names()
-    assert set(tools) == {
+def test_native_tools_registered():
+    """Phase 3 cohort: 5 native diagnostic tools must remain registered."""
+    tools = set(list_registered_tool_names())
+    native = {
         "longinus_audit", "harness_diagnose",
         "apt_phase_detect", "taliban_lens_check", "tpa_drift_audit",
     }
+    assert native.issubset(tools), f"native cohort missing: {native - tools}"
+
+
+def test_symposium_absorbed_tools_registered():
+    """Wave 7 P2-A cohort: 4 SYMPOSIUM-absorbed dispatch tools must be present.
+
+    KG: rs-mcp-symposium-absorb-2026-05-14
+    """
+    tools = set(list_registered_tool_names())
+    absorbed = {"apt_dispatch", "kg_query", "gate_check", "seed_germinate"}
+    assert absorbed.issubset(tools), f"SYMPOSIUM cohort missing: {absorbed - tools}"
 
 
 # ─── apt_phase_detect ──────────────────────────────────────────────────

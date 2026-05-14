@@ -1,0 +1,64 @@
+# bhgman_tool — Dependabot config
+# Wave 7 P2-B CI/CD — absorbed from SYMPOSIUM (ad-symposium-cicd-dependabot-2026-05-14)
+#                Python (engine/cli + engine/mcp_server + engine/longinus_drift_audit)
+#                + GitHub Actions (workflow files themselves)
+# NOTE: Dependabot has no Lean ecosystem; lake-manifest revisions tracked manually.
+# KG: span-bhgman-cicd-absorption-wave7-2026-05-14
+
+version: 2
+updates:
+  # ── GitHub Actions versions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+
+  # ── Python: root bhgman_tool (parent pyproject.toml — [project.scripts] umbrella)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - python
+      - bhgman-root
+    allow:
+      - dependency-type: direct
+    versioning-strategy: increase-if-necessary
+
+  # ── Python: engine/mcp_server
+  - package-ecosystem: pip
+    directory: /engine/mcp_server
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - python
+      - mcp-server
+    allow:
+      - dependency-type: direct
+    versioning-strategy: increase-if-necessary
+
+  # ── Python: engine/longinus_drift_audit
+  - package-ecosystem: pip
+    directory: /engine/longinus_drift_audit
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - python
+      - longinus-drift-audit
+    versioning-strategy: increase-if-necessary

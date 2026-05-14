@@ -112,7 +112,7 @@ ORDER BY ts.skill, ts.phase
 | Rep Link | Phase 3 (Collect) | `rep_link` |
 | Secretary | Phase 4 (Write) | `secretary` |
 
-각 archetype 은 specialized agent 로 결정화 (`Agent` tool subagent_type 으로 호출).
+각 archetype 은 specialized agent 로 결정화. **호출 측에서 archetype 식별은 prompt 본문 / KG metadata (HAS_SEED / DispatchHyperedge.subagent_type) 에 담음**. Anthropic Agent tool 시그니처는 `(model, run_in_background, prompt)` 3 param 만 받으므로 `subagent_type=...` 형태로는 전달 불가 (PROM_16 E2.1, SKILL.md §v2.3 Tool Param Binding).
 
 ---
 

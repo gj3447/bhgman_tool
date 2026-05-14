@@ -40,6 +40,33 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.10",
 ]
+# APT v27 A6 pre-prompt resolver (engine/resolver, Wave 7 P3-H 2026-05-14)
+resolver = [
+    "python-frontmatter>=1.1.0",
+    "Jinja2>=3.1.4",
+    "neo4j>=5.20.0",
+]
+# APT v27 A7 fail-closed gate endpoint (engine/gate, Wave 7 P3-H 2026-05-14)
+gate = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "redis>=5.0",
+    "neo4j>=5.20.0",
+    "tenacity>=9.0",
+    "structlog>=24.4",
+    "httpx>=0.27",
+]
+# Test deps for resolver + gate test suites
+resolver-test = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+gate-test = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "fakeredis>=2.24",
+]
 
 [project.scripts]
 bhgman-tool = "engine.cli.main:cli"

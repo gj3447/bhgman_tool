@@ -29,12 +29,16 @@ def build_server() -> Any:
     from .tools.apt import register as register_apt
     from .tools.taliban import register as register_taliban
     from .tools.tpa import register as register_tpa
+    # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):
+    # KG: rs-mcp-symposium-absorb-2026-05-14
+    from .tools.symposium import register as register_symposium
 
     register_longinus(mcp)
     register_harness(mcp)
     register_apt(mcp)
     register_taliban(mcp)
     register_tpa(mcp)
+    register_symposium(mcp)
 
     return mcp
 
@@ -45,9 +49,15 @@ def list_registered_tool_names() -> list[str]:
     KG: skeleton-time introspection helper for pytest verification.
     """
     return [
+        # bhgman_tool diagnostic tools (read-only project inspection)
         "longinus_audit",
         "harness_diagnose",
         "apt_phase_detect",
         "taliban_lens_check",
         "tpa_drift_audit",
+        # SYMPOSIUM dispatch tools (Wave 7 P2-A absorbed 2026-05-14)
+        "apt_dispatch",
+        "kg_query",
+        "gate_check",
+        "seed_germinate",
     ]

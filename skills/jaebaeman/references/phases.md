@@ -42,13 +42,24 @@ Phase 4 (Write): secretary archetype
 
 **Pattern**:
 ```python
-# 모두 같은 message:
-[Agent(subagent_type=type, prompt=sb) for sb in seed_bundles]
+# 모두 같은 message — Anthropic Agent tool 은 (model, run_in_background, prompt) 3 param 만 받음.
+# subagent_type / isolation / archetype 등은 KG metadata (HAS_SEED edge / DispatchHyperedge.subagent_type) 만 박힘,
+# tool param 으로 전달 금지 (PROM_16 E2.1 finding, runtime fail 잠재).
+[
+  Agent(
+    model = MODEL_MAP[sb.model],            # 'haiku' → 'claude-haiku-4-5-20251001' 등 full ID 매핑
+    run_in_background = True,                # N>1 병렬
+    prompt = sb.assembled_prompt             # 3줄 + pre-fetch context (SKILL.md §Phase 2.2)
+  )
+  for sb in seed_bundles
+]
 intent_N = len(seed_bundles)
 results = await all_complete()
 actual_N = len(results)
 assert intent_N == actual_N
 ```
+
+**Tool Param Binding Invariant**: `subagent_type` (archetype 분기) 는 *부모 측 prompt 조립* 단계에서 KG 조회로 풀어 prompt 본문에 녹여 넣음. Agent tool 시그니처에 직접 전달하면 InputValidationError. KG metadata-only fields → §SKILL.md v2.3 참조.
 
 **Holacracy mirror**: lead_link 가 N circle role 동시 energizing.
 

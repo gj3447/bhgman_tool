@@ -8,6 +8,7 @@ description: >
   SCW 완료 후 자동 제안. Lesson 생성 → SKILL.md 패치 → MATERIALIZES 갱신 → Taliban Gate.
   v2 (APT v26 A6 alignment): SKILL.md 패치는 resolve_slot(ContractSchema|LensSet|MethodologyConfig) 패턴 유지. Prose magic number 주입 금지. KG = 정본.
   종료조건: self_application_forbidden, max_depth=1, delta=0.
+  Active Weapons (2026-05-14): Taliban `/tlb <MetaReview output> --lens constitutional` (rubber-stamp 방지 자체재검증, Step 17) + Prometheus `/prom <small N> "<lesson_topic>"` (lesson distillation 외부 grounding, Step 15) + Longinus MATERIALIZES 갱신 (SKILL.md 패치 ↔ KG slot drift 차단, Step 16). hub-taliban-immunity + hub-prometheus-research + hub-longinus-reference resolve.
   # KG: ATOM_Skill_apt_meta_review, CONTRACT_Hardening_MetaReview, SPAN_Hardening_MetaReview, APT_v26_RFC_draft_2026-04-21, MIC_v1.ReasoningProtocol→KGFirstCheck_v1 (R1-R5 mandatory before any framing/diagnostic, lesson-ai-skipped-kg-check-before-framing-2026-04-29)
 ---
 
@@ -46,6 +47,27 @@ RETURN s.name, s.currentConcrete, s.invocation
 ---
 
 # KG: CONTRACT_Hardening_MetaReview, lesson-apt-scw-tdd-skipped-context-compression-2026-04-16
+
+---
+
+## ⚔ Active Weapons — Phase MetaReview (5/5)
+
+> MetaReview 측 활성 5무기 (parent /apt orchestrator §"5무기 Phase Integration Matrix" mirror).
+
+| Step | Weapon | Invocation | Trigger | Output |
+|------|--------|-----------|---------|--------|
+| Step 14 (의심 발견) | (5무기 emergent) | 5무기 순환 측 창발 — FeedbackProvider slot EMERGENT 상태 | SCW FulfillmentGate APPROVED 후 자동 dispatch | Doubt log + AptFeedback 후보 |
+| Step 15 (Lesson 결정화) | **Prometheus** (mini) | `/prom 4 "<lesson_topic> — 외부 정전 grounding"` (small N) | Doubt log 분석 후 lesson 추출 필요 | `Lesson` node (wrongAssumption↔truth symmetric pair 둘 다 채움) |
+| Step 16 (SKILL.md 패치) | **Longinus** (KgCodeBinder) | MATERIALIZES 갱신: SKILL.md ↔ MethodologyConfig slot resolve, prose hardcoding 금지 | Lesson 적재 후 SKILL.md 패치 필요 | SKILL.md patch + KG slot update (drift 차단) |
+| Step 17 (Taliban Gate 자체재검증) | **Taliban** (AdversarialValidator) | `/tlb <Lesson + SKILL.md patch> --lens constitutional` (self_application_forbidden + max_depth=1) | SKILL.md 패치 직후 | `VerdictRecord` APPROVED + cycle 종료 |
+
+**Self-application 금지** (재귀 차단): MetaReview Output 측 Taliban Gate 적용은 *external* critic — 자기 자신 MetaReview 재호출 금지. `max_depth=1, delta=0`.
+
+**MetaReview 진입 hub**: `hub-taliban-immunity` (rubber-stamp 방지) + `hub-prometheus-research` (lesson distillation grounding) + `hub-longinus-reference` (MATERIALIZES sync).
+
+**MT_SuccessBias 회피**: success 도 비자명한 경우 Lesson 으로 기록 (corrections 만 모이면 over-cautious).
+
+# KG: hub-taliban-immunity, hub-prometheus-research, hub-longinus-reference, MIC_v1.AdversarialValidator, MIC_v1.ResearchProvider, MIC_v1.KgCodeBinder, lesson-agent-learns-from-verdict-not-success-2026-04-27
 
 ---
 

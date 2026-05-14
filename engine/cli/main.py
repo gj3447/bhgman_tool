@@ -1,12 +1,34 @@
 """bhgman-tool CLI entry point — stdlib argparse, zero new dependencies.
 
-This module wires four subcommands routed off the top-level `bhgman-tool` console
-script registered in the parent `pyproject.toml`:
+This module wires the top-level `bhgman-tool` console script registered in the
+parent `pyproject.toml`. Subcommands span two cohorts:
 
+A. bhgman_tool native (Phase 3 SCW):
     bhgman-tool install-skills [--target DIR] [--dry-run] [--force]
     bhgman-tool verify [--scope engine|lean|all]
     bhgman-tool version
-    bhgman-tool daemon ...   (delegates to engine.longinus_drift_audit.daemon_cli)
+    bhgman-tool daemon ...                    (delegates to engine.longinus_drift_audit.daemon_cli)
+
+B. SYMPOSIUM-absorbed (Wave 7 P2-A 2026-05-14, KG rs-cli-symposium-absorb-2026-05-14):
+    bhgman-tool apt <task>                    — APT cycle dispatch (SA → SP → ST → SCW)
+    bhgman-tool tpa <path>                    — TPA reverse cycle (TCW → ST → SP → TA)
+    bhgman-tool prom <N> <topic>              — Prometheus N-subagent research
+    bhgman-tool tlb <target> [--lens NAME]    — Taliban adversarial verification
+    bhgman-tool longinus <op>                 — Longinus reference binding (sha256/ged/reverse-scan)
+    bhgman-tool harness <action>              — Harness 3-tier scaffolding diagnose
+    bhgman-tool status                        — KG audit (ssh dgx → cypher-shell)
+
+C. SYMPOSIUM resolver/gate (Wave 7 P3-H 2026-05-14, KG span-bhgman-resolver-gate-absorption-wave7-2026-05-14):
+    bhgman-tool resolver render --input X --output Y    — APT v27 A6 pre-prompt resolver render
+    bhgman-tool resolver validate <SKILL.md>            — KG ↔ SKILL drift check
+    bhgman-tool gate serve                              — start FastAPI gate endpoint (uvicorn)
+    bhgman-tool gate check --gate NAME ...              — POST /gate/check oneshot
+    Modules: engine.resolver.resolver (9 pytest absorbed) + engine.gate.gate_endpoint (6 pytest absorbed)
+    OPA Rego policies: engine/gate/policies/ (4 bundle dirs preserved from SYMPOSIUM opa_rego_skeleton).
+
+Routing convention for cohort B: each verb resolves a SKILL.md via `skills/<name>/`
+and prints the routing intent (stderr) + the SKILL.md path (stdout). Actual phase
+logic lives in the SKILL.md (drift prevention).
 
 Honest limitations (Goodhart safeguard — no headline metric promotion):
   - install-skills does not check skill content integrity (no sha256 audit yet)
@@ -14,10 +36,14 @@ Honest limitations (Goodhart safeguard — no headline metric promotion):
     re-derive coverage figures
   - daemon delegation passes through argv; no parameter translation
   - argparse error messages are not internationalized (README is 4-lang, CLI is en-only)
+  - cohort B verbs `apt/tpa/prom/tlb/longinus/harness` only emit the SKILL.md path
+    — the parent Claude harness consumes the body. They do NOT execute phase logic.
+  - `status` requires `ssh dgx` reachable; degrades to error if absent.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -175,6 +201,236 @@ def cmd_daemon(args: argparse.Namespace) -> int:
     return subprocess.call(cmd, cwd=_repo_root())
 
 
+# ─── SYMPOSIUM-absorbed verbs (Wave 7 P2-A, 2026-05-14) ────────────────────────
+# KG: rs-cli-symposium-absorb-2026-05-14
+# Provenance: bin/symposium (109 lines bash → Python argparse port)
+
+
+def _resolve_skill_md(skill_name: str) -> Path:
+    """Locate `skills/<skill_name>/SKILL.md` honoring SYMPOSIUM_ROOT env override.
+
+    Routing convention: cohort B verbs do not execute phase logic — they print
+    the SKILL.md path so the parent Claude harness can consume the body.
+    """
+    sym = os.environ.get("SYMPOSIUM_ROOT")
+    if sym:
+        for sub in ("SKILLS", "skills"):
+            cand = Path(sym).expanduser() / sub / skill_name / "SKILL.md"
+            if cand.is_file():
+                return cand
+    cand = _repo_root() / "skills" / skill_name / "SKILL.md"
+    if not cand.is_file():
+        raise FileNotFoundError(
+            f"skill not found: {skill_name} (looked in SYMPOSIUM_ROOT and {_repo_root() / 'skills'})"
+        )
+    return cand
+
+
+def _route_skill(skill_name: str, args: list[str]) -> int:
+    """Print routing intent to stderr, SKILL.md path to stdout. Drift prevention: do NOT execute."""
+    try:
+        skill_md = _resolve_skill_md(skill_name)
+    except FileNotFoundError as e:
+        print(f"[bhgman-tool] FAIL: {e}", file=sys.stderr)
+        return 2
+    print(f"[bhgman-tool] routing → /{skill_name} {' '.join(args)} (SKILL.md: {skill_md})", file=sys.stderr)
+    print(str(skill_md))
+    return 0
+
+
+def cmd_apt(args: argparse.Namespace) -> int:
+    """APT cycle dispatch (SA → SP → ST → SCW). Routes to skills/apt/SKILL.md."""
+    if not args.task:
+        print("usage: bhgman-tool apt <task>", file=sys.stderr)
+        return 2
+    return _route_skill("apt", args.task)
+
+
+def cmd_tpa(args: argparse.Namespace) -> int:
+    """TPA reverse cycle (TCW → ST → SP → TA). Routes to skills/tpa/SKILL.md."""
+    if not args.path:
+        print("usage: bhgman-tool tpa <path>", file=sys.stderr)
+        return 2
+    return _route_skill("tpa", args.path)
+
+
+def cmd_prom(args: argparse.Namespace) -> int:
+    """Prometheus N-subagent research. Routes to skills/prometheus/SKILL.md."""
+    if not args.topic:
+        print("usage: bhgman-tool prom <N> <topic>", file=sys.stderr)
+        return 2
+    return _route_skill("prometheus", [str(args.N), *args.topic])
+
+
+def cmd_tlb(args: argparse.Namespace) -> int:
+    """Taliban adversarial verification. Routes to skills/taliban/SKILL.md."""
+    if not args.target:
+        print("usage: bhgman-tool tlb <target> [--lens NAME]", file=sys.stderr)
+        return 2
+    suffix = [*args.target]
+    if args.lens:
+        suffix.extend(["--lens", args.lens])
+    return _route_skill("taliban", suffix)
+
+
+def cmd_longinus(args: argparse.Namespace) -> int:
+    """Longinus reference binding. Bash dispatcher emulation for sha256/ged/reverse-scan ops."""
+    if not args.op:
+        print("usage: bhgman-tool longinus <op> [args...]", file=sys.stderr)
+        return 2
+    op = args.op[0]
+    rest = args.op[1:]
+    root = _repo_root()
+    # Native python scripts: prefer SYMPOSIUM/bin/ if SYMPOSIUM_ROOT is set.
+    sym = os.environ.get("SYMPOSIUM_ROOT")
+    bin_dirs = [Path(sym).expanduser() / "bin" for sym in [sym] if sym]
+    bin_dirs.append(root / "bin")
+    script_names = {
+        "sha256": "longinus_sha256_daemon.py",
+        "ged": "longinus_ged_drift_meter.py",
+        "reverse-scan": "longinus_reverse_orphan_scan.py",
+    }
+    if op in script_names:
+        for d in bin_dirs:
+            sp = d / script_names[op]
+            if sp.is_file():
+                cmd = [sys.executable, str(sp), *rest]
+                return subprocess.call(cmd)
+        # Fall through to skill routing if script not found
+        print(f"[bhgman-tool] longinus {op}: script not found in {bin_dirs} — routing to SKILL.md", file=sys.stderr)
+    return _route_skill("longinus", args.op)
+
+
+def cmd_harness(args: argparse.Namespace) -> int:
+    """Harness 3-tier scaffolding diagnose. Routes to skills/harness/SKILL.md."""
+    if not args.action:
+        print("usage: bhgman-tool harness <action>", file=sys.stderr)
+        return 2
+    return _route_skill("harness", args.action)
+
+
+_STATUS_CYPHER = """MATCH (n) WITH labels(n) AS l, count(*) AS c
+UNWIND l AS lbl
+RETURN lbl AS label, sum(c) AS count
+ORDER BY count DESC
+LIMIT 20;"""
+
+
+# ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ───────────────────
+# KG: span-bhgman-resolver-gate-absorption-wave7-2026-05-14
+# Provenance: SYMPOSIUM/THEORY/APT/resolver_prototype + gate_endpoint_prototype
+
+
+def cmd_resolver(args: argparse.Namespace) -> int:
+    """APT v27 A6 pre-prompt resolver dispatch.
+
+    Delegates to engine.resolver.resolver:main() — eager Composition Root
+    validation (KG health + 5 core magic fields). Refuses partial render.
+    """
+    try:
+        from engine.resolver.resolver import main as resolver_main
+    except ImportError as e:
+        print(f"[bhgman-tool] FAIL: engine.resolver not importable — install resolver deps "
+              f"(python-frontmatter, Jinja2, neo4j): {e}", file=sys.stderr)
+        return 2
+    # passthrough — resolver has its own argparse with render/validate subcommands
+    return resolver_main(args.passthrough or [])
+
+
+def cmd_gate(args: argparse.Namespace) -> int:
+    """APT v27 A7 gate hook dispatch.
+
+    Subcommands:
+      serve  → uvicorn-run engine.gate.gate_endpoint:app
+      check  → oneshot POST /gate/check (requires server running)
+    """
+    if not args.passthrough:
+        print("usage: bhgman-tool gate {serve,check} [options]", file=sys.stderr)
+        return 2
+    sub = args.passthrough[0]
+    rest = args.passthrough[1:]
+    if sub == "serve":
+        try:
+            from engine.gate.gate_endpoint import main as gate_main
+        except ImportError as e:
+            print(f"[bhgman-tool] FAIL: engine.gate not importable — install gate deps "
+                  f"(fastapi, uvicorn, redis, tenacity): {e}", file=sys.stderr)
+            return 2
+        gate_main()
+        return 0
+    if sub == "check":
+        # Minimal oneshot client — requires server reachable
+        try:
+            import json
+            import urllib.request
+        except ImportError as e:
+            print(f"[bhgman-tool] FAIL: urllib unavailable: {e}", file=sys.stderr)
+            return 2
+        # parse --gate / --cycle / --actor / --expected / --actual from rest
+        gate_name = cycle = actor = None
+        expected = actual = None
+        i = 0
+        while i < len(rest):
+            tok = rest[i]
+            if tok == "--gate" and i + 1 < len(rest):
+                gate_name = rest[i + 1]; i += 2
+            elif tok == "--cycle" and i + 1 < len(rest):
+                cycle = rest[i + 1]; i += 2
+            elif tok == "--actor" and i + 1 < len(rest):
+                actor = rest[i + 1]; i += 2
+            elif tok == "--expected" and i + 1 < len(rest):
+                expected = int(rest[i + 1]); i += 2
+            elif tok == "--actual" and i + 1 < len(rest):
+                actual = int(rest[i + 1]); i += 2
+            else:
+                i += 1
+        if not all([gate_name, cycle, actor]):
+            print("usage: bhgman-tool gate check --gate NAME --cycle ID --actor NAME "
+                  "[--expected N --actual N]", file=sys.stderr)
+            return 2
+        host = os.environ.get("APT_GATE_HOST", "127.0.0.1")
+        port = os.environ.get("APT_GATE_PORT", "8765")
+        body = {
+            "gate_name": gate_name, "cycle_id": cycle, "actor": actor,
+            "context": {"expected_count": expected, "actual_count": actual},
+        }
+        req = urllib.request.Request(
+            f"http://{host}:{port}/gate/check",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
+                print(resp.read().decode("utf-8"))
+                return 0 if resp.status == 200 else 1
+        except Exception as e:
+            print(f"[bhgman-tool] gate check FAIL: {e}", file=sys.stderr)
+            return 2
+    print(f"[bhgman-tool] unknown gate subcommand: {sub} (expected serve|check)", file=sys.stderr)
+    return 2
+
+
+def cmd_status(_args: argparse.Namespace) -> int:
+    """KG audit via ssh dgx → cypher-shell. Degrades gracefully if dgx unreachable."""
+    dgx_host = os.environ.get("SYMPOSIUM_DGX_HOST", "dgx")
+    print(f"[bhgman-tool] ssh {dgx_host} cypher-shell — KG audit", file=sys.stderr)
+    cmd = [
+        "ssh", dgx_host,
+        'kubectl exec -n neo4j neo4j-0 -- cypher-shell -u neo4j '
+        '-p "${NEO4J_PASSWORD:-neo4j}" --format plain',
+    ]
+    try:
+        result = subprocess.run(cmd, input=_STATUS_CYPHER, text=True, timeout=10, check=False)
+        return result.returncode
+    except FileNotFoundError:
+        print("[bhgman-tool] FAIL: ssh not available — install OpenSSH client", file=sys.stderr)
+        return 2
+    except subprocess.TimeoutExpired:
+        print(f"[bhgman-tool] FAIL: timeout — ssh {dgx_host} unreachable", file=sys.stderr)
+        return 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="bhgman-tool",
@@ -216,6 +472,57 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_d.add_argument("passthrough", nargs=argparse.REMAINDER, help="Args forwarded to daemon_cli.")
     p_d.set_defaults(func=cmd_daemon)
+
+    # ─── SYMPOSIUM-absorbed verbs (Wave 7 P2-A, 2026-05-14) ────────────────
+    p_apt = sub.add_parser("apt", help="APT cycle dispatch (SA → SP → ST → SCW).")
+    p_apt.add_argument("task", nargs="+", help="Task description forwarded to /apt.")
+    p_apt.set_defaults(func=cmd_apt)
+
+    p_tpa = sub.add_parser("tpa", help="TPA reverse cycle (TCW → ST → SP → TA).")
+    p_tpa.add_argument("path", nargs="+", help="Codebase path to reverse-engineer.")
+    p_tpa.set_defaults(func=cmd_tpa)
+
+    p_prom = sub.add_parser("prom", help="Prometheus N-subagent research.")
+    p_prom.add_argument("N", type=int, help="Subagent count (16 / 32 / 64 / 100).")
+    p_prom.add_argument("topic", nargs="+", help="Research topic.")
+    p_prom.set_defaults(func=cmd_prom)
+
+    p_tlb = sub.add_parser("tlb", help="Taliban adversarial verification.")
+    p_tlb.add_argument("target", nargs="+", help="Verification target (SPAN/CONTRACT/etc.).")
+    p_tlb.add_argument("--lens", help="Lens set (constitutional / mathematical / solid).")
+    p_tlb.set_defaults(func=cmd_tlb)
+
+    p_long = sub.add_parser("longinus", help="Longinus reference binding (sha256/ged/reverse-scan).")
+    p_long.add_argument("op", nargs="+", help="Operation: sha256 / ged / reverse-scan / <freeform>.")
+    p_long.set_defaults(func=cmd_longinus)
+
+    p_hns = sub.add_parser("harness", help="Harness 3-tier scaffolding diagnose.")
+    p_hns.add_argument("action", nargs="+", help="Action forwarded to /harness.")
+    p_hns.set_defaults(func=cmd_harness)
+
+    p_st = sub.add_parser("status", help="KG audit (ssh dgx → cypher-shell).")
+    p_st.set_defaults(func=cmd_status)
+
+    # ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ──────────
+    p_rs = sub.add_parser(
+        "resolver",
+        help="APT v27 A6 pre-prompt resolver (render | validate). 9 pytest absorbed.",
+    )
+    p_rs.add_argument(
+        "passthrough", nargs=argparse.REMAINDER,
+        help="Args forwarded to engine.resolver.resolver (render --input X --output Y | validate <path>).",
+    )
+    p_rs.set_defaults(func=cmd_resolver)
+
+    p_gt = sub.add_parser(
+        "gate",
+        help="APT v27 A7 fail-closed gate endpoint (serve | check). 6 pytest absorbed.",
+    )
+    p_gt.add_argument(
+        "passthrough", nargs=argparse.REMAINDER,
+        help="serve | check --gate NAME --cycle ID --actor NAME [--expected N --actual N]",
+    )
+    p_gt.set_defaults(func=cmd_gate)
 
     return p
 

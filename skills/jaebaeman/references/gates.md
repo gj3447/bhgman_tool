@@ -125,17 +125,25 @@ seed_bundle:
 **Required**:
 - 모든 Agent tool call 이 *same message* 안에 (parallel spawn)
 - N <= 100 (max parallel cap)
-- `subagent_type` 명시 (default `taliban-ensemble-critic`, `prometheus-expert`, etc.)
-- model 분리 (parent != subagent — bias 전염 차단)
+- `subagent_type` (archetype 분기) 는 KG metadata 로만 박힘 (HAS_SEED edge + DispatchHyperedge.subagent_type). Agent tool param 으로 *전달 금지* — Anthropic Agent tool 시그니처는 `(model, run_in_background, prompt)` 3 param 만 받음 (PROM_16 E2.1).
+- archetype 분기는 *prompt 본문에 녹임* (parent 가 KG 조회 후 prompt 조립 단계에서 처리)
+- model 분리 (parent != subagent — bias 전염 차단) → MODEL_MAP alias resolution (SKILL.md §v2.3)
 
 **Pattern**:
 ```python
-# pseudo:
+# pseudo — 단 3 param 만 Agent tool 에 전달:
 [
-  Agent(subagent_type=type, prompt=seed_bundle[0], ...),
-  Agent(subagent_type=type, prompt=seed_bundle[1], ...),
-  ...
+  Agent(
+    model = MODEL_MAP[sb.model],            # 'haiku' → full ID resolution
+    run_in_background = True,                # N>1 병렬
+    prompt = sb.assembled_prompt             # archetype/subagent_type 은 여기 본문에 녹아 들어감
+  )
+  for sb in seed_bundles
 ]  # all in single message — parallel
+
+# 잘못된 패턴 (runtime InputValidationError):
+# Agent(subagent_type='taliban-ensemble-critic', prompt=sb)   ❌
+# Agent(isolation='sandbox', prompt=sb)                       ❌
 ```
 
 **On fail**:

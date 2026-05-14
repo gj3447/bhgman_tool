@@ -1,0 +1,136 @@
+# bhgman_tool — KG-side artifact audit
+# Wave 7 P2-B CI/CD — absorbed from SYMPOSIUM (ad-symposium-cicd-kg-audit-workflow-2026-05-14)
+#                Validates KG-adjacent artifacts that live in the repo:
+#                  · SKILL.md frontmatter (name/description/triggers spec)
+#                  · plugins/.claude-plugin/plugin.json (JSON schema sanity)
+#                  · Canonical / Lesson node count report (grep KG-ref comments)
+# trigger: push main
+# KG: span-bhgman-cicd-absorption-wave7-2026-05-14
+
+name: kg-audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kg-audit:
+    name: SKILL.md + plugin.json + KG-ref census
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install validators
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml jsonschema python-frontmatter
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: yamllint frontmatter blocks
+        run: |
+          set +e
+          fail=0
+          # Extract YAML frontmatter from each SKILL.md to a temp file and lint
+          mkdir -p /tmp/fm
+          while IFS= read -r f; do
+            python - "$f" <<'PY' > /tmp/fm/current.yml || continue
+          import sys, pathlib, frontmatter
+          p = pathlib.Path(sys.argv[1])
+          try:
+              post = frontmatter.load(p)
+              import yaml
+              print(yaml.safe_dump(post.metadata or {}))
+          except Exception as e:
+              sys.stderr.write(f"{p}: {e}\n")
+              sys.exit(1)
+          PY
+            yamllint -d "{extends: default, rules: {line-length: disable, indentation: disable, document-start: disable, truthy: disable}}" /tmp/fm/current.yml || fail=1
+          done < <(find . -name 'SKILL.md' -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/__pycache__/*' -print)
+          exit $fail
+
+      - name: SKILL.md frontmatter schema check
+        run: |
+          python - <<'PY'
+          import sys, pathlib, frontmatter
+          REQUIRED = ('name', 'description')
+          errors = []
+          warnings = []
+          for p in pathlib.Path('.').rglob('SKILL.md'):
+              if any(part in {'node_modules', '.git', '.venv', '__pycache__'} for part in p.parts):
+                  continue
+              try:
+                  post = frontmatter.load(p)
+              except Exception as e:
+                  errors.append(f"{p}: parse error: {e}")
+                  continue
+              meta = post.metadata or {}
+              for key in REQUIRED:
+                  if not meta.get(key):
+                      errors.append(f"{p}: missing '{key}'")
+              # SKILL description length sanity (Anthropic skill-creator spec)
+              desc = str(meta.get('description', ''))
+              if len(desc) > 1024:
+                  warnings.append(f"{p}: description {len(desc)} chars (>1024)")
+          for w in warnings:
+              print(f"::warning::{w}")
+          for e in errors:
+              print(f"::error::{e}")
+          if errors:
+              sys.exit(1)
+          print(f"OK — all SKILL.md frontmatter passes schema")
+          PY
+
+      - name: plugin.json JSON sanity
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r f; do
+            python -c "import json,sys; d=json.load(open('$f')); assert 'name' in d or 'plugin' in d, 'missing name/plugin'; print('OK', '$f')" || fail=1
+          done < <(find . -name 'plugin.json' -not -path '*/node_modules/*' -print | grep -F '.claude-plugin/')
+          exit $fail
+
+      - name: KG-ref census (Canonical / Lesson / Pattern)
+        run: |
+          set -e
+          # Census of inline KG references (CLAUDE.md convention: "# KG: <id>")
+          echo "## KG Reference Census" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| pattern | count |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          canonical=$(grep -rEho 'canonical-[a-z0-9-]+-202[0-9]-[0-9]{2}-[0-9]{2}' --include='*.md' --include='*.py' --include='*.lean' . 2>/dev/null | sort -u | wc -l)
+          lesson=$(grep -rEho 'lesson-[a-z0-9-]+-202[0-9]-[0-9]{2}-[0-9]{2}' --include='*.md' --include='*.py' --include='*.lean' . 2>/dev/null | sort -u | wc -l)
+          pattern=$(grep -rEho '[a-z-]+-pattern-[a-z0-9-]*202[0-9]-[0-9]{2}-[0-9]{2}' --include='*.md' . 2>/dev/null | sort -u | wc -l)
+          rfc=$(grep -rEho 'rfc-[a-z0-9-]+-202[0-9]-[0-9]{2}-[0-9]{2}' --include='*.md' . 2>/dev/null | sort -u | wc -l)
+          echo "| canonical-*-DATE | $canonical |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| lesson-*-DATE    | $lesson    |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| *-pattern-*DATE  | $pattern   |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| rfc-*-DATE       | $rfc       |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_NB: counts are inline KG-ref comments, not authoritative — KG server (dgx Multipass) is source of truth._" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: SKILL count vs MANIFEST report
+        run: |
+          set -e
+          skills=$(find . -name 'SKILL.md' -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/__pycache__/*' | wc -l | tr -d ' ')
+          plugins=$(find . -name 'plugin.json' -not -path '*/node_modules/*' 2>/dev/null | grep -cF '.claude-plugin/' || true)
+          echo "skills: $skills"
+          echo "plugin.json: $plugins"
+          echo "## Artifact Counts" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SKILL.md files: **$skills**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- .claude-plugin/plugin.json files: **$plugins**" >> "$GITHUB_STEP_SUMMARY"

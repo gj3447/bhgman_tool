@@ -10,6 +10,7 @@ description: >
   bootstrapping agent environment, or determining where new work fits in the KG.
   Enforces: Anchor identity, Progressive Disclosure, Context Budget, KG-first exploration.
   v26: Context budget + SA core fields (objective/definition/keyAssertion/C_S/contextBudget) from MethodologyConfig slot (A4). SA→SP gate uses LensSet slot (A3). v22: Gate Check enforcement via Claude Code Hook. 5대 무기(하네스/탈레반/프로메테우스/롱기누스/재배맨) 기반. SA는 프로메테우스(지식 선행)와 롱기누스(KG 접지)의 시작점.
+  Active Weapons (2026-05-14): Prometheus `/prom <N> "<sa_topic>"` (Step 1 KG sparse OR Step 3 5 core fields 외부 grounding) + Longinus L1-L2 reverse binding (Step 2 기존 SemanticAnchor 후보 reverse scan). hub-prometheus-research + hub-longinus-reference resolve.
   # KG: lesson-feedback-is-emergent-not-weapon-2026-04-16, lesson-sa-contract-v2-rejected-redesign-2026-04-20 (5 mandatory core fields enforced)
 ---
 
@@ -95,6 +96,23 @@ RETURN s.name, s.currentConcrete, s.invocation
 본문의 `taliban`/`재배맨`/`taskspec`은 MIC slot 현재 스냅샷. 진짜 호출은 `s.invocation`.
 
 # KG: MIC_v1, lesson-apt-not-truly-jaebaeman-2026-04-14
+
+---
+
+## ⚔ Active Weapons — Phase SA (1/5)
+
+> SA 측 활성 5무기 (parent /apt orchestrator §"5무기 Phase Integration Matrix" mirror).
+
+| Step | Weapon | Invocation | Trigger | Output |
+|------|--------|-----------|---------|--------|
+| Step 1 (KG 탐색) | **Prometheus** | `/prom <N> "<sa_topic> — KG 측 기존 anchor / 외부 정전 grounding"` | INFORMED_BY < `cfg.density_min_informed_by` OR source_types < `cfg.density_min_source_types` | N `ResearchFinding` (verified=true) + grounding citation |
+| Step 2 (anchor 결정 2-A/B/C) | **Longinus** | L1-L2 reverse binding: `MATCH (sa:SemanticAnchor) WHERE sa.name CONTAINS $user_topic OR sa.objective CONTAINS $user_topic RETURN sa` | 새 anchor 진입 시 항상 (기존 anchor 중복 방지) | 2-A NEW / 2-B 재사용 / 2-C 브랜치 verdict |
+| Step 3 (5 core fields) | **Prometheus** (mini) | `/prom 4 "<keyAssertion> 측 외부 정전 grounding"` (외부 grounding 부재 시) | `keyAssertion` 학문 정전 grounding 없음 | 외부 인용 (1차 source) + Lesson 노드 |
+| SA→SP Gate | **Taliban** | `/tlb <SA_id> --lens constitutional` (LensSet completeness mandatory) | 5 core fields 작성 직후 | `VerdictRecord` APPROVED + post-gate reflection |
+
+**SA 진입 hub**: `hub-prometheus-research` (지식 선행 spiral) + `hub-longinus-reference` (KG anchor binding).
+
+# KG: hub-prometheus-research, hub-longinus-reference, MIC_v1.ResearchProvider, MIC_v1.KgCodeBinder
 
 ---
 
