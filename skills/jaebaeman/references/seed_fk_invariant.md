@@ -50,6 +50,9 @@
   contractRef: String,              // (7) → :Contract(name)
   taskRef: String,                  // (8) → :SemanticTask(name)
   germinationMethod: String,        // (9) enum: consensus|conflict|singleton|manual|<custom>
+  // Schema-mandatory NOT NULL (v2.4 §p3 trigger 강제):
+  depth: Int,                       // [0,3] — root=0, fractal child=parent+1, hard limit 3
+                                    //   t_depth_not_null apoc trigger → NULL = 50N00 rollback
   // Phase 옵션 (additive):
   status: String,                   // READY|DISPATCHED|COLLECTED|FAILED|ARCHIVED
   createdAt: DateTime,
@@ -127,6 +130,7 @@ SET s.displayName = 'GAP-3 재배맨 Seed sourceId FK 1:1',
     s.targetDomain = '재배맨 SOP + KG schema',
     s.expectedOutcome = 'SKILL.md schema 명시 + references 신규',
     s.germinationMethod = '1to1to1to1-dogfood-2026-05-14',
+    s.depth = 0,                                 // ★ NOT NULL (v2.4 §p3 trigger)
     s.status = 'READY',
     s.createdAt = datetime();
 
@@ -290,4 +294,19 @@ SET s.status = 'ARCHIVED',
 
 ---
 
-# KG: ATOM_Skill_jaebaeman, span-gap3-jaebaeman-seed-fk-2026-05-14, lesson-jaebaeman-rebrand-SOP-2026-05-05, 재배맨-v2-subagent-runtime-protocol
+## 8. v2.4 amendment (2026-05-14) — depth NOT NULL p3 invariant
+
+`SubagentTaskSpec.depth` 가 9-field 의 *additive option* 으로 분류돼 있었으나, 실제 KG (neo4j://data/neo4j-0) 측 apoc trigger `t_depth_not_null` 가 *모든* property assignment 에 `depth IS NULL` 차단을 enforce 한다 → **schema-mandatory 격상**. 상세: SKILL.md §v2.4.
+
+검증:
+```cypher
+// p3 invariant Cypher (DB trigger 동일 source)
+MATCH (s:SubagentTaskSpec) WHERE s.depth IS NULL
+RETURN count(s) AS p3_violations;  // = 0 ⇒ I_DEPTH 성립
+```
+
+위 Case 1 의 정상 seed 도 v2.4 패치 후 `s.depth = 0` 명시 추가. 모든 worked example (Case 1/2/3) 의 MERGE 절은 v2.4 부터 depth field 가 *생략 불가*.
+
+---
+
+# KG: ATOM_Skill_jaebaeman, span-gap3-jaebaeman-seed-fk-2026-05-14, lesson-jaebaeman-rebrand-SOP-2026-05-05, lesson-jaebaeman-depth-invariant-2026-05-14, 재배맨-v2-subagent-runtime-protocol
