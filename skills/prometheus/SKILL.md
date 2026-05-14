@@ -1,11 +1,12 @@
 ---
 name: prometheus
 kg_ref: ATOM_Skill_prometheus
-version: "6.2.0"
+version: "6.3.0"
 channel: stable
 description: >
   프로메테우스 방법론 v6.1 — **지식-행동 spiral** (Hegel reframe, NOT 단방향 "지식 선행").
   "바로 고치지 마"는 유지하되, "먼저 불(지식) 훔쳐와"는 thesis-antithesis-synthesis 순환의 첫 thesis로 해석.
+  v6.3 (2026-05-14): Step 3-0 KG 씨앗 Pre-fetch **MANDATORY** 격상 (권장 → 강제). Anti-Pattern Detection 테이블 신설 — main prompt axis hardcode / sub-axis manual 작성 / model=haiku only & seed_bundle 부재 3개 drift 패턴 명시. Wave 7 prom drift fix evidence-driven.
   v6.1 (2026-05-05): OODA/Lean Startup 충돌 해소 — Hegel Phenomenology Begriff 자가운동(thesis 행동 없이 antithesis 못 만남).
   paralysis-by-analysis 회피: hot-fix latency critical 시 KG-skip + immediate action + post-hoc lesson 허용.
   사용법: `/prometheus <N> <problem>` (N=subagent 수, 생략 시 auto_estimate, default cfg.prometheus_N_default_small=4 / medium=8 / large=16).
@@ -122,7 +123,7 @@ Step 2로 피드백 루프
 | Gate | 검증 쿼리 (Neo4j) | BLOCK 조건 |
 |---|---|---|
 | G1 | `MATCH (l:Lesson {problem:$text}) RETURN count(l)` | 0 = BLOCK |
-| G3 | subagent JSON count == N | 불일치 = BLOCK, 재호출 |
+| G3 | subagent JSON count == N **+ v6.3: Step 3-0 KG 씨앗 pre-fetch 수행 흔적 확인 + Anti-Pattern Detection (3 패턴) PASS** | 불일치 OR 씨앗 pre-fetch skip OR anti-pattern 감지 = BLOCK, 재호출 |
 | G3.5 | `MATCH (rf:ResearchFinding {cycle_id:$cid}) RETURN count(rf)` | < N = BLOCK |
 | G4 | `MATCH (c:Conflict {cycle_id:$cid, status:'open'}) RETURN count(c)` | > 0 = Taliban 경유 필수 |
 | G4.7 | high-priority finding N중 씨앗 매핑률 | < 100% = BLOCK |
@@ -320,7 +321,9 @@ RETURN rf.name, rf.oneLineSummary LIMIT 5
 > **v5 변경**: Prompt 본문은 SKILL.md에 없다. KG `SubagentTaskSpec` 씨앗이 정본.
 > SKILL.md 수정 없이 KG 씨앗만 업데이트하면 전체 시스템에 즉시 반영된다.
 
-#### 3-0. KG 씨앗 Pre-fetch (부모 책무)
+#### 3-0. KG 씨앗 Pre-fetch (부모 책무) — **MANDATORY (v6.3)**
+
+> **v6.3 (2026-05-14)**: 본 step은 **권장 → 강제**로 격상. Step 3 진입 전 KG 씨앗 pre-fetch 누락 시 G3 gate 자동 BLOCK. main prompt에 axis/sub-axis hardcode = Step 3-0 skip 의 가장 흔한 drift — 자동 차단 대상.
 
 **부모는 Agent 출격 전에 반드시 KG에서 씨앗을 조회**한다. `mcp__neo4j__read_neo4j_cypher`:
 
@@ -343,6 +346,20 @@ RETURN sa.name, sa.sub_axis_label, sa.description
 ```
 
 **부족한 씨앗 발견 시**: `MERGE` 로 KG에 심은 후 진행. SKILL.md 수정 금지.
+
+#### 3-0.5. Anti-Pattern Detection (v6.3)
+
+> Wave 7 prom drift fix evidence: 아래 3개 drift 패턴이 production 에서 반복 관측됨. main prompt 조립 직전 self-check 강제.
+
+| 패턴 | drift type | 정정 |
+|---|---|---|
+| main prompt 에 axis 를 hardcode | Step 3-0 skip — KG 씨앗 무시 | `MATCH (ax:SubagentTaskSpec {skill:'prometheus'}) WHERE ax.axis_label IN [...]` KG seed pre-fetch **mandatory** |
+| sub-axis 를 manual 로 작성 | Step 3-1 violation — `taskspec-prometheus-subaxis-<label>` 미조회 | KG `taskspec-prometheus-subaxis-<label>` 조회 후 description 주입 (drift 0) |
+| `model=haiku` 만 지정, `seed_bundle` 부재 | Step 3-5 violation — 재배맨 v2.2 9-field bundle 위반 | 9-field seed_bundle (axis_seed + sub_axis_seed + template_seed + schema_variant + cycle_id + lesson_name + N + idx + agentId) 조립 강제 (재배맨 SKILL.md Phase 2-2 정본) |
+
+**자동 차단**: 위 3 패턴이 main prompt 또는 dispatch payload 에 감지되면 G3 gate **즉시 BLOCK**. `--skip-gate G3` override 시에도 KG `AptDecisionLog` 에 `anti_pattern_detected` 필드 강제 기록.
+
+# KG: lesson-prom-step-3-0-mandatory-2026-05-14, span-prom-drift-fix-wave7-2026-05-14, finding-prom-main-prompt-axis-hardcode-drift-2026-05-14
 
 #### 3-1. 도메인 분배
 
@@ -955,6 +972,7 @@ MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
 
 | Version | Date | Summary | KG Ref |
 |---|---|---|---|
+| **v6.3** | 2026-05-14 | Step 3-0 KG 씨앗 Pre-fetch **MANDATORY** 격상 (권장 → 강제). Anti-Pattern Detection 테이블 신설 (Step 3-0.5) — 3 production drift 패턴 자동 차단: main prompt axis hardcode (Step 3-0 skip) / sub-axis manual 작성 (Step 3-1 violation) / model=haiku only + seed_bundle 부재 (Step 3-5 violation, 재배맨 v2.2 9-field bundle 위반). Wave 7 prom drift fix sprint evidence-driven. G3 gate 측 anti-pattern 감지 시 즉시 BLOCK, override 시 `AptDecisionLog.anti_pattern_detected` 강제 기록. | `lesson-prom-step-3-0-mandatory-2026-05-14`, `span-prom-drift-fix-wave7-2026-05-14`, `finding-prom-main-prompt-axis-hardcode-drift-2026-05-14`, `finding-prom-sub-axis-manual-drift-2026-05-14`, `finding-prom-seed-bundle-absent-drift-2026-05-14` |
 | **v6** | 2026-04-29 | Step 6.5 filesystem_dispersion sub-step + G6.5 gate 신설. KG-first 설계 그대로, KG↔FS drift만 차단. 본문은 thin pointer — 정책은 `MIC_v1.FilesystemDispersionPolicy` slot + `MethodologyConfig_default_v26.prometheus_md_*` 4 field. APT v26 A6 resolve-only 준수. cycle `prom64-pkgdisc-2026-04-29`가 evidence — 1 .md만 default 산출되던 문제(KG 152 nodes 풍부 ↔ filesystem 1 .md lean) 해소. | `rfc-prom-filesystem-dispersion-2026-04-29`, `lesson-prom-output-coverage-too-lean-2026-04-29`, `verdict-user-prom-too-lean-2026-04-29`, `rootcause-prom-filesystem-dispersion-missing-2026-04-29`, `FilesystemDispersionPolicy` slot, `PromV5_FilesystemDispersion_v1` policy |
 | **v5** | 2026-04-18 | Step 3 prompt 본문을 KG 씨앗 (axis/sub-axis/matrix-template) 으로 lift. SKILL.md = 프로토콜만, 내용물 = KG 정본 (재배맨 원칙 준수). PrometheusStep v5 (Step 0/1/2/2.5/3/3.3/3.5/4/4.7/5/6/7) | `lesson-prometheus-v5-kg-reference-lift-2026-04-18`, `lesson-prometheus-v26-a6-step-drift-2026-04-25` |
 | **v4** | 2026-04-17 | 부모 하계 Pre-fetch (MCP 우회, GH #13605 대응) + Finding 중복 탐지 + 재배맨 MIC 참조 + Gate Hook 강제 | `lesson-prometheus-v4-structural-gaps-2026-04-17`, `SPAN_prometheus_v4_prefetch_protocol`, `SA_methodology_v4_triple_upgrade` |
