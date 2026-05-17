@@ -314,7 +314,7 @@ MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
 
 > Repo-level changes: [`/CHANGELOG.md`](../CHANGELOG.md). Per-commit: `git log -- harness/SKILL.md`.
 > 학문 grounding: [`/PROM_16_SKILL_VERSIONING_REPORT.md`](../PROM_16_SKILL_VERSIONING_REPORT.md).
-> SYMPOSIUM 측 정전: [`SYMPOSIUM/THEORY/HARNESS/HARNESS_BODY_REWRITE_SPEC.md`](../../../../SYMPOSIUM/THEORY/HARNESS/HARNESS_BODY_REWRITE_SPEC.md), [`SYMPOSIUM/THEORY/00_공통/세계관_정전.md` §5-C](../../../../SYMPOSIUM/THEORY/00_공통/세계관_정전.md).
+> SYMPOSIUM 측 정전: [`SYMPOSIUM/THEORY/HARNESS/HARNESS_BODY_REWRITE_SPEC.md`](../../../SYMPOSIUM/THEORY/HARNESS/HARNESS_BODY_REWRITE_SPEC.md), [`SYMPOSIUM/THEORY/00_공통/세계관_정전.md` §5-C](../../../SYMPOSIUM/THEORY/00_공통/세계관_정전.md).
 
 | Version | Date | Summary | KG Ref |
 |---|---|---|---|

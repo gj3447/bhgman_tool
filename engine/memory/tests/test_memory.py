@@ -13,7 +13,7 @@ import pytest
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent.parent))  # engine/memory parent
 
-from memory import VectorStore, SearchResult, Embedder, embed_text
+from memory import VectorStore, Embedder, embed_text
 from memory.embedder import _hash_embed, DEFAULT_DIM
 
 

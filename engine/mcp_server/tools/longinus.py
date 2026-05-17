@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 
 KG_REF_RE = re.compile(r"#\s*KG:\s*(\S+)")

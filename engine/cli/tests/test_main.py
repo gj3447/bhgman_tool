@@ -6,11 +6,9 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
 
-import pytest
 
-from engine.cli.main import _repo_root, build_parser, cli, cmd_install_skills, cmd_version
+from engine.cli.main import _repo_root, build_parser, cli
 
 
 def test_repo_root_resolves():

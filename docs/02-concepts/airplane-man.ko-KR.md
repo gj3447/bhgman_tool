@@ -111,7 +111,7 @@ bhgman repo 는 이 관계망 자체를 본문에 두지 않고 *비행기맨이
 ## 추가 자료
 
 - [harness.md](harness.md) — 비행기맨의 공학 측 결정화 (도구 본문)
-- [chu-binding.md](chu-binding.md) — CHU universe 와 비행기맨의 관계 (짧음)
+- [chu-type-theory.md](chu-type-theory.md) — CHU universe 와 비행기맨의 관계
 - [family-expansion.md](family-expansion.md) — 1:N family 결정화 정전
 - [../05-papers/lawvere-1969-FPT.md](../05-papers/lawvere-1969-FPT.md) — self-reference 형식 한계 grounding
 - [../07-metahumotonic-trace.md](../07-metahumotonic-trace.md) — *왜 비행기맨인가* 의 1% hint

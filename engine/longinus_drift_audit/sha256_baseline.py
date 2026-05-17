@@ -184,6 +184,41 @@ def init_baseline(
     return result
 
 
+def _record_drift_event(
+    *,
+    kg: KgClient,
+    result: VerifyResult,
+    site: ReferenceSite,
+    ts: str,
+    kind: str,
+    current_sha: str | None,
+    new_status: Sha256Status,
+    emit_events: bool,
+) -> None:
+    """Emit :SourceCodeDriftEvent + update site state for FILE_MISSING / SHA256_MISMATCH."""
+    event = SourceCodeDriftEvent(
+        name=f"drift-{site.sourceId}-{ts}",
+        ref_site=site.sourceId,
+        path=site.sourcePath,
+        baseline_sha256=site.sha256_baseline,
+        current_sha256=current_sha,
+        kind=kind,
+        created_at=ts,
+    )
+    result.drift_events.append(event)
+    if emit_events:
+        kg.emit_drift_event(event)
+    update_fields: dict[str, object] = {
+        "sha256_status": new_status,
+        "drift_detected_at": ts,
+        "last_validated": ts,
+        "drift_score": 1.0,
+    }
+    if current_sha is not None:
+        update_fields["sha256"] = current_sha
+    kg.merge_reference_site_state(site.model_copy(update=update_fields))
+
+
 def verify_baseline(
     *,
     kg: KgClient,
@@ -209,50 +244,21 @@ def verify_baseline(
         resolution = resolve_path(site.sourcePath, base_chain=chain)
         if resolution.status != "FILE":
             result.missing += 1
-            event = SourceCodeDriftEvent(
-                name=f"drift-{site.sourceId}-{ts}",
-                ref_site=site.sourceId,
-                path=site.sourcePath,
-                baseline_sha256=site.sha256_baseline,
-                current_sha256=None,
-                kind="FILE_MISSING",
-                created_at=ts,
+            _record_drift_event(
+                kg=kg, result=result, site=site, ts=ts,
+                kind="FILE_MISSING", current_sha=None,
+                new_status=Sha256Status.FILE_MISSING, emit_events=emit_events,
             )
-            result.drift_events.append(event)
-            if emit_events:
-                kg.emit_drift_event(event)
-            updated = site.model_copy(update={
-                "sha256_status": Sha256Status.FILE_MISSING,
-                "drift_detected_at": ts,
-                "last_validated": ts,
-                "drift_score": 1.0,
-            })
-            kg.merge_reference_site_state(updated)
             continue
 
         current = _compute_sha256(resolution.abs_path)
         if current != site.sha256_baseline:
             result.drift += 1
-            event = SourceCodeDriftEvent(
-                name=f"drift-{site.sourceId}-{ts}",
-                ref_site=site.sourceId,
-                path=site.sourcePath,
-                baseline_sha256=site.sha256_baseline,
-                current_sha256=current,
-                kind="SHA256_MISMATCH",
-                created_at=ts,
+            _record_drift_event(
+                kg=kg, result=result, site=site, ts=ts,
+                kind="SHA256_MISMATCH", current_sha=current,
+                new_status=Sha256Status.DRIFT, emit_events=emit_events,
             )
-            result.drift_events.append(event)
-            if emit_events:
-                kg.emit_drift_event(event)
-            updated = site.model_copy(update={
-                "sha256": current,
-                "sha256_status": Sha256Status.DRIFT,
-                "drift_detected_at": ts,
-                "last_validated": ts,
-                "drift_score": 1.0,
-            })
-            kg.merge_reference_site_state(updated)
         else:
             result.ok += 1
             updated = site.model_copy(update={

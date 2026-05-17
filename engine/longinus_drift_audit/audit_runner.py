@@ -20,7 +20,7 @@ import reverse_orphan_scan
 import sha256_baseline
 from bx_lens import make_dict_lens
 from kg_client import KgClient, MockKgClient
-from models import AuditReport, KgRefRecord, Sha256Status
+from models import AuditReport
 
 
 class LonginusAudit:

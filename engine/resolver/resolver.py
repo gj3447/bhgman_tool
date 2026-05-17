@@ -143,7 +143,33 @@ def validate(skill_path: Path, client: CypherKGClient) -> ValidateReport:
 # ─── CLI ────────────────────────────────────────────────────────────────
 
 
-def main(argv: list[str] | None = None) -> int:
+def _cmd_render(args: argparse.Namespace, client) -> int:
+    result = resolve(args.input, client)
+    args.output.write_text(result.rendered_body, encoding="utf-8")
+    print(f"[OK] Rendered → {args.output} (markers: {len(result.used_markers)})")
+    return 0
+
+
+def _print_validate_report(report) -> None:
+    print(f"[VALIDATE] {report.skill_path}")
+    print(f"  markers found: {len(report.markers_found)}")
+    if report.missing_in_kg:
+        print(f"  ✗ missing in KG: {report.missing_in_kg}")
+    if report.bare_inline_numbers:
+        print("  ✗ bare inline numbers (RFC A6.1 위반):")
+        for ln, n in report.bare_inline_numbers:
+            print(f"      line {ln}: {n}")
+    if report.orphan_kg_fields:
+        print(f"  ⚠ orphan cfg fields (KG에 있으나 SKILL 미참조): {report.orphan_kg_fields}")
+
+
+def _cmd_validate(args: argparse.Namespace, client) -> int:
+    report = validate(args.path, client)
+    _print_validate_report(report)
+    return 0 if report.ok else 1
+
+
+def _build_argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="APT v27 A6 pre-prompt resolver")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -153,30 +179,17 @@ def main(argv: list[str] | None = None) -> int:
 
     p_val = sub.add_parser("validate", help="KG ↔ SKILL drift check")
     p_val.add_argument("path", type=Path)
+    return parser
 
-    args = parser.parse_args(argv)
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_argparser().parse_args(argv)
     client = boot_kg_client()
     try:
         if args.cmd == "render":
-            result = resolve(args.input, client)
-            args.output.write_text(result.rendered_body, encoding="utf-8")
-            print(f"[OK] Rendered → {args.output} (markers: {len(result.used_markers)})")
-            return 0
-
+            return _cmd_render(args, client)
         if args.cmd == "validate":
-            report = validate(args.path, client)
-            print(f"[VALIDATE] {report.skill_path}")
-            print(f"  markers found: {len(report.markers_found)}")
-            if report.missing_in_kg:
-                print(f"  ✗ missing in KG: {report.missing_in_kg}")
-            if report.bare_inline_numbers:
-                print(f"  ✗ bare inline numbers (RFC A6.1 위반):")
-                for ln, n in report.bare_inline_numbers:
-                    print(f"      line {ln}: {n}")
-            if report.orphan_kg_fields:
-                print(f"  ⚠ orphan cfg fields (KG에 있으나 SKILL 미참조): {report.orphan_kg_fields}")
-            return 0 if report.ok else 1
-
+            return _cmd_validate(args, client)
         return 0
     finally:
         client.close()

@@ -1,7 +1,7 @@
 [project]
 name = "bhgman_tool"
 version = "0.1.0"
-description = "비행기맨(#4 사도)의 공학적 결정화 (Harness) 측 도구 모음. 본 repo = 도구 layer (본질 측 정전은 별도). 17 axes external grounding + 50 Lean 4 verified theorem + Goodhart safeguard."
+description = "비행기맨(#4 사도)의 공학적 결정화 (Harness) 측 도구 모음. 본 repo = 도구 layer (본질 측 정전은 별도). 17 axes external grounding + 41 Lean 4 verified theorem (Mathlib-free standalone, lean exit 0) + 16 Mathlib pending (apt_functor_with_mathlib sister-project) + Goodhart safeguard."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "gj3447 (METAHUMOTONIC)", email = "gj3447@gmail.com" }]
@@ -133,6 +133,45 @@ exclude = [
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint.per-file-ignores]
+# Test files commonly use `sys.path.insert(...)` before imports to bridge package roots
+# (pattern across engine/*/tests/ since longinus_drift_audit standalone + unified pytest).
+# E402 is intentional here, not a code smell.
+"**/tests/test_*.py" = ["E402"]
+
+[tool.deptry]
+# Local source packages (resolved via sys.path inject in tests + via hatch package config).
+# longinus_drift_audit is a flat-layout standalone subpackage — its tests import submodules
+# by bare names (`models`, `kg_client`, etc.) via sys.path bridge in tests/conftest.py.
+known_first_party = [
+  "engine", "mcp_server", "memory", "analyze", "frontmatter_parser",
+  "models", "ged_metric", "reference_layers", "reverse_orphan_scan",
+  "sha256_baseline", "kg_client", "forward_orphan_scan",
+  "bx_lens", "code_scanner", "daemon", "daemon_cli", "drift_detector",
+  "audit_runner",
+]
+
+# python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
+[tool.deptry.package_module_name_map]
+python-frontmatter = "frontmatter"
+
+# Optional/extra deps used via importorskip or conditional import (test-only or feature-gated).
+# These do exist in pyproject [project.optional-dependencies] but deptry's default scan flags them.
+[tool.deptry.per_rule_ignores]
+# DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
+DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp"]
+# DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
+DEP002 = [
+  "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)
+  "ruff",             # uvx-invoked lint tool (no Python import)
+  "mypy",             # uvx-invoked type checker (no Python import)
+  "build",            # PEP 517 packaging frontend
+  "twine",            # PyPI upload tool
+  "pytest-asyncio",   # pytest plugin (registered via marker, no import)
+  "fakeredis",        # importorskip in engine/gate/tests/test_gate.py
+  "structlog",        # placeholder for engine/gate audit log (TODO in gate_endpoint.py:237)
+]
+
 [tool.pytest.ini_options]
-testpaths = ["engine"]
+testpaths = ["engine", "worked"]
 python_files = "test_*.py"

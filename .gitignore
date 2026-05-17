@@ -45,3 +45,4 @@ lakefile.olean
 
 # Logs
 *.log
+.lycheecache

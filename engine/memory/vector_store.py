@@ -11,7 +11,6 @@ The hnswlib path is *optional* — skeleton works without it.
 from __future__ import annotations
 
 import dataclasses as dc
-import math
 from typing import Any, Iterable
 
 

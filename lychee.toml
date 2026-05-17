@@ -40,6 +40,9 @@ exclude = [
   "^https?://www\\.cs\\.ru\\.nl/",
   # ResearchProvider / deepresearch external service
   "^https?://www\\.deepresearch\\.wiki/",
+  # git-cliff-auto-generated CHANGELOG.md commit-SHA fragments (40-char hex anchor).
+  # GitHub web view 에서는 자동 해석되지만 lychee 로컬 측은 anchor 미감지 → strict mode 회피.
+  "CHANGELOG\\.md#[0-9a-f]{40}$",
 ]
 
 # Markdown fragment validation (anchor links)

@@ -337,6 +337,68 @@ def cmd_resolver(args: argparse.Namespace) -> int:
     return resolver_main(args.passthrough or [])
 
 
+_GATE_CHECK_FLAGS = {"--gate", "--cycle", "--actor", "--expected", "--actual"}
+
+
+def _parse_gate_check_args(rest: list[str]) -> dict[str, object] | None:
+    """Extract --gate/--cycle/--actor/--expected/--actual from passthrough list.
+    Returns dict or None if required keys missing."""
+    parsed: dict[str, object] = {}
+    i = 0
+    while i < len(rest):
+        tok = rest[i]
+        if tok in _GATE_CHECK_FLAGS and i + 1 < len(rest):
+            key = tok[2:]  # strip "--"
+            val = rest[i + 1]
+            parsed[key] = int(val) if key in ("expected", "actual") else val
+            i += 2
+        else:
+            i += 1
+    if not all(parsed.get(k) for k in ("gate", "cycle", "actor")):
+        return None
+    return parsed
+
+
+def _cmd_gate_serve() -> int:
+    try:
+        from engine.gate.gate_endpoint import main as gate_main
+    except ImportError as e:
+        print(f"[bhgman-tool] FAIL: engine.gate not importable — install gate deps "
+              f"(fastapi, uvicorn, redis, tenacity): {e}", file=sys.stderr)
+        return 2
+    gate_main()
+    return 0
+
+
+def _cmd_gate_check(rest: list[str]) -> int:
+    import json
+    import urllib.request
+    parsed = _parse_gate_check_args(rest)
+    if parsed is None:
+        print("usage: bhgman-tool gate check --gate NAME --cycle ID --actor NAME "
+              "[--expected N --actual N]", file=sys.stderr)
+        return 2
+    host = os.environ.get("APT_GATE_HOST", "127.0.0.1")
+    port = os.environ.get("APT_GATE_PORT", "8765")
+    body = {
+        "gate_name": parsed["gate"], "cycle_id": parsed["cycle"], "actor": parsed["actor"],
+        "context": {"expected_count": parsed.get("expected"), "actual_count": parsed.get("actual")},
+    }
+    req = urllib.request.Request(
+        f"http://{host}:{port}/gate/check",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            print(resp.read().decode("utf-8"))
+            return 0 if resp.status == 200 else 1
+    except Exception as e:
+        print(f"[bhgman-tool] gate check FAIL: {e}", file=sys.stderr)
+        return 2
+
+
 def cmd_gate(args: argparse.Namespace) -> int:
     """APT v27 A7 gate hook dispatch.
 
@@ -350,63 +412,9 @@ def cmd_gate(args: argparse.Namespace) -> int:
     sub = args.passthrough[0]
     rest = args.passthrough[1:]
     if sub == "serve":
-        try:
-            from engine.gate.gate_endpoint import main as gate_main
-        except ImportError as e:
-            print(f"[bhgman-tool] FAIL: engine.gate not importable — install gate deps "
-                  f"(fastapi, uvicorn, redis, tenacity): {e}", file=sys.stderr)
-            return 2
-        gate_main()
-        return 0
+        return _cmd_gate_serve()
     if sub == "check":
-        # Minimal oneshot client — requires server reachable
-        try:
-            import json
-            import urllib.request
-        except ImportError as e:
-            print(f"[bhgman-tool] FAIL: urllib unavailable: {e}", file=sys.stderr)
-            return 2
-        # parse --gate / --cycle / --actor / --expected / --actual from rest
-        gate_name = cycle = actor = None
-        expected = actual = None
-        i = 0
-        while i < len(rest):
-            tok = rest[i]
-            if tok == "--gate" and i + 1 < len(rest):
-                gate_name = rest[i + 1]; i += 2
-            elif tok == "--cycle" and i + 1 < len(rest):
-                cycle = rest[i + 1]; i += 2
-            elif tok == "--actor" and i + 1 < len(rest):
-                actor = rest[i + 1]; i += 2
-            elif tok == "--expected" and i + 1 < len(rest):
-                expected = int(rest[i + 1]); i += 2
-            elif tok == "--actual" and i + 1 < len(rest):
-                actual = int(rest[i + 1]); i += 2
-            else:
-                i += 1
-        if not all([gate_name, cycle, actor]):
-            print("usage: bhgman-tool gate check --gate NAME --cycle ID --actor NAME "
-                  "[--expected N --actual N]", file=sys.stderr)
-            return 2
-        host = os.environ.get("APT_GATE_HOST", "127.0.0.1")
-        port = os.environ.get("APT_GATE_PORT", "8765")
-        body = {
-            "gate_name": gate_name, "cycle_id": cycle, "actor": actor,
-            "context": {"expected_count": expected, "actual_count": actual},
-        }
-        req = urllib.request.Request(
-            f"http://{host}:{port}/gate/check",
-            data=json.dumps(body).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
-                print(resp.read().decode("utf-8"))
-                return 0 if resp.status == 200 else 1
-        except Exception as e:
-            print(f"[bhgman-tool] gate check FAIL: {e}", file=sys.stderr)
-            return 2
+        return _cmd_gate_check(rest)
     print(f"[bhgman-tool] unknown gate subcommand: {sub} (expected serve|check)", file=sys.stderr)
     return 2
 
