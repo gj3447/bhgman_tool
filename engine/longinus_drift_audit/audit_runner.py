@@ -2,6 +2,7 @@
 
 E2E: scan code → list KG refs → detect 5 drifts → GED → reverse orphan → layer coverage.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,9 +38,7 @@ class LonginusAudit:
 
     @staticmethod
     def _make_audit_id() -> str:
-        h = hashlib.sha256(
-            dt.datetime.now(dt.timezone.utc).isoformat().encode()
-        ).hexdigest()[:12]
+        h = hashlib.sha256(dt.datetime.now(dt.timezone.utc).isoformat().encode()).hexdigest()[:12]
         return f"longinus-audit-{h}"
 
     def run_full(self, *, verify_sha256: bool = True) -> AuditReport:
@@ -69,14 +68,10 @@ class LonginusAudit:
 
         # 4c. sha256 baseline verify — Wave 6
         sha256_sites = self.kg.list_reference_site_states()
-        sha256_baseline_count = sum(
-            1 for s in sha256_sites if s.sha256_baseline
-        )
+        sha256_baseline_count = sum(1 for s in sha256_sites if s.sha256_baseline)
         sha256_drift_events: list = []
         if verify_sha256 and sha256_sites:
-            verify_result = sha256_baseline.verify_baseline(
-                kg=self.kg, sites=sha256_sites
-            )
+            verify_result = sha256_baseline.verify_baseline(kg=self.kg, sites=sha256_sites)
             sha256_drift_events = verify_result.drift_events
 
         # 5. GED

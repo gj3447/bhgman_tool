@@ -84,14 +84,13 @@ class CircuitBreaker:
                     State.HALF_OPEN, True, "OPEN duration elapsed, trial request"
                 )
             return CircuitDecision(
-                State.OPEN, False,
+                State.OPEN,
+                False,
                 f"circuit OPEN (opened {time.monotonic() - opened_at:.1f}s ago)",
             )
 
         # HALF_OPEN
-        return CircuitDecision(
-            State.HALF_OPEN, True, "trial request in HALF_OPEN"
-        )
+        return CircuitDecision(State.HALF_OPEN, True, "trial request in HALF_OPEN")
 
     # ─── transition ────────────────────────────────────────────────────
 
@@ -124,6 +123,7 @@ def _decode(v) -> str:
 def build_redis_client() -> redis.Redis:
     """Composition Root: Redis 연결 + ping 검증. REDIS_PASSWORD env optional (k8s pod AUTH)."""
     import os
+
     kwargs = dict(
         host=os.environ.get("REDIS_HOST", "localhost"),
         port=int(os.environ.get("REDIS_PORT", 6379)),

@@ -1,4 +1,5 @@
 """Tests for sha256 baseline init / verify — Longinus Wave 6 (2026-05-14)."""
+
 from __future__ import annotations
 
 import hashlib
@@ -94,7 +95,9 @@ class TestInitBaseline:
         )
         kg = MockKgClient()
         result = sha256_baseline.init_baseline(
-            kg=kg, sites=[site], base_chain=(str(tmp_repo),),
+            kg=kg,
+            sites=[site],
+            base_chain=(str(tmp_repo),),
         )
         assert result.missing == 1
         assert kg.sites[site.sourceId].sha256_status == Sha256Status.FILE_MISSING
@@ -163,7 +166,8 @@ class TestVerifyBaseline:
         )
         kg.merge_reference_site_state(site)
         result = sha256_baseline.verify_baseline(
-            kg=kg, sites=kg.list_reference_site_states(),
+            kg=kg,
+            sites=kg.list_reference_site_states(),
         )
         assert result.skipped_baseline == 1
 
@@ -176,7 +180,8 @@ class TestVerifyBaseline:
         )
         kg.merge_reference_site_state(site)
         result = sha256_baseline.verify_baseline(
-            kg=kg, sites=kg.list_reference_site_states(),
+            kg=kg,
+            sites=kg.list_reference_site_states(),
         )
         assert result.skipped_dir == 1
 

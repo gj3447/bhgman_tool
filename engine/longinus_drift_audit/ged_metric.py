@@ -6,6 +6,7 @@ Drift Score = GED / max(|V_kg|, |V_code|)
 본 prototype 은 *간단한 label-based* GED (full graph isomorphism 아님).
 실 production: networkx graph_edit_distance 위임 권장.
 """
+
 from __future__ import annotations
 
 from typing import Iterable

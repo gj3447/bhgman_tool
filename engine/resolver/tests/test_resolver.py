@@ -54,9 +54,7 @@ def test_resolve_replaces_all_markers(mock_kg, example_skill_path):
 
 def test_resolve_raises_on_missing_marker(mock_kg, tmp_path):
     skill = tmp_path / "broken.md"
-    skill.write_text(
-        "---\nname: broken\n---\n\nValue: {{cfg.nonexistent_field}}\n"
-    )
+    skill.write_text("---\nname: broken\n---\n\nValue: {{cfg.nonexistent_field}}\n")
     mock_kg.fetch_methodology_config.return_value = {"some_other": 1}
     with pytest.raises(SystemExit):
         resolver.resolve(skill, mock_kg)
@@ -74,9 +72,7 @@ def test_validate_clean_skill_passes(mock_kg, example_skill_path):
 
 def test_validate_detects_bare_inline_number(mock_kg, tmp_path):
     skill = tmp_path / "bad.md"
-    skill.write_text(
-        "---\nname: bad\n---\n\n# 위반\n\nvibe coding sweet 200~500 줄.\n"
-    )
+    skill.write_text("---\nname: bad\n---\n\n# 위반\n\nvibe coding sweet 200~500 줄.\n")
     report = resolver.validate(skill, mock_kg)
     assert not report.ok
     nums = [n for _, n in report.bare_inline_numbers]
@@ -91,17 +87,13 @@ def test_validate_allows_parenthetical_hint(mock_kg, tmp_path):
         "vibe coding sweet `{{cfg.vibe_coding_sweet_min}}` (현재 200) 줄.\n"
     )
     report = resolver.validate(skill, mock_kg)
-    assert not report.bare_inline_numbers, (
-        "괄호 안 reader-facing 안내는 위반 X"
-    )
+    assert not report.bare_inline_numbers, "괄호 안 reader-facing 안내는 위반 X"
 
 
 def test_validate_detects_orphan_cfg_field(mock_kg, tmp_path):
     """KG에는 있는데 SKILL.md 어디서도 참조 안 됨 → orphan WARN."""
     skill = tmp_path / "partial.md"
-    skill.write_text(
-        "---\nname: partial\n---\n\nOnly: {{cfg.vibe_coding_sweet_min}}\n"
-    )
+    skill.write_text("---\nname: partial\n---\n\nOnly: {{cfg.vibe_coding_sweet_min}}\n")
     report = resolver.validate(skill, mock_kg)
     # 4 fields(max/lens/contract/st) 모두 orphan
     assert "vibe_coding_sweet_max" in report.orphan_kg_fields

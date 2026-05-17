@@ -8,6 +8,7 @@ Design:
 - stdio transport (default for `mcp.run()`).
 - All tools must be deterministic, time-bounded, and structured (no eval/exec).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -29,6 +30,7 @@ def build_server() -> Any:
     from .tools.apt import register as register_apt
     from .tools.taliban import register as register_taliban
     from .tools.tpa import register as register_tpa
+
     # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):
     # KG: rs-mcp-symposium-absorb-2026-05-14
     from .tools.symposium import register as register_symposium

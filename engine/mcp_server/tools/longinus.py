@@ -6,6 +6,7 @@ Exposes Longinus drift detection as a Claude-Code-callable MCP tool.
 Uses the simulated KG audit logic from the worked example (worked/01-longinus-simple/run.py)
 plus the production Pydantic models from `longinus_drift_audit` package.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,8 +35,17 @@ def _scan_kg_refs(root: Path, max_files: int = 1000) -> list[dict]:
     Bounded: max_files prevents runaway scans.
     """
     refs: list[dict] = []
-    skip_dirs = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache",
-                 "dist", "build", ".mypy_cache", ".ruff_cache"}
+    skip_dirs = {
+        ".git",
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
     count = 0
     for path in root.rglob("*.py"):
         if count >= max_files:
@@ -49,11 +59,13 @@ def _scan_kg_refs(root: Path, max_files: int = 1000) -> list[dict]:
         for i, line in enumerate(source.splitlines(), start=1):
             m = KG_REF_RE.search(line)
             if m:
-                refs.append({
-                    "file": str(path.relative_to(root)),
-                    "line": i,
-                    "kg_id": m.group(1),
-                })
+                refs.append(
+                    {
+                        "file": str(path.relative_to(root)),
+                        "line": i,
+                        "kg_id": m.group(1),
+                    }
+                )
         count += 1
     return refs
 
@@ -102,12 +114,14 @@ def longinus_audit_impl(
             kg = json.loads(kg_sim_path.read_text())
             for r in refs:
                 if r["kg_id"] not in kg:
-                    drifts.append({
-                        "drift_type": "Orphan",
-                        "kg_id": r["kg_id"],
-                        "code_location": f"{r['file']}:{r['line']}",
-                        "lens_law_violated": "GetPut",
-                    })
+                    drifts.append(
+                        {
+                            "drift_type": "Orphan",
+                            "kg_id": r["kg_id"],
+                            "code_location": f"{r['file']}:{r['line']}",
+                            "lens_law_violated": "GetPut",
+                        }
+                    )
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -125,6 +139,7 @@ def longinus_audit_impl(
 
 def register(mcp: Any) -> None:
     """Attach `longinus_audit` tool to the FastMCP instance."""
+
     @mcp.tool()
     def longinus_audit(
         repo_path: str,

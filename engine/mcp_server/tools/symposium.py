@@ -61,7 +61,9 @@ def _resolve_skills_dir() -> Path:
     for parent in here.parents:
         if (parent / "skills").is_dir() and (parent / "pyproject.toml").is_file():
             return parent / "skills"
-    raise RuntimeError("skills directory not found (SYMPOSIUM_ROOT and bhgman_tool fallback both failed)")
+    raise RuntimeError(
+        "skills directory not found (SYMPOSIUM_ROOT and bhgman_tool fallback both failed)"
+    )
 
 
 def _resolve_repo_root() -> Path:
@@ -133,7 +135,9 @@ class SeedGerminateRequest:
 # ─── transport (fail-open) ─────────────────────────────────────────────────
 
 
-def _ssh_cypher(cypher: str, params: dict[str, Any] | None = None, timeout_s: float = 5.0) -> dict[str, Any]:
+def _ssh_cypher(
+    cypher: str, params: dict[str, Any] | None = None, timeout_s: float = 5.0
+) -> dict[str, Any]:
     """ssh dgx → kubectl exec → cypher-shell. Fail-open: returns degraded dict on error.
 
     Tests monkeypatch this to inject mocks; do not inline.
@@ -142,12 +146,17 @@ def _ssh_cypher(cypher: str, params: dict[str, Any] | None = None, timeout_s: fl
     cmd = [
         "ssh",
         DGX_HOST,
-        f"kubectl exec -n neo4j neo4j-0 -- cypher-shell -u neo4j -p \"${{NEO4J_PASSWORD:-neo4j}}\" "
+        f'kubectl exec -n neo4j neo4j-0 -- cypher-shell -u neo4j -p "${{NEO4J_PASSWORD:-neo4j}}" '
         f"--format plain --param 'p => {params_json}'",
     ]
     try:
         result = subprocess.run(
-            cmd, input=cypher, capture_output=True, text=True, timeout=timeout_s, check=False,
+            cmd,
+            input=cypher,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            check=False,
         )
         return {
             "ok": result.returncode == 0,
@@ -188,7 +197,9 @@ def _apt_dispatch_impl(req: APTDispatchRequest) -> dict[str, Any]:
 
 def _kg_query_impl(req: KGQueryRequest) -> dict[str, Any]:
     """Cypher pass-through with fail-open + write-keyword guard."""
-    has_write_keyword = any(kw in req.cypher.upper() for kw in ("CREATE", "MERGE", "DELETE", "REMOVE"))
+    has_write_keyword = any(
+        kw in req.cypher.upper() for kw in ("CREATE", "MERGE", "DELETE", "REMOVE")
+    )
     if req.mutate and not has_write_keyword:
         return {"ok": False, "reason": "mutate=true but no write keyword in cypher"}
     if not req.mutate and has_write_keyword:
@@ -206,7 +217,10 @@ def _gate_check_impl(req: GateCheckRequest) -> dict[str, Any]:
     try:
         result = subprocess.run(
             [str(script), req.gate_name, req.cycle_id, req.actor],
-            capture_output=True, text=True, timeout=10, check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
         return {
             "verdict": "PASS" if result.returncode == 0 else "FAIL",
@@ -276,7 +290,9 @@ def register(mcp: Any) -> None:
     ) -> dict[str, Any]:
         """Run an APT gate check (Resilience4j 4-layer chain)."""
         return _gate_check_impl(
-            GateCheckRequest(gate_name=gate_name, cycle_id=cycle_id, actor=actor, context=context or {})
+            GateCheckRequest(
+                gate_name=gate_name, cycle_id=cycle_id, actor=actor, context=context or {}
+            )
         )
 
     @mcp.tool()
@@ -287,5 +303,7 @@ def register(mcp: Any) -> None:
     ) -> dict[str, Any]:
         """Emit a 재배맨 SubagentTaskSpec seed (jaebaeman protocol)."""
         return _seed_germinate_impl(
-            SeedGerminateRequest(spec_name=spec_name, payload=payload, parent_cycle_id=parent_cycle_id)
+            SeedGerminateRequest(
+                spec_name=spec_name, payload=payload, parent_cycle_id=parent_cycle_id
+            )
         )

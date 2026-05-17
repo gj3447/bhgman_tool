@@ -12,6 +12,7 @@ Honest limitations (Goodhart safeguard):
   returns 0 for those categories with a note.
 - Scan budget capped at 1000 .py files to bound runtime.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,10 +25,19 @@ DRIFT_TYPES = ("Missing", "Orphan", "SigMismatch", "PatternDiv", "LabelRot")
 MAX_FILES = 1000
 EXAMPLE_LIMIT = 5
 
-_SKIP_DIRS = frozenset({
-    ".git", ".venv", "node_modules", "__pycache__", ".pytest_cache",
-    "dist", "build", ".mypy_cache", ".ruff_cache",
-})
+_SKIP_DIRS = frozenset(
+    {
+        ".git",
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
+)
 
 
 def _validate_repo_path(repo_path: str) -> Path:
@@ -78,11 +88,13 @@ def _scan_kg_refs(root: Path) -> list[dict[str, Any]]:
         for i, line in enumerate(source.splitlines(), start=1):
             m = KG_REF_RE.search(line)
             if m:
-                refs.append({
-                    "file": str(path.relative_to(root)),
-                    "line": i,
-                    "kg_id": m.group(1),
-                })
+                refs.append(
+                    {
+                        "file": str(path.relative_to(root)),
+                        "line": i,
+                        "kg_id": m.group(1),
+                    }
+                )
         count += 1
     return refs
 
@@ -159,6 +171,7 @@ def tpa_drift_audit_impl(repo_path: str) -> dict[str, Any]:
 
 def register(mcp: Any) -> None:
     """Attach `tpa_drift_audit` tool to the FastMCP instance."""
+
     @mcp.tool()
     def tpa_drift_audit(repo_path: str) -> dict[str, Any]:
         """5-drift audit (Missing/Orphan/SigMismatch/PatternDiv/LabelRot) for a repo.

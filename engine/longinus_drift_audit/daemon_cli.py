@@ -4,6 +4,7 @@ Skeleton — minimal commands (add / start / stop / status / logs).
 Production hardening (proper TOML serialization, log rotation, lock files
 to prevent double-start, IPC for live status) deferred.
 """
+
 from __future__ import annotations
 
 import argparse

@@ -2,6 +2,7 @@
 
 롱기누스 SKILL.md v3.2 1:1.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -13,11 +14,11 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class DriftType(str, Enum):
-    MISSING = "Missing"           # PutGet violation: 코드 존재 ∧ KG ref 부재
-    ORPHAN = "Orphan"             # GetPut violation: KG ref 존재 ∧ 코드 부재
+    MISSING = "Missing"  # PutGet violation: 코드 존재 ∧ KG ref 부재
+    ORPHAN = "Orphan"  # GetPut violation: KG ref 존재 ∧ 코드 부재
     SIG_MISMATCH = "SigMismatch"  # PutGet violation: ref ↔ 시그니처 불일치
-    PATTERN_DIV = "PatternDiv"    # PutPut violation: 동일 대상 ↔ 상충 ref
-    LABEL_ROT = "LabelRot"        # PutPut violation: 라벨/이름 변경 미반영
+    PATTERN_DIV = "PatternDiv"  # PutPut violation: 동일 대상 ↔ 상충 ref
+    LABEL_ROT = "LabelRot"  # PutPut violation: 라벨/이름 변경 미반영
 
 
 class ReferenceLayer(str, Enum):
@@ -37,9 +38,9 @@ class Confidence(str, Enum):
     Lean: MIND/lean_formalization/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean (7 theorem PASS).
     """
 
-    EXTRACTED = "EXTRACTED"    # explicitly stated in source (import / direct call / type)
-    INFERRED = "INFERRED"      # reasonable deduction (call-graph 2-pass / co-occurrence)
-    AMBIGUOUS = "AMBIGUOUS"    # uncertain, flagged for human review → :PRELIMINARY
+    EXTRACTED = "EXTRACTED"  # explicitly stated in source (import / direct call / type)
+    INFERRED = "INFERRED"  # reasonable deduction (call-graph 2-pass / co-occurrence)
+    AMBIGUOUS = "AMBIGUOUS"  # uncertain, flagged for human review → :PRELIMINARY
 
 
 def requires_human_verdict(c: Confidence) -> bool:
@@ -60,7 +61,9 @@ def any_ambiguous(sites: "list[ReferenceSite]") -> bool:
 
 # ─── Branded source identifiers ──────────────────────────────────────────
 
-_SOURCE_ID_PATTERN = re.compile(r"^[A-Z][a-zA-Z0-9]*\.[a-zA-Z_][a-zA-Z0-9_]*$|^[a-z][a-z0-9-]+-[a-z0-9-]+$")
+_SOURCE_ID_PATTERN = re.compile(
+    r"^[A-Z][a-zA-Z0-9]*\.[a-zA-Z_][a-zA-Z0-9_]*$|^[a-z][a-z0-9-]+-[a-z0-9-]+$"
+)
 """Two flavours:
    - PascalCase.symbol (e.g. `Prometheus.cycle_runner` or KG `lesson-foo-bar-2026`).
    The KG dash-pattern is also accepted (lesson-/finding-/seed- prefixes).
@@ -75,12 +78,12 @@ class Sha256Status(str, Enum):
     KG: longinus-sha256-daemon-canonical-2026-05-06 + Wave 6 LONGINUS_BINDING.md.
     """
 
-    BASELINE = "BASELINE"          # initial sha256 recorded, no drift yet
-    VERIFIED = "VERIFIED"          # last verify matched baseline
-    DRIFT = "DRIFT"                # current sha256 != baseline
+    BASELINE = "BASELINE"  # initial sha256 recorded, no drift yet
+    VERIFIED = "VERIFIED"  # last verify matched baseline
+    DRIFT = "DRIFT"  # current sha256 != baseline
     FILE_MISSING = "FILE_MISSING"  # sourcePath no longer resolves on disk
     DIRECTORY_SKIP = "DIRECTORY_SKIP"  # sourcePath is a directory, not file
-    UNKNOWN = "UNKNOWN"            # never initialized
+    UNKNOWN = "UNKNOWN"  # never initialized
 
 
 class ReferenceSite(BaseModel):
@@ -97,9 +100,7 @@ class ReferenceSite(BaseModel):
 
     sourceId: str = Field(..., description="L4 Sinn — semantic id (KG node name)")
     sourcePath: str = Field(..., description="L1+L4 Bedeutung — file:line")
-    pierced_at: str = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
-    )
+    pierced_at: str = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
     drift_detected_at: Optional[str] = None  # L2 lifetime
     drift_score: float = Field(default=0.0, ge=0.0, le=1.0)  # GED-normalized
     confidence: Confidence = Field(
@@ -175,9 +176,7 @@ class DriftRecord(BaseModel):
     actual: Optional[str] = None
     layer_violated: ReferenceLayer
     lens_law_violated: str  # "GetPut" | "PutGet" | "PutPut"
-    detected_at: str = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
-    )
+    detected_at: str = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
 
 
 # ─── Code symbol (scanner output) ────────────────────────────────────────
@@ -185,7 +184,7 @@ class DriftRecord(BaseModel):
 
 class CodeSymbol(BaseModel):
     sourcePath: str  # file:line
-    name: str        # symbol/function/class name
+    name: str  # symbol/function/class name
     kind: str = "unknown"  # function | class | module | const
     signature: Optional[str] = None
     kg_refs: list[str] = Field(default_factory=list)  # `# KG: xxx` lines found
@@ -238,9 +237,7 @@ class ForwardOrphanRecord(BaseModel):
 
     hub_name: str
     missing_field: str  # 'package_path' | 'source_file' | 'ruflo_grade'
-    detected_at: str = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
-    )
+    detected_at: str = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
     layer_violated: ReferenceLayer = ReferenceLayer.L3_TYPE
     lens_law_violated: str = "GetPut"  # KG asserts hub exists, but FS cannot be resolved
 
@@ -261,9 +258,7 @@ class SourceCodeDriftEvent(BaseModel):
     current_sha256: Optional[str] = None
     kind: str = "SHA256_MISMATCH"  # SHA256_MISMATCH | FILE_MISSING
     detected_by: str = "longinus_drift_audit.sha256_baseline"
-    created_at: str = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
     resolved: bool = False
 
 
@@ -308,15 +303,17 @@ class AuditReport(BaseModel):
     drifts_by_type: dict[str, int] = Field(default_factory=dict)
     drift_records: list[DriftRecord] = Field(default_factory=list)
     reverse_orphans: list[str] = Field(default_factory=list)  # code symbols with no KG ref
-    forward_orphans: list[ForwardOrphanRecord] = Field(default_factory=list)  # Wave 6 — KG hubs lacking package_path
-    sha256_drift_events: list[SourceCodeDriftEvent] = Field(default_factory=list)  # Wave 6 — baseline mismatches
-    sha256_baseline_count: int = 0       # Wave 6 — total :ReferenceSite with sha256_baseline set
+    forward_orphans: list[ForwardOrphanRecord] = Field(
+        default_factory=list
+    )  # Wave 6 — KG hubs lacking package_path
+    sha256_drift_events: list[SourceCodeDriftEvent] = Field(
+        default_factory=list
+    )  # Wave 6 — baseline mismatches
+    sha256_baseline_count: int = 0  # Wave 6 — total :ReferenceSite with sha256_baseline set
     layer_coverage: LayerCoverage = Field(default_factory=LayerCoverage)
     lens_verification: LensVerification = Field(default_factory=LensVerification)
     ged_report: Optional[GedReport] = None
-    completed_at: str = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat()
-    )
+    completed_at: str = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
 
     @property
     def total_drifts(self) -> int:

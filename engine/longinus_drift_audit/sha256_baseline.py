@@ -21,6 +21,7 @@ Daemon-style wiring (multi-repo loop) already lives in ``daemon.py``. This
 module focuses on the KG ↔ disk hash synchronization protocol itself, which
 is composable with both the daemon watcher and a one-shot CLI.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -61,7 +62,7 @@ DEFAULT_FS_BASE_CHAIN: tuple[str, ...] = (
 class PathResolution:
     """Resolved (status, abs_path) for a sourcePath candidate."""
 
-    status: str          # 'FILE' | 'DIRECTORY' | 'MISSING'
+    status: str  # 'FILE' | 'DIRECTORY' | 'MISSING'
     abs_path: Optional[str] = None
 
 
@@ -99,9 +100,9 @@ def resolve_path(
 class InitResult:
     """Aggregated stats from `init_baseline`."""
 
-    populated: int = 0          # FILE → sha256_baseline written
-    directory_skip: int = 0     # DIRECTORY → marked DIRECTORY_SKIP
-    missing: int = 0            # MISSING → marked FILE_MISSING
+    populated: int = 0  # FILE → sha256_baseline written
+    directory_skip: int = 0  # DIRECTORY → marked DIRECTORY_SKIP
+    missing: int = 0  # MISSING → marked FILE_MISSING
     total_seen: int = 0
     populated_sites: list[ReferenceSite] = field(default_factory=list)
 
@@ -110,10 +111,10 @@ class InitResult:
 class VerifyResult:
     """Aggregated stats from `verify_baseline`."""
 
-    ok: int = 0                 # current sha256 == baseline
-    drift: int = 0              # mismatch — :SourceCodeDriftEvent emitted
-    missing: int = 0            # baseline existed but file vanished
-    skipped_baseline: int = 0   # no baseline to compare against (call init first)
+    ok: int = 0  # current sha256 == baseline
+    drift: int = 0  # mismatch — :SourceCodeDriftEvent emitted
+    missing: int = 0  # baseline existed but file vanished
+    skipped_baseline: int = 0  # no baseline to compare against (call init first)
     skipped_dir: int = 0
     skipped_orphan: int = 0
     drift_events: list[SourceCodeDriftEvent] = field(default_factory=list)
@@ -153,33 +154,42 @@ def init_baseline(
         resolution = resolve_path(site.sourcePath, base_chain=chain)
         if resolution.status == "FILE":
             sha = _compute_sha256(resolution.abs_path)
-            updated = site.model_copy(update={
-                "sha256": sha,
-                "sha256_baseline": sha,
-                "sha256_status": Sha256Status.BASELINE,
-                "last_validated": ts,
-                "pierced_at": site.pierced_at,
-            })
+            updated = site.model_copy(
+                update={
+                    "sha256": sha,
+                    "sha256_baseline": sha,
+                    "sha256_status": Sha256Status.BASELINE,
+                    "last_validated": ts,
+                    "pierced_at": site.pierced_at,
+                }
+            )
             kg.merge_reference_site_state(updated)
             result.populated += 1
             result.populated_sites.append(updated)
         elif resolution.status == "DIRECTORY":
-            updated = site.model_copy(update={
-                "sha256_status": Sha256Status.DIRECTORY_SKIP,
-                "last_validated": ts,
-            })
+            updated = site.model_copy(
+                update={
+                    "sha256_status": Sha256Status.DIRECTORY_SKIP,
+                    "last_validated": ts,
+                }
+            )
             kg.merge_reference_site_state(updated)
             result.directory_skip += 1
         else:
-            updated = site.model_copy(update={
-                "sha256_status": Sha256Status.FILE_MISSING,
-                "last_validated": ts,
-            })
+            updated = site.model_copy(
+                update={
+                    "sha256_status": Sha256Status.FILE_MISSING,
+                    "last_validated": ts,
+                }
+            )
             kg.merge_reference_site_state(updated)
             result.missing += 1
     logger.info(
         "init_baseline: populated=%d directory_skip=%d missing=%d total=%d",
-        result.populated, result.directory_skip, result.missing, result.total_seen,
+        result.populated,
+        result.directory_skip,
+        result.missing,
+        result.total_seen,
     )
     return result
 
@@ -245,9 +255,14 @@ def verify_baseline(
         if resolution.status != "FILE":
             result.missing += 1
             _record_drift_event(
-                kg=kg, result=result, site=site, ts=ts,
-                kind="FILE_MISSING", current_sha=None,
-                new_status=Sha256Status.FILE_MISSING, emit_events=emit_events,
+                kg=kg,
+                result=result,
+                site=site,
+                ts=ts,
+                kind="FILE_MISSING",
+                current_sha=None,
+                new_status=Sha256Status.FILE_MISSING,
+                emit_events=emit_events,
             )
             continue
 
@@ -255,24 +270,34 @@ def verify_baseline(
         if current != site.sha256_baseline:
             result.drift += 1
             _record_drift_event(
-                kg=kg, result=result, site=site, ts=ts,
-                kind="SHA256_MISMATCH", current_sha=current,
-                new_status=Sha256Status.DRIFT, emit_events=emit_events,
+                kg=kg,
+                result=result,
+                site=site,
+                ts=ts,
+                kind="SHA256_MISMATCH",
+                current_sha=current,
+                new_status=Sha256Status.DRIFT,
+                emit_events=emit_events,
             )
         else:
             result.ok += 1
-            updated = site.model_copy(update={
-                "sha256": current,
-                "sha256_status": Sha256Status.VERIFIED,
-                "last_validated": ts,
-                "drift_detected_at": None,
-                "drift_score": 0.0,
-            })
+            updated = site.model_copy(
+                update={
+                    "sha256": current,
+                    "sha256_status": Sha256Status.VERIFIED,
+                    "last_validated": ts,
+                    "drift_detected_at": None,
+                    "drift_score": 0.0,
+                }
+            )
             kg.merge_reference_site_state(updated)
     logger.info(
         "verify_baseline: ok=%d drift=%d missing=%d skip_baseline=%d skip_dir=%d",
-        result.ok, result.drift, result.missing,
-        result.skipped_baseline, result.skipped_dir,
+        result.ok,
+        result.drift,
+        result.missing,
+        result.skipped_baseline,
+        result.skipped_dir,
     )
     return result
 

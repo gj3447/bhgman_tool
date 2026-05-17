@@ -104,7 +104,7 @@ class TestDetectAll:
     def test_summary_counts(self):
         syms = [
             _sym("a", 1, kg_refs=["missing-1"]),  # MISSING (KG 부재)
-            _sym("b", 1, kg_refs=[]),             # no decl, no drift detected here
+            _sym("b", 1, kg_refs=[]),  # no decl, no drift detected here
         ]
         kgs = {"orphan-1": _kg("orphan-1")}  # ORPHAN (코드 부재)
         out = drift_detector.detect_all(symbols=syms, kg_refs=kgs)

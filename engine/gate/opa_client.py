@@ -14,6 +14,7 @@ Usage:
 KG ref: PROM_16_A6_opa-gate-http-integration-2026-05-11
 Reference: SYMPOSIUM/THEORY/APT/rfc/rfc-apt-v27-A9-opa-rego-full-2026-05-11.md
 """
+
 from __future__ import annotations
 import os
 from typing import Any

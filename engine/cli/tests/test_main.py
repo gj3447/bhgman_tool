@@ -2,6 +2,7 @@
 
 KG: SPAN_bhgman_tool_phase3_CLI (Phase 3 L1 branch A)
 """
+
 from __future__ import annotations
 
 import subprocess

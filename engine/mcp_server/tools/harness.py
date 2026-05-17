@@ -8,6 +8,7 @@ is currently failing.
 
 Skeleton stage: lookup table of known frameworks. Production classifier in Phase 2.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -102,6 +103,7 @@ def harness_diagnose_impl(target: str) -> dict[str, Any]:
 
 def register(mcp: Any) -> None:
     """Attach `harness_diagnose` tool to the FastMCP instance."""
+
     @mcp.tool()
     def harness_diagnose(target: str) -> dict[str, Any]:
         """Diagnose where a framework/agent sits in the Harness 3-tier family.

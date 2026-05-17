@@ -1,0 +1,99 @@
+# bhgman_tool pre-commit / pre-push 6-stage gate
+# wave11 (2026-05-17): audit lesson 실천
+# (lesson-bhgman-tool-quality-ratchet-drift-2026-05-17: "CI 단독 의존 anti-pattern")
+#
+# Install:
+#   uvx pre-commit install --hook-type pre-commit --hook-type pre-push
+# Manual run:
+#   uvx pre-commit run --all-files
+#   uvx pre-commit run --all-files --hook-stage pre-push
+
+repos:
+  # ============================================================
+  # Stage 1: file-level standard hooks (pre-commit, fast)
+  # ============================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: check-yaml
+        stages: [pre-commit]
+        exclude: ^(\.complexipy_cache/|dist/)
+      - id: check-json
+        stages: [pre-commit]
+        exclude: ^(\.complexipy_cache/|dist/)
+      - id: check-merge-conflict
+        stages: [pre-commit]
+      - id: check-added-large-files
+        stages: [pre-commit]
+        args: [--maxkb=5000]
+
+  # ============================================================
+  # Stage 2: ruff lint + format (pre-commit, fast)
+  # audit ratchet #1 — wave11 box check
+  # ============================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        stages: [pre-commit]
+        args: [--fix]
+      - id: ruff-format
+        stages: [pre-commit]
+
+  # ============================================================
+  # Stage 3: complexipy cognitive complexity ratchet (pre-commit)
+  # audit ratchet #2 — wave11 box check
+  # max=15 per pyproject.toml convention
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: complexipy
+        name: complexipy (cognitive complexity ≤ 15)
+        entry: uvx complexipy engine/ -mx 15
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+
+  # ============================================================
+  # Stage 4: deptry (unused/missing deps check, pre-commit)
+  # audit ratchet #3 — wave11 box check
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: deptry
+        name: deptry (dependency drift check)
+        entry: uvx deptry . --ignore-notebooks
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+
+  # ============================================================
+  # Stage 5: pytest (pre-commit, fast — 268 tests ~2s)
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (engine + worked, 268 tests)
+        entry: bash -c 'source .venv/bin/activate && pytest --tb=line -q'
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+
+  # ============================================================
+  # Stage 6: lychee link check (pre-push, slow + network)
+  # audit ratchet #4 — wave11 box check
+  # ============================================================
+  - repo: https://github.com/lycheeverse/lychee
+    rev: lychee-v0.24.2
+    hooks:
+      - id: lychee
+        stages: [pre-push]
+        args: [--config, lychee.toml, --no-progress, --offline, README.md, README.ko-KR.md, docs/, skills/]
+        pass_filenames: false

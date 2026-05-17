@@ -10,6 +10,7 @@ Put : Code → KG  (갱신)
 
 SKILL.md §"BX Lens Laws" 1:1.
 """
+
 from __future__ import annotations
 
 from typing import Callable, TypeVar
@@ -53,7 +54,9 @@ class Lens:
             out.violations.append("PutGet: get(put(s, v1)) != v1 — Missing/SigMismatch-class drift")
         if not self.verify_put_put(s, v1, v2):
             out.put_put = False
-            out.violations.append("PutPut: put(put(s,v1),v2) != put(s,v2) — PatternDiv/LabelRot-class drift")
+            out.violations.append(
+                "PutPut: put(put(s,v1),v2) != put(s,v2) — PatternDiv/LabelRot-class drift"
+            )
         return out
 
 

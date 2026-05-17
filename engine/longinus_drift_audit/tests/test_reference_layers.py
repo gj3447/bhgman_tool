@@ -36,8 +36,6 @@ class TestLayerCoverage:
 
 class TestCompressKgRef:
     def test_format(self):
-        result = reference_layers.compress_kg_ref(
-            sourceId="lesson-foo", sourcePath="src/foo.py:42"
-        )
+        result = reference_layers.compress_kg_ref(sourceId="lesson-foo", sourcePath="src/foo.py:42")
         assert "# KG: lesson-foo" in result
         assert "src/foo.py:42" in result

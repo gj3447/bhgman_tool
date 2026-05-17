@@ -110,7 +110,7 @@ lessons_found = review.discovered_issues()  # what surprised us
 for lesson in lessons_found:
     # Add lesson to KG (causal connection: future cycles will see this)
     lesson.commit_to_kg()
-    
+
     # Patch SKILL.md if needed (causal: future Phase 4 will use updated logic)
     if lesson.skill_patch_needed:
         apply_skill_patch(lesson.suggested_patch)

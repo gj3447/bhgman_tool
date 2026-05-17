@@ -9,6 +9,7 @@ Public API:
 
 KG ref: rfc-apt-v26-A6-resolver-path-A-pre-prompt-hook-2026-04-30
 """
+
 from .resolver import (
     ResolveResult,
     ValidateReport,

@@ -5,9 +5,7 @@ from models import CodeSymbol, KgRefRecord
 
 
 def _sym(name, line, refs):
-    return CodeSymbol(
-        sourcePath=f"x.py:{line}", name=name, kind="function", kg_refs=list(refs)
-    )
+    return CodeSymbol(sourcePath=f"x.py:{line}", name=name, kind="function", kg_refs=list(refs))
 
 
 class TestGED:

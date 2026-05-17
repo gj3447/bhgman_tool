@@ -8,6 +8,7 @@ Backend selection:
 
 The hnswlib path is *optional* — skeleton works without it.
 """
+
 from __future__ import annotations
 
 import dataclasses as dc
@@ -19,7 +20,7 @@ class SearchResult:
     """One hit from a similarity search."""
 
     id: str
-    score: float          # cosine similarity in [0, 1] (after L2-normalization)
+    score: float  # cosine similarity in [0, 1] (after L2-normalization)
     metadata: dict[str, Any]
 
 
@@ -44,6 +45,7 @@ class VectorStore:
         if prefer_hnsw:
             try:
                 import hnswlib  # noqa: F401
+
                 self._hnsw = hnswlib.Index(space="cosine", dim=dim)
                 self._hnsw.init_index(max_elements=10000, ef_construction=200, M=16)
             except ImportError:
@@ -96,14 +98,10 @@ class VectorStore:
                 results.append(SearchResult(id=id, score=score, metadata=meta))
             return results
         # Linear scan fallback
-        scored = [
-            (id, _cosine_similarity(query, vec), meta)
-            for id, vec, meta in self._records
-        ]
+        scored = [(id, _cosine_similarity(query, vec), meta) for id, vec, meta in self._records]
         scored.sort(key=lambda x: x[1], reverse=True)
         return [
-            SearchResult(id=id, score=score, metadata=meta)
-            for id, score, meta in scored[:top_k]
+            SearchResult(id=id, score=score, metadata=meta) for id, score, meta in scored[:top_k]
         ]
 
     def get(self, id: str) -> tuple[list[float], dict[str, Any]] | None:

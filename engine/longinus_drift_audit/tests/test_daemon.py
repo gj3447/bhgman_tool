@@ -3,6 +3,7 @@
 Pattern absorbed from code-review-graph (tirth8205) crg-daemon (2026-05-13).
 KG: longinus-drift-daemon-pattern-2026-05-13 (:DaemonPattern:Canonical)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -152,4 +153,5 @@ class TestRepoEntry:
 def dc_frozen_error():
     """Compat: dataclasses.FrozenInstanceError under different Python versions."""
     import dataclasses
+
     return dataclasses.FrozenInstanceError

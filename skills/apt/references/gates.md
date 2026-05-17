@@ -205,7 +205,7 @@ Gate Evidence Table (v17):
 gate_trigger(span)
   = | predicted_state(span) - actual_state(span) |
   = prediction_error 측정
-  
+
   if prediction_error < threshold: GATE_PASS (free energy minimal)
   if prediction_error > threshold: GATE_BLOCK (high surprise → re-prediction needed)
 ```

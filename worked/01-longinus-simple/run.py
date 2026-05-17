@@ -3,6 +3,7 @@
 KG: span-worked-example-longinus-simple-2026-05-13 (:AtomicSpan)
 Reproducible — no network access, no external services.
 """
+
 from __future__ import annotations
 
 import ast
@@ -37,11 +38,13 @@ def find_next_def(source: str, start_line: int) -> tuple[str, int] | None:
             params = []
             args = node.args
             for arg, default in zip(
-                args.args[-len(args.defaults):] if args.defaults else [],
+                args.args[-len(args.defaults) :] if args.defaults else [],
                 args.defaults,
             ):
                 default_repr = ast.unparse(default)
-                params.append(f"{arg.arg}: {ast.unparse(arg.annotation) if arg.annotation else 'Any'} = {default_repr}")
+                params.append(
+                    f"{arg.arg}: {ast.unparse(arg.annotation) if arg.annotation else 'Any'} = {default_repr}"
+                )
             no_default_count = len(args.args) - len(args.defaults)
             no_default_params = [
                 f"{a.arg}: {ast.unparse(a.annotation) if a.annotation else 'Any'}"
@@ -62,15 +65,17 @@ def audit() -> list[dict]:
 
     for line, kg_id in extract_kg_refs(source):
         if kg_id not in kg:
-            drifts.append({
-                "drift_type": "Orphan",
-                "kg_id": kg_id,
-                "code_location": f"{CODE_PATH.name}:{line}",
-                "expected": "KG record",
-                "actual": "not found in kg_simulated.json",
-                "layer_violated": "L4_SemioticBinding",
-                "lens_law_violated": "GetPut",
-            })
+            drifts.append(
+                {
+                    "drift_type": "Orphan",
+                    "kg_id": kg_id,
+                    "code_location": f"{CODE_PATH.name}:{line}",
+                    "expected": "KG record",
+                    "actual": "not found in kg_simulated.json",
+                    "layer_violated": "L4_SemioticBinding",
+                    "lens_law_violated": "GetPut",
+                }
+            )
             continue
         found = find_next_def(source, line)
         if found is None:
@@ -78,15 +83,17 @@ def audit() -> list[dict]:
         actual_sig, def_line = found
         expected_sig = kg[kg_id]["expected_signature"]
         if expected_sig != actual_sig:
-            drifts.append({
-                "drift_type": "SigMismatch",
-                "kg_id": kg_id,
-                "code_location": f"{CODE_PATH.name}:{def_line}",
-                "expected": expected_sig,
-                "actual": actual_sig,
-                "layer_violated": kg[kg_id].get("layer", "L3_TypePermission"),
-                "lens_law_violated": "PutGet",
-            })
+            drifts.append(
+                {
+                    "drift_type": "SigMismatch",
+                    "kg_id": kg_id,
+                    "code_location": f"{CODE_PATH.name}:{def_line}",
+                    "expected": expected_sig,
+                    "actual": actual_sig,
+                    "layer_violated": kg[kg_id].get("layer", "L3_TypePermission"),
+                    "lens_law_violated": "PutGet",
+                }
+            )
 
     return drifts
 

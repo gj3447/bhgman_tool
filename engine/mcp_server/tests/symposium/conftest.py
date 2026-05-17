@@ -46,5 +46,6 @@ def mock_kg(monkeypatch):
         return {"ok": True, "stdout": "label  count\nFoo  1", "stderr": "", "returncode": 0}
 
     from engine.mcp_server.tools import symposium
+
     monkeypatch.setattr(symposium, "_ssh_cypher", fake_ssh_cypher)
     return calls

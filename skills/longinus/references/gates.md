@@ -207,7 +207,7 @@ SET dr.missing = $missing_n,
 ## 10. G8 Reverse Orphan Scan Gate (v3.1)
 
 ```cypher
-MATCH (sym:CodeSymbol) 
+MATCH (sym:CodeSymbol)
 WHERE NOT EXISTS { MATCH (sym)<-[:BOUND_TO]-(:ReferenceSite) }
 WITH sym, count(*) OVER () AS total_orphans
 MERGE (ro:ReverseOrphan:AbstractNode {name: 'RO_' + sym.name})

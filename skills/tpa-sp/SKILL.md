@@ -143,7 +143,7 @@ RETURN dp_count, count(vr) AS mv_count,
   CASE WHEN dp_count=0 OR mv_count>0 THEN 'PASS' ELSE 'FAIL — MetaVerifier required' END AS gate
 ```
 
-**`FAIL — MetaVerifier required`** → SP phase 전체 verdict=REJECTED. 
+**`FAIL — MetaVerifier required`** → SP phase 전체 verdict=REJECTED.
 `tpa-ta` Hook Gate에서 차단됨.
 
 ### 왜 필요한가

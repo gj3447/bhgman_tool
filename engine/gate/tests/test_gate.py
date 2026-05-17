@@ -23,12 +23,15 @@ def app(monkeypatch):
 
     # patch build_redis_client → fakeredis
     from engine.gate import circuit_breaker
+
     monkeypatch.setattr(
-        circuit_breaker, "build_redis_client",
+        circuit_breaker,
+        "build_redis_client",
         lambda: fakeredis.FakeRedis(),
     )
 
     from engine.gate import gate_endpoint
+
     return gate_endpoint.app
 
 
@@ -43,12 +46,15 @@ def client(app):
 
 
 def test_gate_check_pass(client):
-    r = client.post("/gate/check", json={
-        "gate_name": "G3.5",
-        "cycle_id": "test-cycle",
-        "actor": "haiku-test",
-        "context": {"expected_count": 16, "actual_count": 16},
-    })
+    r = client.post(
+        "/gate/check",
+        json={
+            "gate_name": "G3.5",
+            "cycle_id": "test-cycle",
+            "actor": "haiku-test",
+            "context": {"expected_count": 16, "actual_count": 16},
+        },
+    )
     assert r.status_code == 200
     body = r.json()
     assert body["verdict"] == "PASS"
@@ -58,12 +64,15 @@ def test_gate_check_pass(client):
 
 def test_gate_check_count_mismatch_advisory(client):
     """informational 모드 → WOULD_FAIL + advisory_only=True."""
-    r = client.post("/gate/check", json={
-        "gate_name": "G3.5",
-        "cycle_id": "test-cycle",
-        "actor": "haiku-test",
-        "context": {"expected_count": 16, "actual_count": 12},
-    })
+    r = client.post(
+        "/gate/check",
+        json={
+            "gate_name": "G3.5",
+            "cycle_id": "test-cycle",
+            "actor": "haiku-test",
+            "context": {"expected_count": 16, "actual_count": 12},
+        },
+    )
     assert r.status_code == 200
     body = r.json()
     assert body["verdict"] == "WOULD_FAIL"
@@ -93,22 +102,28 @@ def test_circuit_opens_after_3_consecutive_fails(client):
 
 
 def test_break_glass_requires_allowlist_match(client):
-    r = client.post("/gate/break-glass", json={
-        "actor": "ops",
-        "reason": "test",
-        "expires_at": "2026-04-30T13:00:00+00:00",
-        "covers_gates": ["G3.5"],  # not in allowlist
-    })
+    r = client.post(
+        "/gate/break-glass",
+        json={
+            "actor": "ops",
+            "reason": "test",
+            "expires_at": "2026-04-30T13:00:00+00:00",
+            "covers_gates": ["G3.5"],  # not in allowlist
+        },
+    )
     assert r.status_code == 400
 
 
 def test_break_glass_allows_essential_infra(client):
-    r = client.post("/gate/break-glass", json={
-        "actor": "ops",
-        "reason": "essential-infra-pod recovery",
-        "expires_at": "2026-04-30T13:00:00+00:00",
-        "covers_gates": ["essential-infra-pod"],
-    })
+    r = client.post(
+        "/gate/break-glass",
+        json={
+            "actor": "ops",
+            "reason": "essential-infra-pod recovery",
+            "expires_at": "2026-04-30T13:00:00+00:00",
+            "covers_gates": ["essential-infra-pod"],
+        },
+    )
     assert r.status_code == 200
     assert "audit_id" in r.json()
 

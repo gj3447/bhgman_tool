@@ -2,6 +2,7 @@
 
 KG: span-worked-example-longinus-simple-2026-05-13 (:AtomicSpan)
 """
+
 from __future__ import annotations
 
 

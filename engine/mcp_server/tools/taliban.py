@@ -12,6 +12,7 @@ Honest limitations (Goodhart safeguard):
   number; consumers must inspect the lens list to judge fitness.
 - `--lens all` returns UNION; cross-lens deduplication is per-name, not semantic.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -25,8 +26,15 @@ LENS_REGISTRY: dict[str, dict[str, Any]] = {
         "min_critics": 3,
         "description": "Default 9-axis constitutional lens for artifact validation.",
         "axes": [
-            "correctness", "completeness", "consistency", "efficiency", "maintainability",
-            "safety", "evidence", "compositional", "fail_modes",
+            "correctness",
+            "completeness",
+            "consistency",
+            "efficiency",
+            "maintainability",
+            "safety",
+            "evidence",
+            "compositional",
+            "fail_modes",
         ],
     },
     "mathematical": {
@@ -47,8 +55,13 @@ LENS_REGISTRY: dict[str, dict[str, Any]] = {
         "min_critics": 2,
         "description": "Longinus 7-Layer Reference Model lens.",
         "axes": [
-            "L1_Symbol", "L2_Source", "L3_Path", "L4_Crate", "L5_ReferenceSite",
-            "L6_Sha256Baseline", "L7_AestheticIntentional",
+            "L1_Symbol",
+            "L2_Source",
+            "L3_Path",
+            "L4_Crate",
+            "L5_ReferenceSite",
+            "L6_Sha256Baseline",
+            "L7_AestheticIntentional",
         ],
     },
 }
@@ -108,9 +121,7 @@ def taliban_lens_check_impl(lens: str = "all") -> dict[str, Any]:
         }
 
     if target not in LENS_REGISTRY:
-        raise ValueError(
-            f"unknown lens: {lens!r}. registered: {sorted(LENS_REGISTRY)} (or 'all')."
-        )
+        raise ValueError(f"unknown lens: {lens!r}. registered: {sorted(LENS_REGISTRY)} (or 'all').")
 
     payload = _lens_payload(target)
     payload["hr12_note"] = _HR12_NOTE
@@ -120,6 +131,7 @@ def taliban_lens_check_impl(lens: str = "all") -> dict[str, Any]:
 
 def register(mcp: Any) -> None:
     """Attach `taliban_lens_check` tool to the FastMCP instance."""
+
     @mcp.tool()
     def taliban_lens_check(lens: str = "all") -> dict[str, Any]:
         """Return Taliban LensSet membership and axes (skeleton — static registry).

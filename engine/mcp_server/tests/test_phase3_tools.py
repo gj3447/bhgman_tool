@@ -3,6 +3,7 @@
 KG: span-mcp-tool-{apt,taliban,tpa}-2026-05-13
 APT v26.1 SCW verification gate — Phase 3 L1 branch C.
 """
+
 from __future__ import annotations
 
 import json
@@ -27,8 +28,11 @@ def test_native_tools_registered():
     """Phase 3 cohort: 5 native diagnostic tools must remain registered."""
     tools = set(list_registered_tool_names())
     native = {
-        "longinus_audit", "harness_diagnose",
-        "apt_phase_detect", "taliban_lens_check", "tpa_drift_audit",
+        "longinus_audit",
+        "harness_diagnose",
+        "apt_phase_detect",
+        "taliban_lens_check",
+        "tpa_drift_audit",
     }
     assert native.issubset(tools), f"native cohort missing: {native - tools}"
 
@@ -83,13 +87,17 @@ def test_apt_phase_detect_latest_phase_wins(tmp_path):
 
 def test_apt_phase_detect_reads_feature_spans(tmp_path):
     (tmp_path / "apt-progress.md").write_text("SA bootstrap\n")
-    (tmp_path / "feature-spans.json").write_text(json.dumps({
-        "anchor": "sa-x",
-        "spans": [
-            {"name": "SPAN_X_ROOT", "depth": 0, "status": "open"},
-            {"name": "SPAN_X_BRANCH_A", "depth": 1, "status": "open"},
-        ],
-    }))
+    (tmp_path / "feature-spans.json").write_text(
+        json.dumps(
+            {
+                "anchor": "sa-x",
+                "spans": [
+                    {"name": "SPAN_X_ROOT", "depth": 0, "status": "open"},
+                    {"name": "SPAN_X_BRANCH_A", "depth": 1, "status": "open"},
+                ],
+            }
+        )
+    )
     result = apt_phase_detect_impl(str(tmp_path))
     names = [s["name"] for s in result["spans_summary"]]
     assert names == ["SPAN_X_ROOT", "SPAN_X_BRANCH_A"]

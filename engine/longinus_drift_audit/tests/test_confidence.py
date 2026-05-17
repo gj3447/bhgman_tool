@@ -8,6 +8,7 @@ Python mirrors of Lean theorems in
 
 KG: longinus-confidence-schema-3tier-2026-05-13 (:ConfidenceSchema:Canonical)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -79,29 +80,37 @@ class TestT6AmbiguousContagion:
 
     def test_all_extracted_not_ambiguous(self):
         sites = [
-            ReferenceSite(sourceId=f"lesson-x-{i}", sourcePath=f"src/a.py:{i}",
-                          confidence=Confidence.EXTRACTED)
+            ReferenceSite(
+                sourceId=f"lesson-x-{i}",
+                sourcePath=f"src/a.py:{i}",
+                confidence=Confidence.EXTRACTED,
+            )
             for i in range(3)
         ]
         assert any_ambiguous(sites) is False
 
     def test_single_ambiguous_contaminates(self):
         sites = [
-            ReferenceSite(sourceId="lesson-a", sourcePath="src/a.py:1",
-                          confidence=Confidence.EXTRACTED),
-            ReferenceSite(sourceId="lesson-b", sourcePath="src/b.py:2",
-                          confidence=Confidence.AMBIGUOUS),
-            ReferenceSite(sourceId="lesson-c", sourcePath="src/c.py:3",
-                          confidence=Confidence.INFERRED),
+            ReferenceSite(
+                sourceId="lesson-a", sourcePath="src/a.py:1", confidence=Confidence.EXTRACTED
+            ),
+            ReferenceSite(
+                sourceId="lesson-b", sourcePath="src/b.py:2", confidence=Confidence.AMBIGUOUS
+            ),
+            ReferenceSite(
+                sourceId="lesson-c", sourcePath="src/c.py:3", confidence=Confidence.INFERRED
+            ),
         ]
         assert any_ambiguous(sites) is True
 
     def test_ambiguous_at_tail(self):
         sites = [
-            ReferenceSite(sourceId="lesson-x", sourcePath="src/x.py:1",
-                          confidence=Confidence.EXTRACTED),
-            ReferenceSite(sourceId="lesson-y", sourcePath="src/y.py:99",
-                          confidence=Confidence.AMBIGUOUS),
+            ReferenceSite(
+                sourceId="lesson-x", sourcePath="src/x.py:1", confidence=Confidence.EXTRACTED
+            ),
+            ReferenceSite(
+                sourceId="lesson-y", sourcePath="src/y.py:99", confidence=Confidence.AMBIGUOUS
+            ),
         ]
         assert any_ambiguous(sites) is True
 

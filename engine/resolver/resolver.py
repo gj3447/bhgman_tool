@@ -126,10 +126,7 @@ def validate(skill_path: Path, client: CypherKGClient) -> ValidateReport:
                 bare.append((lineno, num))
 
     # 3) orphan KG field (KG에 있는데 SKILL 어디서도 참조 안 됨)
-    orphans = tuple(
-        f for f in CORE_MAGIC_FIELDS
-        if f in cfg and f not in markers
-    )
+    orphans = tuple(f for f in CORE_MAGIC_FIELDS if f in cfg and f not in markers)
 
     return ValidateReport(
         skill_path=skill_path,

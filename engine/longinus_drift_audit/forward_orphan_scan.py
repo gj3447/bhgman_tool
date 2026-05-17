@@ -17,6 +17,7 @@ This module turns that one-shot resolution into a reusable audit + auto-fix loop
 # KG: longinus-forward-orphan-scan-2026-05-14
 # KG: span-bhgman-longinus-wave6-absorb-2026-05-14
 """
+
 from __future__ import annotations
 
 import logging
@@ -55,12 +56,14 @@ def scan_forward_orphans(
         for field in req:
             value = getattr(hub, field, None)
             if not value:
-                out.append(ForwardOrphanRecord(
-                    hub_name=hub.name,
-                    missing_field=field,
-                    layer_violated=ReferenceLayer.L3_TYPE,
-                    lens_law_violated="GetPut",
-                ))
+                out.append(
+                    ForwardOrphanRecord(
+                        hub_name=hub.name,
+                        missing_field=field,
+                        layer_violated=ReferenceLayer.L3_TYPE,
+                        lens_law_violated="GetPut",
+                    )
+                )
     return out
 
 
@@ -95,7 +98,9 @@ def resolve_forward_orphan(
         if not candidate.exists():
             logger.warning(
                 "resolve_forward_orphan: %s package_path=%s does not exist under %s",
-                hub_name, package_path, root,
+                hub_name,
+                package_path,
+                root,
             )
             return False
     kg.set_knowledge_hub_path(

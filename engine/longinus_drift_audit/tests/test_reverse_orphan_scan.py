@@ -5,9 +5,7 @@ from models import CodeSymbol
 
 
 def _sym(name, line, refs, kind="function"):
-    return CodeSymbol(
-        sourcePath=f"x.py:{line}", name=name, kind=kind, kg_refs=list(refs)
-    )
+    return CodeSymbol(sourcePath=f"x.py:{line}", name=name, kind=kind, kg_refs=list(refs))
 
 
 class TestReverseOrphan:
@@ -28,9 +26,7 @@ class TestReverseOrphan:
 
     def test_skip_kinds(self):
         syms = [_sym("a", 1, [], kind="module"), _sym("b", 2, [], kind="function")]
-        orphans = reverse_orphan_scan.scan_reverse_orphans(
-            symbols=syms, skip_kinds={"module"}
-        )
+        orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=syms, skip_kinds={"module"})
         assert orphans == ["x.py:2"]
 
 

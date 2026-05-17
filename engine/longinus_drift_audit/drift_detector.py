@@ -2,6 +2,7 @@
 
 각 drift = lens law violation 으로 재정의.
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -17,7 +18,9 @@ from models import (
 
 
 def detect_missing(
-    *, symbols: Iterable[CodeSymbol], kg_refs: dict[str, KgRefRecord],
+    *,
+    symbols: Iterable[CodeSymbol],
+    kg_refs: dict[str, KgRefRecord],
     require_kg_ref_kinds: set[str] | None = None,
 ) -> list[DriftRecord]:
     """PutGet violation: code symbol 존재 ∧ KG ref 부재.
@@ -50,7 +53,9 @@ def detect_missing(
 
 
 def detect_orphan(
-    *, symbols: Iterable[CodeSymbol], kg_refs: dict[str, KgRefRecord],
+    *,
+    symbols: Iterable[CodeSymbol],
+    kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
     """GetPut violation: KG ref 존재 ∧ 코드 대응 부재.
 
@@ -80,7 +85,9 @@ def detect_orphan(
 
 
 def detect_sig_mismatch(
-    *, symbols: Iterable[CodeSymbol], kg_refs: dict[str, KgRefRecord],
+    *,
+    symbols: Iterable[CodeSymbol],
+    kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
     """PutGet violation (signature 변): KG ref 와 코드 시그니처 비일치.
 
@@ -134,7 +141,9 @@ def detect_pattern_div(*, symbols: Iterable[CodeSymbol]) -> list[DriftRecord]:
 
 
 def detect_label_rot(
-    *, symbols: Iterable[CodeSymbol], kg_refs: dict[str, KgRefRecord],
+    *,
+    symbols: Iterable[CodeSymbol],
+    kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
     """PutPut violation: KG ref 라벨이 코드 심볼 이름과 모두 다름.
 
@@ -174,7 +183,9 @@ def summarize_drifts(records: Iterable[DriftRecord]) -> dict[str, int]:
 
 
 def detect_all(
-    *, symbols: Iterable[CodeSymbol], kg_refs: dict[str, KgRefRecord],
+    *,
+    symbols: Iterable[CodeSymbol],
+    kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
     """모든 5 drift 검출 — single dispatch."""
     syms = list(symbols)

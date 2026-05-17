@@ -13,6 +13,7 @@ Honest limitations (Goodhart safeguard):
   AMBIGUOUS partial), not a scalar score. Do not promote any single number as a quality
   metric.
 """
+
 from __future__ import annotations
 
 import json
@@ -156,6 +157,7 @@ def apt_phase_detect_impl(repo_path: str) -> dict[str, Any]:
 
 def register(mcp: Any) -> None:
     """Attach `apt_phase_detect` tool to the FastMCP instance."""
+
     @mcp.tool()
     def apt_phase_detect(repo_path: str) -> dict[str, Any]:
         """Detect current APT methodology phase in a repo (file-based skeleton).

@@ -1,4 +1,5 @@
 """Tests for Forward Orphan Scan — Longinus Wave 6 (2026-05-14)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -87,19 +88,13 @@ class TestScanForwardOrphans:
 
 class TestRatio:
     def test_zero_total(self):
-        assert forward_orphan_scan.forward_orphan_ratio(
-            total_hubs=0, orphan_count=0
-        ) == 0.0
+        assert forward_orphan_scan.forward_orphan_ratio(total_hubs=0, orphan_count=0) == 0.0
 
     def test_full_orphan(self):
-        assert forward_orphan_scan.forward_orphan_ratio(
-            total_hubs=7, orphan_count=7
-        ) == 1.0
+        assert forward_orphan_scan.forward_orphan_ratio(total_hubs=7, orphan_count=7) == 1.0
 
     def test_partial(self):
-        assert forward_orphan_scan.forward_orphan_ratio(
-            total_hubs=10, orphan_count=3
-        ) == 0.3
+        assert forward_orphan_scan.forward_orphan_ratio(total_hubs=10, orphan_count=3) == 0.3
 
 
 class TestResolveForwardOrphan:
@@ -149,9 +144,9 @@ class TestBulkResolve:
         subset = ["APT", "TPA", "LONGINUS"]
         for sub in subset:
             (tmp_path / "THEORY" / sub).mkdir(parents=True)
-        kg = MockKgClient(hubs=[
-            KnowledgeHubRecord(name=f"hub-{n.lower()}-methodology") for n in subset
-        ])
+        kg = MockKgClient(
+            hubs=[KnowledgeHubRecord(name=f"hub-{n.lower()}-methodology") for n in subset]
+        )
         resolutions = {
             f"hub-{n.lower()}-methodology": {
                 "package_path": f"THEORY/{n}/",
@@ -160,7 +155,9 @@ class TestBulkResolve:
             for n in subset
         }
         out = forward_orphan_scan.bulk_resolve(
-            kg=kg, resolutions=resolutions, fs_root=tmp_path,
+            kg=kg,
+            resolutions=resolutions,
+            fs_root=tmp_path,
         )
         assert all(out.values())
         for n in subset:
@@ -194,9 +191,7 @@ class TestWave6Canon:
 
     def test_wave6_resolutions_all_have_package_path(self):
         for hub_name, fields in forward_orphan_scan.WAVE6_HUB_RESOLUTIONS.items():
-            assert fields.get("package_path"), (
-                f"Wave 6 canon entry {hub_name} missing package_path"
-            )
-            assert fields["package_path"].startswith("THEORY/"), (
-                f"Wave 6 canon entry {hub_name} package_path should be THEORY/-prefixed"
-            )
+            assert fields.get("package_path"), f"Wave 6 canon entry {hub_name} missing package_path"
+            assert fields["package_path"].startswith(
+                "THEORY/"
+            ), f"Wave 6 canon entry {hub_name} package_path should be THEORY/-prefixed"

@@ -22,7 +22,6 @@ CANONICAL_ORDER = ("sa", "sp", "st", "scw")
 
 
 class TestPhaseValidation:
-
     @pytest.mark.parametrize("phase", VALID_PHASES)
     def test_valid_phase_dispatched(self, phase, skills_dir):
         req = APTDispatchRequest(phase=phase, task="hello", cycle_id="c1")

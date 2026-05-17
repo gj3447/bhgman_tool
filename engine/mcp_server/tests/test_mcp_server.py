@@ -7,6 +7,7 @@ These tests exercise the tool implementations *directly* (without launching the
 MCP loop). The actual stdio-loop test requires fastmcp installed; tests here
 work without it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,6 +15,7 @@ from pathlib import Path
 import pytest
 
 import sys
+
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent.parent))  # mcp_server is at engine/mcp_server/
 
@@ -66,8 +68,10 @@ def test_longinus_audit_on_worked_example_finds_drift(tmp_path):
     )
     report = longinus_audit_impl(str(tmp_path))
     assert report["kg_refs_found"] == 2
-    assert any(d["drift_type"] == "Orphan" and d["kg_id"] == "lesson-orphan-2026-05-13"
-               for d in report["drift_records"])
+    assert any(
+        d["drift_type"] == "Orphan" and d["kg_id"] == "lesson-orphan-2026-05-13"
+        for d in report["drift_records"]
+    )
     assert "lesson-known-2026-05-13" not in [d.get("kg_id") for d in report["drift_records"]]
 
 

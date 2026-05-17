@@ -6,6 +6,7 @@ Absorbed from SYMPOSIUM/THEORY/APT/resolver_prototype/tests/conftest.py (Wave 7 
 - real_neo4j_container: ephemeral Neo4j via testcontainers for E2E golden tests
 - sample_skill_md: 3 SKILL.md fixtures (sample/full/edge_case)
 """
+
 from __future__ import annotations
 import pathlib
 import pytest
@@ -74,6 +75,7 @@ def real_neo4j_container():
     Returns: (uri, user, password) tuple usable by neo4j-driver.
     """
     import os
+
     if os.environ.get("RESOLVER_E2E_REAL_KG", "false").lower() != "true":
         pytest.skip("RESOLVER_E2E_REAL_KG not set — skipping real KG E2E")
     try:

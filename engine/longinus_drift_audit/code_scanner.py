@@ -2,6 +2,7 @@
 
 LSP fallback. Real production may swap for tree-sitter / py-LSP / rust-analyzer.
 """
+
 from __future__ import annotations
 
 import re

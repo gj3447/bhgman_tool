@@ -12,6 +12,7 @@ Design:
 Goodhart safeguard: NO claim of "150x-12,500x faster" or similar marketing.
 Performance is *not* the headline value; correctness + simplicity is.
 """
+
 from __future__ import annotations
 
 from .vector_store import VectorStore, SearchResult

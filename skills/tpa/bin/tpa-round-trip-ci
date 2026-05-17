@@ -104,15 +104,15 @@ def align_contract(forward_c: dict, reverse_c: dict) -> float:
     return matched / len(CONTRACT_AXES)
 
 
-def best_match_pairing(
-    forward_contracts: list, reverse_contracts: list
-) -> list:
+def best_match_pairing(forward_contracts: list, reverse_contracts: list) -> list:
     """
     Greedy best-match pairing by name (or contract_id), falling back to index.
     Returns list of (forward_c, reverse_c | None) tuples. Reverse-only contracts
     appear at the end as (None, reverse_c).
     """
-    by_name_rev = {c.get("name") or c.get("id") or str(i): c for i, c in enumerate(reverse_contracts)}
+    by_name_rev = {
+        c.get("name") or c.get("id") or str(i): c for i, c in enumerate(reverse_contracts)
+    }
     paired = []
     used_keys = set()
     for fc in forward_contracts:
@@ -145,8 +145,8 @@ def compute_trts(forward_spec: dict, reverse_spec: dict) -> dict:
     coverage = matched / total
 
     # 5-drift count
-    missing = sum(1 for f, r in pairs if f is not None and r is None)        # KG node, code absent
-    orphan = sum(1 for f, r in pairs if f is None and r is not None)         # code, KG absent
+    missing = sum(1 for f, r in pairs if f is not None and r is None)  # KG node, code absent
+    orphan = sum(1 for f, r in pairs if f is None and r is not None)  # code, KG absent
     sig_mismatch = 0
     pattern_div = 0
     label_rot = 0
@@ -206,11 +206,7 @@ def lakatos_verdict(history: list, current: dict, thresholds: dict) -> str:
     delta_drift = current["drift_total"] - prev["drift_total"]
     delta_res = current["essential_residual"] - prev["essential_residual"]
     spec_size = max(current["spec_size_forward"], 1)
-    if (
-        delta_cov > 0
-        and delta_drift <= 0
-        and delta_res <= 0
-    ):
+    if delta_cov > 0 and delta_drift <= 0 and delta_res <= 0:
         return "progressive"
     if (
         delta_cov < thresholds["delta_coverage_min"]

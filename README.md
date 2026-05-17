@@ -119,6 +119,12 @@ uv run bhgman-tool install-skills           # default target: ~/.claude/skills
 # add --dry-run to preview, --force to overwrite existing skill dirs.
 # Restart Claude Code, then in chat:
 # /apt   /prom   /tpa   /tlb   /longinus   /harness   /jaebaeman
+
+# 5. (Contributors only) install pre-commit 4-ratchet gate — wave11
+uvx pre-commit install --hook-type pre-commit --hook-type pre-push
+# pre-commit: ruff lint+format, complexipy ≤15, deptry, pytest 268 tests (~2s)
+# pre-push:   lychee link check
+# Runs automatically on `git commit` / `git push`. Manual: `uvx pre-commit run --all-files`
 ```
 
 See [docs/01-quickstart.md](docs/01-quickstart.md).

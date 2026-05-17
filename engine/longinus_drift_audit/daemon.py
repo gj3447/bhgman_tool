@@ -21,6 +21,7 @@ Each child WatcherProcess:
 Skeleton — production hardening (signal handlers, log rotation, structured logging,
 metrics export, graceful shutdown semantics) deferred to future sprint.
 """
+
 from __future__ import annotations
 
 import dataclasses as dc
@@ -140,14 +141,16 @@ def _watcher_main(
                     if prior is None:
                         seen_hashes[path] = sha
                     elif prior != sha:
-                        drift_queue.put({
-                            "repo_alias": repo.display_name,
-                            "path": str(path),
-                            "old_hash": prior,
-                            "new_hash": sha,
-                            "bytes_len": len(bytes_data),
-                            "detected_at": time.time(),
-                        })
+                        drift_queue.put(
+                            {
+                                "repo_alias": repo.display_name,
+                                "path": str(path),
+                                "old_hash": prior,
+                                "new_hash": sha,
+                                "bytes_len": len(bytes_data),
+                                "detected_at": time.time(),
+                            }
+                        )
                         seen_hashes[path] = sha
             except OSError as e:
                 logger.warning(f"[watcher pid={pid}] OSError during scan: {e}")
@@ -161,8 +164,17 @@ def _iter_repo_files(repo_root: Path) -> list[Path]:
 
     Skeleton — production should consume .longinusignore + .gitignore.
     """
-    skip_dirs = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache",
-                 "dist", "build", ".mypy_cache", ".ruff_cache"}
+    skip_dirs = {
+        ".git",
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
     out: list[Path] = []
     for root, dirs, files in os.walk(repo_root):
         dirs[:] = [d for d in dirs if d not in skip_dirs]

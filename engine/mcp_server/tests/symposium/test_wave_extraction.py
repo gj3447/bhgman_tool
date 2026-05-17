@@ -54,7 +54,6 @@ def assign_wave_index(nodes: list[str], edges: list[tuple[str, str]]) -> dict[st
 
 
 class TestKahnWaves:
-
     def test_empty_graph(self):
         assert kahn_waves([], []) == []
 
@@ -86,7 +85,6 @@ class TestKahnWaves:
 
 
 class TestWaveIndexAssignment:
-
     def test_indexing_starts_at_zero(self):
         idx = assign_wave_index(["a", "b"], [("a", "b")])
         assert idx == {"a": 0, "b": 1}
@@ -106,9 +104,9 @@ class TestWaveIndexAssignment:
         edges = [("a", "b"), ("a", "c"), ("b", "d"), ("c", "d"), ("d", "e")]
         idx = assign_wave_index(nodes, edges)
         for parent, child in edges:
-            assert idx[child] > idx[parent], (
-                f"dispatch invariant violated: {parent}@{idx[parent]} → {child}@{idx[child]}"
-            )
+            assert (
+                idx[child] > idx[parent]
+            ), f"dispatch invariant violated: {parent}@{idx[parent]} → {child}@{idx[child]}"
 
 
 class TestAptIntegration:
@@ -119,11 +117,16 @@ class TestAptIntegration:
         # SCW ships 4 atomic spans. Total 8 nodes, dispatch in 4 waves.
         nodes = ["SA", "SP1", "SP2", "ST1a", "ST1b", "ST2a", "ST2b", "REVIEW"]
         edges = [
-            ("SA", "SP1"), ("SA", "SP2"),
-            ("SP1", "ST1a"), ("SP1", "ST1b"),
-            ("SP2", "ST2a"), ("SP2", "ST2b"),
-            ("ST1a", "REVIEW"), ("ST1b", "REVIEW"),
-            ("ST2a", "REVIEW"), ("ST2b", "REVIEW"),
+            ("SA", "SP1"),
+            ("SA", "SP2"),
+            ("SP1", "ST1a"),
+            ("SP1", "ST1b"),
+            ("SP2", "ST2a"),
+            ("SP2", "ST2b"),
+            ("ST1a", "REVIEW"),
+            ("ST1b", "REVIEW"),
+            ("ST2a", "REVIEW"),
+            ("ST2b", "REVIEW"),
         ]
         waves = kahn_waves(nodes, edges)
         assert waves[0] == ["SA"]

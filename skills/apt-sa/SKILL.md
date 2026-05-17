@@ -170,7 +170,7 @@ ORDER BY sa.name
 
 ### 1-1b. 전제 검증 — Property-Level Existence (lesson-apt-premise-drift)
 
-ARGUMENTS에 "N개의 X가 있음" 전제가 오면 **실측 확인 필수**. 
+ARGUMENTS에 "N개의 X가 있음" 전제가 오면 **실측 확인 필수**.
 Plan은 신호일 뿐, 실측 없는 가정은 Contract target_label 오류로 이어짐.
 
 ```cypher

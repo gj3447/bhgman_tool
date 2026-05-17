@@ -41,6 +41,7 @@ dev = [
     "mypy>=1.10",
     "build>=1.2",
     "twine>=5.1",
+    "pre-commit>=4.0",  # wave11 — 4-ratchet local gate (lesson-bhgman-tool-quality-ratchet-drift-2026-05-17)
 ]
 # APT v27 A6 pre-prompt resolver (engine/resolver, Wave 7 P3-H 2026-05-14)
 resolver = [
@@ -170,6 +171,7 @@ DEP002 = [
   "pytest-asyncio",   # pytest plugin (registered via marker, no import)
   "fakeredis",        # importorskip in engine/gate/tests/test_gate.py
   "structlog",        # placeholder for engine/gate audit log (TODO in gate_endpoint.py:237)
+  "pre-commit",       # wave11 — local 4-ratchet gate (uvx-invoked, no Python import)
 ]
 
 [tool.pytest.ini_options]

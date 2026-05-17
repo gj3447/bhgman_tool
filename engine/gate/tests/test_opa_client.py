@@ -6,6 +6,7 @@ Absorbed from SYMPOSIUM/THEORY/APT/gate_endpoint_prototype/tests/test_opa_client
 Tests use httpx.MockTransport — no actual OPA process required.
 Production deployment would use subprocess OPA fixture with policies/.
 """
+
 from __future__ import annotations
 import json
 import pytest
@@ -16,6 +17,7 @@ httpx = pytest.importorskip("httpx")
 @pytest.fixture
 def mock_opa_transport():
     """Return an httpx.MockTransport that simulates OPA Data API responses."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/health":
             return httpx.Response(200, text="OK")
@@ -27,12 +29,14 @@ def mock_opa_transport():
         if request.url.path == "/v1/policies/reload":
             return httpx.Response(200, text="reloaded")
         return httpx.Response(404)
+
     return httpx.MockTransport(handler)
 
 
 @pytest.mark.asyncio
 async def test_opa_client_health_ok(mock_opa_transport):
     from engine.gate.opa_client import OPAClient
+
     opa = OPAClient(base_url="http://opa-mock")
     opa._client = httpx.AsyncClient(transport=mock_opa_transport, base_url="http://opa-mock")
     try:
@@ -44,6 +48,7 @@ async def test_opa_client_health_ok(mock_opa_transport):
 @pytest.mark.asyncio
 async def test_opa_eval_pass(mock_opa_transport):
     from engine.gate.opa_client import OPAClient
+
     opa = OPAClient(base_url="http://opa-mock")
     opa._client = httpx.AsyncClient(transport=mock_opa_transport, base_url="http://opa-mock")
     try:
@@ -56,6 +61,7 @@ async def test_opa_eval_pass(mock_opa_transport):
 @pytest.mark.asyncio
 async def test_opa_eval_deny_on_mismatch(mock_opa_transport):
     from engine.gate.opa_client import OPAClient
+
     opa = OPAClient(base_url="http://opa-mock")
     opa._client = httpx.AsyncClient(transport=mock_opa_transport, base_url="http://opa-mock")
     try:
@@ -68,6 +74,7 @@ async def test_opa_eval_deny_on_mismatch(mock_opa_transport):
 @pytest.mark.asyncio
 async def test_opa_reload_bundle(mock_opa_transport):
     from engine.gate.opa_client import OPAClient
+
     opa = OPAClient(base_url="http://opa-mock")
     opa._client = httpx.AsyncClient(transport=mock_opa_transport, base_url="http://opa-mock")
     try:

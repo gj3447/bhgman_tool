@@ -15,6 +15,7 @@ Public API:
 
 KG ref: rfc-apt-v27-A7-gate-hook-fail-closed-4-layer-2026-04-30
 """
+
 from .circuit_breaker import (
     CircuitBreaker,
     CircuitDecision,

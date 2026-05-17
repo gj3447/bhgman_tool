@@ -3,6 +3,7 @@
 KG: span-phase2-hnsw-memory-skeleton-2026-05-13 (planned :AtomicSpan)
 APT v26.1 Phase 2 SCW verification gate.
 """
+
 from __future__ import annotations
 
 import sys

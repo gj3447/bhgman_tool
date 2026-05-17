@@ -11,6 +11,7 @@ hash-spread vector. Useful for tests + scenarios where the user hasn't
 installed sentence-transformers yet. Marketing-honest: this is *not* RAG;
 it's a placeholder so the API works.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -32,6 +33,7 @@ class Embedder:
         self._is_real = False
         try:
             from sentence_transformers import SentenceTransformer
+
             self._model = SentenceTransformer(model_name)
             self._is_real = True
         except ImportError:

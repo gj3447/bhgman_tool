@@ -3,6 +3,7 @@
 KG: span-worked-example-goodhart-on-ruflo-2026-05-13 (:AtomicSpan)
 APT v26.1 SCW verification gate.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -75,6 +76,7 @@ def test_lens_detection_individual_module_callable() -> None:
             lens_3_self_improving_no_safeguard,
             detect_all,
         )
+
         text = "100+ agents and 84.8% SWE-Bench solve rate with SONA self-learning"
         r1 = lens_1_goodhart_metric_marketing(text)
         r2 = lens_2_enumeration_inflation(text)

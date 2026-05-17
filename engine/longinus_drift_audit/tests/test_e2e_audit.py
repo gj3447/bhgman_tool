@@ -1,4 +1,5 @@
 """E2E LonginusAudit — code root + KG refs → AuditReport."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,10 +18,12 @@ def _seed_code(tmp: Path) -> None:
 class TestE2E:
     def test_clean_audit_zero_drift(self, tmp_path):
         _seed_code(tmp_path)
-        kg = MockKgClient(refs=[
-            KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath="a.py:1"),
-            KgRefRecord(sourceId="lesson-bar-2026-05-12", sourcePath="b.py:1"),
-        ])
+        kg = MockKgClient(
+            refs=[
+                KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath="a.py:1"),
+                KgRefRecord(sourceId="lesson-bar-2026-05-12", sourcePath="b.py:1"),
+            ]
+        )
         audit = LonginusAudit(kg=kg, code_root=tmp_path)
         report = audit.run_full()
         # Missing/Orphan/SigMismatch/LabelRot 모두 0
@@ -33,20 +36,24 @@ class TestE2E:
     def test_missing_drift_detected(self, tmp_path):
         _seed_code(tmp_path)
         # KG has only foo, not bar → bar 의 ref 는 MISSING
-        kg = MockKgClient(refs=[
-            KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath="a.py:1"),
-        ])
+        kg = MockKgClient(
+            refs=[
+                KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath="a.py:1"),
+            ]
+        )
         audit = LonginusAudit(kg=kg, code_root=tmp_path)
         report = audit.run_full()
         assert report.drifts_by_type.get("Missing", 0) >= 1
 
     def test_orphan_drift_detected(self, tmp_path):
         _seed_code(tmp_path)
-        kg = MockKgClient(refs=[
-            KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath="a.py:1"),
-            KgRefRecord(sourceId="lesson-bar-2026-05-12", sourcePath="b.py:1"),
-            KgRefRecord(sourceId="lesson-orphan-no-code", sourcePath="??:0"),
-        ])
+        kg = MockKgClient(
+            refs=[
+                KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath="a.py:1"),
+                KgRefRecord(sourceId="lesson-bar-2026-05-12", sourcePath="b.py:1"),
+                KgRefRecord(sourceId="lesson-orphan-no-code", sourcePath="??:0"),
+            ]
+        )
         audit = LonginusAudit(kg=kg, code_root=tmp_path)
         report = audit.run_full()
         assert report.drifts_by_type.get("Orphan", 0) >= 1
@@ -64,10 +71,12 @@ class TestE2E:
     def test_ged_perfect_when_aligned(self, tmp_path):
         _seed_code(tmp_path)
         # Use fully qualified path to match scanner output exactly
-        kg = MockKgClient(refs=[
-            KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath=f"{tmp_path}/a.py:1"),
-            KgRefRecord(sourceId="lesson-bar-2026-05-12", sourcePath=f"{tmp_path}/b.py:1"),
-        ])
+        kg = MockKgClient(
+            refs=[
+                KgRefRecord(sourceId="lesson-foo-2026-05-12", sourcePath=f"{tmp_path}/a.py:1"),
+                KgRefRecord(sourceId="lesson-bar-2026-05-12", sourcePath=f"{tmp_path}/b.py:1"),
+            ]
+        )
         audit = LonginusAudit(kg=kg, code_root=tmp_path)
         report = audit.run_full()
         assert report.ged_report is not None

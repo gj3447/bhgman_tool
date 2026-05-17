@@ -45,7 +45,11 @@ class TestDriftRecord:
 
     def test_all_drift_types(self):
         assert {d.value for d in DriftType} == {
-            "Missing", "Orphan", "SigMismatch", "PatternDiv", "LabelRot"
+            "Missing",
+            "Orphan",
+            "SigMismatch",
+            "PatternDiv",
+            "LabelRot",
         }
 
 

@@ -5,6 +5,7 @@ KG: span-mcp-server-skeleton-fastmcp-2026-05-13 (:AtomicSpan)
 Usage (from Claude Code):
     claude mcp add bhgman-tool -- python -m mcp_server
 """
+
 from __future__ import annotations
 
 import sys

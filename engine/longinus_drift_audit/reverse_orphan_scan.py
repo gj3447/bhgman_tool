@@ -3,6 +3,7 @@
 SKILL.md §"Reverse Orphan Scan":
 코드에 있는 (function/class) 심볼 중 `# KG: xxx` 코멘트가 하나도 안 붙은 것 식별.
 """
+
 from __future__ import annotations
 
 from typing import Iterable
@@ -30,9 +31,7 @@ def scan_reverse_orphans(
     return out
 
 
-def reverse_orphan_ratio(
-    *, total_symbols: int, orphan_count: int
-) -> float:
+def reverse_orphan_ratio(*, total_symbols: int, orphan_count: int) -> float:
     """orphan_count / total_symbols. 0.0 = full coverage, 1.0 = complete blind."""
     if total_symbols == 0:
         return 0.0

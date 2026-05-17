@@ -51,28 +51,34 @@ class TestFiveTupleIdentity:
         assert out["ok"] is True
         assert len(mock_kg) == 1
 
-    @pytest.mark.parametrize("contracts,tasks,seeds,files,expected", [
-        (1, 1, 1, 1, True),     # canonical
-        (0, 1, 1, 1, False),    # missing contract → orphan span
-        (1, 0, 1, 1, False),    # missing task → no execution path
-        (1, 1, 0, 1, False),    # missing seed → no subagent dispatch possible
-        (1, 1, 1, 0, False),    # missing file → no materialization (KG↔FS drift)
-        (2, 1, 1, 1, False),    # multi-contract → ambiguity, NOT atomic
-    ])
+    @pytest.mark.parametrize(
+        "contracts,tasks,seeds,files,expected",
+        [
+            (1, 1, 1, 1, True),  # canonical
+            (0, 1, 1, 1, False),  # missing contract → orphan span
+            (1, 0, 1, 1, False),  # missing task → no execution path
+            (1, 1, 0, 1, False),  # missing seed → no subagent dispatch possible
+            (1, 1, 1, 0, False),  # missing file → no materialization (KG↔FS drift)
+            (2, 1, 1, 1, False),  # multi-contract → ambiguity, NOT atomic
+        ],
+    )
     def test_5tuple_cardinality_check(self, contracts, tasks, seeds, files, expected):
-        is_atomic = (contracts == 1 and tasks == 1 and seeds == 1 and files == 1)
+        is_atomic = contracts == 1 and tasks == 1 and seeds == 1 and files == 1
         assert is_atomic is expected
 
 
 class TestWriteSafety:
     """mutate=False must reject all write keywords; mutate=True must require one."""
 
-    @pytest.mark.parametrize("cypher", [
-        "CREATE (n:Foo {name:'x'})",
-        "MERGE (n:Foo {id:1})",
-        "MATCH (n) DELETE n",
-        "MATCH (n) REMOVE n.prop",
-    ])
+    @pytest.mark.parametrize(
+        "cypher",
+        [
+            "CREATE (n:Foo {name:'x'})",
+            "MERGE (n:Foo {id:1})",
+            "MATCH (n) DELETE n",
+            "MATCH (n) REMOVE n.prop",
+        ],
+    )
     def test_write_in_read_mode_rejected(self, cypher):
         req = KGQueryRequest(cypher=cypher, mutate=False)
         out = _kg_query_impl(req)

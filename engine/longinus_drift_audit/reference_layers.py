@@ -2,6 +2,7 @@
 
 SKILL.md §"7-Layer Reference Model" 의 layer-별 의미 추출.
 """
+
 from __future__ import annotations
 
 from typing import Iterable
@@ -18,7 +19,9 @@ def compress_kg_ref(*, sourceId: str, sourcePath: str) -> str:
     return f"# KG: {sourceId}  // {sourcePath}"
 
 
-def layer_coverage(*, sites: Iterable[ReferenceSite], total_kg_refs: int, pierce_rate: float) -> LayerCoverage:
+def layer_coverage(
+    *, sites: Iterable[ReferenceSite], total_kg_refs: int, pierce_rate: float
+) -> LayerCoverage:
     """간이 layer coverage — 모든 site 가 정상이면 각 layer 1.0.
 
     pierce_rate (L7): 코드 lines per KG ref. ``1`` 이상이면 healthy.
@@ -42,8 +45,12 @@ def layer_coverage(*, sites: Iterable[ReferenceSite], total_kg_refs: int, pierce
     l5 = 1.0  # KG MERGE는 always-idempotent (caller guaranteed)
     l6 = 1.0 if total_kg_refs <= len(sites_list) * 2 else 0.5  # compression ratio
     return LayerCoverage(
-        L1_address=l1, L2_lifetime=l2, L3_type=l3, L4_semiotic=l4,
-        L5_distributed=l5, L6_compression=l6,
+        L1_address=l1,
+        L2_lifetime=l2,
+        L3_type=l3,
+        L4_semiotic=l4,
+        L5_distributed=l5,
+        L6_compression=l6,
         L7_aesthetic_pierce_rate=pierce_rate,
     )
 
@@ -58,9 +65,7 @@ def make_pierce_rate(*, total_code_symbols: int, total_kg_refs: int) -> float:
     return min(total_kg_refs / total_code_symbols, 1.0)
 
 
-def symbol_to_reference_site(
-    *, sym: CodeSymbol, kg_record: KgRefRecord
-) -> ReferenceSite:
+def symbol_to_reference_site(*, sym: CodeSymbol, kg_record: KgRefRecord) -> ReferenceSite:
     return ReferenceSite(
         sourceId=kg_record.sourceId,
         sourcePath=sym.sourcePath,

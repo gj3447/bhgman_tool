@@ -40,6 +40,7 @@ Honest limitations (Goodhart safeguard — no headline metric promotion):
     — the parent Claude harness consumes the body. They do NOT execute phase logic.
   - `status` requires `ssh dgx` reachable; degrades to error if absent.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -117,9 +118,7 @@ def cmd_install_skills(args: argparse.Namespace) -> int:
             print(f"  [INSTALL]   {s.name}")
             installed += 1
 
-    print(
-        f"[install-skills] done — installed={installed} overwrote={overwrote} skipped={skipped}"
-    )
+    print(f"[install-skills] done — installed={installed} overwrote={overwrote} skipped={skipped}")
     return 0
 
 
@@ -233,7 +232,10 @@ def _route_skill(skill_name: str, args: list[str]) -> int:
     except FileNotFoundError as e:
         print(f"[bhgman-tool] FAIL: {e}", file=sys.stderr)
         return 2
-    print(f"[bhgman-tool] routing → /{skill_name} {' '.join(args)} (SKILL.md: {skill_md})", file=sys.stderr)
+    print(
+        f"[bhgman-tool] routing → /{skill_name} {' '.join(args)} (SKILL.md: {skill_md})",
+        file=sys.stderr,
+    )
     print(str(skill_md))
     return 0
 
@@ -297,7 +299,10 @@ def cmd_longinus(args: argparse.Namespace) -> int:
                 cmd = [sys.executable, str(sp), *rest]
                 return subprocess.call(cmd)
         # Fall through to skill routing if script not found
-        print(f"[bhgman-tool] longinus {op}: script not found in {bin_dirs} — routing to SKILL.md", file=sys.stderr)
+        print(
+            f"[bhgman-tool] longinus {op}: script not found in {bin_dirs} — routing to SKILL.md",
+            file=sys.stderr,
+        )
     return _route_skill("longinus", args.op)
 
 
@@ -330,8 +335,11 @@ def cmd_resolver(args: argparse.Namespace) -> int:
     try:
         from engine.resolver.resolver import main as resolver_main
     except ImportError as e:
-        print(f"[bhgman-tool] FAIL: engine.resolver not importable — install resolver deps "
-              f"(python-frontmatter, Jinja2, neo4j): {e}", file=sys.stderr)
+        print(
+            f"[bhgman-tool] FAIL: engine.resolver not importable — install resolver deps "
+            f"(python-frontmatter, Jinja2, neo4j): {e}",
+            file=sys.stderr,
+        )
         return 2
     # passthrough — resolver has its own argparse with render/validate subcommands
     return resolver_main(args.passthrough or [])
@@ -363,8 +371,11 @@ def _cmd_gate_serve() -> int:
     try:
         from engine.gate.gate_endpoint import main as gate_main
     except ImportError as e:
-        print(f"[bhgman-tool] FAIL: engine.gate not importable — install gate deps "
-              f"(fastapi, uvicorn, redis, tenacity): {e}", file=sys.stderr)
+        print(
+            f"[bhgman-tool] FAIL: engine.gate not importable — install gate deps "
+            f"(fastapi, uvicorn, redis, tenacity): {e}",
+            file=sys.stderr,
+        )
         return 2
     gate_main()
     return 0
@@ -373,15 +384,21 @@ def _cmd_gate_serve() -> int:
 def _cmd_gate_check(rest: list[str]) -> int:
     import json
     import urllib.request
+
     parsed = _parse_gate_check_args(rest)
     if parsed is None:
-        print("usage: bhgman-tool gate check --gate NAME --cycle ID --actor NAME "
-              "[--expected N --actual N]", file=sys.stderr)
+        print(
+            "usage: bhgman-tool gate check --gate NAME --cycle ID --actor NAME "
+            "[--expected N --actual N]",
+            file=sys.stderr,
+        )
         return 2
     host = os.environ.get("APT_GATE_HOST", "127.0.0.1")
     port = os.environ.get("APT_GATE_PORT", "8765")
     body = {
-        "gate_name": parsed["gate"], "cycle_id": parsed["cycle"], "actor": parsed["actor"],
+        "gate_name": parsed["gate"],
+        "cycle_id": parsed["cycle"],
+        "actor": parsed["actor"],
         "context": {"expected_count": parsed.get("expected"), "actual_count": parsed.get("actual")},
     }
     req = urllib.request.Request(
@@ -424,8 +441,9 @@ def cmd_status(_args: argparse.Namespace) -> int:
     dgx_host = os.environ.get("SYMPOSIUM_DGX_HOST", "dgx")
     print(f"[bhgman-tool] ssh {dgx_host} cypher-shell — KG audit", file=sys.stderr)
     cmd = [
-        "ssh", dgx_host,
-        'kubectl exec -n neo4j neo4j-0 -- cypher-shell -u neo4j '
+        "ssh",
+        dgx_host,
+        "kubectl exec -n neo4j neo4j-0 -- cypher-shell -u neo4j "
         '-p "${NEO4J_PASSWORD:-neo4j}" --format plain',
     ]
     try:
@@ -458,7 +476,9 @@ def build_parser() -> argparse.ArgumentParser:
         default="~/.claude/skills",
         help="Target dir (default: ~/.claude/skills)",
     )
-    p_inst.add_argument("--dry-run", action="store_true", help="Show what would happen, don't write.")
+    p_inst.add_argument(
+        "--dry-run", action="store_true", help="Show what would happen, don't write."
+    )
     p_inst.add_argument("--force", action="store_true", help="Overwrite existing skill dirs.")
     p_inst.set_defaults(func=cmd_install_skills)
 
@@ -500,8 +520,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_tlb.add_argument("--lens", help="Lens set (constitutional / mathematical / solid).")
     p_tlb.set_defaults(func=cmd_tlb)
 
-    p_long = sub.add_parser("longinus", help="Longinus reference binding (sha256/ged/reverse-scan).")
-    p_long.add_argument("op", nargs="+", help="Operation: sha256 / ged / reverse-scan / <freeform>.")
+    p_long = sub.add_parser(
+        "longinus", help="Longinus reference binding (sha256/ged/reverse-scan)."
+    )
+    p_long.add_argument(
+        "op", nargs="+", help="Operation: sha256 / ged / reverse-scan / <freeform>."
+    )
     p_long.set_defaults(func=cmd_longinus)
 
     p_hns = sub.add_parser("harness", help="Harness 3-tier scaffolding diagnose.")
@@ -517,7 +541,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="APT v27 A6 pre-prompt resolver (render | validate). 9 pytest absorbed.",
     )
     p_rs.add_argument(
-        "passthrough", nargs=argparse.REMAINDER,
+        "passthrough",
+        nargs=argparse.REMAINDER,
         help="Args forwarded to engine.resolver.resolver (render --input X --output Y | validate <path>).",
     )
     p_rs.set_defaults(func=cmd_resolver)
@@ -527,7 +552,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="APT v27 A7 fail-closed gate endpoint (serve | check). 6 pytest absorbed.",
     )
     p_gt.add_argument(
-        "passthrough", nargs=argparse.REMAINDER,
+        "passthrough",
+        nargs=argparse.REMAINDER,
         help="serve | check --gate NAME --cycle ID --actor NAME [--expected N --actual N]",
     )
     p_gt.set_defaults(func=cmd_gate)

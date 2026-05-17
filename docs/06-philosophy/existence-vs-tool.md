@@ -22,7 +22,7 @@ bhgman 측:          존재 layer:   12사도 (∀x:CHU, j_i.covers x)
                     protocol layer: MCP / SOP (재배맨)
                                   ↓ 실행
                     instance layer: Cursor / Claude Code / ruflo / LangGraph / ...
-                    
+
                     3+ layer 명시 분리. 각 layer 의 *언어* 가 다름.
 ```
 

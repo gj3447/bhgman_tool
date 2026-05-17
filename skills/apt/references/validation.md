@@ -158,7 +158,7 @@ RETURN inv.name, inv.description, inv.check_query
 APT 가 자기 자신의 *truth predicate* 정의 시도 → Tarski 정전 위반:
   - object language (APT methodology) cannot define its own truth predicate
   - metalanguage (외부 verdict) mandatory
-  
+
 ∴ APT validation = *외부 verdict ensemble* 정전 mandatory
 ```
 
@@ -172,7 +172,7 @@ APT 가 자기 자신의 *truth predicate* 정의 시도 → Tarski 정전 위�
 ```
 APT 가 자기 자신의 *consistency* 증명 시도 → Gödel 1st incompleteness 위반:
   - sufficiently expressive system cannot prove its own consistency
-  
+
 대안: Lean 4 형식화 (Mathlib-free 0 sorry) → *partial* consistency only
   - 25+ Lean files: APT_Cycle_Functor.lean (9) + APT_AtomicSpan_MDL.lean (7) + Harness 3 + 12사도 7 등
   - Total 16+ APT-측 verified theorems = bounded consistency proof
@@ -182,7 +182,7 @@ APT 가 자기 자신의 *consistency* 증명 시도 → Gödel 1st incompletene
 
 ```
 APT 가 자기 자신을 meta-tier 에서 봄 = strange loop (recognized)
-  
+
 SYMPOSIUM 응답:
   - max_depth=1 invariant (`apt_self_application_bounded` Lean PASS)
   - Russell paradox 회피 (BHGMAN/harness/ 빈 폴더 = canonical instance)

@@ -2,12 +2,11 @@
 
 KG: span-worked-example-apt-cycle-on-self-2026-05-13 (:AtomicSpan)
 """
+
 from __future__ import annotations
 
-import os
 import stat
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -36,9 +35,14 @@ def test_review_md_exists_and_follows_dogfood_format():
 
 def test_review_states_lakatos_verdict():
     text = (HERE / "review.md").read_text(encoding="utf-8")
-    assert any(v in text for v in (
-        "PROGRESSIVE", "PROGRESSIVE_CONDITIONAL", "DEGENERATING",
-    )), "review.md must state a Lakatos verdict"
+    assert any(
+        v in text
+        for v in (
+            "PROGRESSIVE",
+            "PROGRESSIVE_CONDITIONAL",
+            "DEGENERATING",
+        )
+    ), "review.md must state a Lakatos verdict"
 
 
 def test_review_cites_anchor_name():
@@ -79,9 +83,9 @@ def test_run_sh_passes_when_artifacts_present():
         timeout=180,
     )
     # Exit 0 even if uv is missing (those steps are SKIPs), as long as no FAIL was recorded.
-    assert "fail=0" in result.stdout, (
-        f"run.sh reported failures.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
-    )
+    assert (
+        "fail=0" in result.stdout
+    ), f"run.sh reported failures.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
 
 
 def test_meta_twice_invariant_explicitly_acknowledged():
@@ -97,5 +101,6 @@ def test_no_coverage_ratio_in_review():
     # The phrase may appear inside the drift table label, but not as a synthesized score.
     # Reject explicit "coverage_ratio = NN%" patterns.
     import re
+
     matches = re.findall(r"coverage_ratio\s*=\s*[0-9]", text)
     assert not matches, f"review.md must not synthesize coverage_ratio numerics: {matches}"

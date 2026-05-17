@@ -9,6 +9,7 @@ Usage:
     python3 analyze.py                          # default: ruflo_readme_snapshot.md
     python3 analyze.py <path/to/README.md>      # any target README
 """
+
 from __future__ import annotations
 
 import re
@@ -34,8 +35,12 @@ LENS_1_METRIC_RE = re.compile(
 )
 # Citation marker (lower-case mention of a primary external canon)
 LENS_1_CITATION_MARKERS = (
-    "goodhart", "lakatos", "tarski", "popper",
-    "external canonical", "external citation",
+    "goodhart",
+    "lakatos",
+    "tarski",
+    "popper",
+    "external canonical",
+    "external citation",
 )
 
 
@@ -46,9 +51,16 @@ LENS_2_ENUMERATION_RE = re.compile(
     re.IGNORECASE,
 )
 LENS_2_RESPONSIBILITY_MARKERS = (
-    "responsibility_split", "responsibility split", "boundary location",
-    "ccp", "common closure", "cherns", "3-tier sibling", "three-tier sibling",
-    "robert martin", "package principles",
+    "responsibility_split",
+    "responsibility split",
+    "boundary location",
+    "ccp",
+    "common closure",
+    "cherns",
+    "3-tier sibling",
+    "three-tier sibling",
+    "robert martin",
+    "package principles",
 )
 
 
@@ -59,8 +71,13 @@ LENS_3_SELF_IMPROV_RE = re.compile(
     re.IGNORECASE,
 )
 LENS_3_SAFEGUARD_MARKERS = (
-    "goodhart", "lakatos", "tarski", "yanofsky",
-    "safeguard", "metric collapse", "incompleteness",
+    "goodhart",
+    "lakatos",
+    "tarski",
+    "yanofsky",
+    "safeguard",
+    "metric collapse",
+    "incompleteness",
 )
 
 
@@ -113,7 +130,8 @@ def lens_2_enumeration_inflation(text: str) -> dict[str, Any]:
     responsibility_present = _has_marker(text_lower, LENS_2_RESPONSIBILITY_MARKERS)
     # Filter to N >= 10 only
     significant = [
-        (line, excerpt) for line, excerpt in matches
+        (line, excerpt)
+        for line, excerpt in matches
         if any(int(n) >= 10 for n in re.findall(r"\d+", excerpt))
     ]
     detected = bool(significant) and not responsibility_present
@@ -145,15 +163,15 @@ def detect_all(text: str) -> dict[str, Any]:
     l1 = lens_1_goodhart_metric_marketing(text)
     l2 = lens_2_enumeration_inflation(text)
     l3 = lens_3_self_improving_no_safeguard(text)
-    detected = [l for l in (l1, l2, l3) if l["detected"]]
+    detected = [lens for lens in (l1, l2, l3) if lens["detected"]]
     return {
         "lensset": "goodhart-detection-2026-05-13",
         "lens_results": [l1, l2, l3],
         "errorpatterns_detected_count": len(detected),
         "errorpatterns_total": 3,
-        "lakatos_verdict": "DEGENERATING" if len(detected) >= 2 else (
-            "PROGRESSIVE_CONDITIONAL" if len(detected) == 1 else "PROGRESSIVE"
-        ),
+        "lakatos_verdict": "DEGENERATING"
+        if len(detected) >= 2
+        else ("PROGRESSIVE_CONDITIONAL" if len(detected) == 1 else "PROGRESSIVE"),
     }
 
 
@@ -173,12 +191,18 @@ def render_report(target_name: str, result: dict[str, Any]) -> str:
         lines.append(f"[Lens {idx}] {lr['lens_id']} — {status}")
         for line_no, excerpt in lr["evidence"][:5]:
             lines.append(f"  Evidence: {excerpt} (line {line_no})")
-        for k in ("external_canonical_citation", "responsibility_split_mention", "safeguard_acknowledgment"):
+        for k in (
+            "external_canonical_citation",
+            "responsibility_split_mention",
+            "safeguard_acknowledgment",
+        ):
             if k in lr:
                 lines.append(f"  {k}: {lr[k]}")
         lines.append("")
     lines.append("Summary:")
-    lines.append(f"  ErrorPatterns detected: {result['errorpatterns_detected_count']} / {result['errorpatterns_total']}")
+    lines.append(
+        f"  ErrorPatterns detected: {result['errorpatterns_detected_count']} / {result['errorpatterns_total']}"
+    )
     lines.append(f"  Lakatos verdict: {result['lakatos_verdict']}")
     return "\n".join(lines)
 

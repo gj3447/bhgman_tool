@@ -86,6 +86,7 @@ async def lifespan(app: FastAPI):
     # 5. OPA client (PROM 16 A6 sidecar pattern, opt-in via APT_OPA_ENABLED)
     if os.environ.get("APT_OPA_ENABLED", "false").lower() == "true":
         from .opa_client import OPAClient
+
         app.state.opa = OPAClient()
         await app.state.opa.__aenter__()
         opa_healthy = await app.state.opa.health()
@@ -253,6 +254,7 @@ def _audit_break_glass(audit_id: str, payload: BreakGlassRequest) -> None:
 
 def main() -> None:
     import uvicorn
+
     uvicorn.run(
         "engine.gate.gate_endpoint:app",
         host=os.environ.get("APT_GATE_HOST", "127.0.0.1"),

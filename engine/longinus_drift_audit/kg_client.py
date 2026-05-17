@@ -8,6 +8,7 @@ Wave 6 (2026-05-14) extensions:
 
 # KG: lesson-longinus-wave6-full-symposium-binding-2026-05-14
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -55,7 +56,11 @@ class KgClient(ABC):
 
     @abstractmethod
     def set_knowledge_hub_path(
-        self, *, name: str, package_path: str, source_file: str | None = None,
+        self,
+        *,
+        name: str,
+        package_path: str,
+        source_file: str | None = None,
         ruflo_grade: str | None = None,
     ) -> None:
         """Resolve a forward orphan by writing package_path/source_file/ruflo_grade."""
@@ -90,10 +95,7 @@ class MockKgClient(KgClient):
 
     def has_node(self, name: str) -> bool:
         return (
-            name in self.refs
-            or name in self.sites
-            or name in self.hubs
-            or name in self.other_nodes
+            name in self.refs or name in self.sites or name in self.hubs or name in self.other_nodes
         )
 
     def merge_reference_site(self, record: KgRefRecord) -> None:
@@ -119,15 +121,21 @@ class MockKgClient(KgClient):
         return list(self.hubs.values())
 
     def set_knowledge_hub_path(
-        self, *, name: str, package_path: str, source_file: str | None = None,
+        self,
+        *,
+        name: str,
+        package_path: str,
+        source_file: str | None = None,
         ruflo_grade: str | None = None,
     ) -> None:
         existing = self.hubs.get(name) or KnowledgeHubRecord(name=name)
-        self.hubs[name] = existing.model_copy(update={
-            "package_path": package_path,
-            "source_file": source_file or existing.source_file,
-            "ruflo_grade": ruflo_grade or existing.ruflo_grade,
-        })
+        self.hubs[name] = existing.model_copy(
+            update={
+                "package_path": package_path,
+                "source_file": source_file or existing.source_file,
+                "ruflo_grade": ruflo_grade or existing.ruflo_grade,
+            }
+        )
 
 
 class Neo4jKgClient(KgClient):  # pragma: no cover
@@ -158,8 +166,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
     def has_node(self, name: str) -> bool:
         with self._driver.session() as s:
             row = s.run(
-                "MATCH (n) WHERE n.name = $name OR n.sourceId = $name "
-                "RETURN count(n) AS c",
+                "MATCH (n) WHERE n.name = $name OR n.sourceId = $name " "RETURN count(n) AS c",
                 name=name,
             ).single()
             return bool(row and row["c"] > 0)
@@ -191,14 +198,16 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
             for r in rows:
                 # Build via constructor; Pydantic enums tolerate missing/None.
                 try:
-                    out.append(ReferenceSite(
-                        sourceId=r["sourceId"],
-                        sourcePath=r["sourcePath"],
-                        sha256=r.get("sha256"),
-                        sha256_baseline=r.get("sha256_baseline"),
-                        kg_anchor=r.get("kg_anchor"),
-                        last_validated=r.get("last_validated"),
-                    ))
+                    out.append(
+                        ReferenceSite(
+                            sourceId=r["sourceId"],
+                            sourcePath=r["sourcePath"],
+                            sha256=r.get("sha256"),
+                            sha256_baseline=r.get("sha256_baseline"),
+                            kg_anchor=r.get("kg_anchor"),
+                            last_validated=r.get("last_validated"),
+                        )
+                    )
                 except Exception:
                     continue
             return out
@@ -276,7 +285,11 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
             ]
 
     def set_knowledge_hub_path(
-        self, *, name: str, package_path: str, source_file: str | None = None,
+        self,
+        *,
+        name: str,
+        package_path: str,
+        source_file: str | None = None,
         ruflo_grade: str | None = None,
     ) -> None:
         with self._driver.session() as s:
