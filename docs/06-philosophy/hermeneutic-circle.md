@@ -33,7 +33,7 @@ ruflo 측 SONA "self-learning" + ReasoningBank 도 *학습* 한다. 하지만:
 |---|---|---|
 | 학습 대상 | metric optimization (성공 패턴 store) | 사전이해 (KG :Lesson, Contract) |
 | 학습 방향 | scalar metric 측 converge | symmetric pair (`wrongAssumption ↔ truth`) 양쪽 갱신 |
-| 외부 검증 | 자체 ReasoningBank | Taliban adversarial + Lean 형식 |
+| 외부 검증 | 자체 ReasoningBank | Naesengmoon adversarial + Lean 형식 |
 | 해석학적 순환 | 부재 (one-way 측 metric optimize) | 명시적 (사전이해 ↔ 해석 양방향) |
 
 ---

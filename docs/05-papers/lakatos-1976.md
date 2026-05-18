@@ -81,7 +81,7 @@ bhgman explicitly *refuses* the dishonest moves:
 | Move | bhgman policy |
 |---|---|
 | **Monster-barring** ("X doesn't count because Y") | Reject if Y is invented post-hoc. Require Y to have *independent* canonical grounding. |
-| **Monster-adjustment** ("the counterexample really satisfies original") | Reject without external verifier (Taliban). |
+| **Monster-adjustment** ("the counterexample really satisfies original") | Reject without external verifier (Naesengmoon). |
 | **Concept-stretching** (silent redefinition) | Reject. All concept evolutions must be KG-tracked with explicit version + symmetric pair lesson. |
 | **Ad-hoc protective belt expansion** | Lakatos verdict will flag as degenerating; framework rollback options open. |
 
@@ -97,7 +97,7 @@ To run Lakatos honestly, bhgman must declare its hard core explicitly:
 2. Apostle (existence) ⊥ Tool (engineering crystallization) ⊥ Instance (industry implementation) — strict layer separation.
 3. Self-reference is *accepted*, not eliminated (Lawvere/Tarski/Gödel limits acknowledged).
 4. External canonical citation is mandatory for every quantitative claim.
-5. The 5 weapons (Harness/Longinus/Prometheus/Taliban/Jaebaeman) form a *closed family* (mutually grounded).
+5. The 5 weapons (Harness/Longinus/Prometheus/Naesengmoon/Jaebaeman) form a *closed family* (mutually grounded).
 
 Anything else (specific theorem count, specific 17 axes, specific Lean files) is **protective belt** — can be modified as long as Lakatos verdict stays progressive.
 
@@ -124,7 +124,7 @@ When you maintain a framework or codebase:
 4. **If degenerating**: rollback or refactor. Don't continue adding ad-hoc patches.
 5. **Honest counter-examples**: incorporate as lemmas, don't bar as monsters.
 
-The Taliban `--lens lakatos` provides automated diagnosis (4 lens variant: `lens-set-lakatos`, KG node).
+The Naesengmoon `--lens lakatos` provides automated diagnosis (4 lens variant: `lens-set-lakatos`, KG node).
 
 ---
 

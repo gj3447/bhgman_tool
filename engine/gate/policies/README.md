@@ -11,7 +11,7 @@
 | Phase | 내용 | 기간 |
 |---|---|---|
 | **Phase 1** | Harness 4축 (Inform/Constrain/Verify/Correct) Rego policy skeleton | 2주 |
-| **Phase 2** | Taliban 검증 렌즈 (constitutional 9 / mathematical 113) → Rego constraint | 3주 |
+| **Phase 2** | Naesengmoon 검증 렌즈 (constitutional 9 / mathematical 113) → Rego constraint | 3주 |
 | **Phase 3** | Conftest CI/CD 파이프라인 + GitHub Actions 통합 | 2주 |
 | **Phase 4** | KG Cypher ↔ OPA decision log sync | 1-2주 |
 
@@ -26,7 +26,7 @@ opa_rego_skeleton/
 │   ├── harness/
 │   │   ├── inform.rego                 ← 정보 제공 axis
 │   │   ├── constrain.rego              ← 제약 axis (gate hook 본체)
-│   │   ├── verify.rego                 ← 검증 axis (Taliban 호출 분기)
+│   │   ├── verify.rego                 ← 검증 axis (Naesengmoon 호출 분기)
 │   │   └── correct.rego                ← 수정 axis (오답노트 → lesson)
 │   ├── taliban/
 │   │   ├── constitutional_9.rego       ← 9 lens 적대 검증
@@ -119,7 +119,7 @@ deny[msg] if {
 
 ---
 
-## Phase 2 — Taliban constitutional 9 lens
+## Phase 2 — Naesengmoon constitutional 9 lens
 
 ### `policies/taliban/constitutional_9.rego` (skeleton)
 
@@ -216,7 +216,7 @@ jobs:
       - name: Conftest verify (Harness 4-axis)
         run: |
           conftest verify --policy policies/harness/ /tmp/gate-input.json
-      - name: Conftest verify (Taliban 9 lens)
+      - name: Conftest verify (Naesengmoon 9 lens)
         run: |
           conftest verify --policy policies/taliban/ /tmp/gate-input.json
       - name: Phase gate validation
@@ -322,4 +322,4 @@ Sprint 3 (gate fail-closed HTTP endpoint) 완료 후 자동 promote → ACTION.
 
 ## 한 줄 결론
 
-**OPA Rego skeleton 4 phase로 8-12주. Phase 1(Harness 4축) 우선 + Phase 2(Taliban 9 lens) 후 Conftest CI/CD + KG sync. CNCF 표준 + 268 enterprises 채택 + Cross-domain reuse 우위 → Sprint 3 완료 후 가속.**
+**OPA Rego skeleton 4 phase로 8-12주. Phase 1(Harness 4축) 우선 + Phase 2(Naesengmoon 9 lens) 후 Conftest CI/CD + KG sync. CNCF 표준 + 268 enterprises 채택 + Cross-domain reuse 우위 → Sprint 3 완료 후 가속.**

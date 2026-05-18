@@ -90,7 +90,7 @@ docs/
 |---|---|---|
 | Longinus (참조 바인딩) | engine + lean export + skill | SYMPOSIUM 측 정전 |
 | Prometheus (지식-행동) | skill export | SYMPOSIUM 측 정전 |
-| Taliban (adversarial) | skill export | SYMPOSIUM 측 정전 |
+| Naesengmoon (adversarial) | skill export | SYMPOSIUM 측 정전 |
 | 재배맨 (SOP) | skill export | SYMPOSIUM 측 정전 |
 
 → 본 repo 는 *Harness 중심*. 다른 무기는 *비행기맨이 그것들과 어떻게 엮이는가* 측 reference + 사용자 활용 가능 skill export.

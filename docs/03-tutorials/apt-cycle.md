@@ -35,7 +35,7 @@ cp -R bhgman_tool/skills/* ~/.claude/skills/
 │ Phase 2: SemanticPyramid (SP)                           │
 │   recursive Span decomposition (DAG, N:N)               │
 │   C(S) 5-predicate 만족까지 D(S) recurrence             │
-│   Gate: LensSet completeness + Taliban adversarial      │
+│   Gate: LensSet completeness + Naesengmoon adversarial      │
 │   Skill: /apt-sp                                        │
 └─────────────────────────────────────────────────────────┘
          ↓ SP Gate (Crystallization Frontier — all leaves AtomicSpan)
@@ -59,7 +59,7 @@ cp -R bhgman_tool/skills/* ~/.claude/skills/
 ┌─────────────────────────────────────────────────────────┐
 │ Phase 5: MetaReview                                     │
 │   의심/피드백 → 스킬 강화 자동 루프                     │
-│   SKILL.md 패치 + MATERIALIZES 갱신 + Taliban Gate      │
+│   SKILL.md 패치 + MATERIALIZES 갱신 + Naesengmoon Gate      │
 │   Termination: self_application_forbidden, max_depth=1  │
 │   Skill: /apt-meta-review                               │
 └─────────────────────────────────────────────────────────┘
@@ -132,7 +132,7 @@ AI: /apt-sp 'auth-feature-2026-05-13'
 
 → Gate check:
   ✓ LensSet completeness: constitutional 9-lens 모두 적용
-  ✓ Taliban adversarial: executor != reviewer
+  ✓ Naesengmoon adversarial: executor != reviewer
   → SP Gate PASS
 ```
 
@@ -221,7 +221,7 @@ AI: /apt-scw 'auth-feature-2026-05-13'
     - 주석 정리
 
 → FulfillmentGate 7 checks:
-  ✓ executor != critic (User: executor / Taliban: critic)
+  ✓ executor != critic (User: executor / Naesengmoon: critic)
   ✓ LensSet completeness: constitutional 9-lens
   ✓ prior VR APPROVED: Span 1 SP gate passed
   ✓ KG ref present: `# KG: lesson-jwt-handling-2026-05-13` in code + test
@@ -252,7 +252,7 @@ AI: /apt-meta-review 'auth-feature-2026-05-13'
 
 → SKILL.md 패치 + KG :Lesson 노드 박기
 
-→ Taliban Gate:
+→ Naesengmoon Gate:
   ✓ Lesson grounded in external canon (RFC 8725 JWT BCP)
   ✓ Symmetric pair complete
   ✓ resolved=false (rotation logic 아직 구현 안 됨, 별 sprint)
@@ -329,7 +329,7 @@ AI: /apt-cleanup 'auth-feature-2026-05-13'
 |---|---|---|
 | 시작 phase | "swarm init" (orchestration setup) | SemanticAnchor (objective + 5 core field) |
 | 의미층 결정 | 없음 | SP recursive decomposition + Crystallization Frontier |
-| 형식 검증 | none built-in | Lean 4 + Taliban LensSet + Cypher Gate Hook |
+| 형식 검증 | none built-in | Lean 4 + Naesengmoon LensSet + Cypher Gate Hook |
 | TDD 강제 | 권장 | mandatory (RED→GREEN→REFACTOR 강제) |
 | Feedback loop | SONA self-learning (Goodhart 무방비) | MetaReview symmetric pair + Lakatos audit |
 | 종료 조건 | 사용자 stop | self_application_forbidden + max_depth=1 + delta=0 |

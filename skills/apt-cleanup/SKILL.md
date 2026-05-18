@@ -11,7 +11,7 @@ description: >
   Gate Check Hook Cypher 강제: 이전 N 사이클의 fat-file LOC + duplication ratio + dependency cycle 측정.
   Invoke when: SCW 완료 후 / N 사이클 누적 후 / "왜 폴더가 평면이지?" 의문 시 / "SOLID 했는데 폴더 개판" 진단 시.
   Enforces: CCP folder cohesion / CRP shared lifecycle / ADP no cycles / cycle-level ratchet.
-  Active Weapons (2026-05-14): Harness 3-tier (IDE-host / runtime / managed) 매핑 진단 (Step 18 folder ↔ tier audit) + Taliban `/88-taliban <folder>` mathematical lens (Step 19-20 CCP/CRP/REP/ADP/SDP/SAP folder-level audit). hub-harness-3tier + hub-taliban-immunity resolve.
+  Active Weapons (2026-05-14): Harness 3-tier (IDE-host / runtime / managed) 매핑 진단 (Step 18 folder ↔ tier audit) + Naesengmoon `/88-taliban <folder>` mathematical lens (Step 19-20 CCP/CRP/REP/ADP/SDP/SAP folder-level audit). hub-harness-3tier + hub-taliban-immunity resolve.
   # KG: ATOM_Skill_apt_cleanup, lesson-apt-phase6-cleanup-missing-2026-04-28, lesson-solid-class-level-vs-package-level-mismatch-2026-04-29
 ---
 
@@ -36,8 +36,8 @@ RETURN s.currentConcrete, s.invocation
 | Step | Weapon | Invocation | Trigger | Output |
 |------|--------|-----------|---------|--------|
 | Step 18 (3-tier folder audit) | **Harness** | 3-tier mapping diagnosis: IDE-host (Cursor/Claude Code) / runtime (LangGraph/CrewAI/Google ADK) / managed (Anthropic Managed Agents) 측 폴더 배치 검사 | SCW FulfillmentGate APPROVED + N 사이클 누적 | tier 라벨 + 잘못 배치된 file 리포트 |
-| Step 19 (4-tool ratchet) | **Taliban** (mathematical lens) + tool chain | `/88-taliban <folder> --lens mathematical` + `tach` (dep cycle) + `complexipy --ratchet` (complexity) + `lizard` (LOC) + `vulture` (dead code) + `deptry` (unused dep) | folder 평면 누적 의심 / fat-file 임계치 | 4-tool ratchet result (각 monotone decreasing 검증) |
-| Step 20 (folder-level CCP/ADP gate) | **Taliban** (88-taliban) | mathematical lens 113 측 CCP/CRP/REP/ADP/SDP/SAP 위반 audit (Robert Martin Package Principles) | 4-tool ratchet PASS 후 final gate | `CleanupVerdict` PASS / NEEDS_REFACTOR / BLOCK (pass_count ≥ 5/7) |
+| Step 19 (4-tool ratchet) | **Naesengmoon** (mathematical lens) + tool chain | `/88-taliban <folder> --lens mathematical` + `tach` (dep cycle) + `complexipy --ratchet` (complexity) + `lizard` (LOC) + `vulture` (dead code) + `deptry` (unused dep) | folder 평면 누적 의심 / fat-file 임계치 | 4-tool ratchet result (각 monotone decreasing 검증) |
+| Step 20 (folder-level CCP/ADP gate) | **Naesengmoon** (88-taliban) | mathematical lens 113 측 CCP/CRP/REP/ADP/SDP/SAP 위반 audit (Robert Martin Package Principles) | 4-tool ratchet PASS 후 final gate | `CleanupVerdict` PASS / NEEDS_REFACTOR / BLOCK (pass_count ≥ 5/7) |
 
 **Cleanup 진입 hub**: `hub-harness-3tier` (3계층 매핑 정전) + `hub-taliban-immunity` (folder-level audit).
 

@@ -48,7 +48,7 @@ Self-improving frameworks face Tarski's wall directly:
 This question requires the framework to *judge its own truth* — exactly what Tarski forbids. If the framework defines "better" via its own metrics, those metrics become Tarski-violating self-truth-predicates.
 
 bhgman's structural response:
-- **Taliban LensSet** = the *external metalanguage* that judges bhgman's outputs
+- **Naesengmoon LensSet** = the *external metalanguage* that judges bhgman's outputs
 - **Executor != reviewer** = explicit Tarski compliance (the system that *makes* claims is not the system that *judges* claims)
 - **External canonical citation** = Tarski's "metalanguage strictly more expressive than L"
 
@@ -72,8 +72,8 @@ The hierarchy *cannot have a top* — that would itself be a `L∞` capable of s
 
 bhgman parallels this in the **adversarial cascade**:
 - Code is judged by tests + Lean (`L₁`)
-- Tests + Lean are judged by Taliban LensSet (`L₂`)
-- Taliban LensSet is judged by Taliban meta-LensSet (`L₃`) — mathematical lens on mathematical lens
+- Tests + Lean are judged by Naesengmoon LensSet (`L₂`)
+- Naesengmoon LensSet is judged by Naesengmoon meta-LensSet (`L₃`) — mathematical lens on mathematical lens
 - Eventually: human review (`Lω` — external to the formal hierarchy)
 
 No claim of "complete self-verification." Each layer judges the previous, and judgment terminates *outside* the formal system.
@@ -98,7 +98,7 @@ theorem tarski_instance :
 When using bhgman:
 - ✅ Use Lean to *prove* a theorem — Lean is *outside* the proven content (Tarski-compliant)
 - ✅ Use pytest to *test* code — tests are *outside* the tested code (Tarski-compliant)
-- ✅ Use Taliban to *validate* outputs — Taliban is *outside* the validated agent (Tarski-compliant)
+- ✅ Use Naesengmoon to *validate* outputs — Naesengmoon is *outside* the validated agent (Tarski-compliant)
 - ❌ Don't let an agent *self-grade* its own work and report the grade as ground truth — Tarski violation
 - ❌ Don't compute a "framework health score" from inside the framework — Tarski violation
 

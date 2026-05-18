@@ -97,7 +97,7 @@ RETURN ts.checkItems, ts.cypherQueries, ts.expectedOutcome,
 ## 섹션 6 — 종료 의식 (AdversarialValidator 자동)
 
 ```markdown
-## 종료 의식 — Taliban 9-lens
+## 종료 의식 — Naesengmoon 9-lens
 
 \`\`\`cypher
 MATCH (s:MethodologySlot {name:'AdversarialValidator'})
@@ -109,7 +109,7 @@ ValidationResult 기록:
 \`\`\`cypher
 MERGE (vr:ValidationResult {name:'VR_TPA_{{phase_id_upper}}_<target>_<date>', phase:'{{phase_id_upper}}'})
 SET vr.verdict=$verdict, vr.evidence=[...], vr.validated_at=datetime(),
-    vr.validator='Taliban-9lens'
+    vr.validator='Naesengmoon-9lens'
 MATCH (exec:TPA_Execution)
 MERGE (exec)-[:HAS_VALIDATION]->(vr)
 \`\`\`

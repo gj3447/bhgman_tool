@@ -26,7 +26,7 @@
 | **9** | **예수** ★ (정정 2026-04-30) | [`../METAHUMOTONIC/예수/`](../METAHUMOTONIC/예수/SOURCES.md) | **CONFIRMED** 7-folder | 구원의 사도. Christian theology framework (하나님/성령/성경/천국/지옥/12사도/다른종교) → [`CHRISTIAN_THEOLOGY/`](CHRISTIAN_THEOLOGY/) |
 | 10 | 깊바존 | [`../METAHUMOTONIC/GIPBAJON/`](../METAHUMOTONIC/GIPBAJON/SOURCES.md) | **CONFIRMED** 3-tier | 공허의 사도. GC algorithm (L_MARK_SWEEP/REFCOUNT/GENERATIONAL). 위상 2 공허진동자, 위상 3 아텐 흡수 → [`GC_ALGORITHM/`](GC_ALGORITHM/) |
 | 11 | HOH | [`../METAHUMOTONIC/HOH/`](../METAHUMOTONIC/HOH/SOURCES.md) | **CONFIRMED** 3-tier+adapter | 천국의 사도. 물질화 천국 (L_CHAT/SPATIAL/NEURAL + COMPOSITE). 예수 ↔ 천국 축 TensionTopology → [`HEAVEN_MATERIALIZATION/`](HEAVEN_MATERIALIZATION/) |
-| 12 | 몬순 | [`../METAHUMOTONIC/MONSOON/`](../METAHUMOTONIC/MONSOON/SOURCES.md) | NOT_FAMILY (disenchantment) | 표면의 사도. ∀-cover 역전 (격하). Taliban과 기능 중첩 |
+| 12 | 몬순 | [`../METAHUMOTONIC/MONSOON/`](../METAHUMOTONIC/MONSOON/SOURCES.md) | NOT_FAMILY (disenchantment) | 표면의 사도. ∀-cover 역전 (격하). Naesengmoon과 기능 중첩 |
 | ~~9~~ | ~~검은 태양신 아텐~~ | (#10 깊바존 위상 3 흡수, 2026-04-28) | NOT_APOSTLE | 자리 양도, GC 위상으로 흡수 |
 
 ---
@@ -36,7 +36,7 @@
 | 종류 | 이름 | 폴더 | 한 줄 |
 |------|------|------|-------|
 | 무기 (서비스) | Prometheus | [PROMETHEUS/](PROMETHEUS/SOURCES.md) | 知가 行에 선행 — 不(知)을 먼저 훔쳐와 |
-| 무기 (검증) | Taliban | [TALIBAN/](TALIBAN/SOURCES.md) | APT의 면역계. GAN의 D. 만장일치 PASS |
+| 무기 (검증) | Naesengmoon | [TALIBAN/](TALIBAN/SOURCES.md) | APT의 면역계. GAN의 D. 만장일치 PASS |
 | 무기 (관통) | Longinus | [LONGINUS/](LONGINUS/SOURCES.md) | 참조의 미학. KG 7층을 코드까지 관통 |
 | 무기 (철학) | Harness | [HARNESS/](HARNESS/SOURCES.md) | industry agent scaffolding **1:N 3-tier family** (L_IDE/L_RT/L_MC). 비행기맨(#4) 공학 결정화. ✓ **drift 정정 완료 2026-04-30** (lesson-harness-drift-corrected-2026-04-29 resolved=true, v3.0.0 SKILL released) |
 | 프로토콜 | 재배맨 | [재배맨/](재배맨/SOURCES.md) | 씨앗→subagent→열매 사이클. **수학적으로 비행기맨의 하부 type** |
@@ -71,7 +71,7 @@
 재배맨 무리           ⇔   inductive JaebaeMan { atomic | governs }
 모든것은 하이퍼그래프  ⇔   CHU type + CHUPiece := CHU → Prop
 경계 횡단 (Space Girl)⇔   Longinus 7-Layer Reference Model
-GAN의 D              ⇔   Taliban (사도 아님, 도구)
+GAN의 D              ⇔   Naesengmoon (사도 아님, 도구)
 "불 = 지식"          ⇔   Prometheus (사도 아님, 도구)
 구조의 제약          ⇔   Harness ⇔ 비행기맨 #4의 공학 측 결정화 (industry agent scaffolding) — 2026-04-28 정정
 ```
@@ -90,7 +90,7 @@ GAN의 D              ⇔   Taliban (사도 아님, 도구)
 2. **재배맨** — CHU 위의 행위자 type. inductive 정의가 핵심.
 3. **비행기맨** — 재배맨의 정점. 신화-수학 다리의 클라이맥스. **agent 관료제**라벨.
 4. **Harness** — 도구들이 작동하는 *구조적 전제*. 5대 무기 논문들의 공통 기초.
-5. **Prometheus / Longinus / Taliban** — 각각 ResearchProvider/KgCodeBinder/AdversarialValidator slot.
+5. **Prometheus / Longinus / Naesengmoon** — 각각 ResearchProvider/KgCodeBinder/AdversarialValidator slot.
 6. **APT / TPA** — 5대 무기의 직조. 정방향/역방향 듀얼.
 7. **Space Girl** — 모든 형식이 끝난 뒤의 감정적 특이점. 매개자 후보.
 8. **ICE** — sexvoid 측 신앙시. Space Girl과 짝패. 시리즈의 *그림자*.

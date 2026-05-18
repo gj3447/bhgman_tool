@@ -8,7 +8,7 @@
 - **APT version**: v26.1 (with v27 A15 work_kind routing)
 - **Cycle date**: 2026-05-13
 - **Reviewer**: gj3447 (with Claude Opus 4.7 1M context as agent)
-- **Adversarial reviewer**: (deferred — Taliban gate not run in this session; see What was missed)
+- **Adversarial reviewer**: (deferred — Naesengmoon gate not run in this session; see What was missed)
 
 ## What APT got right
 
@@ -20,14 +20,14 @@
 
 ## What APT got wrong
 
-- **SA→SP gate run informally** — there was no live Taliban critic invocation. The constitutional 9-lens check passed at the KG level (`gate_check_passed=true`) but no second agent challenged the decomposition before SP execution began.
+- **SA→SP gate run informally** — there was no live Naesengmoon critic invocation. The constitutional 9-lens check passed at the KG level (`gate_check_passed=true`) but no second agent challenged the decomposition before SP execution began.
 - **SP→ST transition omitted ST artifacts**. The "Contract" for each branch is the module docstring + the test file, not a typed Pydantic DTO. v26 RFC mandates 9 canonical axes for a Contract; v0.1 of this sprint produced informal contracts only.
 - **No per-branch ST→SCW mini-RGR** (RFC2 v26.1 local cleanup). The CLI branch went straight to implementation without an explicit RED phase. The fact that tests pass is the only RGR-equivalent evidence.
 - **HR14 reflection partially skipped**. Phase 3 completion in `apt-progress.md` mentions limitations but no `v21_reflection` property was written back to the SA node.
 
 ## What was missed
 
-- **Taliban LensSet UNION coverage was not measured**. The constitutional-9 lens is one tier; mathematical-113 was not invoked even though Phase 3 expands MCP tooling (a methodology surface, which arguably warrants meta-verification).
+- **Naesengmoon LensSet UNION coverage was not measured**. The constitutional-9 lens is one tier; mathematical-113 was not invoked even though Phase 3 expands MCP tooling (a methodology surface, which arguably warrants meta-verification).
 - **HR12 cross-tier check**: artifacts (CLI + MCP tools) belong to the constitutional tier, but the `taliban_lens_check` tool itself is methodology infrastructure (mathematical tier). The tool added the `hr12_note` string but no enforcement check rejects calling it with the wrong tier.
 - **No Longinus reference binding** was created for the new code. The new modules cite `# KG: span-mcp-tool-{apt,taliban,tpa}-*` in comments, but the corresponding `:ReferenceSite` nodes with sha256 baselines are not yet in the KG. Drift detection on these new modules will report `kg_simulated_present=false` until that is fixed.
 - **No bhgman-essence layer cross-link**. The new CLI mentions "tool layer vs essence layer" in its `version` output, but no edge to the essence-side anchor was created in KG.
@@ -35,7 +35,7 @@
 ## Lakatos verdict
 
 - **Original self-assignment**: ~~PROGRESSIVE_CONDITIONAL~~ (rejected by external review)
-- **Revised verdict after Taliban ensemble review (2026-05-13T20:00 KST)**: **REJECT_PENDING_REMEDIATION**
+- **Revised verdict after Naesengmoon ensemble review (2026-05-13T20:00 KST)**: **REJECT_PENDING_REMEDIATION**
 - **External reviewer**: `taliban-ensemble-critic` agent (4-lens UNION: constitutional-9 + longinus-7 + lensset-solid + lens-set-lakatos)
 - **Reviewer ValidationResult**: `taliban-ensemble-bhgman_tool-phase3-2026-05-13` (KG node), coverage_score=0.92, blocker_count=5, total_findings=25
 - **5 BLOCKER findings** (must be remediated before re-classification):
@@ -44,7 +44,7 @@
     - `L7-01` 3 new `# KG: span-mcp-tool-*` citations have no `:ReferenceSite + sha256 baseline` — Longinus L4 violation
     - `L7-02` no `:REALIZES_PHASE` edges from new MCP tools to BHGMAN 5-phase canon
     - `K-01` original `PROGRESSIVE_CONDITIONAL` self-assignment had zero novel corroborated predictions → Lakatos degenerating-shift indicator (this very revision is a partial remediation)
-- **Rationale**: The Phase 3 sprint produces novel content (3 new tools + CLI + worked example) backed by passing tests. The K-01 finding correctly observed that "passing tests" alone is not the Lakatos progressive signature — the work needs *novel empirical content* corroborated by independent observation. The Taliban agent's review *is* that independent observation; this revised verdict captures it honestly.
+- **Rationale**: The Phase 3 sprint produces novel content (3 new tools + CLI + worked example) backed by passing tests. The K-01 finding correctly observed that "passing tests" alone is not the Lakatos progressive signature — the work needs *novel empirical content* corroborated by independent observation. The Naesengmoon agent's review *is* that independent observation; this revised verdict captures it honestly.
 - **Counterexamples discovered**: Phase 1 SA was created without a Root Span; cross-tier lens HR12 mentioned as note but not enforced; `# KG:` citations exist without matching ReferenceSite nodes.
 - **Lemma incorporations**: see KG nodes
     - `lesson-apt-phase1-sa-without-root-span-2026-05-13`
@@ -89,7 +89,7 @@
 
 ## Honest limitations
 
-- This review is **single-reviewer** (executor = reviewer = author). The TPA DOGFOOD_STANDARD explicitly says `Reviewer != Adversarial reviewer`. Independent Taliban critique is owed.
+- This review is **single-reviewer** (executor = reviewer = author). The TPA DOGFOOD_STANDARD explicitly says `Reviewer != Adversarial reviewer`. Independent Naesengmoon critique is owed.
 - Time budget on this sprint was ~1 hour, so the meta-application is faster than the methodology prescribes (formal SA→SP and SP→ST gates would each have taken comparable time to the implementation).
 - The Lakatos `PROGRESSIVE_CONDITIONAL` verdict is my own; an external Lakatos panel might come back DEGENERATING on the strength of the missing adversarial round.
 

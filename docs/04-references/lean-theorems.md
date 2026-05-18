@@ -48,7 +48,7 @@ External canon: **Yanofsky 2003** + Tarski 1936 + Gödel 1931 + Russell 1901 + C
 | 5 | `lawvere_instance` | Self-application admits fixed points (so `j.covers j` is always meaningful) |
 | 6 | `yanofsky_unification` | All 5 instances share the structural lemma |
 | 7 | `bhgman_self_limit_accepted` | bhgman *explicitly* accepts the obstruction (not a bug) |
-| 8 | `external_verifier_required` | Self-verification requires Taliban-style external lens |
+| 8 | `external_verifier_required` | Self-verification requires Naesengmoon-style external lens |
 | 9 | `framework_incompleteness` | Renouncing completeness is *necessary* under Yanofsky |
 
 ### `Harness_ACI_Mirror.lean` (10 theorems)

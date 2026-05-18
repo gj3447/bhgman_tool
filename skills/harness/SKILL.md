@@ -73,7 +73,7 @@ KG: `seed-harness-3tier-canonical-validated-2026-04-30`, `seed-anthropic-managed
 |---|---|---|---|
 | **Guides** | **Inform** (정보 제공) | KG, docs, Progressive Disclosure | 맥락 없이 코딩 = Vibe Coding |
 | **Guides** | **Constrain** (경계 제한) | Span 분해, Contract 7필드, complexity_threshold, Gate Check Hook | 무한 자유 = 무한 오류 |
-| **Sensors** | **Verify** (검증) | Taliban 9-lens, Ground Truth, TDD | 고무도장 승인 |
+| **Sensors** | **Verify** (검증) | Naesengmoon 9-lens, Ground Truth, TDD | 고무도장 승인 |
 | **Sensors** | **Correct** (교정) | Fractal Feedback, AptFeedback, 프로메테우스 | 같은 실수 반복 |
 
 → 4축은 **유효한 derivative**다. 단, attribution은 **Böckeler 2축**이 1차 정전이며 SYMPOSIUM 분해는 그 미세 형태임을 명시.
@@ -86,7 +86,7 @@ KG: `seed-harness-3tier-canonical-validated-2026-04-30`, `seed-anthropic-managed
 |------|---------|------|
 | 엉뚱한 방향으로 구현 | Inform | KG 보강, docs 추가, 프로메테우스 발동 |
 | 범위 초과 / Gold Plating | Constrain | Contract 경계 강화, Span 재분해 |
-| 틀린 코드가 통과됨 | Verify | Taliban lens 추가, 테스트 강화 |
+| 틀린 코드가 통과됨 | Verify | Naesengmoon lens 추가, 테스트 강화 |
 | 같은 버그 재발 | Correct | Feedback loop 점검, Lesson 기록 |
 
 > ⚠️ **L_IDE 외 계층에서 4축 진단을 자동 적용하지 말 것.** L_RT는 orchestration model 선택, L_MC는 control plane이 진짜 frame.
@@ -147,11 +147,11 @@ SYMPOSIUM은 directly L_RT runtime이 아니지만, LangGraph로 매핑 가능:
 | Pipeline (순차 의존) | LangGraph linear / ADK chain | Constrain |
 | Fan-out/Fan-in (병렬→통합) | LangGraph conditional / Agents SDK handoff | Inform |
 | Expert Pool (상황별 선택) | CrewAI hierarchical | Inform |
-| **Producer-Reviewer** (생성+검증) | AutoGen GroupChat / Agents SDK | **Verify** (Taliban D20 거울 — executor != reviewer) |
+| **Producer-Reviewer** (생성+검증) | AutoGen GroupChat / Agents SDK | **Verify** (Naesengmoon D20 거울 — executor != reviewer) |
 | Supervisor (중앙 분배) | CrewAI manager / ADK root | Constrain + Correct |
 | Hierarchical Delegation (재귀 위임) | ADK A2A / Agents SDK | Constrain |
 
-→ Producer-Reviewer ↔ Taliban D20 1:1 정전 거울 (Anti-Rubber-Stamp industry-confirmed independent).
+→ Producer-Reviewer ↔ Naesengmoon D20 1:1 정전 거울 (Anti-Rubber-Stamp industry-confirmed independent).
 → 상세 매핑 + production recipe 5종 (QA boundary-cross / trigger validation / `_workspace/` / evolution 3-signal / 5 invariant 정합) — `references/production_factory_patterns.md` 참조.
 → External canonical: `revfactory-harness-2026-05-09` (`:ExternalFrontierHarness`, sha256 `ee84902c`).
 
@@ -195,12 +195,12 @@ MCP (Model Context Protocol) = 단일 계층 내부 원리 *아님*. 3계층 모
 |---|---|---|---|
 | Prometheus (지식 선행) | — (Guides 상위) | Inform | MEDIUM (knowledge before action) |
 | Harness | **메타-frame** | (전 4축 + family 자체) | 본 SKILL — 4축은 family 정의 아님 |
-| Taliban (적대 검증) | **Sensors** (inferential) | Verify | STRONG (LSP 검증의 specific instance) |
+| Naesengmoon (적대 검증) | **Sensors** (inferential) | Verify | STRONG (LSP 검증의 specific instance) |
 | Longinus (참조 횡단) | — (Correct에 인접) | (Correct 측 refinement) | MEDIUM (KG↔Code 관통) |
 | 재배맨 | Guides+Sensors recursion | (전 4축) | 메타 (atomic/governs self-similar) |
 
 → 5무기는 Böckeler 2축의 SYMPOSIUM-specific 분해. 직접 1:1 functor는 약 (이전 SOLID functor 가설과 같은 문제, `THEORY/SOLID/PROM_64_REPORT.md` D54).
-→ 정합 강도: STRONG (Taliban↔Sensors-inferential), MEDIUM (Prometheus, Longinus), 재배맨은 framework-level meta.
+→ 정합 강도: STRONG (Naesengmoon↔Sensors-inferential), MEDIUM (Prometheus, Longinus), 재배맨은 framework-level meta.
 
 ---
 

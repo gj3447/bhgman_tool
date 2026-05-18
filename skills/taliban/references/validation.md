@@ -2,7 +2,7 @@
 
 > Lazy-load reference. Parent: [`../SKILL.md`](../SKILL.md). Sibling: [`./gates.md`](./gates.md).
 
-## V1-V14 — Taliban Adversarial Invariants
+## V1-V14 — Naesengmoon Adversarial Invariants
 
 | V# | Target | Severity |
 |----|--------|:--------:|

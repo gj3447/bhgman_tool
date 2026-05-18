@@ -68,7 +68,7 @@
 | **3-tier confidence enum** (`EXTRACTED` / `INFERRED` / `AMBIGUOUS`) | **graphify** (safishamsi) `graphify/ARCHITECTURE.md` L40-66, `validate.py` schema enforcement | **STRONG_MIRROR_CANDIDATE** (confidence axis 1:1 의미 매칭) | 7-Layer Reference Model 의 confidence axis 정전화. `:PRELIMINARY` 라벨 정전과 직결. | `longinus-confidence-schema-3tier-2026-05-13` (:ConfidenceSchema:Canonical) |
 | **3-tier confidence (float-scored variant)** | **code-review-graph** (tirth8205) edge confidence row in README + `graph.py` SQLite schema | PARTIAL (float vs enum, 시그니처 차이) | 위와 같은 위치, secondary instance | 위 노드의 `industry_instance_partial` 필드 |
 | **sha256 drift detection daemon 패턴** (TOML config + 30s health check + child process auto-restart + TOCTOU-safe atomic read-hash-parse) | **code-review-graph** `crg-daemon` (`code_review_graph/daemon.py`, `daemon_cli.py`) + multi-repo watch.toml | DAEMON_IMPLEMENTATION (Longinus daemon 의 실제 구현 first-instance) | Longinus L4 (Crate-level) + L5 (ReferenceSite drift) + L6 (sha256 baseline) 측 daemon 구현 | `longinus-drift-daemon-pattern-2026-05-13` (:DaemonPattern:Canonical) |
-| **Goodhart antipattern** (negative lesson, contrast case) | **ruflo** (ruvnet) "84.8% SWE-Bench" / "32% token reduction" / 100+ agent enumeration. Contrast: code-review-graph 의 honest limitations section + token budget discipline (≤5 tool calls, ≤800 tokens) = correct handling. | NEGATIVE_LESSON | Taliban LensSet + 5무기 family ErrorPattern 측 적재. Goodhart 1975 / Strathern 1997 정전 grounding. | `errorpattern-goodhart-metric-optimization-marketing-2026-05-13` (:ErrorPattern:Negative5WeaponLesson) |
+| **Goodhart antipattern** (negative lesson, contrast case) | **ruflo** (ruvnet) "84.8% SWE-Bench" / "32% token reduction" / 100+ agent enumeration. Contrast: code-review-graph 의 honest limitations section + token budget discipline (≤5 tool calls, ≤800 tokens) = correct handling. | NEGATIVE_LESSON | Naesengmoon LensSet + 5무기 family ErrorPattern 측 적재. Goodhart 1975 / Strathern 1997 정전 grounding. | `errorpattern-goodhart-metric-optimization-marketing-2026-05-13` (:ErrorPattern:Negative5WeaponLesson) |
 
 **Lean 4 형식화**: `MIND/lean_formalization/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean` (Mathlib-free standalone, 7 theorem: T1 ambiguous_unique_human_gate / T2 sinn_bedeutung_non_collapse / T3 trust_strict_order / T4 bx_getput (Foster-Pierce-Walker 2007) / T5 bx_putget / T6 ambiguous_in_list_forces_preliminary / T7 goodhart_safeguard_confidence_not_scalar). **빌드 verification pending** — proof 모두 `decide` / `rfl` / `cases` 만 사용, 다른 SYMPOSIUM Mathlib-free Lean 4.30.0-rc2 패턴 따름.
 
@@ -197,7 +197,7 @@ Longinus 의 `ReferenceSite (sourceId, sourcePath)` 의 *대량 공급자* = Pro
 > 롱기누스: 프로메테우스가 구축한 KG를 코드까지 관통
 
 **SKILL.md prometheus L533** (프랙탈 순환의 닫힘):
-> 프로메테우스 → (재배맨/RAG + 롱기누스/실측) → edge data → 하네스↔탈레반 GAN → 검증된 씨앗
+> 프로메테우스 → (재배맨/RAG + 롱기누스/실측) → edge data → 하네스↔나생문 GAN → 검증된 씨앗
 
 → KG: `(ATOM_Skill_prometheus)-[:FEEDS_BINDING]->(ATOM_Skill_longinus)` + `(ATOM_Skill_longinus)-[:VERIFIES_KG_OF]->(ATOM_Skill_prometheus)` (역방향)
 → Prototype: `(prom-cycle-runtime-prototype)-[:FEEDS_KG_FOR_BINDING]->(longinus-drift-audit-prototype)`

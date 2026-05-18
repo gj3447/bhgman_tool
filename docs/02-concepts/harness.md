@@ -14,7 +14,7 @@ The internal organizing principle of each Harness instance:
 |---|---|---|
 | **Inform** | provide context / KG / skills to the agent | "reach information anywhere" |
 | **Constrain** | permissions / scope / token budget / safety | "untethered yet not runaway" |
-| **Verify** | output verification (Taliban adversarial / tests / Lean) | "did we *correctly* reach?" |
+| **Verify** | output verification (Naesengmoon adversarial / tests / Lean) | "did we *correctly* reach?" |
 | **Correct** | feedback → next-call adjustment | "learn from failure" |
 
 This is the *internal* organization of each instance. **Not the family definition** (family is separate — below).

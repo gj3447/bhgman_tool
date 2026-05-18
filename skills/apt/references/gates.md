@@ -217,7 +217,7 @@ gate_trigger(span)
 | Hegel | APT gate transition |
 |---|---|
 | thesis | gate 진입 시 span 의 "이렇게 만든다" |
-| antithesis | gate critic (Taliban LensSet) 의 "정말?" |
+| antithesis | gate critic (Naesengmoon LensSet) 의 "정말?" |
 | synthesis | gate PASS verdict — thesis + antithesis 통합 |
 
 **Hegel 함의**: gate fail = synthesis 미도달 → cycle 재진행 (paralysis-by-analysis 회피). gate PASS = Aufhebung (지양 — 폐기 + 보존 + 격상 동시).

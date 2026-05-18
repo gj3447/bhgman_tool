@@ -179,7 +179,7 @@ You **cannot** re-upload `X.Y.Z` after yanking. Bump to `X.Y.(Z+1)` and re-publi
 
 ## Honest scope (Goodhart safeguard)
 
-- This doc covers **packaging + publish protocol** only. It does not certify content correctness — that's the job of pytest (`engine/`) + Lean (`lean/`) + Taliban skill (`tlb`).
+- This doc covers **packaging + publish protocol** only. It does not certify content correctness — that's the job of pytest (`engine/`) + Lean (`lean/`) + Naesengmoon skill (`tlb`).
 - "All 77 pytest PASS" claim is a **smoke**-level guarantee, not a coverage report. See `engine/longinus_drift_audit/README.md` for honest limitations.
 - The wheel's `engine.cli` cohort A subcommands (`install-skills`, `verify`, `version`) are **not** usable from a pip-installed wheel alone — they require the source repo. This is documented in `engine/cli/main.py` module docstring (lines 33-41).
 

@@ -9,7 +9,7 @@ description: >
   Invoke when: starting a new project/feature, establishing work identity,
   bootstrapping agent environment, or determining where new work fits in the KG.
   Enforces: Anchor identity, Progressive Disclosure, Context Budget, KG-first exploration.
-  v26: Context budget + SA core fields (objective/definition/keyAssertion/C_S/contextBudget) from MethodologyConfig slot (A4). SA→SP gate uses LensSet slot (A3). v22: Gate Check enforcement via Claude Code Hook. 5대 무기(하네스/탈레반/프로메테우스/롱기누스/재배맨) 기반. SA는 프로메테우스(지식 선행)와 롱기누스(KG 접지)의 시작점.
+  v26: Context budget + SA core fields (objective/definition/keyAssertion/C_S/contextBudget) from MethodologyConfig slot (A4). SA→SP gate uses LensSet slot (A3). v22: Gate Check enforcement via Claude Code Hook. 5대 무기(하네스/나생문/프로메테우스/롱기누스/재배맨) 기반. SA는 프로메테우스(지식 선행)와 롱기누스(KG 접지)의 시작점.
   Active Weapons (2026-05-14): Prometheus `/prom <N> "<sa_topic>"` (Step 1 KG sparse OR Step 3 5 core fields 외부 grounding) + Longinus L1-L2 reverse binding (Step 2 기존 SemanticAnchor 후보 reverse scan). hub-prometheus-research + hub-longinus-reference resolve.
   # KG: lesson-feedback-is-emergent-not-weapon-2026-04-16, lesson-sa-contract-v2-rejected-redesign-2026-04-20 (5 mandatory core fields enforced)
 ---
@@ -23,7 +23,7 @@ MATCH (cfg:MethodologyConfig {name:'MethodologyConfig_default_v26'})
 RETURN cfg.context_budget_sa_default, cfg.context_budget_l1_avg, cfg.context_budget_l2_avg
 ```
 
-**SA core fields** (v26 mandatory): `objective` · `definition` · `keyAssertion` · `C_S` (5-predicate) · `contextBudget`. 5 필드 null = Taliban gate reject.
+**SA core fields** (v26 mandatory): `objective` · `definition` · `keyAssertion` · `C_S` (5-predicate) · `contextBudget`. 5 필드 null = Naesengmoon gate reject.
 
 # KG: APT_v26_A6_2026-04-21, MethodologyConfig_default_v26
 
@@ -108,7 +108,7 @@ RETURN s.name, s.currentConcrete, s.invocation
 | Step 1 (KG 탐색) | **Prometheus** | `/prom <N> "<sa_topic> — KG 측 기존 anchor / 외부 정전 grounding"` | INFORMED_BY < `cfg.density_min_informed_by` OR source_types < `cfg.density_min_source_types` | N `ResearchFinding` (verified=true) + grounding citation |
 | Step 2 (anchor 결정 2-A/B/C) | **Longinus** | L1-L2 reverse binding: `MATCH (sa:SemanticAnchor) WHERE sa.name CONTAINS $user_topic OR sa.objective CONTAINS $user_topic RETURN sa` | 새 anchor 진입 시 항상 (기존 anchor 중복 방지) | 2-A NEW / 2-B 재사용 / 2-C 브랜치 verdict |
 | Step 3 (5 core fields) | **Prometheus** (mini) | `/prom 4 "<keyAssertion> 측 외부 정전 grounding"` (외부 grounding 부재 시) | `keyAssertion` 학문 정전 grounding 없음 | 외부 인용 (1차 source) + Lesson 노드 |
-| SA→SP Gate | **Taliban** | `/tlb <SA_id> --lens constitutional` (LensSet completeness mandatory) | 5 core fields 작성 직후 | `VerdictRecord` APPROVED + post-gate reflection |
+| SA→SP Gate | **Naesengmoon** | `/tlb <SA_id> --lens constitutional` (LensSet completeness mandatory) | 5 core fields 작성 직후 | `VerdictRecord` APPROVED + post-gate reflection |
 
 **SA 진입 hub**: `hub-prometheus-research` (지식 선행 spiral) + `hub-longinus-reference` (KG anchor binding).
 
@@ -699,9 +699,9 @@ MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
-> 88-Taliban은 별도 concrete가 아닌 Taliban --lens mathematical.
+> 88-Naesengmoon은 별도 concrete가 아닌 Naesengmoon --lens mathematical.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`
 > 유틸리티: `03_SCRIPTS/db/resolve_mic_slot.cypher`

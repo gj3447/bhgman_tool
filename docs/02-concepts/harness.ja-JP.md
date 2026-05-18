@@ -14,7 +14,7 @@
 |---|---|---|
 | **Inform** | agent に context / KG / skill を提供 | 「情報をどこへでも届ける」 |
 | **Constrain** | 権限 / scope / token budget / 安全 | 「束縛されず暴走もせず」 |
-| **Verify** | 出力検証 (Taliban adversarial / test / Lean) | 「正しく到達したか」 |
+| **Verify** | 出力検証 (Naesengmoon adversarial / test / Lean) | 「正しく到達したか」 |
 | **Correct** | フィードバック → 次回呼び出し調整 | 「失敗から学ぶ」 |
 
 これは各 instance *内部* の組織。**family 定義ではない** (family は別 —— 後述)。

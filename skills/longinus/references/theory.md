@@ -113,7 +113,7 @@ Script-level: shell scripts / Python entrypoints — 동일 schema, type='script
 
 ---
 
-## 8. Taliban --lens longinus
+## 8. Naesengmoon --lens longinus
 
 binding-validation 전용 LensSet. critic 이 받는 컨텍스트:
 - ReferenceSite 누락 노드 list

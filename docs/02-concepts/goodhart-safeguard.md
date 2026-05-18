@@ -45,7 +45,7 @@ Strathern (1997) 의 통속화: *"When a measure becomes a target, it ceases to 
 
 자기 진리술어 (`is_true`) 를 같은 언어 내에서 정의 불가 (Tarski 1936).
 
-비행기맨 측 *self-improving* 이 자신의 *성공 기준* 을 자신이 정의하면 Tarski 한계 위반. 외부 검증 (Taliban LensSet) 필수.
+비행기맨 측 *self-improving* 이 자신의 *성공 기준* 을 자신이 정의하면 Tarski 한계 위반. 외부 검증 (Naesengmoon LensSet) 필수.
 
 ### 3. Yanofsky 2003 universal self-reference
 
@@ -82,7 +82,7 @@ ruflo 측 6000+ commit / 100+ agent enumeration / "self-learning" 측 ad-hoc 추
 
 ---
 
-## Taliban LensSet (Goodhart 탐지)
+## Naesengmoon LensSet (Goodhart 탐지)
 
 비행기맨 framework 측 *외부 검증 도구*. `--lens mathematical` 측 Goodhart 형식 탐지 113-lens (SYMPOSIUM 정전).
 
@@ -99,7 +99,7 @@ ruflo 측 6000+ commit / 100+ agent enumeration / "self-learning" 측 ad-hoc 추
 
 ## 한 줄 정리
 
-> Self-improving loop 자체는 강력하다. 하지만 *Goodhart 안전 장치 없는 self-improving* 은 metric-gaming 으로 수렴한다. 비행기맨 framework 은 정의 자체에 self-reference 한계 인정 + Lakatos audit + Taliban adversarial validation 3 layer 로 그 위험을 봉쇄.
+> Self-improving loop 자체는 강력하다. 하지만 *Goodhart 안전 장치 없는 self-improving* 은 metric-gaming 으로 수렴한다. 비행기맨 framework 은 정의 자체에 self-reference 한계 인정 + Lakatos audit + Naesengmoon adversarial validation 3 layer 로 그 위험을 봉쇄.
 
 ---
 

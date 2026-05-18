@@ -68,7 +68,7 @@
 - ❌ CHU type theory 본문 → 별도 repo `chu` (예정, Computable Hyper Universe)
 - ❌ OMC (Orbital Motion Cloud, OM=OMC #8 사도) 본문 → 별도 repo `omc` (예정)
 - ❌ 333 (초공동의용사 #3) 본문 → 별도 repo `333` (예정)
-- ❌ 5무기 다른 4 (Longinus / Prometheus / Taliban / 재배맨) 본문 → reference 만, 본문은 SYMPOSIUM 측
+- ❌ 5무기 다른 4 (Longinus / Prometheus / Naesengmoon / 재배맨) 본문 → reference 만, 본문은 SYMPOSIUM 측
 
 ---
 
@@ -106,7 +106,7 @@ cp -R ../skills/* ~/.claude/skills/
 | **layer 명시** | "multi-agent orchestration" (단일 layer 자칭) | 사도(존재) ⊥ 도구(이 repo) ⊥ 본질(별도) **3 layer 분리** |
 | **외부 정전 인용** | 0 | **17 axes** — Lawvere/Tarski/Gödel/Yanofsky/Hofstadter/Goodhart/Evans/Smith/Cherns/... |
 | **Formal verification** | `ruflo verify` signed witness (code integrity only) | **141+ Lean 4 theorem** (Mathlib-free, 0 sorry) |
-| **Self-reference 안전** | "84.8% SWE-Bench / 32% token reduction" Goodhart 자체 위반 | Lawvere FPT + Lakatos quarterly audit + Taliban adversarial 3 layer 안전 |
+| **Self-reference 안전** | "84.8% SWE-Bench / 32% token reduction" Goodhart 자체 위반 | Lawvere FPT + Lakatos quarterly audit + Naesengmoon adversarial 3 layer 안전 |
 | **Family 구조** | flat 32 plugin / 100 agent / 314 tool (CCP/CRP 위반) | 3-tier sibling family (responsibility_split, Mirror STRONG) |
 | **Confidence schema** | edge confidence float (under-specified) | **EXTRACTED / INFERRED / AMBIGUOUS** 3-tier enum (graphify mirror, Lean T1 verified, Python 19 pytest PASS) |
 | **본질 vs 도구 분리** | 없음 | **명시적 분리** (이 repo = 도구 only) |

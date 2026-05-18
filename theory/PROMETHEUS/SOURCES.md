@@ -48,7 +48,7 @@
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/gates.md` | Gate 검증 query |
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/kg_logging.md` | KG write 패턴 |
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/error_handling.md` | 오류 대응 |
-| `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/adversarial.md` | Step 7 Taliban 자동 출격 |
+| `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/adversarial.md` | Step 7 Naesengmoon 자동 출격 |
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/validation.md` | 검증 패턴 |
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/prometheus/references/quick_ref.md` | quick reference |
 

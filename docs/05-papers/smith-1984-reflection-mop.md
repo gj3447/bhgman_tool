@@ -68,7 +68,7 @@ Smith 1984 says: but self-representation *can* be causally connected, given a me
 Together: reflection is *useful* (Smith) but *bounded* (Tarski).
 
 bhgman's MetaReview operates in this bounded reflection regime:
-- **Meta-language** = Taliban LensSet + Lean 4 + human review (external to the cycle being reviewed)
+- **Meta-language** = Naesengmoon LensSet + Lean 4 + human review (external to the cycle being reviewed)
 - **Causal connection** = SKILL.md patches actually change future cycles
 - **Termination** = Tarski-aware (cannot fully self-judge)
 

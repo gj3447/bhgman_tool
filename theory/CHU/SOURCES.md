@@ -80,7 +80,7 @@ def CHUPiece : Type := CHU → Prop
 CHU 측면 재해석:
 - **재배맨↔SRP STRONG**: 재배맨의 atomic/governs = CHU 조각화의 SRP recursion. 즉 **CHU 카테고리의 자기-decomposition 자체가 SRP**.
 - **Longinus↔DIP STRONG**: 7-Layer Reference Model = CHU의 *다층 표현* (Lean axiom → CHUPiece → 재배맨 → 비행기맨 → 코드 → KG → 기억). 각 층이 DIP의 functor inversion.
-- **3 WEAK/CONFLICT**: 카테고리 차원이 다름. Harness는 CHU 위에서 작동하는 *frame*, Prometheus는 *학습 사이클*, Taliban은 *verifier*. 모두 morphism 아닌 meta-structure.
+- **3 WEAK/CONFLICT**: 카테고리 차원이 다름. Harness는 CHU 위에서 작동하는 *frame*, Prometheus는 *학습 사이클*, Naesengmoon은 *verifier*. 모두 morphism 아닌 meta-structure.
 
 → **CHU 위에 5무기 + 5SOLID 동시 정의 가능 가설**: `SOLIDPiece := CHUPiece → Prop` 형태의 2-categorical 구조. functor F: 5-weapons → 5-SOLID가 CHU 위에서 자연 변환으로 표현될 수 있는가? — 미증명.
 
@@ -97,7 +97,7 @@ CHU 측면:
 ### 발전 축 (g)~(j) 추가
 
 - **(g) Yoneda ↔ ISP**: ISP를 Yoneda lemma의 software 사촌으로 형식화. CHUPiece를 hom-set instance로.
-- **(h) 5무기 functor + CHU 2-category**: D54 가설을 CHU 위 2-categorical 구조로 표현. Harness/Prometheus/Taliban이 *morphism이 아닌 meta-functor*임을 명시.
+- **(h) 5무기 functor + CHU 2-category**: D54 가설을 CHU 위 2-categorical 구조로 표현. Harness/Prometheus/Naesengmoon이 *morphism이 아닌 meta-functor*임을 명시.
 - **(i) ECS↔CHU↔SOLID 3중 동형**: 모두 하이퍼그래프 카테고리. ECS Component=APT C(S)=SOLID SRP의 형식 instance라는 가설 증명.
 - **(j) Lean 4 형식화 시도**: `class JaebaeMan extends SRP`, `class Longinus extends DIP` typeclass instance. LSP는 Wing-Liskov Hoare 확장으로 직접 증명 가능 (SOLID D14).
 

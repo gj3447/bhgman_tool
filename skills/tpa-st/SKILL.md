@@ -26,7 +26,7 @@ WHERE s.name IN ['SubagentSeeder','KgCodeBinder','AdversarialValidator']
 RETURN s.name, s.currentConcrete, s.invocation
 ```
 
-> ⚠️ **본문의 concrete 이름(재배맨/Prometheus/Taliban/Longinus/88-Taliban)은 MIC slot 현재 스냅샷.**
+> ⚠️ **본문의 concrete 이름(재배맨/Prometheus/Naesengmoon/Longinus/88-Naesengmoon)은 MIC slot 현재 스냅샷.**
 > 진짜 호출은 `s.invocation` 경유. MIC_v1 교체 시 본문 무변경.
 
 # KG: MIC_v1, lesson-tpa-gap-03-convention-label, lesson-tpa-gap-04-giant-method, lesson-skill-mic-slot-ref-weak-2026-04-15
@@ -154,7 +154,7 @@ docstring/JSDoc/Rust-doc에서:
 
 ---
 
-## 종료 의식 — Taliban 9-lens
+## 종료 의식 — Naesengmoon 9-lens
 
 ```cypher
 MATCH (s:MethodologySlot {name:'AdversarialValidator'})
@@ -166,7 +166,7 @@ ValidationResult 기록:
 ```cypher
 MERGE (vr:ValidationResult {name:'VR_TPA_ST_<target>_<date>', phase:'ST'})
 SET vr.verdict=$verdict, vr.evidence=[...], vr.validated_at=datetime(),
-    vr.validator='Taliban-9lens'
+    vr.validator='Naesengmoon-9lens'
 MATCH (exec:TPA_Execution)
 MERGE (exec)-[:HAS_VALIDATION]->(vr)
 SET exec.status = CASE $verdict WHEN 'APPROVED' THEN 'IN_PROGRESS_ST' ELSE 'BLOCKED_AT_ST' END
@@ -174,7 +174,7 @@ SET exec.status = CASE $verdict WHEN 'APPROVED' THEN 'IN_PROGRESS_ST' ELSE 'BLOC
 
 **APPROVED 아니면 `/tpa-sp` Gate Check에서 차단됨.**
 
-**⚠️ 부모 인라인 APPROVED 금지 — Taliban subagent 최소 1개 독립 출격 강제.**
+**⚠️ 부모 인라인 APPROVED 금지 — Naesengmoon subagent 최소 1개 독립 출격 강제.**
 **⚠️ VR.provenance='subagent-taliban-st' 필수. 'inline' 이면 향후 Hook에서 차단.**
 **⚠️ 사용자가 "확인해봐"라고 안 해도 자동으로 실행해야 한다.**
 <!-- KG: lesson-taliban-not-auto-triggered-2026-04-16 -->
@@ -261,7 +261,7 @@ MERGE (wb:WorkBuffer {name:$next}) SET wb.status='CURRENT', wb.phase='TPA ST in 
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

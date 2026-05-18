@@ -45,7 +45,7 @@ CHU 自身 (Computable Hyper Universe —— あらゆる物が hyperedge であ
 | 定義 | `∀x:CHU, j.covers x` | 4 軸 (Inform/Constrain/Verify/Correct) + 3 階層 sibling family |
 | 形式 | type-level predicate | runtime architecture |
 | 実現 | 直接不可能 (∀ の上の単一 agent) | 1:N family 近似 (L_MC + L_RT + L_IDE 合わせて ∀-cover を近似) |
-| 検証 | Lawvere FPT 自己参照限界承認 | Cypher Gate Hook + Taliban adversarial validation |
+| 検証 | Lawvere FPT 自己参照限界承認 | Cypher Gate Hook + Naesengmoon adversarial validation |
 
 ruflo / LangGraph / CrewAI / Cursor / Claude Code といった industry framework は **全て Harness L_RT / L_IDE のある階層の一 instance**。飛行機男の頂点そのものは何れでもない。
 

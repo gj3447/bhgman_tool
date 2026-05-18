@@ -71,7 +71,7 @@ Honest limitations section + token budget discipline (≤5 tool calls, ≤800 to
 | **layer 분리 명시** | 없음 (단일 layer 자칭) | 사도(존재) ⊥ 도구(이 repo) ⊥ 본질(별도) **3 layer 분리** |
 | **외부 정전 인용** | 0 | **17 axes** ([citations.md](citations.md)) |
 | **Formal verification** | `ruflo verify` signed witness (code integrity only) | **141+ Lean 4 theorem** (Mathlib-free, 0 sorry) |
-| **Self-reference 안전 장치** | "84.8% SWE-Bench / 32% token reduction" Goodhart 자체 위반 | Lawvere FPT + Lakatos quarterly audit + Taliban adversarial **3 layer 안전 장치** |
+| **Self-reference 안전 장치** | "84.8% SWE-Bench / 32% token reduction" Goodhart 자체 위반 | Lawvere FPT + Lakatos quarterly audit + Naesengmoon adversarial **3 layer 안전 장치** |
 | **Family 구조** | flat enumeration 32 plugin / 100 agent / 314 tool (CCP/CRP 위반) | 3-tier sibling family + responsibility_split sub-type (Mirror STRONG) |
 | **Confidence schema** | edge confidence float (under-specified) | 3-tier enum (EXTRACTED/INFERRED/AMBIGUOUS) + AMBIGUOUS = unique human-verdict gate (Lean T1) |
 | **Industry reach** | 즉시 100+ agents (federation + Goal UI + SONA) ★ | engine 77 pytest + Lean 50 theorem + 21 skill (academic ★) |

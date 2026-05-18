@@ -5,16 +5,16 @@ version: "27.1.0"
 channel: stable
 description: >
   APT MetaReview Phase (5/5) — 의심/피드백을 자동으로 스킬 강화로 이어지는 피드백 루프.
-  SCW 완료 후 자동 제안. Lesson 생성 → SKILL.md 패치 → MATERIALIZES 갱신 → Taliban Gate.
+  SCW 완료 후 자동 제안. Lesson 생성 → SKILL.md 패치 → MATERIALIZES 갱신 → Naesengmoon Gate.
   v2 (APT v26 A6 alignment): SKILL.md 패치는 resolve_slot(ContractSchema|LensSet|MethodologyConfig) 패턴 유지. Prose magic number 주입 금지. KG = 정본.
   종료조건: self_application_forbidden, max_depth=1, delta=0.
-  Active Weapons (2026-05-14): Taliban `/tlb <MetaReview output> --lens constitutional` (rubber-stamp 방지 자체재검증, Step 17) + Prometheus `/prom <small N> "<lesson_topic>"` (lesson distillation 외부 grounding, Step 15) + Longinus MATERIALIZES 갱신 (SKILL.md 패치 ↔ KG slot drift 차단, Step 16). hub-taliban-immunity + hub-prometheus-research + hub-longinus-reference resolve.
+  Active Weapons (2026-05-14): Naesengmoon `/tlb <MetaReview output> --lens constitutional` (rubber-stamp 방지 자체재검증, Step 17) + Prometheus `/prom <small N> "<lesson_topic>"` (lesson distillation 외부 grounding, Step 15) + Longinus MATERIALIZES 갱신 (SKILL.md 패치 ↔ KG slot drift 차단, Step 16). hub-taliban-immunity + hub-prometheus-research + hub-longinus-reference resolve.
   # KG: ATOM_Skill_apt_meta_review, CONTRACT_Hardening_MetaReview, SPAN_Hardening_MetaReview, APT_v26_RFC_draft_2026-04-21, MIC_v1.ReasoningProtocol→KGFirstCheck_v1 (R1-R5 mandatory before any framing/diagnostic, lesson-ai-skipped-kg-check-before-framing-2026-04-29)
 ---
 
 ## 🎛 v26 A6 Resolve-Only
 
-> SKILL.md 패치 시 prose hardcoding 금지. KG slot 참조만. magic number/lens count 주입 시 Taliban reject.
+> SKILL.md 패치 시 prose hardcoding 금지. KG slot 참조만. magic number/lens count 주입 시 Naesengmoon reject.
 
 ```cypher
 // Before patching SKILL.md, verify slot targets exist
@@ -30,7 +30,7 @@ MATCH (slot:MethodologySlot) RETURN slot.name, slot.currentConcrete
 ## 🔗 MIC Binding (SOLID-DIP)
 
 **IS slot**: APT_Phase (MetaReview, 5/5)
-**USES slots**: AdversarialValidator (Taliban Gate 자체재검증), KgCodeBinder (Longinus MATERIALIZES 갱신), SubagentSeeder (재배맨 taskspec, Lesson 생성 자동화)
+**USES slots**: AdversarialValidator (Naesengmoon Gate 자체재검증), KgCodeBinder (Longinus MATERIALIZES 갱신), SubagentSeeder (재배맨 taskspec, Lesson 생성 자동화)
 
 **동적 resolution**:
 ```cypher
@@ -39,7 +39,7 @@ WHERE s.name IN ['AdversarialValidator','KgCodeBinder','SubagentSeeder']
 RETURN s.name, s.currentConcrete, s.invocation
 ```
 
-본문의 `Taliban`/`Longinus`/`재배맨`은 MIC slot 현재 스냅샷. 진짜 호출은 `s.invocation`.
+본문의 `Naesengmoon`/`Longinus`/`재배맨`은 MIC slot 현재 스냅샷. 진짜 호출은 `s.invocation`.
 **Self-application 금지**: MetaReview가 자기 자신을 다시 MetaReview하면 무한루프. `max_depth=1, delta=0` 경계 준수.
 
 # KG: MIC_v1, ATOM_Skill_apt_meta_review, lesson-apt-skill-drift-audit-2026-04-17
@@ -59,9 +59,9 @@ RETURN s.name, s.currentConcrete, s.invocation
 | Step 14 (의심 발견) | (5무기 emergent) | 5무기 순환 측 창발 — FeedbackProvider slot EMERGENT 상태 | SCW FulfillmentGate APPROVED 후 자동 dispatch | Doubt log + AptFeedback 후보 |
 | Step 15 (Lesson 결정화) | **Prometheus** (mini) | `/prom 4 "<lesson_topic> — 외부 정전 grounding"` (small N) | Doubt log 분석 후 lesson 추출 필요 | `Lesson` node (wrongAssumption↔truth symmetric pair 둘 다 채움) |
 | Step 16 (SKILL.md 패치) | **Longinus** (KgCodeBinder) | MATERIALIZES 갱신: SKILL.md ↔ MethodologyConfig slot resolve, prose hardcoding 금지 | Lesson 적재 후 SKILL.md 패치 필요 | SKILL.md patch + KG slot update (drift 차단) |
-| Step 17 (Taliban Gate 자체재검증) | **Taliban** (AdversarialValidator) | `/tlb <Lesson + SKILL.md patch> --lens constitutional` (self_application_forbidden + max_depth=1) | SKILL.md 패치 직후 | `VerdictRecord` APPROVED + cycle 종료 |
+| Step 17 (Naesengmoon Gate 자체재검증) | **Naesengmoon** (AdversarialValidator) | `/tlb <Lesson + SKILL.md patch> --lens constitutional` (self_application_forbidden + max_depth=1) | SKILL.md 패치 직후 | `VerdictRecord` APPROVED + cycle 종료 |
 
-**Self-application 금지** (재귀 차단): MetaReview Output 측 Taliban Gate 적용은 *external* critic — 자기 자신 MetaReview 재호출 금지. `max_depth=1, delta=0`.
+**Self-application 금지** (재귀 차단): MetaReview Output 측 Naesengmoon Gate 적용은 *external* critic — 자기 자신 MetaReview 재호출 금지. `max_depth=1, delta=0`.
 
 **MetaReview 진입 hub**: `hub-taliban-immunity` (rubber-stamp 방지) + `hub-prometheus-research` (lesson distillation grounding) + `hub-longinus-reference` (MATERIALIZES sync).
 
@@ -83,7 +83,7 @@ RETURN s.name, s.currentConcrete, s.invocation
 
 ### 경로 A: 사용자 피드백
 ```
-"제대로 한 거 맞아?" / "왤케 금방이야?" / "탈레반 제대로 동작했어?"
+"제대로 한 거 맞아?" / "왤케 금방이야?" / "나생문 제대로 동작했어?"
 → apt-meta-review 즉시 발동
 ```
 
@@ -95,7 +95,7 @@ SCW 완료 시 항상 물음:
 → NO → 종료
 ```
 
-### 경로 C: Taliban REJECTED 패턴
+### 경로 C: Naesengmoon REJECTED 패턴
 ```
 같은 렌즈에서 반복 REJECTED →
 동일 Lesson 2번 이상 재등장 시 → SKILL.md에 구조적 결함 존재 → apt-meta-review 발동
@@ -144,7 +144,7 @@ RETURN s.skillName, s.file_path
 ### Step 3: SKILL.md 패치
 
 Contract postcondition에 따라 구체적 방어 블록 삽입:
-- **Taliban** 계열 → Anti-Rubber-Stamp 섹션 강화
+- **Naesengmoon** 계열 → Anti-Rubber-Stamp 섹션 강화
 - **APT Phase** 계열 → 해당 Phase GATE CHECK 섹션 추가
 - **Longinus** 계열 → MATERIALIZES 의무화 절차 추가
 
@@ -171,7 +171,7 @@ MERGE (s)-[:MATERIALIZES]->(f)
 RETURN s.skillName, f.file_path
 ```
 
-### Step 5: Taliban Gate (executor ≠ reviewer)
+### Step 5: Naesengmoon Gate (executor ≠ reviewer)
 
 ```
 /taliban apt-meta-review 산출물 --lens constitutional
@@ -179,7 +179,7 @@ RETURN s.skillName, f.file_path
 → REJECTED: Finding 반영 후 Step 3으로 돌아가 재패치 (max_depth 카운터 확인)
 ```
 
-**executor(패치 작성자) ≠ reviewer(Taliban agent)** 원칙 엄수.
+**executor(패치 작성자) ≠ reviewer(Naesengmoon agent)** 원칙 엄수.
 
 ### Step 6: Lesson resolved 갱신
 
@@ -196,7 +196,7 @@ RETURN l.name, l.resolved
 ## 피드백 루프 다이어그램
 
 ```
-사용자 의심 / SCW 완료 / Taliban 반복 REJECTED
+사용자 의심 / SCW 완료 / Naesengmoon 반복 REJECTED
           ↓
     apt-meta-review 트리거
           ↓
@@ -206,7 +206,7 @@ RETURN l.name, l.resolved
           ↓
     MATERIALIZES 갱신 (KG↔파일 바인딩)
           ↓
-    Taliban Gate (executor≠reviewer)
+    Naesengmoon Gate (executor≠reviewer)
           ↓
     APPROVED → Lesson resolved → 종료
     REJECTED → 재패치 (depth+1, delta 체크)
@@ -222,7 +222,7 @@ RETURN l.name, l.resolved
 |------|------|
 | MetaReview를 자기 자신에 적용 | self_application_forbidden — 무한 루프 |
 | Lesson 없이 SKILL 패치 | 근거 없는 수정 — KG 정본 위반 |
-| executor가 Taliban Gate 통과 선언 | VR Self-Fulfillment 위반 |
+| executor가 Naesengmoon Gate 통과 선언 | VR Self-Fulfillment 위반 |
 | delta=0인데 계속 실행 | 종료조건 위반 |
 | max_depth 초과 후 계속 실행 | 무한 재귀 — 강제 종료 |
 
@@ -241,7 +241,7 @@ RETURN l.name, l.resolved
 | Version | Date | Summary | KG Ref |
 |---|---|---|---|
 | **v2** | 2026-04-21 | APT v26 A6 alignment. SKILL.md 패치는 resolve_slot(ContractSchema/LensSet/MethodologyConfig) 패턴 유지. Prose magic number 주입 금지. KG = 정본. self_application_forbidden, max_depth=1, delta=0 종료조건 | `APT_v26_RFC_draft_2026-04-21`, `CONTRACT_Hardening_MetaReview`, `SPAN_Hardening_MetaReview` |
-| **v1** | 2026-04 | Lesson → SKILL.md 패치 → MATERIALIZES 갱신 → Taliban Gate. SCW 완료 후 자동 제안 | `APT_SkillHardening_v1`, `lesson-apt-scw-tdd-skipped-context-compression-2026-04-16` |
+| **v1** | 2026-04 | Lesson → SKILL.md 패치 → MATERIALIZES 갱신 → Naesengmoon Gate. SCW 완료 후 자동 제안 | `APT_SkillHardening_v1`, `lesson-apt-scw-tdd-skipped-context-compression-2026-04-16` |
 
 ⚠️ **TDD REFACTOR phase 거울 부재** (cycle-level): apt-meta-review 만으로 *평면 누적 / fat file* 못 막음. atomic-span shipping 정규화 자체가 평면 누적 메커니즘. **Phase 6 (Cleanup Gate) 신설 필요** (`lesson-apt-phase6-cleanup-missing-2026-04-28`, HIGH, unresolved). meta-review 는 *방법론 메타-개선*, Phase 6 는 *cycle 차원 cleanup* — 보완 관계.
 

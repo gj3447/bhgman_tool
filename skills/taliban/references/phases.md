@@ -29,7 +29,7 @@ Phase 7: ValidationResult crystallization
 
 **Pattern**:
 ```
-역할: Taliban critic (agentId=C<idx>)
+역할: Naesengmoon critic (agentId=C<idx>)
 Target: <kg_node_name>
 Lens: <lens_name>
 Output: ValidationResult JSON

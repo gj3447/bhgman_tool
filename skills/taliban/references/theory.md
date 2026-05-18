@@ -6,12 +6,12 @@
 
 ## 1. GAN-D Mechanism
 
-Taliban = APT/TPA의 *면역 시스템*. GAN의 D(iscriminator) 역할.
+Naesengmoon = APT/TPA의 *면역 시스템*. GAN의 D(iscriminator) 역할.
 
-| GAN | Taliban |
+| GAN | Naesengmoon |
 |-----|---------|
 | Generator | Design Agent (APT) / Recovery Agent (TPA) |
-| Discriminator | **Taliban** (LensSet 적대적 검증) |
+| Discriminator | **Naesengmoon** (LensSet 적대적 검증) |
 | Loss | findings count + severity + evidence |
 | Mode Collapse | rubber-stamp 발견 (5+ rounds nitpick-only) |
 | Nash Equilibrium | sigma_oracle (HUMAN) tie-break |
@@ -24,7 +24,7 @@ Taliban = APT/TPA의 *면역 시스템*. GAN의 D(iscriminator) 역할.
 | LensSet | lensCount | 용도 |
 |---------|-----------|------|
 | `constitutional-9-full` | 9 | **default** — 산출물(Span/Contract/Code) 검증 |
-| `mathematical` | 113 | Distributed pattern math 검증 (88-Taliban) |
+| `mathematical` | 113 | Distributed pattern math 검증 (88-Naesengmoon) |
 | `solid` | 5 | SOLID 원칙 빠른 검증 |
 | `longinus` | n | 코드↔KG 바인딩 정합성 |
 | (custom KG nodes) | varies | 사용자 정의 LensSet |

@@ -109,7 +109,7 @@ theorem strange_loop_in_apostle :
 
 When you encounter recursion in agent design:
 1. **Ask**: is this a simple loop (same level repeats), tangled hierarchy (levels merge), or strange loop (levels distinct, traversal returns)?
-2. **If strange loop**: don't try to flatten it. Document the levels. Verify each transition explicitly. Use external judgment (Taliban/Lean/tests) for the loop's claims.
+2. **If strange loop**: don't try to flatten it. Document the levels. Verify each transition explicitly. Use external judgment (Naesengmoon/Lean/tests) for the loop's claims.
 3. **If tangled**: refactor. Tangled hierarchies are bugs.
 4. **If simple loop**: standard control flow. Not interesting philosophically.
 

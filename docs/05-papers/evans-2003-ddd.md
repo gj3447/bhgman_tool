@@ -85,7 +85,7 @@ External model (ruflo "agent")
        ↓ ACL: translates to bhgman concept
 bhgman model (Harness L_RT instance + role + responsibility)
        ↓ used internally
-APT cycle / Longinus / Taliban etc.
+APT cycle / Longinus / Naesengmoon etc.
 ```
 
 The ACL prevents *concept pollution* — bhgman's clean separation (apostle / tool / instance) survives integration with frameworks that don't make this separation.
@@ -103,7 +103,7 @@ In DDD, the *core domain* receives the most modeling effort. For bhgman, the cor
 This is where bhgman invests:
 - Longinus 7-Layer Reference Model (binding apostle-level intent to code)
 - APT/TPA cycles (the dialectic of design ↔ code)
-- Taliban LensSet (preserving apostle-level invariants across implementations)
+- Naesengmoon LensSet (preserving apostle-level invariants across implementations)
 - Lean formalization (proving the binding is sound)
 
 Other parts (skill installation logistics, plugin metadata, etc.) are **supporting subdomains** or **generic subdomains** — solved-once, reuse-elsewhere.

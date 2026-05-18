@@ -4,11 +4,11 @@ kg_ref: ATOM_Skill_taliban
 version: "3.1.0"
 channel: stable
 description: >
-  탈레반 방법론 — APT의 면역 시스템. 적대적 검증 프레임워크.
+  나생문 방법론 — APT의 면역 시스템. 적대적 검증 프레임워크.
   렌즈셋 플러거블: --lens constitutional(기본 9), mathematical(113), solid(5), 또는 KG에 등록된 임의 LensSet.
   Invoke when: Span 검증, Contract 검증, 코드 리뷰, Phase 게이트 통과 판정,
   품질 감사(audit), 고무도장 방지, 기존 산출물 재검증, 메타 검증 시.
-  Enforces: 렌즈셋 동적 로딩, GAN 원리 (Design=G, Taliban=D),
+  Enforces: 렌즈셋 동적 로딩, GAN 원리 (Design=G, Naesengmoon=D),
   동시 출격, 만장일치 PASS, Anti-Rubber-Stamp (RTI/FVR).
   재배맨 SubagentTaskSpec 기반 자동 출격.
   # KG: ATOM_Skill_taliban, MIC_v1.ReasoningProtocol→KGFirstCheck_v1 (R1-R5 mandatory before any framing/diagnostic, lesson-ai-skipped-kg-check-before-framing-2026-04-29)
@@ -63,7 +63,7 @@ RETURN rfc.status, rfc.amendment_a1_2026_05_04
 
 ## 🔗 MIC Binding (SOLID-DIP)
 
-**IS slot**: `AdversarialValidator` (MIC_v1.currentConcrete = "Taliban")
+**IS slot**: `AdversarialValidator` (MIC_v1.currentConcrete = "Naesengmoon")
 **USES slots**: SubagentSeeder (렌즈셋별 병렬 출격 via taskspec)
 
 **동적 resolution**:
@@ -72,7 +72,7 @@ MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s:Metho
 RETURN s.currentConcrete, s.invocation
 ```
 
-**역할 대체 가능성 (L 원칙)**: 미래에 Taliban 대신 다른 적대적 검증기로 교체 시 `MIC_v1.AdversarialValidator.currentConcrete` SET만. 소비자 skill은 본문 수정 불필요.
+**역할 대체 가능성 (L 원칙)**: 미래에 Naesengmoon 대신 다른 적대적 검증기로 교체 시 `MIC_v1.AdversarialValidator.currentConcrete` SET만. 소비자 skill은 본문 수정 불필요.
 
 # KG: MIC_v1, ATOM_Skill_taliban, MethodologySlot:AdversarialValidator, lesson-apt-skill-drift-audit-2026-04-17
 
@@ -80,8 +80,8 @@ RETURN s.currentConcrete, s.invocation
 
 # /taliban — 적대적 검증 프레임워크: "이거 진짜 맞아?"
 
-> **다른 방법론들이 "잘 만들자"라면, 탈레반만 "이거 틀렸어"라고 말하는 놈이다.**
-> Design = Generator, Taliban = Discriminator. GAN의 적대적 협력.
+> **다른 방법론들이 "잘 만들자"라면, 나생문만 "이거 틀렸어"라고 말하는 놈이다.**
+> Design = Generator, Naesengmoon = Discriminator. GAN의 적대적 협력.
 
 ---
 
@@ -105,16 +105,16 @@ RETURN s.currentConcrete, s.invocation
 
 ---
 
-## 탈레반이란 무엇인가
+## 나생문이란 무엇인가
 
 APT의 **유일한 적대적(adversarial) 역할**. 만드는 쪽이 아니라 **부수는 쪽**.
 
-- Design이 Span을 분해하면 → Taliban이 "이 분해 맞아?" 공격
-- Design이 Contract를 쓰면 → Taliban이 "이 명세 허술해" 공격
-- Design이 코드를 짜면 → Taliban이 "이 테스트 부족해" 공격
-- 시스템/방법론 자체 → Taliban이 "수학적으로 건전해?" X-ray
+- Design이 Span을 분해하면 → Naesengmoon이 "이 분해 맞아?" 공격
+- Design이 Contract를 쓰면 → Naesengmoon이 "이 명세 허술해" 공격
+- Design이 코드를 짜면 → Naesengmoon이 "이 테스트 부족해" 공격
+- 시스템/방법론 자체 → Naesengmoon이 "수학적으로 건전해?" X-ray
 
-**GAN 원리**: Taliban의 엄격도 ∝ 산출물의 정교도. 서로 강해진다.
+**GAN 원리**: Naesengmoon의 엄격도 ∝ 산출물의 정교도. 서로 강해진다.
 **종료 조건**: Nash 균형 — 더 이상 새로운 맹점을 못 찾을 때.
 
 ---
@@ -164,7 +164,7 @@ RETURN ts.name, ts.role, ts.prompt_template
 
 **각 subagent 출격 템플릿 (3줄 prompt):**
 ```
-역할: Taliban Discriminator (lens={lens_id}, agentId=D<idx>).
+역할: Naesengmoon Discriminator (lens={lens_id}, agentId=D<idx>).
 TaskSpec: MATCH (ts:SubagentTaskSpec {name: $taskspec_name}) RETURN *
 실측 권한: Bash + CLI + MCP(neo4j/redis/postgres/mongodb).
 Target: $TARGET.
@@ -221,7 +221,7 @@ MERGE (target)-[:HAS_VALIDATION]->(vr)
 
 ## Anti-Rubber-Stamp (고무도장 방지)
 
-Taliban이 무조건 APPROVED 찍으면 의미 없다. **모든 렌즈셋 공통.**
+Naesengmoon이 무조건 APPROVED 찍으면 의미 없다. **모든 렌즈셋 공통.**
 
 ### RTI (Review Thoroughness Index)
 
@@ -273,7 +273,7 @@ SET vr.findings = [],
 
 ### Defect Injection
 
-의도적으로 알려진 결함을 산출물에 삽입 → Taliban이 찾는지 확인.
+의도적으로 알려진 결함을 산출물에 삽입 → Naesengmoon이 찾는지 확인.
 못 찾으면 → 해당 lens 신뢰도 하락 → 재교정 필요.
 
 ---
@@ -300,7 +300,7 @@ SET vr.findings = [],
 
 ## Empirical Discriminator — 실측 검증
 
-탈레반은 단순 텍스트/KG 검증에 머물지 않는다. **실측까지 내려가 Discriminator 역할** 수행.
+나생문은 단순 텍스트/KG 검증에 머물지 않는다. **실측까지 내려가 Discriminator 역할** 수행.
 
 ### 허용 도구 (subagent 출격 시)
 
@@ -374,11 +374,11 @@ RETURN v.name AS validator, v.rules AS rules, v.lens_count AS lenses
 ## 다른 방법론과의 관계
 
 ```
-탈레반 (면역 시스템)
+나생문 (면역 시스템)
   ├── 하네스의 Verify 축 실체
-  ├── 프로메테우스: Taliban finding이 Lesson 생성 촉발 가능
+  ├── 프로메테우스: Naesengmoon finding이 Lesson 생성 촉발 가능
   ├── 롱기누스: Consistency lens가 sourceId/sourcePath drift 탐지
-  └── APT: 매 Phase 게이트마다 Taliban 통과 필수
+  └── APT: 매 Phase 게이트마다 Naesengmoon 통과 필수
 ```
 
 ---
@@ -411,7 +411,7 @@ RETURN v.name AS validator, v.rules AS rules, v.lens_count AS lenses
 
 ---
 
-*Taliban은 적이 아니다. 적이 들어오기 전에 약점을 찾아주는 내부 면역 시스템이다.*
+*Naesengmoon은 적이 아니다. 적이 들어오기 전에 약점을 찾아주는 내부 면역 시스템이다.*
 *렌즈는 갈아 끼우는 것이다. 프레임워크를 복제하지 마라.*
 
 ---

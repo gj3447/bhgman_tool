@@ -44,13 +44,13 @@ cp -R bhgman_tool/skills/* ~/.claude/skills/
 /apt        — APT cycle 시작 (forward methodology: SA→SP→ST→SCW)
 /prom 16    — Prometheus cycle (지식-행동 spiral, axis 16개 parallel)
 /tpa <path> — TPA cycle (reverse engineering: TCW→ST→SP→TA)
-/tlb <target> — Taliban adversarial validation
+/tlb <target> — Naesengmoon adversarial validation
 /longinus   — Longinus 참조 바인딩 (KG↔code drift audit)
 /jaebaeman  — 재배맨 SOP (subagent orchestration)
 /harness    — Harness 4축 agent scaffolding 진단
 ```
 
-각 skill 의 정전 + 절차는 [02-concepts/harness.md](02-concepts/harness.md) (Harness 본문) 참고. 다른 무기 (Longinus / Prometheus / Taliban / 재배맨) 본문은 SYMPOSIUM 측 정전.
+각 skill 의 정전 + 절차는 [02-concepts/harness.md](02-concepts/harness.md) (Harness 본문) 참고. 다른 무기 (Longinus / Prometheus / Naesengmoon / 재배맨) 본문은 SYMPOSIUM 측 정전.
 
 ---
 
@@ -69,7 +69,7 @@ cp -R bhgman_tool/skills/* ~/.claude/skills/
 4. **SCW**: TDD implementation (Contract → RED test → GREEN code → REFACTOR)
 5. **meta-review**: lesson + skill 패치 (피드백 루프)
 
-각 phase 사이에 Gate Check Hook 가 Cypher 로 강제: LensSet 완전성 + Taliban adversarial validation + Lean 형식화 (해당시).
+각 phase 사이에 Gate Check Hook 가 Cypher 로 강제: LensSet 완전성 + Naesengmoon adversarial validation + Lean 형식화 (해당시).
 
 상세는 [03-tutorials/apt-cycle.md](03-tutorials/apt-cycle.md).
 

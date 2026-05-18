@@ -232,7 +232,7 @@ APT cycle = active inference loop (Friston 2010):
   │           ↓                                 │
   │ action (SCW) — TDD execution                │
   │           ↓                                 │
-  │ prediction error (Taliban verdict + VR)     │
+  │ prediction error (Naesengmoon verdict + VR)     │
   │           ↓                                 │
   │ KG LOGGING — :Lesson + :ValidationResult    │
   │           ↓                                 │

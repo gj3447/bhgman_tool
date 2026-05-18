@@ -142,7 +142,7 @@ RETURN inv.name, inv.description, inv.check_query
 
 > Cross-ref: `THEORY/APT/PHILOSOPHICAL_FOUNDATIONS.md` §9 (Gödel + Tarski + Hofstadter 한계) + APT_Cycle_Functor.lean (`apt_self_application_bounded` PASS Russell+max_depth=1) + `gongri-set-theory-foundation-quintuple-canonical-2026-05-11`.
 > **iter 103 갱신**: 17 APT Lean files / 156 theorems Mathlib-free 0 sorry — 9-tier architecture. Per-validation-source explicit Lean theorem cite (5 external verdict source ensemble formal):
-> - **Source 1: Taliban LensSet UNION** (constitutional 9 / mathematical 113 / solid 5 / longinus 7 = 134 axes) → `APT_Adversarial_Triple.lean:apt_taliban_lens_134` + `coverage_81_meets_precondition` (PROM 16 PRECONDITION_FULLY_MET threshold)
+> - **Source 1: Naesengmoon LensSet UNION** (constitutional 9 / mathematical 113 / solid 5 / longinus 7 = 134 axes) → `APT_Adversarial_Triple.lean:apt_taliban_lens_134` + `coverage_81_meets_precondition` (PROM 16 PRECONDITION_FULLY_MET threshold)
 > - **Source 2: Ground Truth (compiler/test)** → `APT_Curry_Howard.lean:cargo_pass_implies_proof` (Curry-Howard cargo test = proof check) + `APT_TDD_Beck_RGR.lean:green_phase_all_pass` (Beck GREEN phase invariant)
 > - **Source 3: HUMAN sigma_oracle (allow_agent_sigma=false LOCKED)** → `APT_Adversarial_Triple.lean:apt_v17_review_valid` (V15 + Bacchelli-Bird mandatory)
 > - **Source 4: Lakatos external evidence (testable consequence + corroboration)** → `APT_Lakatos_Progressive.lean:apt_cycle_progressive` (PROM 16 0.81 corroboration PASS) + `pure_ad_hoc_is_degenerating` + `strong_consequence_is_progressive`
@@ -163,7 +163,7 @@ APT 가 자기 자신의 *truth predicate* 정의 시도 → Tarski 정전 위�
 ```
 
 **3 외부 verdict source** (Tarski 회피 mechanism):
-1. **Taliban LensSet UNION** (constitutional 9 / mathematical 113 / solid 5 / longinus 7) — adversarial validation
+1. **Naesengmoon LensSet UNION** (constitutional 9 / mathematical 113 / solid 5 / longinus 7) — adversarial validation
 2. **Lakatos external evidence** — testable consequence + corroboration ratio
 3. **사용자 sigma_oracle** — HUMAN HARD LOCK (allow_agent_sigma: false LOCKED in v17)
 
@@ -193,7 +193,7 @@ SYMPOSIUM 응답:
 
 | validation source | role | grounding |
 |---|---|---|
-| Taliban LensSet UNION | adversarial 9-113 lens UNION coverage | Pirsig 1991 holistic + Goodfellow 2014 GAN-D |
+| Naesengmoon LensSet UNION | adversarial 9-113 lens UNION coverage | Pirsig 1991 holistic + Goodfellow 2014 GAN-D |
 | Ground Truth (compiler/test) | mechanical verification | Curry-Howard 1934/1969 (proposition-as-type) |
 | HUMAN sigma_oracle | irreducible verdict | Tarski undefinability 회피 mandatory |
 | Lakatos external evidence | progressive vs degenerating | Lakatos 1970 + apt-hardening-master-plan-2026-05-06 PROGRESSIVE_CONFIRMED 4/4 |

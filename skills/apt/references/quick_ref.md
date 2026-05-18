@@ -239,7 +239,7 @@ All code files MUST include:
 
 | limit | APT response |
 |---|---|
-| Tarski undefinability | 5 external verdict source ensemble (Taliban + Ground Truth + HUMAN + Lakatos external + Lean) |
+| Tarski undefinability | 5 external verdict source ensemble (Naesengmoon + Ground Truth + HUMAN + Lakatos external + Lean) |
 | Gödel incompleteness | partial consistency only — **20 APT Lean files / 179 theorems Mathlib-free 0 sorry** (iter 31 4-canonical milestone + iter 47 CAPSTONE meta-integration with Lakatos defense in depth claim resistance = 4 + iter 55 FOUNDATIONAL Curry-Howard meta-theorem + iter 62 ENGINEERING #1 Beck TDD RGR = APT SCW PH4 + iter 70 ENGINEERING #2 Evans DDD + Conway 1968 = APT SP PH3 semantic + iter 77 LIMIT Tarski 1936 metalanguage = honest limitation acknowledgement + iter 85 CROSS-CANON Goodfellow + Pirsig + Bacchelli-Bird = producer-reviewer-triple-canonical hyperedge formal + iter 93 META-ARCHITECTURE Architecture Master meta-meta proof + iter 109 ENGINEERING #3 Wirth 1971 stepwise refinement = APT SP PH3 algorithmic instance + iter 117 METAPHYSICAL Plato Phaedo eidos + Frege Begriffsschrift = APT ST PH3 metaphysical grounding + Aristotle Formal 3-sibling cluster + iter 125 META v2 update Architecture Master v2 = v1 16/149 → v2 19/172 progression formal proof) |
 | Hofstadter strange loop | max_depth=1 invariant (Lean PASS `apt_self_application_bounded`) |
 

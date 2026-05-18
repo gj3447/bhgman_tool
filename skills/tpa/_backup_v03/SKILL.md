@@ -48,11 +48,11 @@ RETURN s.name, s.currentConcrete, s.invocation
 | 01 Prometheus 미적용 | TCW unknown_dirs>0 시 `ResearchProvider.invocation` 자동 호출 |
 | 02 재배맨 bypass | 각 phase **진입시 첫 동작**: 해당 phase taskspec 조회 강제 |
 | 03 ConventionalContract 라벨 | TT phase가 독립 `:ConventionalContract` 노드 생성 |
-| 04 88-Taliban 범위 매핑 | TP phase: 패턴 카테고리별 검증 전략 테이블 |
+| 04 88-Naesengmoon 범위 매핑 | TP phase: 패턴 카테고리별 검증 전략 테이블 |
 | 05 FulfillmentGate 누락 | 각 phase 종료시 체크리스트 통과 강제 |
 | 06 DriftReport threshold | coverage < 0.8 → `status='SUSPENDED'` |
 | 07 treasure coverage gate | taskspec에 `treasure_coverage_min` 필드 |
-| 08 Taliban phase-gate | 각 phase 종료마다 `AdversarialValidator.invocation` 자동 |
+| 08 Naesengmoon phase-gate | 각 phase 종료마다 `AdversarialValidator.invocation` 자동 |
 
 ---
 
@@ -148,7 +148,7 @@ SET cc.inferred_from=$signatures, cc.type='implicit',
 
 | Pattern Category | Verification Strategy | Tool (MIC slot) |
 |---|---|---|
-| Distributed (CRDT/BFT/HotStuff/Kademlia 등) | 수학 속성 (commute/assoc/idempotent/safety) | MetaVerifier (88-Taliban) |
+| Distributed (CRDT/BFT/HotStuff/Kademlia 등) | 수학 속성 (commute/assoc/idempotent/safety) | MetaVerifier (88-Naesengmoon) |
 | Structural (Facade/Adapter/Composite 등) | AST 시그니처 매칭 (wrapping/delegation) | KgCodeBinder + grep |
 | Behavioral (Strategy/Observer/Command 등) | 메서드 호출 그래프 (polymorphic dispatch) | KgCodeBinder + call graph |
 | Creational (Factory/Builder/Singleton 등) | 생성 지점 추적 (instantiation trace) | KgCodeBinder + grep |

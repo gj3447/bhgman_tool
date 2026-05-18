@@ -71,7 +71,7 @@
 - ❌ CHU 型理論正典 → 別 repo `chu` (予定, Computable Hyper Universe)
 - ❌ OMC (Orbital Motion Cloud, OM=OMC, 使徒 #8) 正典 → 別 repo `omc` (予定)
 - ❌ 333 (超空洞義勇士, 使徒 #3) 正典 → 別 repo `333` (予定)
-- ❌ 他の 4 武器 (Longinus / Prometheus / Taliban / Jaebaeman) 正典 → 本 repo は reference のみ, 本体は SYMPOSIUM
+- ❌ 他の 4 武器 (Longinus / Prometheus / Naesengmoon / Jaebaeman) 正典 → 本 repo は reference のみ, 本体は SYMPOSIUM
 
 ---
 
@@ -109,7 +109,7 @@ cp -R ../skills/* ~/.claude/skills/
 | **層分離の明示** | なし (単一層自称) | 使徒 (存在) ⊥ ツール (本 repo) ⊥ 本質 (別 repo) —— **3 層分離** |
 | **外部正典引用** | 0 | **17 軸** —— Lawvere / Tarski / Gödel / Yanofsky / Hofstadter / Goodhart / Evans / Smith / Cherns / ... |
 | **形式検証** | `ruflo verify` signed witness (コード整合性のみ) | **141+ Lean 4 定理** (Mathlib-free, 0 sorry) |
-| **自己参照の安全** | "84.8% SWE-Bench / 32% token reduction" —— Goodhart 自身違反 | Lawvere FPT + Lakatos 四半期監査 + Taliban adversarial **3 層安全装置** |
+| **自己参照の安全** | "84.8% SWE-Bench / 32% token reduction" —— Goodhart 自身違反 | Lawvere FPT + Lakatos 四半期監査 + Naesengmoon adversarial **3 層安全装置** |
 | **家族構造** | flat 32 plugins / 100 agents / 314 tools (CCP/CRP 違反) | 3 階層 sibling family + responsibility_split sub-type (Mirror STRONG) |
 | **Confidence schema** | 浮動小数の edge confidence (仕様不足) | **EXTRACTED / INFERRED / AMBIGUOUS** 3 段 enum (graphify mirror, Lean T1 検証済) |
 | **ツール vs 本質分離** | なし | **明示** (本 repo = ツール層のみ) |

@@ -53,14 +53,14 @@ RETURN s.name, s.currentConcrete, s.invocation
 | 무기 | MIC Slot | 현재 Concrete | TPA 역할 |
 |---|---|---|---|
 | Prometheus | ResearchProvider | `/prom` | unknown 리서치, 패턴 탐색 |
-| Taliban | AdversarialValidator | `/tlb` | 각 phase gate 검증 |
-| 88-Taliban | MetaVerifier | `/88-taliban` | TPA 방법론 자체 메타검증 |
+| Naesengmoon | AdversarialValidator | `/tlb` | 각 phase gate 검증 |
+| 88-Naesengmoon | MetaVerifier | `/88-taliban` | TPA 방법론 자체 메타검증 |
 | Longinus | KgCodeBinder | `/longinus` | 코드↔KG 양방향 바인딩 |
 | 재배맨 | SubagentSeeder | taskspec 조회 | 병렬 subagent 분산 |
 | Harness | Harness | (구조적 제약) | 4축 제약 모델 |
 
 > ⚠️ 본문의 구체 이름은 **현재 스냅샷**. 진짜 호출은 MIC `s.invocation` 경유.
-> 본질 교체(예: Taliban→FutureValidator) 시 MIC 노드만 수정 → TPA 전체 자동 반영.
+> 본질 교체(예: Naesengmoon→FutureValidator) 시 MIC 노드만 수정 → TPA 전체 자동 반영.
 
 # KG: MIC_v1, APTWeapon, lesson-skill-mic-slot-ref-weak-2026-04-15
 
@@ -79,10 +79,10 @@ APT HR1-HR15를 역방향에 맞게 재정의. 위반 시 orchestrator HALT.
 | TR5 | **skipped_files = 0** | 부분 스캔 = 사각지대 |
 | TR6 | **Unknown 발견 시 ResearchProvider 자동 호출** | 지식 공백 허용 불가 |
 | TR7 | **모든 gate 전환 KG 기록** | APT HR7 거울 |
-| TR8 | **2-Tier Taliban: Tier1(9-lens) for artifacts, Tier2(88-lens) for methodology only** | APT HR12 |
+| TR8 | **2-Tier Naesengmoon: Tier1(9-lens) for artifacts, Tier2(88-lens) for methodology only** | APT HR12 |
 | TR9 | **Post-gate reflection 필수** | APT HR14 거울 |
 | TR10 | **오답노트(Lesson) 발견 시 즉시 KG 기록** | 피드백 루프 강제 |
-| TR11 | **executor ≠ reviewer (D20)** | 내가 만든 걸 내가 승인 금지. **인라인 APPROVED 금지 — Taliban subagent 최소 1개 독립 출격 강제.** |
+| TR11 | **executor ≠ reviewer (D20)** | 내가 만든 걸 내가 승인 금지. **인라인 APPROVED 금지 — Naesengmoon subagent 최소 1개 독립 출격 강제.** |
 | TR12 | **Longinus 바인딩: 결과물에 `# KG:` 주석 필수** | 양방향 추적 |
 | TR13 | **treasure_coverage_min ≥ 0.9** | 본질 활용 최소 기준 |
 | TR14 | **대형 repo(>10K LOC) 시 재배맨 병렬 분산 필수** | 단일 스캔 한계 교훈 |
@@ -182,28 +182,28 @@ RETURN exec.name,
     +-- No TPA_Execution exists ────────→ /tpa-tcw <path>
     |                                         |
     |                            TCW_Result   v
-    |                                    [GATE: Taliban 9-lens]
+    |                                    [GATE: Naesengmoon 9-lens]
     |                                    [GATE: Post-gate reflection]  ← TR9
     |                                    [LOG: KG + Lessons]           ← TR10
     |                                         |
     +-- TCW validated ──────────────────→ /tpa-st
     |                                         |
     |                            TT_Result    v
-    |                                    [GATE: Taliban 9-lens]
+    |                                    [GATE: Naesengmoon 9-lens]
     |                                    [GATE: Post-gate reflection]
     |                                    [LOG: KG + Lessons]
     |                                         |
     +-- ST validated ───────────────────→ /tpa-sp
     |                                         |
     |                            TP_Result    v
-    |                                    [GATE: Taliban 9-lens]
+    |                                    [GATE: Naesengmoon 9-lens]
     |                                    [GATE: Post-gate reflection]
     |                                    [LOG: KG + Lessons]
     |                                         |
     +-- SP validated ───────────────────→ /tpa-ta
     |                                         |
     |                            TA_Result    v
-    |                                    [GATE: Taliban 9-lens]
+    |                                    [GATE: Naesengmoon 9-lens]
     |                                    [FINAL: Feedback Loop 실행]
     |                                         |
     +-- COMPLETE ───────────────────────→ 오답노트 피드백 루프 발동
@@ -241,8 +241,8 @@ RETURN exec.name,
 │  ⑤ 적용 (APT SCW)                                   │
 │     ActionPlan → APT /apt-scw 로 실제 구현            │
 │       ↓                                             │
-│  ⑥ 검증 (Taliban)                                    │
-│     구현 결과 → Taliban Gate → APPROVED?              │
+│  ⑥ 검증 (Naesengmoon)                                    │
+│     구현 결과 → Naesengmoon Gate → APPROVED?              │
 │       ↓                                             │
 │  ⑦ 오답노트 해소 (resolved=true)                      │
 │     MATCH (l:Lesson) SET l.resolved=true             │
@@ -403,7 +403,7 @@ SET wb.status='CURRENT', wb.phase='TPA orchestrator', wb.updated_at=datetime()
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

@@ -12,7 +12,7 @@
 | 질문 | 답 |
 |------|----|
 | pre-gate | SP VR APPROVED via Hook |
-| post-gate | Final Taliban 9-lens VR + 5-drift 측정 + Lesson Feedback Loop fires |
+| post-gate | Final Naesengmoon 9-lens VR + 5-drift 측정 + Lesson Feedback Loop fires |
 | 결정 | 2-A 신규 anchor / 2-B 기존 reuse / 2-C 분기(branch) |
 | 종료 조건 | coverage_ratio ≥ 0.8 OR anchor.status='SUSPENDED' |
 
@@ -212,7 +212,7 @@ MERGE (ta)-[:ANCHORS_TO]->(:SemanticAnchor {name: $anchor})
 
 ---
 
-## 10. Final Taliban 9-lens
+## 10. Final Naesengmoon 9-lens
 
 Critic 입력:
 - routing_decision (2-A / 2-B / 2-C 합리성)
@@ -225,7 +225,7 @@ Critic 입력:
 MERGE (vr:ValidationResult {name:'VR_TPA_TA_'+$target+'_'+$date, phase:'TA'})
 SET vr.verdict = $verdict,
     vr.evidence = [...],                         // routing, drift_table, lesson_summary
-    vr.validator = 'Taliban-9lens',
+    vr.validator = 'Naesengmoon-9lens',
     vr.provenance = 'subagent-taliban-ta',
     vr.validated_at = datetime()
 MATCH (exec) MERGE (exec)-[:HAS_VALIDATION]->(vr)
@@ -245,7 +245,7 @@ SET exec.status = CASE $verdict
 | 5-drift 모든 kind = 0 | drift detector 미작동 (V10 violation) | references/error_handling.md, lesson 생성 |
 | coverage_ratio < 0.5 | 큰 recovery loss | TR14 chunk 재조정, parallel.max_agents ↑ |
 | ReverseOrphan 폭증 | TCW 단계 manifest 누락 | TCW phase로 회귀 (TR3 phase order 거꾸로 OK in audit mode) |
-| Lesson count = 0 | 추출 단계에서 *no discovery* 안 일어남 | 의심 — escalated Taliban prompt 재호출 |
+| Lesson count = 0 | 추출 단계에서 *no discovery* 안 일어남 | 의심 — escalated Naesengmoon prompt 재호출 |
 
 ---
 

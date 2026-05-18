@@ -6,7 +6,7 @@ channel: stable
 description: >
   롱기누스 방법론 v3.3 — 참조의 미학. KG 의미 계층을 소스코드까지 관통(貫通)시키는 참조 바인딩.
   v3: 7-Layer Reference Model + BX Lens Laws + Refinement Types + GED Drift 정량화.
-  v3.1: Reverse Orphan Scan (Code→KG blind-spot fix) + Crate/Script-level binding + Taliban --lens longinus.
+  v3.1: Reverse Orphan Scan (Code→KG blind-spot fix) + Crate/Script-level binding + Naesengmoon --lens longinus.
   v3.3 (Wave 6 absorbed 2026-05-14): sha256 baseline daemon (KG-anchored disk hash) + Forward Orphan Scan
   (KG :KnowledgeHub → package_path materialization, GetPut blind-spot) + 7-tuple ReferenceSite schema
   (sourceId/sourcePath/line_range/sha256/sha256_baseline/kg_anchor/layer/last_validated).
@@ -318,7 +318,7 @@ ORDER BY status DESC
 > **Why added**: v3 Step 5의 pierce 쿼리는 KG에서 시작한다(`MATCH (atom:AtomicSpan)...`).
 > KG에 노드가 아예 **없으면** 쿼리 결과가 0 rows로 조용히 pass되어 **Missing drift** 탐지 실패.
 > 실제 사고: `lesson-333-crate-spans-orphan-longinus-2026-04-18` — 11개 crate `// KG: SPAN_*`
-> 주석 달고 Taliban 통과했지만 KG엔 단 1개도 없었음.
+> 주석 달고 Naesengmoon 통과했지만 KG엔 단 1개도 없었음.
 
 **반대 방향 검증** — 소스에서 `// KG:` / `# KG:` 토큰을 모두 추출한 뒤 각 노드가 KG에 실제로 존재하는지 MATCH.
 
@@ -378,11 +378,11 @@ MERGE (s)-[:INFORMED_BY]->(p)
 
 ---
 
-## Taliban 연동 (v3.1 신규)
+## Naesengmoon 연동 (v3.1 신규)
 
 > **Why added**: Fulfillment Gate가 `// KG:` 문자열 존재만 보고 통과시켜서 orphan을 양산.
 
-**lens_longinus LensSet** 제안 — Taliban 렌즈셋 플러거블(`/taliban --lens longinus`)에 세 개 규칙:
+**lens_longinus LensSet** 제안 — Naesengmoon 렌즈셋 플러거블(`/taliban --lens longinus`)에 세 개 규칙:
 
 1. **L-1 Code→KG Resolve**: 변경된 파일의 모든 `(?://|#)\s*KG:\s*<id>` 토큰 추출 → KG MATCH. 하나라도 `exists=false` ⇒ **BLOCK**.
 2. **L-2 Dual-Ref Completeness**: 각 SourceCodeNode가 `sourceId ∧ sourcePath` 둘 다 보유. 하나만 있으면 **CONDITIONAL**.
@@ -536,7 +536,7 @@ MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
 
 | Version | Date | Summary | KG Ref |
 |---|---|---|---|
-| **v3.1** | 2026-04 후반 | Reverse Orphan Scan (Code→KG blind-spot fix) + Crate/Script-level binding + Taliban `--lens longinus` | `ATOM_Skill_longinus`, `lesson-longinus-rigor-theories-2026-04-16` |
+| **v3.1** | 2026-04 후반 | Reverse Orphan Scan (Code→KG blind-spot fix) + Crate/Script-level binding + Naesengmoon `--lens longinus` | `ATOM_Skill_longinus`, `lesson-longinus-rigor-theories-2026-04-16` |
 | **v3** | 2026-04 mid | 7-Layer Reference Model + BX Lens Laws (GetPut/PutGet) + Refinement Types + GED Drift 정량화 | `SA_methodology_v4_triple_upgrade` |
 | **v2** | (~2026-04 early) | KG → 코드 binding (Layer L1 Document ~ L7 CodeBinding) ReferenceSite 패턴 | — |
 | **v1** | (older) | 7층 Reference Model 초안 (의미 계층 → 소스코드 관통) | — |

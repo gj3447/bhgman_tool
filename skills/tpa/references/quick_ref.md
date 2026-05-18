@@ -54,7 +54,7 @@
 | SP done, ready to anchor in our KG | `/tpa-ta` | Final anchoring + 5-drift audit |
 | "What did we miss?" question | `/tpa --audit <anchor>` | Drift re-measurement |
 | "Which lessons came from this scan?" | `/tpa --lessons <target>` | Feedback loop status |
-| Suspect rubber-stamp from prior cycle | Re-run Taliban gate (89-lens) | Anti-rubber-stamp |
+| Suspect rubber-stamp from prior cycle | Re-run Naesengmoon gate (89-lens) | Anti-rubber-stamp |
 | Repo > 10K LOC | Set `tpa.parallel.max_agents` ≥ 4 | TR14 mandatory |
 
 ---
@@ -79,13 +79,13 @@ If `coverage_ratio < tpa_drift_coverage_ratio_min` (default 0.8), TA sets `ancho
 
 ```
 [CODE] → /tpa-tcw → AST symbols + manifest
-            ↓ (Taliban gate, TCW VR)
+            ↓ (Naesengmoon gate, TCW VR)
          /tpa-st → AptContract + ConventionalContract per symbol
-            ↓ (Taliban gate, ST VR)
+            ↓ (Naesengmoon gate, ST VR)
          /tpa-sp → DesignPattern matches (INSTANCE_OF / RESEMBLES)
-            ↓ (Taliban gate + 88-Taliban for Distributed; SP VR)
+            ↓ (Naesengmoon gate + 88-Naesengmoon for Distributed; SP VR)
          /tpa-ta → SemanticAnchor created + 5-drift measured
-            ↓ (final Taliban gate, TA VR + Lesson feedback loop fires)
+            ↓ (final Naesengmoon gate, TA VR + Lesson feedback loop fires)
 [DESIGN ANCHORED]
 ```
 
@@ -97,8 +97,8 @@ If `coverage_ratio < tpa_drift_coverage_ratio_min` (default 0.8), TA sets `ancho
 |----------|----------|------------------|
 | AST + symbol harvest | `KgCodeBinder` | Longinus |
 | Unknown pattern lookup | `ResearchProvider` | Prometheus |
-| Per-phase gate validation | `AdversarialValidator` | Taliban |
-| Distributed-pattern math check | `MetaVerifier` | 88-Taliban |
+| Per-phase gate validation | `AdversarialValidator` | Naesengmoon |
+| Distributed-pattern math check | `MetaVerifier` | 88-Naesengmoon |
 | Parallel large-repo scan | `SubagentSeeder` | 재배맨 |
 
 Resolve via:
@@ -140,7 +140,7 @@ Full text: `references/hard_rules.md`.
 | `/tpa-st` denied | TCW VR missing or REJECTED | Run `/tpa-tcw` + `/taliban` first |
 | `/tpa-sp` denied | ST VR missing | Run `/tpa-st` + `/taliban` first |
 | TA `coverage_ratio < 0.8` | Many post-recovery drifts | Re-scan TCW; consider larger `max_agents` |
-| Distributed pattern has no MetaVerify VR | 88-Taliban not auto-fired | Run `/88-taliban` or set `MetaVerifier` slot |
+| Distributed pattern has no MetaVerify VR | 88-Naesengmoon not auto-fired | Run `/88-taliban` or set `MetaVerifier` slot |
 | Lesson never resolves | No `:ActionPlan` linked | Manually create + `(l)-[:TRIGGERS]->(p)` |
 
 ---

@@ -25,7 +25,7 @@
 ## 1. 핵심 주장 (논문 골격용 8 주장)
 
 1. **재배맨은 서비스가 아니라 프로토콜이다.** 부모 Claude가 따르는 4-Phase: Seed → Dispatch → Collect → Write.
-2. **MIC SOLID-DIP 바인딩.** `IS slot = SubagentSeeder`. 직접 소비자: Prometheus (ResearchProvider) / Taliban (AdversarialValidator) / Solve / APT-* / TPA-*. 간접 소비자: Longinus (KgCodeBinder) — audit cycle 측 subagent dispatch 시 4-Phase 따름.
+2. **MIC SOLID-DIP 바인딩.** `IS slot = SubagentSeeder`. 직접 소비자: Prometheus (ResearchProvider) / Naesengmoon (AdversarialValidator) / Solve / APT-* / TPA-*. 간접 소비자: Longinus (KgCodeBinder) — audit cycle 측 subagent dispatch 시 4-Phase 따름.
 3. **수학적 정의 (Lean μX initial algebra).** `inductive JaebaeMan { atomic : CHUPiece → JaebaeMan ; governs : List JaebaeMan → JaebaeMan }`. Lambek 1968 grounding. Bird-Meertens 1987 fold/catamorphism universal.
 4. **신화-공학 동치.** 비행기맨 = `∀ x:CHU, j.covers x`인 재배맨. 즉 신화의 정점 = 공학의 ⊤ 원소.
 5. **씨앗-열매 사이클.** `(:SubagentTaskSpec) -[:GERMINATES_INTO]-> (:Subagent) -[:PRODUCES]-> (:Finding) -[:STORED_IN]-> (:KG)` — 농경적 비유는 단순 metaphor 아닌 lifecycle 모델.

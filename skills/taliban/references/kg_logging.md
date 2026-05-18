@@ -14,7 +14,7 @@ SET vr.target_phase = $phase, vr.phase = $phase,
     vr.evidence = $evidence,
     vr.warnings = $warnings,
     vr.critics_dispatched = $critics_n,
-    vr.validator = 'Taliban-' + $lens,
+    vr.validator = 'Naesengmoon-' + $lens,
     vr.provenance = 'subagent-taliban-' + $skill,        // != 'inline'
     vr.parent_model = $parent_model,
     vr.critic_model = $critic_model,

@@ -6,7 +6,7 @@ channel: stable
 description: >
   TPA TargetPyramid (SP) — Phase 3/4. APT SP 거울 (역순).
   Pattern Library (51 DesignPattern 노드) 매칭. confidence ≥0.7 INSTANCE_OF / <0.7 RESEMBLES.
-  카테고리별 검증 전략 매핑: Distributed→MetaVerifier(Taliban --lens mathematical), Structural→AST,
+  카테고리별 검증 전략 매핑: Distributed→MetaVerifier(Naesengmoon --lens mathematical), Structural→AST,
   Behavioral→call graph, Creational→grep, PL→ResearchProvider.
   Gate Check Hook 강제: ST Gate 통과 없이 진입 불가.
   # KG: ATOM_Skill_tpa_sp, CONTRACT_AS_TPA_sp_SKILL, TPA_methodology_v10
@@ -27,7 +27,7 @@ WHERE s.name IN ['SubagentSeeder','MetaVerifier','AdversarialValidator','Researc
 RETURN s.name, s.currentConcrete, s.invocation
 ```
 
-> ⚠️ **본문의 concrete 이름(재배맨/Prometheus/Taliban/Longinus/88-Taliban)은 MIC slot 현재 스냅샷.**
+> ⚠️ **본문의 concrete 이름(재배맨/Prometheus/Naesengmoon/Longinus/88-Naesengmoon)은 MIC slot 현재 스냅샷.**
 > 진짜 호출은 `s.invocation` 경유. MIC_v1 교체 시 본문 무변경.
 
 # KG: MIC_v1, lesson-tpa-gap-04-pattern-verification-strategy-2026-04-14, lesson-tpa-gap-88taliban-scope-2026-04-14, lesson-skill-mic-slot-ref-weak-2026-04-15
@@ -73,7 +73,7 @@ MATCH (p:DesignPattern) RETURN count(p) AS pattern_count
 
 | Pattern Category | Verification Strategy | Tool (MIC slot) |
 |---|---|---|
-| Distributed (CRDT/BFT/HotStuff/Kademlia 등) | 수학 속성 (commute/assoc/idempotent/safety) | MetaVerifier (Taliban --lens mathematical) |
+| Distributed (CRDT/BFT/HotStuff/Kademlia 등) | 수학 속성 (commute/assoc/idempotent/safety) | MetaVerifier (Naesengmoon --lens mathematical) |
 | Structural (Facade/Adapter/Composite 등) | AST 시그니처 매칭 (wrapping/delegation) | KgCodeBinder + grep |
 | Behavioral (Strategy/Observer/Command 등) | 메서드 호출 그래프 (polymorphic dispatch) | KgCodeBinder + call graph |
 | Creational (Factory/Builder/Singleton 등) | 생성 지점 추적 (instantiation trace) | KgCodeBinder + grep |
@@ -125,7 +125,7 @@ WHERE $c < 0.7
 ### 자동 트리거 (매 distributed 매칭마다)
 
 ```
-역할: 88-Taliban MetaVerifier (agentId=M<idx>)
+역할: 88-Naesengmoon MetaVerifier (agentId=M<idx>)
 TaskSpec: MATCH (ts:SubagentTaskSpec {name:'taskspec-88taliban-*'}) RETURN *
 Target: 방금 매칭한 Distributed DesignPattern (CRDT/BFT/HotStuff/Kademlia/Raft/Paxos/LWW/Vector_Clock/HLC/Merkle_Tree)
 검증할 수학 속성: commute / assoc / idempotent / safety / liveness (패턴별 상이)
@@ -151,7 +151,7 @@ RETURN dp_count, count(vr) AS mv_count,
 `lesson-tpa-gap-88taliban-scope-2026-04-14` 해결:
 - GoF 구조/행위 패턴: AST 매칭 충분 (Structural/Behavioral lens)
 - 분산 패턴: 수학 속성(commute/idempotent/safety) 미검증 시 "이름만 CRDT" false positive
-- 88-Taliban의 수학 렌즈가 유일한 gate
+- 88-Naesengmoon의 수학 렌즈가 유일한 gate
 
 ---
 
@@ -211,7 +211,7 @@ RETURN s.invocation AS auto_call
 
 ---
 
-## 종료 의식 — Taliban 9-lens
+## 종료 의식 — Naesengmoon 9-lens
 
 ```cypher
 MATCH (s:MethodologySlot {name:'AdversarialValidator'})
@@ -223,14 +223,14 @@ ValidationResult 기록:
 ```cypher
 MERGE (vr:ValidationResult {name:'VR_TPA_SP_<target>_<date>', phase:'SP'})
 SET vr.verdict=$verdict, vr.evidence=[...], vr.validated_at=datetime(),
-    vr.validator='Taliban-9lens+MetaVerifier(distributed)'
+    vr.validator='Naesengmoon-9lens+MetaVerifier(distributed)'
 MATCH (exec:TPA_Execution)
 MERGE (exec)-[:HAS_VALIDATION]->(vr)
 ```
 
 **APPROVED 아니면 `/tpa-ta` Gate Check에서 차단됨.**
 
-**⚠️ 부모 인라인 APPROVED 금지 — Taliban subagent 최소 1개 독립 출격 강제.**
+**⚠️ 부모 인라인 APPROVED 금지 — Naesengmoon subagent 최소 1개 독립 출격 강제.**
 **⚠️ VR.provenance='subagent-taliban-tp' 필수. 'inline' 이면 향후 Hook에서 차단.**
 **⚠️ 사용자가 "확인해봐"라고 안 해도 자동으로 실행해야 한다.**
 <!-- KG: lesson-taliban-not-auto-triggered-2026-04-16 -->
@@ -304,9 +304,9 @@ TaskSpec: MATCH (ts:SubagentTaskSpec {name:'taskspec-tpa-SP'}) RETURN ts.*
 Target: $CONTRACT_SUBSET + Pattern Library. 출력: {INSTANCE_OF[{p,conf,ev,strategy}], RESEMBLES[...], NovelPattern[...]} JSON (provenance='재배맨-tpa-sp').
 ```
 
-### 자동 88-Taliban 트리거 (Distributed 매칭 시, 위 섹션 참조)
+### 자동 88-Naesengmoon 트리거 (Distributed 매칭 시, 위 섹션 참조)
 ```
-역할: 88-Taliban MetaVerifier (agentId=M<idx>)
+역할: 88-Naesengmoon MetaVerifier (agentId=M<idx>)
 TaskSpec: MATCH (ts:SubagentTaskSpec {name STARTS WITH 'taskspec-88taliban-'}) RETURN ts.*
 Target: Distributed DesignPattern. 출력: VR{phase:'SP-MetaVerify', math_properties:[...]}.
 ```
@@ -328,7 +328,7 @@ MERGE (wb:WorkBuffer {name:$next}) SET wb.status='CURRENT', wb.phase='TPA SP in 
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

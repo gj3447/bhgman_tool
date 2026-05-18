@@ -20,7 +20,7 @@ TPA는 **남의 코드를 분석해서 우리 프로젝트의 교훈을 얻는**
      ↓
 ⑤ 적용 (APT /apt-scw)
      ↓
-⑥ 검증 (Taliban Gate)
+⑥ 검증 (Naesengmoon Gate)
      ↓
 ⑦ Lesson resolved=true
 ```
@@ -86,7 +86,7 @@ MERGE (analysis)-[:DERIVED_FROM]->(p)
 
 - 모든 HIGH/CRITICAL QualityGap의 Lesson이 resolved=true
 - ActionPlan의 모든 improvement가 구현+검증 완료
-- Taliban Gate APPROVED
+- Naesengmoon Gate APPROVED
 
 ## 피드백 루프 ↔ 5대 본질
 
@@ -97,14 +97,14 @@ MERGE (analysis)-[:DERIVED_FROM]->(p)
 | ③ 기록 | KgCodeBinder (Longinus 바인딩) |
 | ④ 계획 | (orchestrator 판단) |
 | ⑤ 적용 | SubagentSeeder (재배맨 병렬) |
-| ⑥ 검증 | AdversarialValidator (Taliban) |
+| ⑥ 검증 | AdversarialValidator (Naesengmoon) |
 | ⑦ 해소 | KgCodeBinder (resolved 마킹) |
 
 ---
 
 ## v1.1 Schema Extensions (2026-04-18)
 
-> 출처: `tpa-exec-mcp-superassistant-2026-04-18` self-feedback (21 MethodologyGap → Taliban 15/5/2 → 8 Lesson cluster).
+> 출처: `tpa-exec-mcp-superassistant-2026-04-18` self-feedback (21 MethodologyGap → Naesengmoon 15/5/2 → 8 Lesson cluster).
 > # KG: work-buffer-2026-04-18-tpa-mcp-sa-feedback
 
 v1.0 Contract schema `{signature, pre, post, error_mode}`는 generic/SPA 백엔드에 맞춰져 있어 브라우저 확장·이중 번들·DOM 부작용·타입 소거 코드에서 약점이 드러남. v1.1부터 다음 슬롯을 **선택적으로** 추가 (기존 호출은 그대로 유효).
@@ -175,7 +175,7 @@ KG에 MERGE됨. 매칭 우선순위는 기존 51패턴 다음.
 ### 적용 지침
 - **기존 sub-skill (/tpa-tcw, /tpa-st, /tpa-sp, /tpa-ta)의 본문은 수정하지 않음.** 이 파일을 참조로만 추가.
 - ST가 출력하는 JSON에 위 slot을 발견 시 포함 — 없으면 생략(하위 호환).
-- Taliban `--lens constitutional` 검증 시 슬롯 타당성도 체크 대상.
+- Naesengmoon `--lens constitutional` 검증 시 슬롯 타당성도 체크 대상.
 - v1.1 → v1.2는 자체 자기-피드백 사이클이 쌓이면 진행.
 
 ### 열린 큐 (ActionPlan — WorkBuffer에 보관)

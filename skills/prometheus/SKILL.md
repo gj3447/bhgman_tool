@@ -101,7 +101,7 @@ Step 3.3: Finding 중복 탐지               ← v4 신설
 Step 3.5: 부모 UNWIND 배치 write        ← v3 신설, D1 concurrency 해결
    ↓ [Gate G3.5: ResearchFinding N건 KG 적재 확인]
 Step 4: 집계/합의/충돌 탐지 (v3 재정의)
-   ↓ [Gate G4: 충돌은 Taliban --lens mathematical 경유 해소, 미해소 conflict=0]
+   ↓ [Gate G4: 충돌은 Naesengmoon --lens mathematical 경유 해소, 미해소 conflict=0]
 Step 4.7: 씨앗 결정화 (SubagentTaskSpec 생성)
    ↓ [Gate G4.7: 모든 high-priority finding → 씨앗 매핑]
 Step 5: 계획 수립 (횃불 경로 설계)
@@ -117,7 +117,7 @@ Step 2로 피드백 루프
 
 ### Gate Hook 강제 (v4 신규, lesson-prometheus-v4-structural-gaps-2026-04-17)
 
-> v3까지는 Step들이 "권장"이었다. 결과: skip 발생 → ResearchFinding 누적, 씨앗 미결정화, Taliban 우회, subagent 개별 KG write 착각, 부모 context 폭증.
+> v3까지는 Step들이 "권장"이었다. 결과: skip 발생 → ResearchFinding 누적, 씨앗 미결정화, Naesengmoon 우회, subagent 개별 KG write 착각, 부모 context 폭증.
 > **v4부터는 위 Gate 중 하나라도 실패하면 다음 Step 진입 BLOCK**. Gate Check Hook(APT와 동일 패턴)이 각 Step 완료 시 검증 쿼리 실행.
 
 | Gate | 검증 쿼리 (Neo4j) | BLOCK 조건 |
@@ -125,7 +125,7 @@ Step 2로 피드백 루프
 | G1 | `MATCH (l:Lesson {problem:$text}) RETURN count(l)` | 0 = BLOCK |
 | G3 | subagent JSON count == N **+ v6.3: Step 3-0 KG 씨앗 pre-fetch 수행 흔적 확인 + Anti-Pattern Detection (3 패턴) PASS** | 불일치 OR 씨앗 pre-fetch skip OR anti-pattern 감지 = BLOCK, 재호출 |
 | G3.5 | `MATCH (rf:ResearchFinding {cycle_id:$cid}) RETURN count(rf)` | < N = BLOCK |
-| G4 | `MATCH (c:Conflict {cycle_id:$cid, status:'open'}) RETURN count(c)` | > 0 = Taliban 경유 필수 |
+| G4 | `MATCH (c:Conflict {cycle_id:$cid, status:'open'}) RETURN count(c)` | > 0 = Naesengmoon 경유 필수 |
 | G4.7 | high-priority finding N중 씨앗 매핑률 | < 100% = BLOCK |
 | G5 | `MATCH (ap:ActionPlan {cycle_id:$cid})-[:HAS_CHILD]->() RETURN count(*)` | 0 = BLOCK |
 | G6.5 | slot resolve `MIC_v1.FilesystemDispersionPolicy` → policy fields 충족 검증 (SOURCES.md exists ∧ axis≥cfg.prometheus_md_axis_threshold면 axis-split MD count=axis_count ∧ N≥cfg.prometheus_findings_jsonl_threshold면 `_findings/` count=N) | 미충족 = BLOCK |
@@ -547,7 +547,7 @@ RETURN domain, findings[0].name AS singletonFinding, findings[0].confidence AS c
 Step 4 집계 결과를 **재배맨 씨앗(SubagentTaskSpec)**으로 결정화. **프로메테우스의 진짜 산출**은 이 씨앗. ResearchFinding은 원료, SubagentTaskSpec이 완제품.
 
 > **프랙탈 순환의 닫힘 지점.**
-> 프로메테우스 → (재배맨/RAG + 롱기누스/실측) → edge data → 하네스↔탈레반 GAN → **검증된 씨앗** → KG 심기 → 다음 재배맨이 조회 → 재귀.
+> 프로메테우스 → (재배맨/RAG + 롱기누스/실측) → edge data → 하네스↔나생문 GAN → **검증된 씨앗** → KG 심기 → 다음 재배맨이 조회 → 재귀.
 > 이 Step이 없으면 ResearchFinding은 일회용으로 죽고 프랙탈이 끊긴다.
 
 **하이퍼그래프 주석**: SubagentTaskSpec은 본래 하이퍼그래프(N:N multi-relation entity)의 degenerate 표현. 현재 Neo4j는 interim. 미래 TypeDB/HyperGraphDB 마이그레이션 여지.
@@ -819,11 +819,11 @@ MERGE (mic)-[:HAS_SLOT]->(s)
 
 ---
 
-### Step 7: 검증 — 4단계 + Taliban 자동 출격 (v5)
+### Step 7: 검증 — 4단계 + Naesengmoon 자동 출격 (v5)
 
-#### 7-A. Taliban 적대적 검증 (v5 자동)
+#### 7-A. Naesengmoon 적대적 검증 (v5 자동)
 
-인프라 테스트 전에 **Prometheus-Taliban GAN 루프** 완결. 자동 출격 대상:
+인프라 테스트 전에 **Prometheus-Naesengmoon GAN 루프** 완결. 자동 출격 대상:
 
 | 대상 | 기준 | Lens |
 |---|---|---|
@@ -834,7 +834,7 @@ MERGE (mic)-[:HAS_SLOT]->(s)
 **Scope 정책**: 기본은 HIGH-priority만. 전체 scope는 `--taliban-full` flag로 명시.
 
 ```cypher
-// Step 7-A: Taliban 대상 조회
+// Step 7-A: Naesengmoon 대상 조회
 MATCH (l:Lesson {name: $lesson_name})
 OPTIONAL MATCH (l)-[:HAS_RESEARCH]->(rf:ResearchFinding {confidence:'HIGH'})
 OPTIONAL MATCH (l)-[:HAS_PLAN]->(ap:ActionPlan)
@@ -906,7 +906,7 @@ RETURN l.name, l.problem, p.action, p.priority
 ```
 프로메테우스 (지식 획득 사이클)
   ├── 하네스의 Inform + Correct 축 담당
-  ├── 탈레반: Taliban finding → Lesson 생성 → 프로메테우스 발동
+  ├── 나생문: Naesengmoon finding → Lesson 생성 → 프로메테우스 발동
   ├── 롱기누스: 프로메테우스가 구축한 KG를 코드까지 관통
   └── APT: 모든 Phase에서 횡단적으로 발동 가능
 ```
@@ -939,7 +939,7 @@ RETURN l.name, l.problem, p.action, p.priority
 ### Slot Resolve (v5: 공용 템플릿 참조)
 
 MIC slot resolve 로직은 **`taskspec-mic-slot-resolve-v1` (namespace=methodology-meta)** 씨앗이 정본.
-Prometheus/Taliban/Solve 등 모든 스킬이 동일 씨앗 참조 (drift 방지).
+Prometheus/Naesengmoon/Solve 등 모든 스킬이 동일 씨앗 참조 (drift 방지).
 
 ```cypher
 // v5: KG에서 공용 템플릿 로드

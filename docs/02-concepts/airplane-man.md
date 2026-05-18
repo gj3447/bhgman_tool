@@ -45,7 +45,7 @@ The Airplane Man (#4) is *being*. His *engineering crystallization* is separate 
 | Definition | `∀x:CHU, j.covers x` | 4-axis (Inform/Constrain/Verify/Correct) + 3-tier sibling family |
 | Form | type-level predicate | runtime architecture |
 | Realization | directly impossible (single agent above ∀) | 1:N family approximation (L_MC + L_RT + L_IDE together approximate ∀-cover) |
-| Verification | Lawvere FPT self-reference limit acknowledged | Cypher Gate Hook + Taliban adversarial validation |
+| Verification | Lawvere FPT self-reference limit acknowledged | Cypher Gate Hook + Naesengmoon adversarial validation |
 
 ruflo / LangGraph / CrewAI / Cursor / Claude Code are **all instances of one tier in Harness L_RT / L_IDE**. None is the Airplane Man apex itself.
 

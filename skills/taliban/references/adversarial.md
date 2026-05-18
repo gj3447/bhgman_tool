@@ -2,11 +2,11 @@
 
 > Lazy-load reference. Parent: [`../SKILL.md`](../SKILL.md).
 
-## 1. Self-Adversarial — Taliban critiques Taliban
+## 1. Self-Adversarial — Naesengmoon critiques Naesengmoon
 
 가장 어려운 question: *critic 자체*를 누가 검증하는가?
 
-답: **Tier2 mathematical lens (88-Taliban / 113-lens)** 가 Tier1 (constitutional 9-lens) 의 *방법론* 메타검증.
+답: **Tier2 mathematical lens (88-Naesengmoon / 113-lens)** 가 Tier1 (constitutional 9-lens) 의 *방법론* 메타검증.
 
 ```
 Use the taliban-ensemble-critic agent with --lens mathematical to meta-verify the constitutional-9-full LensSet itself

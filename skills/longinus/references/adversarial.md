@@ -22,7 +22,7 @@ Longinus 의 binding 은 *passive* 검증이지만 *active* attack 가능:
 | 6 | L4 file:line 누락 | layer_completeness bitmask | G4 강제 |
 | 7 | reverse orphan 무시 | total ratio | Lesson |
 
-## 3. Taliban --lens longinus 통합
+## 3. Naesengmoon --lens longinus 통합
 
 LensSet `longinus` 가 Tier1 binding 검증 전용:
 
@@ -46,7 +46,7 @@ SET ls.lensCount = 9,
 
 ## 4. Critic Input Context
 
-Taliban critic 가 받는 컨텍스트 (--lens longinus):
+Naesengmoon critic 가 받는 컨텍스트 (--lens longinus):
 - ReferenceSite list (with layer_completeness)
 - SHA256 baseline + current (drift evidence)
 - BX law violation list

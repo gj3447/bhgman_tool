@@ -19,7 +19,7 @@ TPA's critic attacks **recovery claims**, not design proposals. The bypass surfa
 | 3 | INSTANCE_OF without checklist_pass | KG audit | BLOCK — re-evaluate with checklist |
 | 4 | Manifest agent reports `skipped_files > 0` | TR5 check | BLOCK — chunk manifest, retry |
 | 5 | AST parser unused (grep-only TCW) | parser field check (TR4) | BLOCK — invoke proper AST tool |
-| 6 | Distributed pattern matched without SP-MetaVerify VR | KG audit | BLOCK — fire 88-Taliban |
+| 6 | Distributed pattern matched without SP-MetaVerify VR | KG audit | BLOCK — fire 88-Naesengmoon |
 | 7 | Coverage ratio reported < 0.8 but anchor.status not SUSPENDED | KG audit (V9) | BLOCK — set status |
 | 8 | Critic produces only NITPICK 5+ rounds | Severity distribution | Rotate model + alert |
 | 9 | Recovered Contract has no ReferenceSite | TR12 audit | BLOCK — Longinus binding required |
@@ -59,7 +59,7 @@ your full review methodology + evidence of search.
 
 Same rules as APT (§7.3 of `apt/references/adversarial.md`). Critic model != recovery model.
 
-**TPA-specific addition**: 88-Taliban (mathematical lens) **must** be a different model from the design-recovery agent that produced the SP pattern matches. If they share weights, the math verification is contaminated by the same priors that produced the false positive.
+**TPA-specific addition**: 88-Naesengmoon (mathematical lens) **must** be a different model from the design-recovery agent that produced the SP pattern matches. If they share weights, the math verification is contaminated by the same priors that produced the false positive.
 
 ```cypher
 // Model separation enforcement query (TPA)

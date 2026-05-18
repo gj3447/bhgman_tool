@@ -31,11 +31,11 @@ description: >
 
 1. `/taliban` SKILL.md 로드
 2. `--lens mathematical` 자동 설정
-3. 나머지 전부 Taliban 프레임워크 프로토콜 따름
+3. 나머지 전부 Naesengmoon 프레임워크 프로토콜 따름
 
 ## MIC Binding
 
-**IS slot**: `MetaVerifier` (MIC_v1.currentConcrete = "88-Taliban")
-→ 실체는 Taliban 프레임워크 + LensSet:mathematical
+**IS slot**: `MetaVerifier` (MIC_v1.currentConcrete = "88-Naesengmoon")
+→ 실체는 Naesengmoon 프레임워크 + LensSet:mathematical
 
 # KG: ATOM_Skill_88taliban, alias-of-taliban, lensset-mathematical

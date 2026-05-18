@@ -11,7 +11,7 @@ Prometheus 의 critic 은 *findings 자체*를 attack:
 - dedup correctness
 - dispersion gate compliance
 
-GAN-D 메커니즘은 Taliban 측 (G6 위에서). 본 섹션은 Taliban critic 이 prom cycle 검증 시 받는 컨텍스트.
+GAN-D 메커니즘은 Naesengmoon 측 (G6 위에서). 본 섹션은 Naesengmoon critic 이 prom cycle 검증 시 받는 컨텍스트.
 
 ## 2. Anti-Bypass for Prometheus Cycles
 

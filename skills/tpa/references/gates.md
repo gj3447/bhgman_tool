@@ -29,7 +29,7 @@ TCW → [TCW Gate] → ST → [ST Gate] → SP → [SP Gate] → TA → [TA Gate
    - tree-sitter / rust-analyzer / pyright produces symbol list
    - LOC per file matches `wc -l` (TR4: AST parser mandatory)
 
-3. Adversarial round (Taliban 9-lens)
+3. Adversarial round (Naesengmoon 9-lens)
    - critic receives: symbol manifest, LOC distribution, manifest diff
    - critic MUST produce ≥ 3 findings
    - if < 3: re-invoke with stronger prompt (see adversarial.md §2)
@@ -64,7 +64,7 @@ TCW → [TCW Gate] → ST → [ST Gate] → SP → [SP Gate] → TA → [TA Gate
    - docstring/JSDoc/Rust-doc inspected
    - missing → field set to "NONE — code contract only" (explicit, not blank)
 
-5. Adversarial round (Taliban 9-lens)
+5. Adversarial round (Naesengmoon 9-lens)
    - critic receives: contract list, AptContract:ConventionalContract ratio, deferred giants list
    - ≥ 3 findings mandatory
 
@@ -88,10 +88,10 @@ TCW → [TCW Gate] → ST → [ST Gate] → SP → [SP Gate] → TA → [TA Gate
 
 4. Distributed pattern → MetaVerifier auto-trigger
    - Any (src)-[:INSTANCE_OF]->(p:DesignPattern {category:'Distributed'})
-   - 88-Taliban math lens (commute / assoc / idempotent / safety / liveness)
+   - 88-Naesengmoon math lens (commute / assoc / idempotent / safety / liveness)
    - VR phase='SP-MetaVerify' must exist before SP VR can APPROVE
 
-5. Adversarial round (Taliban 9-lens)
+5. Adversarial round (Naesengmoon 9-lens)
    - critic receives: pattern match list, confidence distribution, novel patterns
 
 6. Reflection + KG log
@@ -120,7 +120,7 @@ TCW → [TCW Gate] → ST → [ST Gate] → SP → [SP Gate] → TA → [TA Gate
    - every recovered Contract has (:ReferenceSite { sourcePath:file:line })
    - reverse orphan scan: every code symbol → KG node mapping
 
-6. Final adversarial round (Taliban 9-lens)
+6. Final adversarial round (Naesengmoon 9-lens)
    - critic receives: anchor proposal, drift table, INSTANCE_OF/RESEMBLES distribution
 
 7. Lesson Feedback Loop fires (cycle terminal)
@@ -139,25 +139,25 @@ TCW → [TCW Gate] → ST → [ST Gate] → SP → [SP Gate] → TA → [TA Gate
 | Transition   | Required evidence                                             |
 +--------------+---------------------------------------------------------------+
 | → TCW Gate   | manifest = union(agent_files); AST parser output; LOC match   |
-|              | Taliban 9-lens VR APPROVED; reflection; TR5 skipped_files = 0 |
+|              | Naesengmoon 9-lens VR APPROVED; reflection; TR5 skipped_files = 0 |
 +--------------+---------------------------------------------------------------+
 | → ST Gate    | TCW VR APPROVED (pre-req via Hook)                            |
 |              | every pub symbol classified (Apt vs Conventional vs deferred) |
 |              | giants deferred (not skipped); pre/post parsed or NONE        |
-|              | Taliban 9-lens VR APPROVED                                    |
+|              | Naesengmoon 9-lens VR APPROVED                                    |
 +--------------+---------------------------------------------------------------+
 | → SP Gate    | ST VR APPROVED (pre-req via Hook)                             |
 |              | Pattern Library count ≥ 38                                    |
 |              | every INSTANCE_OF has confidence + evidence + checklist       |
 |              | Distributed patterns have SP-MetaVerify VR APPROVED           |
-|              | Taliban 9-lens VR APPROVED                                    |
+|              | Naesengmoon 9-lens VR APPROVED                                    |
 +--------------+---------------------------------------------------------------+
 | → TA Gate    | SP VR APPROVED (pre-req via Hook)                             |
 |              | anchor routing decided (2-A / 2-B / 2-C)                      |
 |              | 5-drift table computed                                        |
 |              | coverage_ratio ≥ 0.8 OR status='SUSPENDED' set                |
 |              | Longinus ReferenceSite per Contract                           |
-|              | Final Taliban 9-lens VR APPROVED                              |
+|              | Final Naesengmoon 9-lens VR APPROVED                              |
 |              | Lesson loop fires (≥1 :Lesson if any discovery)               |
 +--------------+---------------------------------------------------------------+
 ```
@@ -169,7 +169,7 @@ TCW → [TCW Gate] → ST → [ST Gate] → SP → [SP Gate] → TA → [TA Gate
 | Gate | Who | SLA | On Timeout |
 |------|-----|-----|-----------|
 | TCW manifest assertion | automated | < 30s | BLOCK — re-run scan |
-| Taliban 9-lens (any phase) | automated subagent (sonnet) | < 60s | ESCALATE — gate blocked |
+| Naesengmoon 9-lens (any phase) | automated subagent (sonnet) | < 60s | ESCALATE — gate blocked |
 | MetaVerifier (Distributed) | automated subagent (mathematical lens) | < 90s | BLOCK — math required |
 | Ground truth (parser, LOC) | automated | < 60s | BLOCK — manifest required |
 | sigma_oracle (HUMAN) | HUMAN (LOCKED) | 0 (immediate) | BLOCK — re-ask |

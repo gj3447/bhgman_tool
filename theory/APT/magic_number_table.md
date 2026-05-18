@@ -14,14 +14,14 @@
 |---|---|---|---|---|---|
 | 1 | `vibe_coding_sweet_min` | `MethodologyConfig_default_v26.vibe_coding_sweet_min` | **200** | 사용자 vibe coding 검증 가능 단위 하한. AtomicSpan 한 task = 한 file 정규화 (lesson-apt-phase6-cleanup-missing-2026-04-28). | 2026-04-21 |
 | 2 | `vibe_coding_sweet_max` | `MethodologyConfig_default_v26.vibe_coding_sweet_max` | **500** | 동상 상한. 초과 시 SP 재분해 강제. | 2026-04-21 |
-| 3 | `lens_count_constitutional` | `LensSet_constitutional.lens_count` (참조: `MethodologyConfig.lens_count_constitutional`) | **9** | Taliban 기본 적대 검증 렌즈 수 (lesson-taliban-shortcut-antipattern-2026-04-21 — 3 lens shortcut 차단). | 2026-04-21 |
+| 3 | `lens_count_constitutional` | `LensSet_constitutional.lens_count` (참조: `MethodologyConfig.lens_count_constitutional`) | **9** | Naesengmoon 기본 적대 검증 렌즈 수 (lesson-taliban-shortcut-antipattern-2026-04-21 — 3 lens shortcut 차단). | 2026-04-21 |
 | 4 | `contract_default_fields` | `ContractSchema_default_v2.field_count` | **7** (v2 9) | Contract DTO 기본 필드 수. v2에서 9 canonical axis로 확장 (`SA_Contract_v2_DbC_Interface_2026-04-21_v2`). | 2026-04-21 |
 | 5 | `st_decision_areas` | `MethodologyConfig_default_v26.st_decision_areas` | **8** | ST Cover Scope: AST/Workflow/DesignPattern/ProjectStructure/DataFlow/Algorithm/Store/ClassDesign (lesson-st-cover-scope-exhaustive-2026-04-29). Tier1 5★ + Tier3 3. | 2026-04-29 |
 
 **SKILL.md 사용법** (apt-sp/st/scw 본문):
 - ✗ "vibe coding sweet spot 200~500줄..."
 - ✓ "vibe coding sweet spot `cfg.vibe_coding_sweet_min` ~ `cfg.vibe_coding_sweet_max` 줄 (현재 200~500)..."
-- ✓ "Taliban `cfg.lens_count_constitutional`-lens 적대 검증 (현재 9)..."
+- ✓ "Naesengmoon `cfg.lens_count_constitutional`-lens 적대 검증 (현재 9)..."
 
 → 본문에 *현재 값* 괄호 표기는 reader-facing 안내 (drift 시 cfg 갱신 + 괄호 갱신). 정전은 KG.
 

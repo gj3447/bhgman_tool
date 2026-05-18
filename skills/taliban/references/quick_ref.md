@@ -21,7 +21,7 @@
 | LensSet | lensCount | Use |
 |---------|-----------|-----|
 | `constitutional-9-full` | 9 | default — artifact validation |
-| `mathematical` | 113 | methodology meta-verification (88-Taliban) |
+| `mathematical` | 113 | methodology meta-verification (88-Naesengmoon) |
 | `solid` | 5 | SOLID 빠른 검증 |
 | `longinus` | n | KG↔code binding integrity |
 | (custom KG) | varies | user-defined |

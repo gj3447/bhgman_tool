@@ -76,7 +76,7 @@ Prometheus  ─FEEDS_BINDING→  Longinus
         ↑VERIFIES_KG_OF────────┘
 ```
 
-**프랙탈 순환의 닫힘** (SKILL.md prometheus L533): `프로메테우스 → (재배맨 + 롱기누스) → edge data → 하네스↔탈레반 → 검증된 씨앗`. 즉 Prometheus 가 KG 를 *만들고*, 재배맨이 *씨앗으로 결정화*, 롱기누스가 *코드까지 관통*, 탈레반-하네스가 *적대적 검증*. 4 weapon 의 협력 lifecycle.
+**프랙탈 순환의 닫힘** (SKILL.md prometheus L533): `프로메테우스 → (재배맨 + 롱기누스) → edge data → 하네스↔나생문 → 검증된 씨앗`. 즉 Prometheus 가 KG 를 *만들고*, 재배맨이 *씨앗으로 결정화*, 롱기누스가 *코드까지 관통*, 나생문-하네스가 *적대적 검증*. 4 weapon 의 협력 lifecycle.
 
 KG: Schema `schema-prom-long-isomorphism-2026-05-12` (hard core).
 

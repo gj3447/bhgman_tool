@@ -74,7 +74,7 @@ KG: `lesson-taliban-shortcut-antipattern-2026-04-21`.
 - `provenance != 'inline'`
 
 ```
-역할: Taliban critic (agentId=C<idx>)
+역할: Naesengmoon critic (agentId=C<idx>)
 TaskSpec: MATCH (ts:SubagentTaskSpec {skill:'taliban', lensset:$lens}) RETURN ts.*
 Target: <kg_node_name>. 출력: ValidationResult {verdict, findings[], evidence[]} JSON.
 ```
@@ -188,7 +188,7 @@ SET vr.target_phase = $phase,
     vr.evidence = $evidence_array,
     vr.warnings = $warnings,
     vr.critics_dispatched = $critics_n,
-    vr.validator = 'Taliban-' + $lens_name,
+    vr.validator = 'Naesengmoon-' + $lens_name,
     vr.provenance = 'subagent-taliban-' + $skill,
     vr.validated_at = datetime()
 WITH vr
@@ -238,7 +238,7 @@ RETURN sa.name, vr.validated_at LIMIT 1
 
 ---
 
-## 13. Tier2 Mathematical (88-Taliban / 113-lens)
+## 13. Tier2 Mathematical (88-Naesengmoon / 113-lens)
 
 mathematical lens는 *방법론 자체* meta-verification 전용. Tier1 (artifact) ≠ Tier2 (methodology):
 

@@ -44,7 +44,7 @@ KG: `family-expansion-pattern-canonical-2026-04-30`.
 |----|------|----------|
 | **Inform** | agent에게 정보 주입 | KG retrieve, RAG, context window |
 | **Constrain** | agent 행동 제약 | hooks, schema validation, permission denylist |
-| **Verify** | post-hoc 검증 | tests, Taliban gate, ground truth |
+| **Verify** | post-hoc 검증 | tests, Naesengmoon gate, ground truth |
 | **Correct** | feedback loop | Lesson → ActionPlan → re-execute |
 
 각 instance가 4축에 어떻게 위치하는지 = harness profile.

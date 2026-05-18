@@ -20,7 +20,7 @@ description: >
 
 상한 초과 시 D(S) 재귀 분해 강제. 하한 미만은 sibling 통합 권장.
 
-## Taliban 적대 검증 게이트
+## Naesengmoon 적대 검증 게이트
 
 SP→ST 전환 시 `{{cfg.lens_count_constitutional}}`-lens 적대 검증 (현재 9) 만장일치 PASS 필수. 부분 PASS = 차단.
 

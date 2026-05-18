@@ -81,7 +81,7 @@ Strathern's 1997 paper extends Goodhart from finance to *audit culture*:
 Translation: when a system is *audited*, the auditable surface (paperwork, metrics, traces) becomes the *real activity*, displacing the original purpose.
 
 bhgman's safeguard:
-- *Audit the auditor* (Taliban LensSet on Taliban itself)
+- *Audit the auditor* (Naesengmoon LensSet on Naesengmoon itself)
 - Quarterly Lakatos progressive/degenerating verdict on the framework
 - KG records *symmetric pairs* (`wrongAssumption ↔ truth`) — both success and failure modes, preventing audit-driven success-bias
 

@@ -11,7 +11,7 @@
    - TT (TargetTwin) ← ST
    - TP (TargetPyramid) ← SP
    - TA (TargetAnchor) ← SA
-2. **5대 본질 공유 (MIC)**: APT와 TPA 모두 같은 MIC slots를 USES — Prometheus(unknown 리서치), Taliban(phase gate), 88-Taliban(메타검증), Longinus(코드↔KG 양방향), 재배맨(병렬 subagent), Harness(4축 제약).
+2. **5대 본질 공유 (MIC)**: APT와 TPA 모두 같은 MIC slots를 USES — Prometheus(unknown 리서치), Naesengmoon(phase gate), 88-Naesengmoon(메타검증), Longinus(코드↔KG 양방향), 재배맨(병렬 subagent), Harness(4축 제약).
 3. **Pattern Library 매칭** (TP): 51 DesignPattern 노드 중 confidence ≥0.7 → INSTANCE_OF, <0.7 → RESEMBLES.
 4. **카테고리별 검증 전략**: Distributed→MetaVerifier(수학 lens), Structural→AST, Behavioral→call graph, Creational→grep, PL→ResearchProvider.
 5. **5종 Drift 측정** (TA): Missing / Orphan / SigMismatch / PatternDiv / LabelRot. coverage_ratio < 0.8 → status='SUSPENDED' 강제.
@@ -28,7 +28,7 @@
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/tpa-tcw/SKILL.md` | TCW (Phase 1/4) — pub 심볼 추출, AST |
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/tpa-tt/SKILL.md` | TT (Phase 2/4) — Contract 추출, Apt vs Conventional |
 | `/Users/lagyeongjun/CD/SERVER/.claude/skills/tpa-tp/SKILL.md` | TP (Phase 3/4) — Pattern Library 매칭 |
-| `/Users/lagyeongjun/CD/SERVER/.claude/skills/tpa-ta/SKILL.md` | TA (Phase 4/4) — SemanticAnchor 라우팅, drift, 최종 Taliban gate |
+| `/Users/lagyeongjun/CD/SERVER/.claude/skills/tpa-ta/SKILL.md` | TA (Phase 4/4) — SemanticAnchor 라우팅, drift, 최종 Naesengmoon gate |
 
 ## 1차 소스 (신화 명단)
 
@@ -49,8 +49,8 @@ SKILL.md (orchestrator):
 | 무기 | MIC Slot | TPA 역할 |
 |---|---|---|
 | Prometheus | ResearchProvider | unknown 리서치, 패턴 탐색 |
-| Taliban | AdversarialValidator | 각 phase gate 검증 |
-| 88-Taliban | MetaVerifier | TPA 방법론 자체 메타검증 |
+| Naesengmoon | AdversarialValidator | 각 phase gate 검증 |
+| 88-Naesengmoon | MetaVerifier | TPA 방법론 자체 메타검증 |
 | Longinus | KgCodeBinder | 코드↔KG 양방향 바인딩 |
 | 재배맨 | SubagentSeeder | 병렬 subagent 분산 |
 | Harness | (구조적 제약) | 4축 제약 모델 |

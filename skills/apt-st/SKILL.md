@@ -11,7 +11,7 @@ description: >
   v26 A2 — Contract v2 (9 canonical axes + access_rights_closure + ArchitectureContract subtype + 6 CrossAxisInvariant + ReferenceSite/DriftMorphism) via ContractSchema slot.
   v25: SharedType → Contract.shared=true flag. SemanticTask = MethodologyConfig.vibe_coding_sweet 200-500 line.
   v24: KG 정본 기반 재설계. AptClarificationNote 반영.
-  Active Weapons (2026-05-14): Longinus L3-L4 binding (Contract → AtomicSpan ReferenceSite 7-tuple, Step 8) + 재배맨 per-AtomicSpan SubagentTaskSpec seed (1:1:1:1 Contract:Task:Seed:AtomicSpan, Step 9) + Taliban `/tlb <Contract> --lens constitutional` RefinementGate (Step 9.5). hub-longinus-reference + hub-jaebaeman-sop + hub-taliban-immunity resolve.
+  Active Weapons (2026-05-14): Longinus L3-L4 binding (Contract → AtomicSpan ReferenceSite 7-tuple, Step 8) + 재배맨 per-AtomicSpan SubagentTaskSpec seed (1:1:1:1 Contract:Task:Seed:AtomicSpan, Step 9) + Naesengmoon `/tlb <Contract> --lens constitutional` RefinementGate (Step 9.5). hub-longinus-reference + hub-jaebaeman-sop + hub-taliban-immunity resolve.
   # KG: ATOM_Skill_apt_st_v27, lesson-st-cover-scope-exhaustive-2026-04-29, lesson-st-cover-tier1-complete-2026-04-29, APT_v26_RFC_draft_2026-04-21, SA_Contract_v2_DbC_Interface_2026-04-21_v2
 ---
 
@@ -81,10 +81,10 @@ RETURN s.name, s.currentConcrete, s.invocation
 | Step 7 (Contract DTO 결정화) | **재배맨** (SubagentSeeder) | per-AtomicSpan parallel research → Contract DbC 4-측면 합의 | Crystallization Frontier 통과 직후 (all leaves = AtomicSpan) | `Contract` (input_type/output_type/pre/post/invariant) |
 | Step 8 (ReferenceSite 7-tuple binding) | **Longinus** (KgCodeBinder) | L3-L4 forward binding: `(:Contract)-[:HAS_REFERENCE_SITE]->(:ReferenceSite {name, kind, source, target, cardinality, label, provenance})` | Contract 결정화 직후 | `ReferenceSite` per Contract (7-tuple complete) + Longinus L3-L4 trace |
 | Step 9 (1:1:1:1 seed) | **재배맨** (SubagentSeeder) | per-AtomicSpan SubagentTaskSpec seed (TDD RED test 4-tuple: file/contract_ref/test_id/expected) | Contract APPROVED 직후 | `SubagentTaskSpec` per AtomicSpan (SCW wave dispatch 준비) |
-| Step 9.5 (RefinementGate) | **Taliban** (AdversarialValidator) | `/tlb <Contract_id> --lens constitutional` (LensSet completeness mandatory) | Contract + SubagentTaskSpec 작성 직후 | `VerdictRecord` APPROVED + SCW 진입 trigger |
+| Step 9.5 (RefinementGate) | **Naesengmoon** (AdversarialValidator) | `/tlb <Contract_id> --lens constitutional` (LensSet completeness mandatory) | Contract + SubagentTaskSpec 작성 직후 | `VerdictRecord` APPROVED + SCW 진입 trigger |
 
 **ST→SCW mini-RGR** (RFC2 transition):
-- RED: Taliban prior code conflict 검사 (작성할 file path 측 sibling 충돌)
+- RED: Naesengmoon prior code conflict 검사 (작성할 file path 측 sibling 충돌)
 - GREEN: 재배맨 wave dispatch GO/NO-GO (wave_index 같은 SubagentTaskSpec batch 측 readiness)
 - REFACTOR: Harness 3-tier file placement audit (atomic-span dump 평면 누적 차단 — IDE-host / runtime / managed 측 정확 layer 배치)
 
@@ -233,7 +233,7 @@ MERGE (c1)-[:SEQUENCED_WITH {order: 1}]->(c2)
 > 소스코드는 구현 공간일 뿐. 코드가 contract를 구현하지만,
 > 코드 측 폴더를 의미론적 정본과 혼동하면 안 된다."
 
-### Step 6: Taliban Gate
+### Step 6: Naesengmoon Gate
 
 ```
 /taliban → ST 산출물 검증 (Contract `{{cfg.contract_default_fields}}`대 필드 (현재 7) 완전성, SharedType 일관성)
@@ -313,7 +313,7 @@ MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

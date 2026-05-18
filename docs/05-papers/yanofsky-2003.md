@@ -50,7 +50,7 @@ So Yanofsky tells us: any of the following claims are *guaranteed to fail*:
 - ❌ "There's a hierarchy where the apostle dominates all agents" (Cantor instance)
 
 bhgman explicitly *accepts* these limits:
-- ✅ Self-verification requires external verifier (Taliban LensSet)
+- ✅ Self-verification requires external verifier (Naesengmoon LensSet)
 - ✅ Framework completeness *deliberately renounced*
 - ✅ Some apostle attributes left as *open theorems*
 - ✅ No claim of agent-hierarchy completeness
@@ -72,7 +72,7 @@ This is what makes bhgman *Yanofsky-aware*, in contrast to AI systems that prete
 | `lawvere_instance` | Self-application admits fixed points (consequence: `j.covers j` always meaningful) |
 | `yanofsky_unification` | All five instances share a structural lemma |
 | `bhgman_self_limit_accepted` | bhgman explicitly accepts the obstruction; not a bug |
-| `external_verifier_required` | Self-verification requires a Taliban-style external lens |
+| `external_verifier_required` | Self-verification requires a Naesengmoon-style external lens |
 | `framework_incompleteness` | Renouncing completeness is *necessary* under Yanofsky |
 
 Build:

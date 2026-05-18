@@ -16,7 +16,7 @@ Phase 5: SHA256 baseline
 Phase 6: BX Lens Laws audit
 Phase 7: Drift Report (5 kind)
 Phase 8: Reverse Orphan Scan (v3.1)
-Phase 9: Taliban --lens longinus gate
+Phase 9: Naesengmoon --lens longinus gate
    ↓
 [Verdict + Lesson candidates]
 ```
@@ -113,7 +113,7 @@ MERGE (ro:ReverseOrphan {name: 'RO_' + sym.name})
 SET ro.code_symbol = sym.name, ro.detected_at = datetime()
 ```
 
-## Phase 9 — Taliban --lens longinus
+## Phase 9 — Naesengmoon --lens longinus
 
 ```
 Use the taliban-ensemble-critic agent with --lens longinus

@@ -70,7 +70,7 @@ IF parser_output.symbol_count != actual symbol count:
 ```
 IF (src)-[:INSTANCE_OF]->(p:DesignPattern {category:'Distributed'}) AND no SP-MetaVerify VR:
   1. BLOCK SP gate progression
-  2. Auto-fire 88-Taliban via MIC slot:
+  2. Auto-fire 88-Naesengmoon via MIC slot:
      MATCH (s:MethodologySlot {name:'MetaVerifier'}) RETURN s.invocation
   3. Verify mathematical properties (commute / assoc / idempotent / safety / liveness)
   4. If math verification fails:

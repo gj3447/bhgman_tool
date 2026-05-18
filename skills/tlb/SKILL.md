@@ -6,7 +6,7 @@ channel: stable
 description: >
   `/taliban`의 짧은 별칭(alias). `/tlb <target>` == `/taliban <target>`.
   사용법: `/tlb SPAN_xxx`, `/tlb CONTRACT_yyy`, `/tlb --lens solid 대상`.
-  Invoke when: 적대적 검증 빠르게 실행. 탈레반 방법론과 동일.
+  Invoke when: 적대적 검증 빠르게 실행. 나생문 방법론과 동일.
   실제 로직(렌즈셋 플러거블 + 재배맨 SubagentTaskSpec 씨앗 기반 자동 출격)은
   /taliban SKILL.md를 그대로 따른다. 본문 복제 없음 (drift 방지).
   # KG: ATOM_Skill_taliban, alias-of-taliban

@@ -13,21 +13,21 @@ apt-meta-review는 SKILL 패치 의례를 따름:
 2. FAILURES 발견 → SKILL.md 어디가 빠졌는지 명시
 3. SKILL.md 패치 (GREEN phase)
 4. 재실행 → ALL PASS
-5. Taliban gate (외부 검증)
+5. Naesengmoon gate (외부 검증)
 ```
 
 → apt-meta-review가 *직접 코드 수정하기 전*에 RED phase로 *gap*을 명시화. AP3 (Test Afterthought) 회피.
 
 ---
 
-## TASK 1: Taliban Sentinel
+## TASK 1: Naesengmoon Sentinel
 
 ```bash
 grep "IS NOT NULL" taliban/SKILL.md      # HARD BLOCK
 grep "RUBBER_STAMP" taliban/SKILL.md     # null findings → REJECTED rule
 ```
 
-**Lesson grounding**: `lesson-apt-vr-self-fulfilled-executor-reviewer-2026-04-16`. Taliban이 null findings를 그냥 통과시키면 (rubber stamp) 검증이 무력화. HARD BLOCK으로 강제.
+**Lesson grounding**: `lesson-apt-vr-self-fulfilled-executor-reviewer-2026-04-16`. Naesengmoon이 null findings를 그냥 통과시키면 (rubber stamp) 검증이 무력화. HARD BLOCK으로 강제.
 
 ---
 
@@ -58,10 +58,10 @@ grep "FulfillmentGate\|executor.*reviewer" apt-scw/SKILL.md  # gate + V15
 ```bash
 test -f apt-meta-review/SKILL.md
 grep "max_depth\|delta.*0\|self.*application.*forbidden" apt-meta-review/SKILL.md
-grep "Taliban\|taliban\|검증" apt-meta-review/SKILL.md
+grep "Naesengmoon\|taliban\|검증" apt-meta-review/SKILL.md
 ```
 
-**Lesson grounding**: MetaReview는 자기 자신을 재귀 호출하면 무한 루프. `self_application_forbidden, max_depth=1, delta=0` 종료 조건 명시 필수. 또한 자기 검증이 아닌 *외부 Taliban gate* 통과 강제.
+**Lesson grounding**: MetaReview는 자기 자신을 재귀 호출하면 무한 루프. `self_application_forbidden, max_depth=1, delta=0` 종료 조건 명시 필수. 또한 자기 검증이 아닌 *외부 Naesengmoon gate* 통과 강제.
 
 ---
 
@@ -70,9 +70,9 @@ grep "Taliban\|taliban\|검증" apt-meta-review/SKILL.md
 ```bash
 $ bash test_skill_hardening.sh
 === Skill Hardening Acceptance Tests ===
---- Taliban Sentinel ---
-[PASS] Taliban: 'IS NOT NULL' HARD BLOCK present
-[PASS] Taliban: null findings → REJECTED rule present
+--- Naesengmoon Sentinel ---
+[PASS] Naesengmoon: 'IS NOT NULL' HARD BLOCK present
+[PASS] Naesengmoon: null findings → REJECTED rule present
 --- APT-SP AtomicSpan Label ---
 [PASS] apt-sp: ':AtomicSpan' label in Cypher examples
 [PASS] apt-sp: AtomicSpan SET/MERGE Cypher present
@@ -82,7 +82,7 @@ $ bash test_skill_hardening.sh
 --- MetaReview SKILL.md ---
 [PASS] apt-meta-review: SKILL.md exists
 [PASS] apt-meta-review: termination conditions present
-[PASS] apt-meta-review: Taliban Gate section present
+[PASS] apt-meta-review: Naesengmoon Gate section present
 
 === Results: PASS=9 FAIL=0 ===
 ALL PASS ✓
@@ -91,7 +91,7 @@ ALL PASS ✓
 `FAIL > 0` 시:
 1. 어떤 SKILL.md가 어떤 grep을 실패했는지 정확히 출력
 2. apt-meta-review가 해당 SKILL.md 패치 작업으로 진입
-3. 패치 후 재실행 → ALL PASS 확인 → Taliban gate
+3. 패치 후 재실행 → ALL PASS 확인 → Naesengmoon gate
 
 ---
 

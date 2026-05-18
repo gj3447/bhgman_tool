@@ -6,7 +6,7 @@
 
 | 파일 | 다루는 내용 |
 |---|---|
-| `meta_review_protocol.md` | 4 단계 (Lesson 생성 → SKILL.md 패치 → MATERIALIZES 갱신 → Taliban Gate) + self-application 차단 |
+| `meta_review_protocol.md` | 4 단계 (Lesson 생성 → SKILL.md 패치 → MATERIALIZES 갱신 → Naesengmoon Gate) + self-application 차단 |
 | `test_hardening.md` | `test_skill_hardening.sh` 의 *이유*와 각 check의 lesson grounding |
 
 ---

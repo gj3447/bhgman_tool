@@ -68,7 +68,7 @@ Threshold (0.7) lives in `MethodologyConfig.tpa_pattern_confidence_instance_of` 
 APT's adversarial round attacks **proposed** design.
 TPA's adversarial round attacks **recovered** design.
 
-Both use the same Taliban GAN-D mechanism (constitutional 9-lens default, mathematical 113-lens for distributed-pattern verification). Difference:
+Both use the same Naesengmoon GAN-D mechanism (constitutional 9-lens default, mathematical 113-lens for distributed-pattern verification). Difference:
 
 | | APT Critic targets | TPA Critic targets |
 |---|---|---|
@@ -91,7 +91,7 @@ TPA discovery (Similarity / QualityGap / NovelPattern / AntiPattern)
       ↓
 APT /apt-scw materialization (real code change in our project)
       ↓
-Taliban gate (independent verification)
+Naesengmoon gate (independent verification)
       ↓
 :Lesson { resolved = true, resolved_at, evidence }
 ```
@@ -104,7 +104,7 @@ This loop is what distinguishes TPA from a code-walker. **A scan that produces n
 
 | TPA | APT mirror | Theme |
 |-----|-----------|-------|
-| TR1 (every gate Taliban) | HR1 | Adversarial mandatory |
+| TR1 (every gate Naesengmoon) | HR1 | Adversarial mandatory |
 | TR2 (evidence required) | HR11 | Anti-rubber-stamp |
 | TR3 (phase order) | HR7 | Gate transition logged |
 | TR11 (executor ≠ reviewer) | HR15 = D20 | Self-approval ban |
@@ -117,7 +117,7 @@ This loop is what distinguishes TPA from a code-walker. **A scan that produces n
 | Ver | Key Change |
 |-----|-----------|
 | v0.3 | Initial 4-phase recovery |
-| v0.4 | MetaVerifier integration for distributed patterns (88-Taliban) |
+| v0.4 | MetaVerifier integration for distributed patterns (88-Naesengmoon) |
 | **v1.0** | **HR1-HR15 (TR series), Lesson feedback loop, MIC slot resolution, gate hook integration** |
 | **v1.1** | **Phase prefix unification (tt → st, tp → sp). Reference doc parity with APT (9 files). TpaHardeningPlan equivalent (2026-05-06).** |
 

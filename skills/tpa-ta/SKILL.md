@@ -8,7 +8,7 @@ description: >
   SemanticAnchor 라우팅 (2-A 신규/2-B 재사용/2-C 브랜치).
   5종 Drift 측정 (Missing/Orphan/SigMismatch/PatternDiv/LabelRot).
   coverage_ratio < 0.8 → status='SUSPENDED' 강제.
-  Longinus 전수 바인딩 + 최종 Taliban gate.
+  Longinus 전수 바인딩 + 최종 Naesengmoon gate.
   Gate Check Hook 강제: SP Gate 통과 없이 진입 불가.
   # KG: ATOM_Skill_tpa_ta, CONTRACT_AS_TPA_ta_SKILL, TPA_methodology_v10
 ---
@@ -28,7 +28,7 @@ WHERE s.name IN ['SubagentSeeder','KgCodeBinder','MetaVerifier','AdversarialVali
 RETURN s.name, s.currentConcrete, s.invocation
 ```
 
-> ⚠️ **본문의 concrete 이름(재배맨/Prometheus/Taliban/Longinus/88-Taliban)은 MIC slot 현재 스냅샷.**
+> ⚠️ **본문의 concrete 이름(재배맨/Prometheus/Naesengmoon/Longinus/88-Naesengmoon)은 MIC slot 현재 스냅샷.**
 > 진짜 호출은 `s.invocation` 경유. MIC_v1 교체 시 본문 무변경.
 
 # KG: MIC_v1, lesson-tpa-gap-drift-validity-threshold-2026-04-14, lesson-tpa-surface-scan-shortcut-2026-04-15, lesson-skill-mic-slot-ref-weak-2026-04-15
@@ -157,7 +157,7 @@ SET dr.coverage_ratio = $bound / toFloat($total),
 
 ---
 
-## 종료 의식 — Taliban 9-lens 최종 Gate
+## 종료 의식 — Naesengmoon 9-lens 최종 Gate
 
 ```cypher
 MATCH (s:MethodologySlot {name:'AdversarialValidator'})
@@ -167,7 +167,7 @@ RETURN s.invocation AS gate
 
 전체 TPA 실행 결과에 대한 최종 검증.
 
-**⚠️ 부모 인라인 APPROVED 금지 — Taliban subagent 최소 1개 독립 출격 강제.**
+**⚠️ 부모 인라인 APPROVED 금지 — Naesengmoon subagent 최소 1개 독립 출격 강제.**
 **⚠️ VR.provenance='subagent-taliban-ta' 필수. 'inline' 이면 향후 Hook에서 차단.**
 **⚠️ 사용자가 "확인해봐"라고 안 해도 자동으로 실행해야 한다.**
 <!-- KG: lesson-taliban-not-auto-triggered-2026-04-16 -->
@@ -177,7 +177,7 @@ ValidationResult 기록:
 ```cypher
 MERGE (vr:ValidationResult {name:'VR_TPA_TA_<target>_<date>', phase:'TA'})
 SET vr.verdict=$verdict, vr.evidence=[...], vr.validated_at=datetime(),
-    vr.validator='Taliban-9lens',
+    vr.validator='Naesengmoon-9lens',
     vr.full_tpa_cycle_approved=CASE $verdict WHEN 'APPROVED' THEN true ELSE false END
 MATCH (exec:TPA_Execution)
 MERGE (exec)-[:HAS_VALIDATION]->(vr)
@@ -199,7 +199,7 @@ SET exec.phase_current='COMPLETE',
 | coverage < 0.8에 drift=0 claim | false baseline (gap06) |
 | drift 5종 중 skip | 사각지대 |
 | 라우팅 결정 암묵 | 이력 추적 불가 |
-| executor가 Taliban 셀프 APPROVED | D20 rubber-stamp |
+| executor가 Naesengmoon 셀프 APPROVED | D20 rubber-stamp |
 | SemanticAnchor 중복 생성 (2-B/2-C 고려 없이 2-A) | 앵커 난립 |
 
 ---
@@ -277,7 +277,7 @@ SET wb.status='CURRENT',
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

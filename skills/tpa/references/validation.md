@@ -96,11 +96,11 @@ Run V1, V2, V3, V4, V11, V28, V29 (all P1-P2). These are the minimum invariants 
 | Event | Payload | When |
 |-------|---------|------|
 | TPA_PhaseEntered | `{exec, phase, target}` | Each `/tpa-*` invocation |
-| TPA_PhaseGatePassed | `{exec, phase, vr, lensSet, lensCount}` | After Taliban gate VR APPROVED |
+| TPA_PhaseGatePassed | `{exec, phase, vr, lensSet, lensCount}` | After Naesengmoon gate VR APPROVED |
 | TPA_DriftMeasured | `{anchor, coverage_ratio, drift_table}` | TA Phase 4 finalization |
 | TPA_LessonCreated | `{lesson, category, severity, target_anchor}` | Discovery on any phase (TR10) |
 | TPA_ActionPlanLinked | `{lesson, action_plan, priority}` | Manual or auto-suggest after TA |
-| TPA_LessonResolved | `{lesson, resolved_by, evidence}` | After APT /apt-scw + Taliban gate |
+| TPA_LessonResolved | `{lesson, resolved_by, evidence}` | After APT /apt-scw + Naesengmoon gate |
 
 ---
 
@@ -122,7 +122,7 @@ These are inherited by APT going forward (the recovered anchor merges with APT's
 |---|--------------|
 | TC1 | TPA recovery is *lossy by theorem*. `confidence` < 1.0 is normal, not bug. |
 | TC2 | Skipping TR15 (acknowledging Essential ✗) = false confidence in recovered design. |
-| TC3 | A TPA cycle with `lessons_count = 0` is suspect — re-run with deeper Taliban prompts. |
+| TC3 | A TPA cycle with `lessons_count = 0` is suspect — re-run with deeper Naesengmoon prompts. |
 | TC4 | INSTANCE_OF without checklist_pass = pattern hallucination. Auto-blocked since v1.1. |
 | TC5 | Distributed pattern recognized but no SP-MetaVerify VR = name-only match (fake CRDT). |
 | TC6 | TA suspending an anchor (`status='SUSPENDED'`) is *protective*, not failure. |

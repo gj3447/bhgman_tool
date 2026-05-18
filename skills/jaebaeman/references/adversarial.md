@@ -23,9 +23,9 @@
 | 7 | N+1 write | transaction count | JB_NPlus1Write |
 | 8 | inline provenance | VR.provenance check | JB_InlineProvenance |
 
-## 3. Critic Input Context (Taliban)
+## 3. Critic Input Context (Naesengmoon)
 
-Taliban critic 이 SOP cycle 검증 시 받는 컨텍스트:
+Naesengmoon critic 이 SOP cycle 검증 시 받는 컨텍스트:
 - SubagentTaskSpec (seed canonical)
 - DispatchHyperedge (cardinality, dispatch_pattern)
 - Seed bundle audit (9 fields present?)

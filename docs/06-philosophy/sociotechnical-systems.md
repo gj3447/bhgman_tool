@@ -58,7 +58,7 @@ ruflo 측 *100+ agents flat enumeration* 은 사회기술적 측면에서 *책�
 
 1. **Harness 3-tier 책임 표 명시** ([../02-concepts/harness.md](../02-concepts/harness.md))
 2. **재배맨 SOP — parent process 측 책임 명시** (subagent stateless, parent 가 모든 책임)
-3. **executor != reviewer 강제** (Taliban) — Cherns Principle 3 (sociotechnical criterion)
+3. **executor != reviewer 강제** (Naesengmoon) — Cherns Principle 3 (sociotechnical criterion)
 4. **KG :Lesson + symmetric pair** — 조직 측 학습 (success bias 회피)
 
 ---

@@ -14,7 +14,7 @@
 |---|---|---|
 | **Inform** | 向 agent 提供 context / KG / skill | "信息无处不至" |
 | **Constrain** | 权限 / scope / token budget / 安全 | "无束缚但不失控" |
-| **Verify** | 输出验证 (Taliban adversarial / test / Lean) | "是否 *正确地* 到达" |
+| **Verify** | 输出验证 (Naesengmoon adversarial / test / Lean) | "是否 *正确地* 到达" |
 | **Correct** | 反馈 → 下次调用调整 | "从失败中学习" |
 
 这是各 instance *内部* 的组织。**非 family 定义** (family 另立 —— 见下)。

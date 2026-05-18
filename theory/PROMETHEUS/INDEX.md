@@ -100,12 +100,12 @@
 Prometheus (지식-행동 spiral)
    ├─ IS slot   : ResearchProvider  (MIC_v1.currentConcrete = "Prometheus")
    ├─ USES slot : SubagentSeeder    (재배맨/SOP)
-   ├─ pair      : Taliban  — Prometheus 의 적대적 검증 짝
+   ├─ pair      : Naesengmoon  — Prometheus 의 적대적 검증 짝
    ├─ feeds     : APT      — SemanticAnchor 단계에서 호출됨 (knowledge-first)
    └─ feeds     : Longinus — Prometheus 가 만든 KG 를 코드까지 관통
 ```
 
-12 사도 #4 비행기맨 짝패가 아니다 — **Prometheus 는 사도가 아닌 도구**. 5대 무기 (Prometheus / Taliban / Longinus / Harness / 재배맨) 중 하나.
+12 사도 #4 비행기맨 짝패가 아니다 — **Prometheus 는 사도가 아닌 도구**. 5대 무기 (Prometheus / Naesengmoon / Longinus / Harness / 재배맨) 중 하나.
 
 ---
 

@@ -87,7 +87,7 @@ bhgman is *not* a pure technical system. The following are STS-aligned design de
 |---|---|
 | 3-tier Harness family | Principle 5 (Boundary Location) |
 | KG as shared accessible record | Principle 6 (Information Flow) |
-| Taliban requires external reviewer | Principle 3 (Sociotechnical Criterion — variance at origin) |
+| Naesengmoon requires external reviewer | Principle 3 (Sociotechnical Criterion — variance at origin) |
 | Skills are reusable across humans | Principle 4 (Multifunctionality) |
 | Documentation is part of the design | Principle 8 (Human Values) |
 | Quarterly Lakatos audit, framework evolves | Principle 9 (Incompletion) |

@@ -159,7 +159,7 @@ APT (G producer) vs Critic (D adversarial):
 > Pirsig 1974/1991 Metaphysics of Quality — 단일 lens ≠ truth, multiple lens UNION 만 holistic synthesis.
 
 ```
-APT critic = Taliban LensSet UNION (4 sets):
+APT critic = Naesengmoon LensSet UNION (4 sets):
   - constitutional 9-axis (정전 위반 detect)
   - mathematical 113-axis (formal property)
   - solid 5-axis (SRP/OCP/LSP/ISP/DIP)

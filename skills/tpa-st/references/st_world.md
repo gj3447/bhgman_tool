@@ -12,7 +12,7 @@
 | 질문 | 답 |
 |------|----|
 | pre-gate | TCW VR APPROVED via Hook |
-| post-gate | Taliban 9-lens VR + Convention/Apt 라벨 분리 검증 + Longinus 바인딩 |
+| post-gate | Naesengmoon 9-lens VR + Convention/Apt 라벨 분리 검증 + Longinus 바인딩 |
 | 결정 | 명시 interface/trait → `:AptContract`, N≥3 implementor 공유 시그니처 → `:ConventionalContract` |
 | 위임 | LOC>100 메서드는 SP phase로 (giant method, atomic 아님) |
 
@@ -172,7 +172,7 @@ MERGE (exec)-[:PHASE_OUTPUT {order:2}]->(st)
 
 ---
 
-## 11. Taliban 9-lens 종료 의식
+## 11. Naesengmoon 9-lens 종료 의식
 
 Critic 입력:
 - AptContract:ConventionalContract 비율 (이상한 분포 → 의심)
@@ -184,7 +184,7 @@ Critic 입력:
 MERGE (vr:ValidationResult {name:'VR_TPA_ST_'+$target+'_'+$date, phase:'ST'})
 SET vr.verdict = $verdict,
     vr.evidence = [...],
-    vr.validator = 'Taliban-9lens',
+    vr.validator = 'Naesengmoon-9lens',
     vr.provenance = 'subagent-taliban-st',
     vr.validated_at = datetime()
 ```

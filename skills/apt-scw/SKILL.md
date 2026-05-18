@@ -10,7 +10,7 @@ description: >
   v26 A5: FulfillmentGate 7 checks enforced via apt-gate-check.sh Cypher query (executor!=critic + LensSet completeness + prior VR APPROVED). TDAD (impact_tests mandatory).
   v26 A4: vibe_coding_sweet/min/hard_max via MethodologyConfig slot (no more hardcoded 500).
   v24: KG 정본 기반 재설계. AptClarificationNote 반영.
-  Active Weapons (2026-05-14): 재배맨 single-message N parallel Task dispatch (wave_index batch, Step 10) + Longinus L5-L7 forward binding (Code → `# KG:` ref comment, Step 12) + Taliban `/tlb <SourceCodeNode> --lens constitutional` FulfillmentGate 7-check (Step 13). hub-jaebaeman-sop + hub-longinus-reference + hub-taliban-immunity resolve.
+  Active Weapons (2026-05-14): 재배맨 single-message N parallel Task dispatch (wave_index batch, Step 10) + Longinus L5-L7 forward binding (Code → `# KG:` ref comment, Step 12) + Naesengmoon `/tlb <SourceCodeNode> --lens constitutional` FulfillmentGate 7-check (Step 13). hub-jaebaeman-sop + hub-longinus-reference + hub-taliban-immunity resolve.
   # KG: ATOM_Skill_apt_scw, CONTRACT_apt_scw, APT_v26_RFC_draft_2026-04-21, ATOM_APT_v26_Gate_Hook_Lens_Enforcement_2026-04-21
 ---
 
@@ -62,16 +62,16 @@ RETURN s.name, s.currentConcrete, s.invocation
 | Step | Weapon | Invocation | Trigger | Output |
 |------|--------|-----------|---------|--------|
 | Step 10 (wave dispatch) | **재배맨** (SubagentSeeder) | single-message N parallel `Task()` calls (max=`cfg.parallel_max_agents`, wave_index 같은 SubagentTaskSpec batch) | ST APPROVED + AtomicSpan.wave_index 결정 + SubagentTaskSpec FK 준비 | N 개 parallel implementation results (single assistant turn) |
-| Step 11 (TDD RED→GREEN→REFACTOR) | **재배맨** + **Taliban** | per-Task: RED test write → GREEN code → impact_tests verify → mini-RGR | wave dispatch 후 각 Task 내부 | Code + test (per AtomicSpan, ≤ `cfg.vibe_coding_hard_max` LOC) |
+| Step 11 (TDD RED→GREEN→REFACTOR) | **재배맨** + **Naesengmoon** | per-Task: RED test write → GREEN code → impact_tests verify → mini-RGR | wave dispatch 후 각 Task 내부 | Code + test (per AtomicSpan, ≤ `cfg.vibe_coding_hard_max` LOC) |
 | Step 12 (Code → KG ref comment) | **Longinus** (KgCodeBinder) | L5-L7 forward binding: 모든 함수/클래스/모듈에 `# KG: <node_name>` 주석 강제 | GREEN 통과 직후 (PostToolUse Write/Edit hook) | `SourceCodeNode` + `MATERIALIZES` edge + Longinus 7-tuple binding |
-| Step 13 (FulfillmentGate 7-check) | **Taliban** (AdversarialValidator) | `/tlb <SourceCodeNode> --lens constitutional`: (1) executor!=critic (2) LensSet completeness (3) prior VR APPROVED (4) Contract 4-측면 충족 (5) `# KG:` ref 존재 (6) impact_tests PASS (7) fat-file ratchet 통과 | 모든 wave task GREEN + Longinus binding 완료 | `VerdictRecord` APPROVED + Cleanup 진입 trigger |
+| Step 13 (FulfillmentGate 7-check) | **Naesengmoon** (AdversarialValidator) | `/tlb <SourceCodeNode> --lens constitutional`: (1) executor!=critic (2) LensSet completeness (3) prior VR APPROVED (4) Contract 4-측면 충족 (5) `# KG:` ref 존재 (6) impact_tests PASS (7) fat-file ratchet 통과 | 모든 wave task GREEN + Longinus binding 완료 | `VerdictRecord` APPROVED + Cleanup 진입 trigger |
 
 **SCW 진입 hub**: `hub-jaebaeman-sop` (wave dispatch parallel) + `hub-longinus-reference` (Code↔KG binding) + `hub-taliban-immunity` (FulfillmentGate).
 
 **Anti-pattern 금지**:
 - Sequential Task dispatch (= 재배맨 위반) — 반드시 *single assistant turn* 측 N parallel.
 - Code orphan (= Longinus 위반) — `# KG:` 주석 없는 함수/클래스는 PostToolUse hook 측 차단.
-- Same-model critic (= Taliban HR3 위반) — design model ≠ critic model 강제.
+- Same-model critic (= Naesengmoon HR3 위반) — design model ≠ critic model 강제.
 
 # KG: hub-jaebaeman-sop, hub-longinus-reference, hub-taliban-immunity, MIC_v1.SubagentSeeder, MIC_v1.KgCodeBinder, MIC_v1.AdversarialValidator
 
@@ -122,9 +122,9 @@ IF executor(코드 작성자) == reviewer(Fulfilled 선언자):
 
 올바른 절차:
 1. SCW executor가 Task 구현 → acceptance_criteria 테스트 통과 확인
-2. /taliban SCW Gate 실행 (executor != Taliban)
-3. Taliban APPROVED → 그때만 ValidationResult(phase='SCW', verdict='APPROVED') 기록
-4. 기록 주체 = Taliban agent (or 별도 reviewer), 절대 executor 본인 아님
+2. /taliban SCW Gate 실행 (executor != Naesengmoon)
+3. Naesengmoon APPROVED → 그때만 ValidationResult(phase='SCW', verdict='APPROVED') 기록
+4. 기록 주체 = Naesengmoon agent (or 별도 reviewer), 절대 executor 본인 아님
 ```
 
 ---
@@ -294,7 +294,7 @@ SCW → SA 피드백: "프로젝트 범위 변경 필요"
 | `cfg.vibe_coding_hard_max` 초과 파일 | Task 단위 초과 | SP로 돌아가 추가 분해 |
 | Contract 무시하고 코드 | 물질화가 아닌 임의 구현 | Contract `{{cfg.contract_default_fields}}`대 필드 준수 (현재 7) |
 | 코드를 정본으로 취급 | KG가 canonical | Neo4j Canonicality 원칙 |
-| executor = reviewer | 자기 승인 금지 | Taliban D20 protocol |
+| executor = reviewer | 자기 승인 금지 | Naesengmoon D20 protocol |
 
 ---
 
@@ -328,7 +328,7 @@ MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

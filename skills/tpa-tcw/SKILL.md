@@ -26,7 +26,7 @@ WHERE s.name IN ['SubagentSeeder','ResearchProvider','KgCodeBinder','Adversarial
 RETURN s.name, s.currentConcrete, s.invocation
 ```
 
-> ⚠️ **본문의 `재배맨`/`Prometheus`/`Taliban`/`Longinus`/`88-Taliban`은 MIC slot의 현재 스냅샷.**
+> ⚠️ **본문의 `재배맨`/`Prometheus`/`Naesengmoon`/`Longinus`/`88-Naesengmoon`은 MIC slot의 현재 스냅샷.**
 > 진짜 호출은 항상 `s.invocation` 경유 (`/tlb`, `/prom`, `/longinus`, `/88-taliban`, taskspec 조회).
 > `MIC_v1` 업데이트(예: AdversarialValidator.currentConcrete = "FutureValidator")되면 본문 수정 불필요.
 
@@ -226,21 +226,21 @@ MERGE (exec)-[:PHASE_OUTPUT {order:1}]->(tcw)
 6. [ ] **treasure_coverage_min 만족** (기본 0.9)
 7. [ ] **TCW_Result + PHASE_OUTPUT order=1 엣지 존재 + sourcePath+sourceId SET 확인**
 8. [ ] **grep 교차 검증 완료** — 에이전트 합산 vs grep 실측 ±10% 이내 (pub struct/trait/enum 각각)
-9. [ ] **Taliban subagent 최소 1개 독립 실행 완료** — VR.provenance MUST contain 'subagent' (인라인 APPROVED 금지)
+9. [ ] **Naesengmoon subagent 최소 1개 독립 실행 완료** — VR.provenance MUST contain 'subagent' (인라인 APPROVED 금지)
 
 하나라도 실패 → `status='INCOMPLETE'` 기록 후 중단.
 
 ---
 
-## 종료 의식 — Taliban subagent 자동 출격 (강제, 선택 아님)
+## 종료 의식 — Naesengmoon subagent 자동 출격 (강제, 선택 아님)
 
 <!-- KG: lesson-taliban-not-auto-triggered-2026-04-16, lesson-tpa-gate-self-approved-2026-04-16 -->
 
-**⚠️ 부모가 직접 APPROVED 찍는 것은 금지. Taliban subagent를 반드시 출격시켜라.**
+**⚠️ 부모가 직접 APPROVED 찍는 것은 금지. Naesengmoon subagent를 반드시 출격시켜라.**
 **⚠️ 사용자가 "확인해봐"라고 안 해도 자동으로 실행해야 한다.**
 
 ```
-# 1. 자동 Taliban subagent 출격 (최소 1개, 권장 3개)
+# 1. 자동 Naesengmoon subagent 출격 (최소 1개, 권장 3개)
 Agent(model=sonnet, prompt="You are an ADVERSARIAL REVIEWER. Verify TPA TCW claims...")
 
 # 2. subagent 결과로만 VR 생성 (부모 인라인 판정 금지)
@@ -253,7 +253,7 @@ SET vr.verdict=$subagent_verdict,  // subagent가 결정, 부모가 결정 아�
     vr.evidence=$subagent_evidence,
     vr.validated_at=datetime(),
     vr.provenance='subagent-taliban-tcw',  // 'inline' 이면 Hook에서 차단
-    vr.validator='Taliban-9lens'
+    vr.validator='Naesengmoon-9lens'
 MATCH (exec:TPA_Execution {name:'TPA_exec_<target>_<date>'})
 MERGE (exec)-[:HAS_VALIDATION]->(vr)
 ```
@@ -280,7 +280,7 @@ taskspec.treasure_coverage_min ≥ 0.9 (권장). 아래 두 treasure 강제:
 | grep 단독 스캔 | 주석/문자열 오인 → false symbol | |
 | skipped_files > 0에 gate PASS | 부분 스캔 = 사각지대 | |
 | unknown skip | 지식 공백 누적 | |
-| Taliban gate 셀프 APPROVED | rubber-stamp (D20 위반) | |
+| Naesengmoon gate 셀프 APPROVED | rubber-stamp (D20 위반) | |
 | ValidationResult 직접 verdict 작성 | AdversarialValidator 실제 호출해야 함 | |
 | 재배맨 taskspec 조회 생략 | 컨텍스트 오염 + 병렬 기회 상실 | |
 | **디렉토리명으로 에이전트 지시** | 하위 디렉토리 재귀 탐색 안 됨. "all .rs in dir" → `ls`만 실행 | lesson-tpa-directory-instruction-ambiguity-2026-04-16 |
@@ -374,7 +374,7 @@ SET wb.status='CURRENT', wb.phase='TPA TCW in progress', wb.pending=$pending, wb
 
 ## MIC Binding Disclaimer
 
-> 이 SKILL.md에서 "Prometheus", "Taliban", "88-Taliban", "Longinus", "재배맨" 등의
+> 이 SKILL.md에서 "Prometheus", "Naesengmoon", "88-Naesengmoon", "Longinus", "재배맨" 등의
 > concrete 이름은 MIC_v1 MethodologySlot의 **현재 바인딩(currentConcrete)**이다.
 > Slot이 다른 concrete로 교체되면 이 파일의 이름도 drift한다.
 > 정본 해석: `MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})-[:HAS_SLOT]->(s) RETURN s.name, s.currentConcrete`

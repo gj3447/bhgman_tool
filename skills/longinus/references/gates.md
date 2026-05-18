@@ -30,7 +30,7 @@ G7: Drift Report  — 5 kind + coverage_ratio
    ↓
 G8: Reverse Orphan Scan  — code → KG mapping audit (v3.1)
    ↓
-G9: Taliban --lens longinus  — final gate
+G9: Naesengmoon --lens longinus  — final gate
    ↓
 [Verdict + Lesson candidates]
 ```
@@ -223,7 +223,7 @@ RETURN total_orphans
 
 ---
 
-## 11. G9 Taliban --lens longinus Gate
+## 11. G9 Naesengmoon --lens longinus Gate
 
 ```
 Use the taliban-ensemble-critic agent with --lens longinus to validate <target>

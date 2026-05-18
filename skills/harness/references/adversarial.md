@@ -21,9 +21,9 @@ Harness diagnosis 는 *external evidence* 의존:
 | 6 | 4축 한 축만 max score | distribution skew | balanced score 강제 |
 | 7 | Lakatos rescue 가설 받아들임 | 4-criterion 강제 | DEGENERATING 표시 |
 
-## 3. Critic Input Context (Taliban)
+## 3. Critic Input Context (Naesengmoon)
 
-Harness 진단 결과를 Taliban critic 이 검증 시 받는 컨텍스트:
+Harness 진단 결과를 Naesengmoon critic 이 검증 시 받는 컨텍스트:
 - HarnessProfile (tier + 4-axis score + evidence per axis)
 - Anti-pattern detection list
 - Family-Relation Mirror position

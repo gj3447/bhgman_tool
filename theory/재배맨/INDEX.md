@@ -106,7 +106,7 @@
 ```
 재배맨 (SOP — 4-Phase 프로토콜)
    ├─ IS slot   : SubagentSeeder  (MIC_v1.currentConcrete = "재배맨")
-   ├─ 직접 소비자 : Prometheus (ResearchProvider) / Taliban (AdversarialValidator) / Solve / APT-* / TPA-*
+   ├─ 직접 소비자 : Prometheus (ResearchProvider) / Naesengmoon (AdversarialValidator) / Solve / APT-* / TPA-*
    ├─ 간접 소비자 : Longinus (KgCodeBinder) — audit cycle 측 subagent dispatch 시 4-Phase 따름
    ├─ self      : 모든 subagent 동작의 *바닥* — 5 무기 중 가장 lower-level
    └─ math      : Lean μX algebra `inductive JaebaeMan { atomic | governs }`

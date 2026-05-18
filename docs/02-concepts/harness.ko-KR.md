@@ -14,7 +14,7 @@
 |---|---|---|
 | **Inform** | agent 에게 context / KG / skill 제공 | "어디든 정보 도달" |
 | **Constrain** | 권한 / scope / token budget / 안전 | "묶이지 않되 폭주 안 함" |
-| **Verify** | output 검증 (Taliban adversarial / test / Lean) | "도달 후 *맞게* 도달했나" |
+| **Verify** | output 검증 (Naesengmoon adversarial / test / Lean) | "도달 후 *맞게* 도달했나" |
 | **Correct** | 피드백 → 다음 호출 보정 | "실패에서 학습" |
 
 이게 industry agent scaffolding 의 *내부* 조직. **family 측 정의가 아님** (family 는 별도 — 아래).

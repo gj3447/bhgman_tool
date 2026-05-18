@@ -84,7 +84,7 @@ D54 (`finding_solid_D54_connections_theory`)는 5무기↔5SOLID functor 가설�
 |---|---|---|
 | Inform | (없음 — Prometheus 영역) | — |
 | Constrain | OCP + ISP + LSP | 강 (3:1) |
-| Verify | LSP (Taliban이 instrumentation) | 약 |
+| Verify | LSP (Naesengmoon이 instrumentation) | 약 |
 | Correct | (없음 — APT meta-review 영역) | — |
 
 → **결론**: Harness 4축 = SOLID 5원리의 *상위 frame*이지 *대응*이 아님. SOLID는 Harness Constrain 축의 한 lens.
@@ -109,7 +109,7 @@ D54 (`finding_solid_D54_connections_theory`)는 5무기↔5SOLID functor 가설�
 - `finding_solid_D54_connections_theory` (golden, 5무기↔SOLID functor 가설)
 - `finding_solid_D44_alternatives_pitfalls` (안티패턴 10대)
 - `finding_solid_D15_principle_critique` (5원리 비직교성)
-- `lesson-solid-lensset-design-2026-04-16` (Taliban LensSet에 SOLID 5렌즈 등록 후보)
+- `lesson-solid-lensset-design-2026-04-16` (Naesengmoon LensSet에 SOLID 5렌즈 등록 후보)
 
 ---
 
@@ -264,7 +264,7 @@ KG: 4 finding-prom16-harness-B{1-4}-*-2026-05-10. Lean: `Harness_LawvereFixedPoi
 **Harness 매핑** (PROGRESSIVE_INDEPENDENT_CONFIRM):
 - 5/5 invariant drift = 0 (CLAUDE.md thin / 500-line / Progressive Disclosure / Pushy / Producer-Reviewer)
 - 8 추가 alignment axes 발견 (3 STRONG: incremental QA / evolution 3-signal / team-size cognitive limit + 5 GAP)
-- **Producer-Reviewer triple-canonical-grounding**: revfactory Phase 2 pattern 4 ↔ Taliban D20 (HR11) ↔ Goodfellow 2014 GAN minimax — `producer-reviewer-triple-canonical-2026-05-10` :Hyperedge:CrossCanonGrounding 결정화
+- **Producer-Reviewer triple-canonical-grounding**: revfactory Phase 2 pattern 4 ↔ Naesengmoon D20 (HR11) ↔ Goodfellow 2014 GAN minimax — `producer-reviewer-triple-canonical-2026-05-10` :Hyperedge:CrossCanonGrounding 결정화
 
 KG: `finding-prom16-harness-C1-revfactory-2026-05-10` (STRONG)
 

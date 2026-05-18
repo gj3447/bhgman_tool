@@ -1,7 +1,7 @@
-# 탈레반 (Taliban) — Index
+# 나생문 (Naesengmoon) — Index
 
 > 공학 측 정전 둥지. **APT 의 면역 시스템.** 적대적 검증 (Discriminator).
-> 한 줄: *"이거 진짜 맞아?"* — Design=G, Taliban=D 의 GAN 협력. Popper falsifiability 의 LLM 결정화.
+> 한 줄: *"이거 진짜 맞아?"* — Design=G, Naesengmoon=D 의 GAN 협력. Popper falsifiability 의 LLM 결정화.
 
 ---
 
@@ -37,10 +37,10 @@
 
 ---
 
-## 2. 5무기 family closure (탈레반 측면)
+## 2. 5무기 family closure (나생문 측면)
 
 ```
-Prometheus(G)  ──INVOKES_VALIDATOR (Step 7-A)──→  Taliban(D)
+Prometheus(G)  ──INVOKES_VALIDATOR (Step 7-A)──→  Naesengmoon(D)
                                                        │
                        ┌───── USES_SLOT ────→ 재배맨    │
                        │ (4 LensSet 별 dispatch)        │
@@ -52,12 +52,12 @@ Prometheus(G)  ──INVOKES_VALIDATOR (Step 7-A)──→  Taliban(D)
                             (D20: executor ≠ reviewer)
 ```
 
-**탈레반이 *3 무기 위에서 작동***:
-1. **Prometheus** 가 생성자 — Step 7-A 가 Taliban 자동 출격.
+**나생문이 *3 무기 위에서 작동***:
+1. **Prometheus** 가 생성자 — Step 7-A 가 Naesengmoon 자동 출격.
 2. **재배맨** 가 substrate — 각 lens 가 SubagentTaskSpec 으로 결정화 dispatch.
 3. **Longinus** 가 binding — 검증 대상 (Span/Contract) KG↔code 추적.
 
-→ 5무기 family closure 의 *최종 결정점*. Taliban 없이는 *고무도장* (rubber stamp) 위험.
+→ 5무기 family closure 의 *최종 결정점*. Naesengmoon 없이는 *고무도장* (rubber stamp) 위험.
 
 ---
 
@@ -81,12 +81,12 @@ Prometheus(G)  ──INVOKES_VALIDATOR (Step 7-A)──→  Taliban(D)
 2. **Anti-Rubber-Stamp** (HR11) — APPROVED 는 evidence 인용 의무
 3. **UNION coverage ≥ 0.8** (v0.8.A1) — Pirsig synthesis
 4. **만장일치 PASS** — any FAIL → final FAIL (Popper falsifiability)
-5. **Prom→Taliban auto-dispatch** (SKILL.md L805-831, Step 7-A)
+5. **Prom→Naesengmoon auto-dispatch** (SKILL.md L805-831, Step 7-A)
 
 ---
 
 ## 5. 한 줄
 
-**탈레반 = GAN-D + Popper falsifiability + 4 LensSet ensemble + D20/HR11 invariant. SKILL v3.1 정본 + Python 53 pytest + Lean 24 theorem 3중. 5무기 family closure 의 검증 측 종결자.**
+**나생문 = GAN-D + Popper falsifiability + 4 LensSet ensemble + D20/HR11 invariant. SKILL v3.1 정본 + Python 53 pytest + Lean 24 theorem 3중. 5무기 family closure 의 검증 측 종결자.**
 
 # KG: ATOM_Skill_taliban, sv-taliban-v3.1.1-2026-05-12, taliban-adversarial-runtime-prototype-2026-05-12

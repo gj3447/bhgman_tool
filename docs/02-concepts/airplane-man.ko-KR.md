@@ -45,7 +45,7 @@ CHU 자체 (Computable Hyper Universe — 모든 것이 hyperedge 인 type unive
 | 정의 | `∀x:CHU, j.covers x` | 4축 (Inform/Constrain/Verify/Correct) 모델 + 3-tier sibling family |
 | 형태 | type-level predicate | runtime architecture |
 | 실현 | 직접 불가능 (∀ 위의 single agent) | 1:N family approximation (L_MC + L_RT + L_IDE 합쳐서 ∀-cover 근사) |
-| 검증 | Lawvere FPT 측 self-reference 한계 인정 | Cypher Gate Hook + Taliban adversarial validation |
+| 검증 | Lawvere FPT 측 self-reference 한계 인정 | Cypher Gate Hook + Naesengmoon adversarial validation |
 
 ruflo / LangGraph / CrewAI / Cursor / Claude Code 같은 industry framework 는 *모두 Harness L_RT / L_IDE 한 tier 의 instance*. 비행기맨 정점은 아니다. (자세히는 [harness.md](harness.md) §3-tier.)
 

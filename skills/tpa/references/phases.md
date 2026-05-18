@@ -17,28 +17,28 @@
 │  AST harvest         │  enter: code present
 │  manifest assertion  │  output: TPA_TCW_Result + symbol manifest
 └──────────────────────┘
-   │ Taliban 9-lens VR + Reflection (TR9) + KG log (TR7)
+   │ Naesengmoon 9-lens VR + Reflection (TR9) + KG log (TR7)
    ▼
 ┌──────────────────────┐
 │ Phase 2 — ST        │  /tpa-st             (TargetSemanticTwin)
 │  contract extraction │  enter: TCW VR APPROVED
 │  Apt vs Conventional │  output: TPA_ST_Result + AptContract + ConventionalContract
 └──────────────────────┘
-   │ Taliban 9-lens VR + Reflection + KG log
+   │ Naesengmoon 9-lens VR + Reflection + KG log
    ▼
 ┌──────────────────────┐
 │ Phase 3 — SP        │  /tpa-sp             (TargetPyramid)
 │  pattern matching    │  enter: ST VR APPROVED
 │  GoF + Distributed   │  output: TPA_SP_Result + INSTANCE_OF / RESEMBLES edges
 └──────────────────────┘
-   │ Taliban 9-lens VR + 88-Taliban for Distributed + KG log
+   │ Naesengmoon 9-lens VR + 88-Naesengmoon for Distributed + KG log
    ▼
 ┌──────────────────────┐
 │ Phase 4 — TA        │  /tpa-ta             (TargetAnchor)
 │  anchor + 5-drift    │  enter: SP VR APPROVED
 │  coverage_ratio      │  output: SemanticAnchor (or status='SUSPENDED')
 └──────────────────────┘
-   │ Final Taliban VR + Lesson Loop fires
+   │ Final Naesengmoon VR + Lesson Loop fires
    ▼
 [DESIGN ANCHORED + LESSONS GENERATED]
 ```
@@ -70,7 +70,7 @@
 5. ResearchProvider auto-trigger on Unknown (TR6)
    - any unrecognized syntax pattern → /prom auto + KnowledgeNode created
 6. TPA_TCW_Result node created (per §1.3)
-7. Taliban 9-lens VR (TR1)
+7. Naesengmoon 9-lens VR (TR1)
 8. Reflection (TR9) + KG log (TR7)
 
 ### 1.3 Output Schema
@@ -109,7 +109,7 @@ MERGE (exec)-[:PHASE_OUTPUT {order:1}]->(tcw)
    - no node has both `:AptContract` AND `:ConventionalContract`
 4. Longinus binding (TR12)
    - each Contract gets `:ReferenceSite { sourcePath: file:line }`
-5. TPA_ST_Result node + Taliban 9-lens VR + KG log
+5. TPA_ST_Result node + Naesengmoon 9-lens VR + KG log
 
 ### 2.3 Output Schema
 ```cypher
@@ -139,7 +139,7 @@ MERGE (exec)-[:PHASE_OUTPUT {order:2}]->(st)
    - **Structural** (Facade/Adapter/Composite/...) → AST signature matching (Longinus)
    - **Behavioral** (Strategy/Observer/Command/...) → call graph analysis (Longinus)
    - **Creational** (Factory/Builder/Singleton/...) → instantiation trace (Longinus + grep)
-   - **Distributed** (CRDT/BFT/HotStuff/Kademlia/...) → math properties (88-Taliban MetaVerifier)
+   - **Distributed** (CRDT/BFT/HotStuff/Kademlia/...) → math properties (88-Naesengmoon MetaVerifier)
    - **PL** (DuckTyping/TypeClass/Monad/...) → language feature lookup (ResearchProvider)
 3. Required-element checklist (TR2)
    - every INSTANCE_OF candidate evaluated against pattern's required-element list
@@ -147,10 +147,10 @@ MERGE (exec)-[:PHASE_OUTPUT {order:2}]->(st)
    - some elements present → confidence < 0.7 → RESEMBLES
    - name match only → confidence < 0.4 → not recorded
 4. Distributed mandatory MetaVerify
-   - any INSTANCE_OF to Distributed pattern → 88-Taliban auto-fire
+   - any INSTANCE_OF to Distributed pattern → 88-Naesengmoon auto-fire
    - SP-MetaVerify VR APPROVED is gate-blocking
 5. NovelPattern recording for unmatched
-6. TPA_SP_Result node + Taliban 9-lens VR + KG log
+6. TPA_SP_Result node + Naesengmoon 9-lens VR + KG log
 
 ### 3.3 Output Schema
 ```cypher
@@ -194,7 +194,7 @@ MERGE (exec)-[:PHASE_OUTPUT {order:3}]->(sp)
 5. Lesson Feedback Loop fires (cycle terminal)
    - all discoveries → :Lesson nodes
    - top-priority Lessons → :ActionPlan stubs for APT /apt-scw consumption
-6. Final Taliban 9-lens VR + KG log
+6. Final Naesengmoon 9-lens VR + KG log
 
 ### 4.3 Output Schema
 ```cypher

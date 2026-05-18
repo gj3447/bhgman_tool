@@ -30,7 +30,7 @@
 - *(bin)* Kg-mirror-monthly.sh — TIER 3 minio offsite (PROM 16 A10, monthly cron) ([`5aeab67`](#5aeab6710de8ab0b7564b135aa8ce19d08f00eee))
 - *(apt v28-draft)* SKILL_v28_thin.md parallel draft — per rfc-apt-parsimony-pass-2026-05-14 ([`be59666`](#be59666c5c1aa7c1fc505543a639ee4c166e7042))
 - *(apt v28-draft)* Reactivate v18 SubagentArchitecture + v12 diffusion frame + v20 descent validation ([`dd235dc`](#dd235dc7dfb71169811e577da05c45f75a5a5b13))
-- *(apt v28)* 6-agent parallel dispatch — Triple scaffold + Orchestrator §15 + 3 Lean + Taliban A3 REJECT ([`646c0d7`](#646c0d76a9940e6dede0f4af7fb95e7eeb858770))
+- *(apt v28)* 6-agent parallel dispatch — Triple scaffold + Orchestrator §15 + 3 Lean + Naesengmoon A3 REJECT ([`646c0d7`](#646c0d76a9940e6dede0f4af7fb95e7eeb858770))
 - *(fix-agent v0.1.0-draft)* §8 rubber-stamp recurrence mitigation — 3-prong (orthogonal-lens rotation + patch-fuzzing sublens + attempt-cap sigma_oracle injection) ([`f63189b`](#f63189bcb1dc1bacc8cf174850c9b2620c7dd35b))
 - *(apt-d)* S2 skill scaffold + fix-agent K-01 empirical test sprint ([`33bb3da`](#33bb3da092d962f1ad59f3ee85c3f9c0d1d77e45))
 - *(skills)* APT 5무기 active integration + ruflo cache directive + dispatch-only guard ([`b84bf9c`](#b84bf9cc4133055cf8f401a8c992f44059f95d9a))

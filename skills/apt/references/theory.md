@@ -404,7 +404,7 @@ Governance Mold -STARTS_WITH-> Intent Mold -NEXT-> Boundary Mold -NEXT-> Executi
 | `tarski_violating_means_self_truth_no_meta` | Tarski-violating 정의 |
 | **`apt_tarski_compliant`** | **APT methodology = Tarski-compliant (does NOT define own truth, has KG metalanguage)** |
 | `apt_has_metalanguage` | KG = APT 의 external metalanguage |
-| **`five_sources_pairwise_distinct`** | **5 external verdict source pairwise distinct** (Taliban / Ground Truth / HUMAN / Lakatos / Lean) |
+| **`five_sources_pairwise_distinct`** | **5 external verdict source pairwise distinct** (Naesengmoon / Ground Truth / HUMAN / Lakatos / Lean) |
 | `apt_v17_ensemble_complete` | APT v17 5-source ensemble complete |
 | `three_constraints_distinct_responses` | Tarski/Gödel/Hofstadter 3 limit constraints 의 APT response 각각 distinct |
 | `tarski_under_self_ref_sub_axis` | Tarski = Russell-Lawvere-Yanofsky-Hofstadter cluster sub-axis (NOT separate canon) |
@@ -420,7 +420,7 @@ Governance Mold -STARTS_WITH-> Intent Mold -NEXT-> Boundary Mold -NEXT-> Executi
 | `three_canon_distinct` | Goodfellow / Pirsig / Bacchelli-Bird 3 canon distinct contributions |
 | **`apt_v17_review_valid`** | **APT v17 review setup valid (executor != reviewer + allowSelfApproval=false LOCKED)** |
 | `same_agent_invalid` | producer = critic ⇒ Bacchelli-Bird violation |
-| **`apt_taliban_lens_134`** | **APT Taliban LensSet 총 134 axes (constitutional 9 + math 113 + solid 5 + longinus 7)** |
+| **`apt_taliban_lens_134`** | **APT Naesengmoon LensSet 총 134 axes (constitutional 9 + math 113 + solid 5 + longinus 7)** |
 | `coverage_81_meets_precondition` | 81% coverage ≥ PROM 16 PRECONDITION_FULLY_MET threshold |
 | **`mode_collapse_no_refutation`** | **Goodfellow GAN-D mode collapse 형식 — critic 가 BLOCKER/PERFORMANCE 0 ⇒ no real refutation** |
 | `apt_v17_adversarial_fully_grounded` | APT v17 adversarial round = 3 canon 모두 grounded |
@@ -516,7 +516,7 @@ KG: `lean-apt-cycle-functor-2026-05-11` + `lean-apt-atomic-span-mdl-2026-05-11` 
 | `apt_single_pass_insufficient` | 단일 source PASS 부족 — 5 verdict source ensemble UNION ≥ 0.81 mandatory (Popper asymmetry industry instantiation) |
 | **`apt_meta_falsifiability_corroborated_by_audits`** | **5 regression audit PASS = methodology *corroborated*, NOT *verified*** (Popper 엄격 준수, M(M) max_depth=1 self-applied) |
 | `apt_three_worlds_complete` | World 1 (physical: AST) / World 2 (mental: 화자 intent) / World 3 (objective: SemanticPyramid + KG) — APT cycle 3-world 횡단 |
-| `apt_crucial_experiment_adversarial` | Taliban LensSet adversarial round = Popper crucial experiment 의 industry instantiation (critic ≠ producer, V15 LOCKED) |
+| `apt_crucial_experiment_adversarial` | Naesengmoon LensSet adversarial round = Popper crucial experiment 의 industry instantiation (critic ≠ producer, V15 LOCKED) |
 | `apt_two_layer_grounding` | HR1-HR19 Hard Rules ≠ Cleanup Ratchet PH6 — *naive Popper falsification site* vs *Lakatos sophisticated protective belt* 명시 구분 |
 | **`apt_popper_lakatos_dual_grounding`** | **Popper *and* Lakatos 동시 grounded** — predecessor + extension, 두 layer 모두 explicit |
 

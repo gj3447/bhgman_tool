@@ -12,7 +12,7 @@
 | 질문 | 답 |
 |------|----|
 | pre-gate | ST VR APPROVED via Hook |
-| post-gate | Taliban 9-lens VR + Pattern Library precondition + Distributed → SP-MetaVerify VR |
+| post-gate | Naesengmoon 9-lens VR + Pattern Library precondition + Distributed → SP-MetaVerify VR |
 | 결정 | `INSTANCE_OF` (confidence ≥ 0.7) / `RESEMBLES` (< 0.7) / 매칭 안 함 (< 0.4) |
 | 위임 | giant method (TCW에서 deferred) → 패턴 분류 후 분해/Contract 화 결정 |
 
@@ -38,7 +38,7 @@ Library 미달 시 BLOCK + ResearchProvider 호출 (`/prom 16 "missing patterns 
 | **Structural** (Facade/Adapter/Composite/Decorator/Proxy/Bridge/Flyweight) | AST 시그니처 매칭 (wrapping/delegation pattern) | KgCodeBinder + grep |
 | **Behavioral** (Strategy/Observer/Command/State/Iterator/Visitor/...) | 메서드 호출 그래프 (polymorphic dispatch) | KgCodeBinder + call graph |
 | **Creational** (Factory/Builder/Singleton/AbstractFactory/Prototype) | 생성 지점 추적 | KgCodeBinder + grep |
-| **Distributed** (CRDT/BFT/HotStuff/Kademlia/Raft/Paxos/Vector_Clock/HLC/Merkle_Tree/LWW/Gossip) | **수학 속성 검증 강제** (commute/assoc/idempotent/safety/liveness) | **MetaVerifier (88-Taliban mathematical lens)** |
+| **Distributed** (CRDT/BFT/HotStuff/Kademlia/Raft/Paxos/Vector_Clock/HLC/Merkle_Tree/LWW/Gossip) | **수학 속성 검증 강제** (commute/assoc/idempotent/safety/liveness) | **MetaVerifier (88-Naesengmoon mathematical lens)** |
 | **PL** (DuckTyping/TypeClass/Monad/Continuation/Arrow) | 언어 기능 존재 확인 | ResearchProvider (lang docs) |
 | **Architectural** | 모듈 의존 그래프 + 데이터 흐름 | KgCodeBinder + Longinus |
 
@@ -58,8 +58,8 @@ Library 미달 시 BLOCK + ResearchProvider 호출 (`/prom 16 "missing patterns 
 | **Factory** | (a) 생성 로직 분리 (b) 반환 타입이 trait/interface (concrete 아님) |
 | **Adapter** | (a) 기존 인터페이스 변환 (b) 원본 코드 수정 없음 |
 | **Composite** | (a) 개별/집합 동일 인터페이스 (b) 재귀 구조 |
-| **CRDT** | (a) commute (b) assoc (c) idempotent — *세 속성 모두* 88-Taliban 수학 검증 통과 |
-| **Raft / Paxos** | (a) safety (b) liveness 88-Taliban 수학 검증 |
+| **CRDT** | (a) commute (b) assoc (c) idempotent — *세 속성 모두* 88-Naesengmoon 수학 검증 통과 |
+| **Raft / Paxos** | (a) safety (b) liveness 88-Naesengmoon 수학 검증 |
 
 **판정 절차**:
 1. 필수요소 *전부* 확인 (코드에서 evidence 인용)
@@ -101,7 +101,7 @@ MERGE (src)-[r:RESEMBLES {
 INSTANCE_OF edge가 `category='Distributed'` 패턴으로 생성되는 *즉시*:
 
 ```
-역할: 88-Taliban MetaVerifier (agentId=M<idx>)
+역할: 88-Naesengmoon MetaVerifier (agentId=M<idx>)
 TaskSpec: MATCH (ts:SubagentTaskSpec {name:'taskspec-88taliban-distributed'}) RETURN *
 Target: 매칭한 Distributed DesignPattern (CRDT / BFT / HotStuff / Kademlia / Raft / Paxos / Vector_Clock / HLC / Merkle_Tree / LWW)
 검증할 수학 속성: commute / assoc / idempotent / safety / liveness (패턴별 상이)
@@ -136,7 +136,7 @@ SET np.description = $desc,
 MERGE (sp:TPA_SP_Result)-[:IDENTIFIES_NOVEL]->(np)
 ```
 
-NovelPattern은 즉시 Pattern Library 추가 *안 함*. Lesson 통해 사용자 verdict + 88-Taliban math (Distributed인 경우) 후 결정.
+NovelPattern은 즉시 Pattern Library 추가 *안 함*. Lesson 통해 사용자 verdict + 88-Naesengmoon math (Distributed인 경우) 후 결정.
 
 ---
 
@@ -186,7 +186,7 @@ MERGE (exec)-[:PHASE_OUTPUT {order:3}]->(sp)
 | 증상 | 원인 | 처방 |
 |------|------|------|
 | INSTANCE_OF 다수, checklist_pass=true 비율 낮음 | TR_PatternHallucination (이름만 매칭) | 모두 RESEMBLES로 downgrade, lesson 생성 |
-| Distributed pattern matched, no SP-MetaVerify VR | TR_DistributedNameOnly | 88-Taliban auto-fire 후 재실행 |
+| Distributed pattern matched, no SP-MetaVerify VR | TR_DistributedNameOnly | 88-Naesengmoon auto-fire 후 재실행 |
 | confidence ≥ 0.7 인데 evidence empty | HR11 위반 | BLOCK + lesson |
 | novel patterns 폭증 (>5/cycle) | Library stale OR 진짜 신규 도메인 | references/error_handling.md §6 (Library audit) |
 | SP-MetaVerify FAIL | 수학 속성 미충족 (실제 false positive) | INSTANCE_OF 제거 + RESEMBLES로 + lesson |

@@ -10,7 +10,7 @@
 1. Lesson 생성 (의심 → 명시화)
 2. SKILL.md 패치 (lesson → 코드)
 3. MATERIALIZES 갱신 (Contract/Span 상태 sync)
-4. Taliban Gate (외부 검증)
+4. Naesengmoon Gate (외부 검증)
 ```
 
 ---
@@ -92,12 +92,12 @@ RETURN l.name, size(affected_contracts) AS contracts_to_resync
 
 ---
 
-## 단계 4: Taliban Gate
+## 단계 4: Naesengmoon Gate
 
-self-review 금지. **외부 Taliban이 검증**:
+self-review 금지. **외부 Naesengmoon이 검증**:
 
 ```cypher
-// Taliban dispatch (subagent)
+// Naesengmoon dispatch (subagent)
 MERGE (taskspec:SubagentTaskSpec {name:'TS_metareview_taliban_gate_'+$lesson_name})
 SET taskspec.target = $lesson_name,
     taskspec.lens_set = 'constitutional',
@@ -105,7 +105,7 @@ SET taskspec.target = $lesson_name,
     taskspec.dispatched_at = datetime()
 ```
 
-Taliban 결과:
+Naesengmoon 결과:
 - `APPROVED`: Lesson 정당 + SKILL.md 패치 적절 → Lesson status='resolved'
 - `REJECTED`: 다시 단계 1로 (lesson refinement)
 - `NEEDS_REVIEW`: 인간 위임
@@ -136,8 +136,8 @@ RETURN 'E_MR_SelfApplication' AS error,
 
 ### E-MR-1: Lesson auto_resolve
 **Context:** Lesson 생성 후 즉시 `SET resolved=true`.
-**Lesson:** silent acceptance = AP4. 외부 검증 (Taliban) 없이 자기 해결.
-**Guard:** Lesson 생성 cypher가 `auto_resolve=false` 명시. Taliban APPROVED만 status='resolved' 허용.
+**Lesson:** silent acceptance = AP4. 외부 검증 (Naesengmoon) 없이 자기 해결.
+**Guard:** Lesson 생성 cypher가 `auto_resolve=false` 명시. Naesengmoon APPROVED만 status='resolved' 허용.
 
 ### E-MR-2: Self-application
 **Context:** MetaReview가 자기 자신을 review 호출.

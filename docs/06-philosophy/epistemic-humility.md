@@ -15,7 +15,7 @@ bhgman 측 도구는 다음 invariant 강제:
 1. **모든 quantitative claim 측 외부 정전 인용 mandatory**
    - "X 가 좋다" 가 아니라 "X 가 [Robert Martin Package Principles] 측 CCP 를 만족"
 2. **모든 self-claim 측 외부 verifier 통과 mandatory**
-   - Taliban LensSet adversarial gate (executor != reviewer 강제)
+   - Naesengmoon LensSet adversarial gate (executor != reviewer 강제)
    - Lean 4 형식 검증 (가능 시)
 3. **모든 success 측 비-자명 case 만 Lesson 으로 결정화**
    - "잘 됐다" 가 아니라 *왜* 잘 됐는지 + 외부 verdict + symmetric pair (wrongAssumption ↔ truth)

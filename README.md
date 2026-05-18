@@ -72,7 +72,7 @@ The engineering crystallization (called **Harness**) of the Airplane Man (#4)'s 
 - ❌ CHU type theory canon → separate repo `chu` (planned, Computable Hyper Universe)
 - ❌ OMC (Orbital Motion Cloud, OM=OMC, apostle #8) canon → separate repo `omc` (planned)
 - ❌ 333 (Hypervoid Volunteer, apostle #3) canon → separate repo `333` (planned)
-- ❌ Other 4 weapons (Longinus / Prometheus / Taliban / Jaebaeman) canon → reference only here, body in SYMPOSIUM
+- ❌ Other 4 weapons (Longinus / Prometheus / Naesengmoon / Jaebaeman) canon → reference only here, body in SYMPOSIUM
 
 ---
 
@@ -138,7 +138,7 @@ See [docs/01-quickstart.md](docs/01-quickstart.md).
 | **Layer separation** | none (single layer self-claim) | apostle (existence) ⊥ tool (this repo) ⊥ essence (separate) — **3 layers** |
 | **External canonical citations** | 0 | **17 axes** — Lawvere / Tarski / Gödel / Yanofsky / Hofstadter / Goodhart / Evans / Smith / Cherns / ... |
 | **Formal verification** | `ruflo verify` signed witness (code integrity only) | **141+ Lean 4 theorems** (Mathlib-free, 0 sorry) |
-| **Self-reference safety** | "84.8% SWE-Bench / 32% token reduction" — Goodhart violation itself | Lawvere FPT + Lakatos quarterly audit + Taliban adversarial **3-layer safeguard** |
+| **Self-reference safety** | "84.8% SWE-Bench / 32% token reduction" — Goodhart violation itself | Lawvere FPT + Lakatos quarterly audit + Naesengmoon adversarial **3-layer safeguard** |
 | **Family structure** | flat 32 plugins / 100 agents / 314 tools (CCP/CRP violation) | 3-tier sibling family + responsibility_split sub-type (Mirror STRONG) |
 | **Confidence schema** | float edge confidence (under-specified) | **EXTRACTED / INFERRED / AMBIGUOUS** 3-tier enum (graphify mirror, Lean T1 verified, 19 pytest PASS) |
 | **Tool vs essence separation** | none | **explicit** (this repo = tool only) |

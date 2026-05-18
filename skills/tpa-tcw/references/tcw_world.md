@@ -12,11 +12,11 @@
 | 질문 | 답 |
 |------|----|
 | 언제 시작? | 외부 repo 분석 의뢰 받았을 때 (`/tpa <path>` 자동 진입) |
-| 무엇을 산출? | `:TPA_TCW_Result` (manifest + symbol list + LOC distribution) + Taliban TCW VR |
+| 무엇을 산출? | `:TPA_TCW_Result` (manifest + symbol list + LOC distribution) + Naesengmoon TCW VR |
 | 무엇을 *하지* 않는가? | 의도 추론, 패턴 매칭, contract 추출 — 그 셋은 ST/SP/TA에서 |
 | 입력 | 디렉토리 path, optional config (parallel.max_agents) |
 | pre-gate | 없음 — TCW가 시작 phase. Hook은 통과시킴 (`echo '{}' && exit 0`) |
-| post-gate | Taliban 9-lens VR + 매니페스트 무결성 (TR5 union check) |
+| post-gate | Naesengmoon 9-lens VR + 매니페스트 무결성 (TR5 union check) |
 
 ---
 
@@ -128,7 +128,7 @@ MERGE (exec:TPA_Execution {name: $exec_name})-[:PHASE_OUTPUT {order:1}]->(tcw)
 
 ---
 
-## 8. Taliban 9-lens (종료 의식)
+## 8. Naesengmoon 9-lens (종료 의식)
 
 ```cypher
 MATCH (s:MethodologySlot {name:'AdversarialValidator'})
@@ -152,7 +152,7 @@ Critic 이 ≥3 finding 못 만들면 escalated prompt (references/adversarial.m
 MERGE (vr:ValidationResult {name:'VR_TPA_TCW_'+$target+'_'+$date, phase:'TCW'})
 SET vr.verdict = $verdict,
     vr.evidence = [...],
-    vr.validator = 'Taliban-9lens',
+    vr.validator = 'Naesengmoon-9lens',
     vr.target_phase = 'TCW',
     vr.validated_at = datetime(),
     vr.provenance = 'subagent-taliban-tcw'
@@ -176,7 +176,7 @@ SET exec.status = CASE $verdict
 | `parser_symbol_count = 0` | 파서 binary 미설치 / 버전 mismatch | references/error_handling.md §3 |
 | `unknown_count > 50` | 새 언어 / 새 macro 다수 | ResearchProvider 사전 호출 (`/prom 16`) |
 | `skipped_files > 0` | feature-gated 코드 미스캔 | `#[cfg]` 등 동등 스캔 명시 (TR5) |
-| Taliban verdict = REJECT 반복 | manifest 결함 또는 파서 버그 | iter < 3에서 sigma_oracle escalate |
+| Naesengmoon verdict = REJECT 반복 | manifest 결함 또는 파서 버그 | iter < 3에서 sigma_oracle escalate |
 
 ---
 

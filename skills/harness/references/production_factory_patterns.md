@@ -20,7 +20,7 @@
 | **Hierarchical Delegation** | 재귀 위임 (top-down) | ADK A2A protocol / Agents SDK | Constrain (책임 split) |
 
 → 6 pattern 은 5 model 위 cross-cutting *recipe*. L_RT instance 설계 시 *(model, pattern)* 짝 명시 필수.
-→ Producer-Reviewer ↔ Taliban D20 (executor != reviewer) 정전 1:1 거울 — Anti-Rubber-Stamp 의 industry independent confirm.
+→ Producer-Reviewer ↔ Naesengmoon D20 (executor != reviewer) 정전 1:1 거울 — Anti-Rubber-Stamp 의 industry independent confirm.
 
 ---
 
@@ -40,7 +40,7 @@ revfactory Phase 3 정전: QA agent 는 *general-purpose* type (`Explore` 읽기
 3. **`general-purpose` type forced** (Anthropic Claude Code agent 제약).
    - 빌트인 타입이라도 `.claude/agents/{qa-agent}.md` 정의 파일 mandatory.
 
-→ Taliban 의 *specific QA instance* — boundary-cross 가 lensSet 의 unspecified 영역. SYMPOSIUM 추가 lens 후보: `boundary_cross_shape_match` (LL.10 candidate).
+→ Naesengmoon 의 *specific QA instance* — boundary-cross 가 lensSet 의 unspecified 영역. SYMPOSIUM 추가 lens 후보: `boundary_cross_shape_match` (LL.10 candidate).
 
 ---
 
@@ -100,7 +100,7 @@ revfactory Phase 7-4 정전: 사용자 명시 명령 *밖* 진화 trigger.
 | Signal | 감지 | 자동 행동 |
 |---|---|---|
 | 같은 유형 피드백 2회+ 반복 | KG `:Verdict` count + EXPLAINED_BY 같은 RootCause | Lesson 결정화 + Skill 본문 패치 propose |
-| 에이전트 반복 실패 패턴 | KG `:ValidationResult` REJECTED count by skill | Skill drift audit dispatch (Taliban) |
+| 에이전트 반복 실패 패턴 | KG `:ValidationResult` REJECTED count by skill | Skill drift audit dispatch (Naesengmoon) |
 | 사용자가 오케스트레이터 *우회* 수동 작업 관찰 | Skill 호출 vs 직접 작업 비율 | Skill description "pushy" 강화 + trigger overlap 검사 |
 
 SYMPOSIUM 매핑:
@@ -125,7 +125,7 @@ RETURN rc.name, occurrence ORDER BY occurrence DESC
 | CLAUDE.md = thin pointer + 변경 이력 | ✓ (2026-05-09 longinus L4 적용) | ✓ Phase 5-4 정전 | 0 |
 | Skills < 500 line + references/ Progressive Disclosure 3-stage | ✓ (310 line + 8 ref) | ✓ Phase 4-4 정전 | 0 |
 | Pushy descriptions (적극적 트리거) | ✓ (frontmatter Invoke when:) | ✓ Phase 4-2 정전 | 0 |
-| Producer-Reviewer (executor != reviewer) | ✓ (Taliban D20 / HR11) | ✓ Phase 2 6-pattern 4번 | 0 |
+| Producer-Reviewer (executor != reviewer) | ✓ (Naesengmoon D20 / HR11) | ✓ Phase 2 6-pattern 4번 | 0 |
 | Anthropic Skills format (`name`/`description` frontmatter) | ✓ | ✓ | 0 |
 
 → 독립 convergence 5/5. 정전성 industry-confirmed.

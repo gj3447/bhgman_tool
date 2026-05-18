@@ -101,7 +101,7 @@ bhgman embraces this: the Airplane Man's self-definition is *itself* a strange l
 ## Practical lessons for tool users
 
 When using bhgman:
-- ✅ Accept that *some* questions about your code/agents have no formal answer from within the system. Use external judgment (humans, Taliban, tests).
+- ✅ Accept that *some* questions about your code/agents have no formal answer from within the system. Use external judgment (humans, Naesengmoon, tests).
 - ✅ Treat "complete framework" claims with suspicion. Either: marketing, or hidden external judgment.
 - ✅ Use incompleteness *constructively* — open questions are productive; closed systems with hidden incompleteness aren't.
 - ❌ Don't expect bhgman (or anything else) to verify *all* its own properties internally.

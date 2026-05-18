@@ -6,14 +6,14 @@
 
 | TPA Rule | APT 원본 | 역방향 적용 |
 |---|---|---|
-| TR1 | HR1 (Adversarial at every gate) | 동일 — 매 phase gate에 Taliban |
+| TR1 | HR1 (Adversarial at every gate) | 동일 — 매 phase gate에 Naesengmoon |
 | TR2 | HR11 (Evidence-backed verdict) | 동일 — APPROVED에 증거 필수 |
 | TR3 | HR7 (Gate transition logged) | 역순: TCW→ST→SP→TA 순서 강제 |
 | TR4 | (신규) | AST 파서 필수 — grep 단독은 false positive |
 | TR5 | (신규) | skipped_files = 0 — 사각지대 방지 |
 | TR6 | HR5 (KG density) | Unknown → ResearchProvider 자동 |
 | TR7 | HR7 (KG logging) | 동일 — 모든 전환 기록 |
-| TR8 | HR12 (2-Tier Taliban) | 동일 — artifact vs methodology 분리 |
+| TR8 | HR12 (2-Tier Naesengmoon) | 동일 — artifact vs methodology 분리 |
 | TR9 | HR14 (Post-gate reflection) | 동일 — reflection 필수 |
 | TR10 | (신규) | Lesson 즉시 생성 — 피드백 루프 핵심 |
 | TR11 | HR2+HR3 (executor ≠ reviewer) | 동일 — D20 원칙 |
