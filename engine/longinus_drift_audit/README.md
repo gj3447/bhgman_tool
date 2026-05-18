@@ -91,3 +91,43 @@ longinus_drift_audit_prototype/
 ```
 
 # KG: longinus-drift-audit-prototype-2026-05-12
+
+---
+
+## Parallelism (L1 + L2, 2026-05-18)
+
+L1 = `code_scanner.scan_root` 파일 fan-out via `ProcessPoolExecutor`.
+L2 = `LonginusAudit.run_full` post-barrier 5-phase fan-out via `ThreadPoolExecutor` (drift / reverse_orphan / forward_orphan / sha256_verify / GED).
+
+### API
+
+```python
+# L1: scan only
+syms, refs = code_scanner.scan_root(root, parallel=True, threshold=5000)
+
+# L2: full audit
+audit = LonginusAudit(kg=kg, code_root=root, parallel=True)
+report = audit.run_full()
+```
+
+`threshold` (env `LONGINUS_PARALLEL_FILE_THRESHOLD`, default 5000) gates L1 — below it, sequential codepath runs.
+
+### Empirical bench (`bench/bench_parallel.py`, M-series macOS, 2026-05-18)
+
+| file_count | sequential | full_parallel | speedup |
+|---|---|---|---|
+| 100 | 12 ms | 35 ms | **0.34× (slower)** |
+| 2000 | 464 ms | 421 ms | 1.10× |
+| 5000 | 1404 ms | 1282 ms | 1.10× |
+| 10000 | 5129 ms | 2588 ms | **1.98×** |
+| real (bhgman_tool, 78 files) | 62 ms | 75 ms | 0.83× |
+
+**Honest verdict**: at the current regex-only scanner, per-file work (~50μs) is so cheap that ProcessPool spawn + IPC pickle dominates until ~5000 files. Default `parallel=False` on `LonginusAudit` matches this — flip it on for repos ≥10000 files or after swapping the scanner for AST/tree-sitter (per-file CPU 100×, then parallel dominates by `ncpus`).
+
+L2 ThreadPool fan-out also adds 10-30% overhead with Mock KG (in-memory). Real Neo4j (network-IO bound) should benefit — not yet measured.
+
+Tests `test_parallel_invariant.py` enforce parallel-mode AuditReport ≡ sequential output (7 invariant tests + 120 baseline = 127 total).
+
+# KG: longinus-parallel-scan-2026-05-18 (L1 PRELIMINARY)
+# KG: longinus-parallel-fanout-2026-05-18 (L2 PRELIMINARY)
+# KG: lesson-longinus-parallel-breakeven-2026-05-18

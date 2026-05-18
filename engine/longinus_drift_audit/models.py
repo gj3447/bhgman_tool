@@ -69,7 +69,15 @@ _SOURCE_ID_PATTERN = re.compile(
    The KG dash-pattern is also accepted (lesson-/finding-/seed- prefixes).
 """
 _SOURCE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9/_.\-]+:[0-9]+(-[0-9]+)?$")
-"""file:line or file:line-end."""
+"""file:line or file:line-end (ASCII)."""
+_DIRECTORY_OR_PATH_PATTERN = re.compile(r"^[^\s:]+$")
+"""Directory- or filename-shape sourcePath (no colon, no whitespace).
+
+Permits unicode (e.g. Korean `재배맨/`). Used for:
+- L7_FullStack_DirCluster sites that bind a whole directory (sha256 → DIRECTORY_SKIP).
+- L1-Document / L2-AxisFinding sites whose fs_path is a `.md` file without line range.
+Added 2026-05-19 (lesson-bhgman-tool-sha256-baseline-already-covered-2026-05-19).
+"""
 
 
 class Sha256Status(str, Enum):
@@ -146,9 +154,16 @@ class ReferenceSite(BaseModel):
     @field_validator("sourcePath")
     @classmethod
     def _check_path(cls, v: str) -> str:
-        if not _SOURCE_PATH_PATTERN.match(v):
-            raise ValueError(f"sourcePath must match 'file:line(-end)' — got {v!r}")
-        return v
+        if _SOURCE_PATH_PATTERN.match(v) or _DIRECTORY_OR_PATH_PATTERN.match(v):
+            return v
+        raise ValueError(
+            f"sourcePath must match 'file:line(-end)' or non-empty path "
+            f"without whitespace/colons — got {v!r}"
+        )
+
+    @property
+    def is_directory_path(self) -> bool:
+        return ":" not in self.sourcePath
 
     @property
     def file(self) -> str:
@@ -156,11 +171,19 @@ class ReferenceSite(BaseModel):
 
     @property
     def line_start(self) -> int:
+        if self.is_directory_path:
+            raise ValueError(
+                f"line_start undefined for directory-shape sourcePath {self.sourcePath!r}"
+            )
         rng = self.sourcePath.split(":", 1)[1]
         return int(rng.split("-")[0])
 
     @property
     def line_end(self) -> Optional[int]:
+        if self.is_directory_path:
+            raise ValueError(
+                f"line_end undefined for directory-shape sourcePath {self.sourcePath!r}"
+            )
         rng = self.sourcePath.split(":", 1)[1]
         return int(rng.split("-")[1]) if "-" in rng else None
 

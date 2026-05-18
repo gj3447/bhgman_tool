@@ -25,7 +25,23 @@ class TestReferenceSite:
 
     def test_invalid_path_rejected(self):
         with pytest.raises(ValueError, match="sourcePath"):
-            ReferenceSite(sourceId="lesson-x", sourcePath="no-line-info")
+            ReferenceSite(sourceId="lesson-x", sourcePath="path with spaces")
+
+    def test_directory_path_accepted(self):
+        rs = ReferenceSite(
+            sourceId="ATOM_dir_07projects_apt_specs",
+            sourcePath="07_PROJECTS/APT/specs",
+        )
+        assert rs.is_directory_path is True
+        assert rs.file == "07_PROJECTS/APT/specs"
+        with pytest.raises(ValueError, match="line_start undefined"):
+            _ = rs.line_start
+        with pytest.raises(ValueError, match="line_end undefined"):
+            _ = rs.line_end
+
+    def test_file_path_not_directory_shape(self):
+        rs = ReferenceSite(sourceId="lesson-foo-2026", sourcePath="src/foo.py:42")
+        assert rs.is_directory_path is False
 
     def test_module_dot_symbol(self):
         rs = ReferenceSite(sourceId="Prometheus.cycle_runner", sourcePath="x.py:1")

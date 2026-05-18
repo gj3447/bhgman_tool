@@ -1,6 +1,8 @@
 """LonginusAudit — orchestrator + CLI.
 
 E2E: scan code → list KG refs → detect 5 drifts → GED → reverse orphan → layer coverage.
+
+# KG: longinus-parallel-fanout-2026-05-18 (L2 parallel fan-out PRELIMINARY)
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ import datetime as dt
 import hashlib
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import code_scanner
@@ -24,6 +27,21 @@ from kg_client import KgClient, MockKgClient
 from models import AuditReport
 
 
+def _forward_orphan_phase(kg: KgClient):
+    hubs = kg.list_knowledge_hubs()
+    return forward_orphan_scan.scan_forward_orphans(hubs)
+
+
+def _sha256_phase(kg: KgClient, verify_sha256: bool):
+    sites = kg.list_reference_site_states()
+    baseline_count = sum(1 for s in sites if s.sha256_baseline)
+    events: list = []
+    if verify_sha256 and sites:
+        result = sha256_baseline.verify_baseline(kg=kg, sites=sites)
+        events = result.drift_events
+    return events, baseline_count
+
+
 class LonginusAudit:
     def __init__(
         self,
@@ -31,10 +49,18 @@ class LonginusAudit:
         kg: KgClient | None = None,
         code_root: Path | str,
         audit_id: str | None = None,
+        parallel: bool = False,
     ):
+        """parallel default False — empirical bench (2026-05-18) shows L2
+        ThreadPool fan-out is parity-or-slower for Mock KG + regex-only scanner.
+        Flip to True for real Neo4j (network-IO bound) or after swapping the
+        scanner to AST/tree-sitter (per-file CPU > IPC overhead). See
+        ``bench/bench_parallel.py`` and KG lesson-longinus-parallel-breakeven-2026-05-18.
+        """
         self.kg = kg or MockKgClient()
         self.code_root = Path(code_root).resolve()
         self.audit_id = audit_id or self._make_audit_id()
+        self.parallel = parallel
 
     @staticmethod
     def _make_audit_id() -> str:
@@ -47,35 +73,45 @@ class LonginusAudit:
         Wave 6 additions (2026-05-14):
             - sha256 baseline verify (BX PutGet roundtrip on disk hash)
             - forward orphan scan (KG :KnowledgeHub → package_path materialization)
-        """
-        # 1. Scan code
-        symbols, _flat_refs = code_scanner.scan_root(self.code_root)
 
-        # 2. List KG refs
-        kg_refs_list = self.kg.list_reference_sites()
+        Parallel (L2, 2026-05-18): with ``self.parallel`` true, post-barrier 5
+        independent phases (drift_detect / reverse_orphan / forward_orphan /
+        sha256_verify / GED) fan out via ThreadPoolExecutor. Output is
+        byte-identical to sequential — all phases consume immutable snapshots.
+        """
+        # Barrier 1: scan + KG ref fetch (independent, can parallelize)
+        if self.parallel:
+            with ThreadPoolExecutor(max_workers=2) as ex:
+                f_scan = ex.submit(code_scanner.scan_root, self.code_root)
+                f_kg_refs = ex.submit(self.kg.list_reference_sites)
+                symbols, _flat_refs = f_scan.result()
+                kg_refs_list = f_kg_refs.result()
+        else:
+            symbols, _flat_refs = code_scanner.scan_root(self.code_root, parallel=False)
+            kg_refs_list = self.kg.list_reference_sites()
         kg_refs = {r.sourceId: r for r in kg_refs_list}
 
-        # 3. Detect 5 drifts
-        drift_records = drift_detector.detect_all(symbols=symbols, kg_refs=kg_refs)
+        # Barrier 2: 5 independent phases (drift / reverse / forward / sha256 / GED)
+        if self.parallel:
+            with ThreadPoolExecutor(max_workers=5) as ex:
+                f_drift = ex.submit(drift_detector.detect_all, symbols=symbols, kg_refs=kg_refs)
+                f_reverse = ex.submit(reverse_orphan_scan.scan_reverse_orphans, symbols=symbols)
+                f_forward = ex.submit(_forward_orphan_phase, self.kg)
+                f_sha = ex.submit(_sha256_phase, self.kg, verify_sha256)
+                f_ged = ex.submit(ged_metric.compute_ged, kg_refs=kg_refs, code_symbols=symbols)
+                drift_records = f_drift.result()
+                orphans = f_reverse.result()
+                forward_orphans = f_forward.result()
+                sha256_drift_events, sha256_baseline_count = f_sha.result()
+                ged_report = f_ged.result()
+        else:
+            drift_records = drift_detector.detect_all(symbols=symbols, kg_refs=kg_refs)
+            orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=symbols)
+            forward_orphans = _forward_orphan_phase(self.kg)
+            sha256_drift_events, sha256_baseline_count = _sha256_phase(self.kg, verify_sha256)
+            ged_report = ged_metric.compute_ged(kg_refs=kg_refs, code_symbols=symbols)
+
         drift_summary = drift_detector.summarize_drifts(drift_records)
-
-        # 4. Reverse Orphan (Code → KG)
-        orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=symbols)
-
-        # 4b. Forward Orphan (KG hub → disk) — Wave 6
-        hubs = self.kg.list_knowledge_hubs()
-        forward_orphans = forward_orphan_scan.scan_forward_orphans(hubs)
-
-        # 4c. sha256 baseline verify — Wave 6
-        sha256_sites = self.kg.list_reference_site_states()
-        sha256_baseline_count = sum(1 for s in sha256_sites if s.sha256_baseline)
-        sha256_drift_events: list = []
-        if verify_sha256 and sha256_sites:
-            verify_result = sha256_baseline.verify_baseline(kg=self.kg, sites=sha256_sites)
-            sha256_drift_events = verify_result.drift_events
-
-        # 5. GED
-        ged_report = ged_metric.compute_ged(kg_refs=kg_refs, code_symbols=symbols)
 
         # 6. Layer coverage
         total_kg_refs_in_code = sum(len(s.kg_refs) for s in symbols)

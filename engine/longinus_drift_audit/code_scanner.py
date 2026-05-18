@@ -1,15 +1,35 @@
 """grep-based code scanner — extract source symbols + `# KG: xxx` references.
 
 LSP fallback. Real production may swap for tree-sitter / py-LSP / rust-analyzer.
+
+# KG: longinus-parallel-scan-2026-05-18 (L1 parallel scan PRELIMINARY)
 """
 
 from __future__ import annotations
 
+import os
 import re
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Iterable, Iterator
 
 from models import CodeSymbol
+
+
+_DEFAULT_PARALLEL_THRESHOLD = int(os.environ.get("LONGINUS_PARALLEL_FILE_THRESHOLD", "5000"))
+"""File-count threshold below which scan_root stays sequential.
+
+Empirical break-even on M-series macOS (bench/bench_parallel.py 2026-05-18):
+regex-only per-file scan is so cheap (~50μs) that ProcessPool spawn + pickle
+IPC dominates until ~5000 files. Below that, sequential is faster.
+
+If you swap the scanner for AST/tree-sitter/GumTree (per-file work ~5-50ms),
+drop this threshold to ~50-100 — parallel will then dominate by ncpus.
+
+Override: env LONGINUS_PARALLEL_FILE_THRESHOLD or kwarg ``threshold=``.
+
+# KG: lesson-longinus-parallel-breakeven-2026-05-18
+"""
 
 
 _KG_REF_PATTERN = re.compile(r"#\s*KG:\s*([a-zA-Z0-9_\-./, ]+)")
@@ -79,16 +99,49 @@ def scan_python_symbols(file_path: Path) -> list[CodeSymbol]:
     return out
 
 
-def scan_root(root: Path) -> tuple[list[CodeSymbol], list[tuple[Path, int, str]]]:
+def _scan_one_file(f: Path) -> tuple[list[CodeSymbol], list[tuple[Path, int, str]]]:
+    """Top-level worker — picklable for ProcessPoolExecutor."""
+    syms = scan_python_symbols(f)
+    refs: list[tuple[Path, int, str]] = []
+    for line_no, kg_names in scan_kg_refs(f):
+        for name in kg_names:
+            refs.append((f, line_no, name))
+    return syms, refs
+
+
+def scan_root(
+    root: Path,
+    *,
+    parallel: bool = True,
+    max_workers: int | None = None,
+    threshold: int | None = None,
+) -> tuple[list[CodeSymbol], list[tuple[Path, int, str]]]:
     """Returns (symbols, all_kg_refs_with_location).
 
     all_kg_refs: [(file, line, kg_ref_name)] flattened. line-level granular.
+
+    Parallel (L1, 2026-05-18): when ``parallel`` and file count >= ``threshold``,
+    dispatch per-file scan via ProcessPoolExecutor. Output is sorted by path so
+    downstream GED / dict-keyed structures stay deterministic across both
+    codepaths (sequential and parallel must produce byte-identical AuditReport).
+
+    Env override: ``LONGINUS_PARALLEL_FILE_THRESHOLD`` (default 100).
     """
+    files = sorted(iter_files(root))
+    thresh = threshold if threshold is not None else _DEFAULT_PARALLEL_THRESHOLD
+
+    if not parallel or len(files) < thresh:
+        per_file = [_scan_one_file(f) for f in files]
+    else:
+        # chunksize reduces per-task pickle round trips. For regex-light work,
+        # large chunks (~50-200) outperform the default chunksize=1.
+        chunksize = max(1, len(files) // ((max_workers or os.cpu_count() or 4) * 4))
+        with ProcessPoolExecutor(max_workers=max_workers) as ex:
+            per_file = list(ex.map(_scan_one_file, files, chunksize=chunksize))
+
     syms: list[CodeSymbol] = []
     refs: list[tuple[Path, int, str]] = []
-    for f in iter_files(root):
-        syms.extend(scan_python_symbols(f))
-        for line_no, kg_names in scan_kg_refs(f):
-            for name in kg_names:
-                refs.append((f, line_no, name))
+    for syms_i, refs_i in per_file:
+        syms.extend(syms_i)
+        refs.extend(refs_i)
     return syms, refs
