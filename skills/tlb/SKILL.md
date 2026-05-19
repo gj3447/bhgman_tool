@@ -4,12 +4,13 @@ kg_ref: ATOM_Skill_tlb_alias
 version: "2.0.0"
 channel: stable
 description: >
-  `/taliban`의 짧은 별칭(alias). `/tlb <target>` == `/taliban <target>`.
-  사용법: `/tlb SPAN_xxx`, `/tlb CONTRACT_yyy`, `/tlb --lens solid 대상`.
+  `/taliban`의 짧은 별칭(alias). `/tlb <target>` == `/taliban <target>` == `/나생문 <target>`.
+  Canonical 측 나생문 (사용자 verdict 2026-05-19 PRIMARY).
+  사용법: `/tlb SPAN_xxx`, `/tlb CONTRACT_yyy`, `/tlb --lens solid 대상`, `/tlb --cardinality 3 대상` (3중 = 3 distinct lens default).
   Invoke when: 적대적 검증 빠르게 실행. 나생문 방법론과 동일.
   실제 로직(렌즈셋 플러거블 + 재배맨 SubagentTaskSpec 씨앗 기반 자동 출격)은
   /taliban SKILL.md를 그대로 따른다. 본문 복제 없음 (drift 방지).
-  # KG: ATOM_Skill_taliban, alias-of-taliban
+  # KG: ATOM_Skill_taliban, alias-of-taliban, alias-of-naesengmoon, naesengmoon-canonical-2026-05-19 (CanonicalName)
 ---
 
 # /tlb — `/taliban` alias

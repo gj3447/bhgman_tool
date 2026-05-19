@@ -1,6 +1,7 @@
-# 나생문 (Naesengmoon) — Index
+# 나생문 (Naesengmoon, 羅生門) — Index
 
 > 공학 측 정전 둥지. **APT 의 면역 시스템.** 적대적 검증 (Discriminator).
+> Canonical = 나생문 (사용자 verdict 2026-05-19 PRIMARY). Aliases: taliban / tlb / 88-taliban / Rashomon.
 > 한 줄: *"이거 진짜 맞아?"* — Design=G, Naesengmoon=D 의 GAN 협력. Popper falsifiability 의 LLM 결정화.
 
 ---
@@ -9,10 +10,12 @@
 
 | 측면 | 위치 |
 |---|---|
-| **공학 측 자료집 (본 폴더)** | `THEORY/TALIBAN/` |
-| **공학 정본 (SKILL)** | `SERVER/.claude/skills/taliban/SKILL.md v3.1 + v0.8.A1 ensemble` |
+| **공학 측 자료집 (본 폴더)** | `theory/나생문/` (formerly `theory/TALIBAN/`, dir rename 2026-05-19) |
+| **공학 정본 (SKILL)** | `skills/taliban/SKILL.md v3.2 + v0.8.A1 ensemble (사용자 verdict 2026-05-19 cardinality 1:1 + agent KG-resident)` |
 | **신화 측 자료집** | `METAHUMOTONIC/BHGMAN/taliban/SOURCES.md` |
-| **113-lens 정전** | `THEORY/TALIBAN/113_LENS_TAXONOMY.md` (2026-05-02 closed) |
+| **113-lens 정전** | `theory/나생문/113_LENS_TAXONOMY.md` (2026-05-02 closed, formerly `THEORY/TALIBAN/`) |
+| **Cardinality naming rule** | default 1:1 (N중 = N 독립 lens), orthogonality theorem 측 formal edge anchor demoted (lesson-naesengmoon-cardinality-direct-1to1-not-orthogonal-2026-05-19) |
+| **Agent SubagentTaskSpec** | canonical `naesengmoon-ensemble-critic` ↔ alias `taliban-ensemble-critic` (재배맨 v2.1 SOP, ~/.claude/agents/, 1:1 mirror). inline parent execution = 정전 위반 (lesson-naesengmoon-inline-bypass-jaebaeman-sop-2026-05-19) |
 
 ---
 

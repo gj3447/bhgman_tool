@@ -1,17 +1,26 @@
 ---
 name: taliban
 kg_ref: ATOM_Skill_taliban
-version: "3.1.0"
+version: "3.2.0"
 channel: stable
+canonical_name: 나생문
+aliases: [taliban, tlb, 88-taliban, Rashomon, naesengmoon]
 description: >
-  나생문 방법론 — APT의 면역 시스템. 적대적 검증 프레임워크.
-  렌즈셋 플러거블: --lens constitutional(기본 9), mathematical(113), solid(5), 또는 KG에 등록된 임의 LensSet.
+  나생문 방법론 (Naesengmoon, 羅生門) — APT의 면역 시스템. 적대적 검증 프레임워크.
+  Canonical = 나생문 (사용자 verdict 2026-05-19 PRIMARY), file name `taliban` = alias.
+  렌즈셋 플러거블: --lens constitutional(기본 9), mathematical(113), solid(5), longinus(7), lakatos(4), 또는 KG에 등록된 임의 LensSet.
+  Cardinality naming default = simple 1:1 (사용자 verdict 2026-05-19 turn 2 PRIMARY): N중 나생문 = N 독립 lens.
+    1중 = 단순 나생문 / 3중 = 3 lens (constitutional+mathematical+solid default) / 5중 = 5 lens (+longinus+lakatos UNION).
+    orthogonality theorem 측 formal edge anchor demoted (lesson-naesengmoon-cardinality-direct-1to1-not-orthogonal-2026-05-19).
+  Agent: canonical `naesengmoon-ensemble-critic` ↔ alias `taliban-ensemble-critic` (~/.claude/agents/, 1:1 mirror).
+    재배맨 v2.1 SOP-based KG-resident SubagentTaskSpec — inline parent execution 측 ban (lesson-naesengmoon-inline-bypass-jaebaeman-sop-2026-05-19).
+    SubagentTaskSpec spec: SYMPOSIUM/THEORY/나생문/SUBAGENT_SPEC.md.
   Invoke when: Span 검증, Contract 검증, 코드 리뷰, Phase 게이트 통과 판정,
   품질 감사(audit), 고무도장 방지, 기존 산출물 재검증, 메타 검증 시.
   Enforces: 렌즈셋 동적 로딩, GAN 원리 (Design=G, Naesengmoon=D),
-  동시 출격, 만장일치 PASS, Anti-Rubber-Stamp (RTI/FVR).
+  동시 출격, 만장일치 PASS, Anti-Rubber-Stamp (RTI/FVR), executor != reviewer D20.
   재배맨 SubagentTaskSpec 기반 자동 출격.
-  # KG: ATOM_Skill_taliban, MIC_v1.ReasoningProtocol→KGFirstCheck_v1 (R1-R5 mandatory before any framing/diagnostic, lesson-ai-skipped-kg-check-before-framing-2026-04-29)
+  # KG: ATOM_Skill_taliban, MIC_v1.ReasoningProtocol→KGFirstCheck_v1 (R1-R5 mandatory before any framing/diagnostic, lesson-ai-skipped-kg-check-before-framing-2026-04-29), naesengmoon-canonical-2026-05-19 (CanonicalName)
 ---
 
 ## 🎛 v26 A6 Resolve-Only

@@ -1,6 +1,9 @@
-# Naesengmoon (나생문) — 공학 측 자료집
+# 나생문 (Naesengmoon, 羅生門) — 공학 측 자료집
 
 > **한 줄 정의:** *적대적 검증 framework.* APT 의 *면역 시스템*. Design=G, Naesengmoon=D 의 GAN 협력. Popper 1959 falsifiability 의 LLM 결정화. v0.8.A1 4 LensSet ensemble + Pirsig synthesis. 5무기 family closure 의 *검증 측 종결자* — Prometheus 가 생성, 재배맨 SOP 위에서 작동, Longinus binding 사용.
+> **Canonical = 나생문** (사용자 verdict 2026-05-19 PRIMARY). Aliases (혼용 OK): taliban / tlb / 88-taliban / Rashomon / Naesengmoon (romanization).
+> **Cardinality naming default = simple 1:1** (사용자 verdict 2026-05-19 turn 2 PRIMARY): N중 나생문 = N 독립 lens. 1중 = 단순 나생문 / 3중 = 3 lens (constitutional+mathematical+solid default) / 5중 = 5 lens (+longinus+lakatos UNION). orthogonality theorem (cardinality ⊥ lens diversity) 측 *formal edge anchor demoted* (`lesson-naesengmoon-cardinality-direct-1to1-not-orthogonal-2026-05-19`).
+> **Agent = 재배맨 v2.1 SOP-based KG-resident**: canonical `naesengmoon-ensemble-critic` ↔ alias `taliban-ensemble-critic` (`~/.claude/agents/`, 1:1 mirror). inline parent execution 측 *정전 위반 hard rule* (`lesson-naesengmoon-inline-bypass-jaebaeman-sop-2026-05-19`). SubagentTaskSpec spec: `SYMPOSIUM/THEORY/나생문/SUBAGENT_SPEC.md`.
 
 ---
 

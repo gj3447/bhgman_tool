@@ -1,14 +1,16 @@
 ---
 name: 88-taliban
 kg_ref: ATOM_Skill_88taliban
-version: "3.0.0"
+version: "3.1.0"
 channel: stable
+canonical_name: 88-나생문
+aliases: [88-taliban, 88-naesengmoon, 113lens-naesengmoon]
 description: >
-  `/taliban --lens mathematical`의 짧은 별칭(alias).
-  `/88-taliban <target>` == `/taliban <target> --lens mathematical`.
-  수학적 렌즈 113개로 임의 대상을 적대적 검증.
+  `/taliban --lens mathematical`의 짧은 별칭(alias). Canonical 측 나생문 (사용자 verdict 2026-05-19 PRIMARY).
+  `/88-taliban <target>` == `/taliban <target> --lens mathematical` == `/88-나생문 <target>`.
+  수학적 렌즈 113개로 임의 대상을 적대적 검증. 단 "88중" 측면 *아님* — `--lens mathematical` 측 113 lens 측 single LensSet 측 선택, default 명명 시 1중 나생문 (cardinality=1) + lens_diversity 측 113 측 explicit edge case (lesson-naesengmoon-cardinality-direct-1to1-not-orthogonal-2026-05-19).
   실제 로직은 /taliban SKILL.md를 그대로 따른다. 본문 복제 없음 (drift 방지).
-  # KG: ATOM_Skill_88taliban, alias-of-taliban
+  # KG: ATOM_Skill_88taliban, alias-of-taliban, alias-of-naesengmoon, naesengmoon-canonical-2026-05-19 (CanonicalName)
 ---
 
 # /88-taliban — `/taliban --lens mathematical` 별칭
