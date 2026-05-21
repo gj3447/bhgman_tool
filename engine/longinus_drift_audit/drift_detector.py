@@ -1,11 +1,16 @@
 """5 Drift Type Detector — Missing / Orphan / SigMismatch / PatternDiv / LabelRot.
 
 각 drift = lens law violation 으로 재정의.
+
+# KG: finding-prom16-parallelism-bhgman-dep-A1 (Bernstein-trivially parallel, W=∅)
+# KG: finding-prom16-parallelism-bhgman-dep-A4 (5-phase fan-out, immutable snapshot)
 """
 
 from __future__ import annotations
 
+import os
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable
 
 from models import (
@@ -186,13 +191,49 @@ def detect_all(
     *,
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
+    parallel: bool | None = None,
 ) -> list[DriftRecord]:
-    """모든 5 drift 검출 — single dispatch."""
+    """모든 5 drift 검출 — Bernstein-trivially parallel (W=∅).
+
+    All 5 detect_* are pure functions over immutable Iterable[CodeSymbol] +
+    frozen kg_refs dict. R∩W=∅, W∩W=∅, W∩R=∅ (Bernstein 1966) → safely
+    fan-out via ThreadPool. Each returns a disjoint list[DriftRecord] (no
+    shared mutable state).
+
+    Args:
+        parallel: True → ThreadPool fan-out (5 worker). False → sequential.
+            None (default) → env var ``LONGINUS_DRIFT_DETECT_PARALLEL=1``
+            opt-in; sequential otherwise (matches longinus_drift_audit
+            audit_runner default-OFF policy until neo4j-backend bench flip).
+
+    # KG: finding-prom16-parallelism-bhgman-dep-A1 (Bernstein conditions)
+    """
     syms = list(symbols)
-    out: list[DriftRecord] = []
-    out.extend(detect_missing(symbols=syms, kg_refs=kg_refs))
-    out.extend(detect_orphan(symbols=syms, kg_refs=kg_refs))
-    out.extend(detect_sig_mismatch(symbols=syms, kg_refs=kg_refs))
-    out.extend(detect_pattern_div(symbols=syms))
-    out.extend(detect_label_rot(symbols=syms, kg_refs=kg_refs))
-    return out
+    if parallel is None:
+        parallel = os.environ.get("LONGINUS_DRIFT_DETECT_PARALLEL", "0") == "1"
+
+    if not parallel:
+        out: list[DriftRecord] = []
+        out.extend(detect_missing(symbols=syms, kg_refs=kg_refs))
+        out.extend(detect_orphan(symbols=syms, kg_refs=kg_refs))
+        out.extend(detect_sig_mismatch(symbols=syms, kg_refs=kg_refs))
+        out.extend(detect_pattern_div(symbols=syms))
+        out.extend(detect_label_rot(symbols=syms, kg_refs=kg_refs))
+        return out
+
+    # ThreadPool fan-out — 5 detectors, immutable input, disjoint output.
+    tasks = (
+        ("missing", lambda: detect_missing(symbols=syms, kg_refs=kg_refs)),
+        ("orphan", lambda: detect_orphan(symbols=syms, kg_refs=kg_refs)),
+        ("sig_mismatch", lambda: detect_sig_mismatch(symbols=syms, kg_refs=kg_refs)),
+        ("pattern_div", lambda: detect_pattern_div(symbols=syms)),
+        ("label_rot", lambda: detect_label_rot(symbols=syms, kg_refs=kg_refs)),
+    )
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        # Submit in stable order so the result list ordering matches sequential
+        # mode (drift consumers may depend on detect order; explicit guard).
+        futures = [pool.submit(fn) for _name, fn in tasks]
+        merged: list[DriftRecord] = []
+        for fut in futures:
+            merged.extend(fut.result())
+        return merged

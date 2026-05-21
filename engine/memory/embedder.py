@@ -1,6 +1,7 @@
 """Embedder — text → fixed-dim vector.
 
 KG: span-phase2-hnsw-memory-skeleton-2026-05-13 (planned :AtomicSpan)
+KG: finding-prom16-parallelism-bhgman-dep-A4 (module-singleton lazy init lock)
 
 Two backends:
 - sentence-transformers (preferred, real semantic embeddings)
@@ -17,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import math
 import struct
+import threading
 from typing import Any
 
 
@@ -83,11 +85,18 @@ def _hash_embed(text: str, dim: int) -> list[float]:
 
 # Module-level convenience
 _default_embedder: Embedder | None = None
+# Guard the lazy init against double-construction race (low impact — Embedder
+# init is idempotent — but sentence-transformers loads a model on first call,
+# which is wasted work + memory if two threads race). Double-checked locking.
+# KG: finding-prom16-parallelism-bhgman-dep-A4
+_default_embedder_lock = threading.Lock()
 
 
 def embed_text(text: str) -> list[float]:
     """Embed text using the default (lazily-created) Embedder."""
     global _default_embedder
     if _default_embedder is None:
-        _default_embedder = Embedder()
+        with _default_embedder_lock:
+            if _default_embedder is None:
+                _default_embedder = Embedder()
     return _default_embedder.encode(text)

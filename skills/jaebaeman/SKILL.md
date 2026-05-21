@@ -453,6 +453,77 @@ SET child.depth = coalesce(parent.depth, 0) + 1;
 
 ---
 
+## 🔁 v2.5 DispatchPolicy MIC Slot (2026-05-19, PROM 16 derived)
+
+> Finding: `lesson-prom16-parallelism-bhgman-2026-05-19` 측 4-layer LLM-agent dispatch limit (Anthropic RPM/ITPM tier + prompt cache 5-min TTL × 4 breakpoint + parent context bloat + OS scheduler convoy/false-sharing/thundering herd) 누적, N≥50 naive 출격 시 즉시 사망. 또한 4 GAP skill (solve/tpa-tcw/tpa-sp/tpa-st) 측 single-message transport invariant 부재 → sequential drift. MIC slot 측 4-layer dispatch protocol 정전화.
+
+### 신규 MIC slot
+
+```cypher
+MATCH (mic:MethodologyIntegrationContract {name:'MIC_v1'})
+MERGE (s:MethodologySlot {name:'DispatchPolicy'})
+  ON CREATE SET s.currentConcrete = 'DispatchPolicy_default_v25',
+                s.added_by_rfc = 'lesson-prom16-parallelism-bhgman-2026-05-19',
+                s.createdAt = datetime()
+MERGE (mic)-[:HAS_SLOT]->(s)
+
+MERGE (dp:DispatchPolicy {name:'DispatchPolicy_default_v25'})
+SET dp.cacheStrategy = 'ephemeral-5min-prefix-pin',    // cache_control:{type:'ephemeral'} 마지막 block
+    dp.cacheMinTokens = 4096,                            // 2026 Haiku/Sonnet 4.5 floor (1024 = deprecated 3.7만)
+    dp.cacheBreakpointMax = 4,                           // system/tools/few-shot/user-context 4단 분할
+    dp.waveSize = 16,                                    // single-message max parallel Task ≤ 16 (Tier 2 안전)
+    dp.waveSizeHardMax = 100,                            // jaebaeman SOP cap (절대)
+    dp.schemaContract = 'full',                          // N<50 = full, N≥50 = terse (findingId/oneLineSummary/confidence)
+    dp.schemaTerseThreshold = 50,
+    dp.stragglerTimeoutMultiplier = 1.5,                 // p99 latency × 1.5 timeout
+    dp.cardinalityGate = 'single-message-multi-call',    // dispatch_pattern 정전 (GH#29181)
+    dp.cardinalityMatchRequired = true,                  // intent_N == actual_N hard fail
+    dp.rateLimitHeader = 'anthropic-ratelimit-*',        // tier polling
+    dp.rateLimitBackoff = 'exponential-full-jitter',     // AWS Brooker 2015
+    dp.mcpBypass = 'parent-prefetch-preFetchedContext',  // GH#13605 우회
+    dp.workStealPattern = 'apoc.trigger.t_failure_spawn' // Neo4j 5.x 한정
+```
+
+### 4-Layer Dispatch Protocol (정전)
+
+| Layer | 정전 | 검증 |
+|-------|------|------|
+| L1 cache | `cache_control:{type:'ephemeral'}` prefix ≥ 4096 tokens (2026 Haiku/Sonnet 4.5) | `usage.cache_read_input_tokens / cache_creation_input_tokens` ratio, DispatchHyperedge.cache_hit_ratio |
+| L2 rate-limit | tier별 RPM/ITPM/OTPM polling + token bucket leaky + exponential backoff with full jitter | `anthropic-ratelimit-*` header |
+| L3 schema | N<50 full FullFindingRecord (12 field), N≥50 terse (3 field) | parent context bloat 감소 |
+| L4 cardinality | single-message multi-call, intent_N == actual_N, dispatch_pattern check | `DispatchHyperedge.cardinality_match` cypher gate |
+
+### Validation Gate (Phase 2.3 pre-dispatch hook)
+
+```python
+def validate_dispatch_policy(N: int, prompt_tokens: int, dispatch_pattern: str) -> None:
+    if dispatch_pattern != 'single-message-multi-call':
+        raise SOPValidationError(
+            f'v2.5 L4: dispatch_pattern must be single-message-multi-call (GH#29181). '
+            f'Got: {dispatch_pattern}. for-loop sequential 금지.'
+        )
+    if N > 16 and dispatch_pattern == 'single-message-multi-call':
+        warn('N>16 single-message: tool_use timeout 위험 (Tier 2 safe < 16). Wave 분할 권장.')
+    if N >= 50 and schema_contract == 'full':
+        raise SOPValidationError(
+            f'v2.5 L3: N={N} requires terse schema (findingId/oneLineSummary/confidence). '
+            f'Full schema 시 parent context bloat.'
+        )
+    if prompt_tokens < 4096 and cache_strategy == 'ephemeral-5min-prefix-pin':
+        warn(f'v2.5 L1: prefix {prompt_tokens} < 4096 floor — cache write premium > read saving. cache_control 제거 권장.')
+```
+
+### Error Variants 표 보강 (E5/E6 추가)
+
+| Code | 이름 | 조건 | 복구 |
+|------|------|------|------|
+| **E5** | `CardinalityMismatch` | `intent_N != actual_N` OR `dispatch_pattern != 'single-message-multi-call'` | `DispatchHyperedge.requires_resweep=true`, missing cell re-dispatch (single-message), apoc trigger work-steal |
+| **E6** | `RateLimitExhaustion` | 429 cascade, RPM/ITPM tier 한계 | exponential backoff with full jitter (Brooker 2015), wave 분할 N → N/2 |
+
+# KG: lesson-prom16-parallelism-bhgman-2026-05-19, finding-prom16-parallelism-C3-bf8529c9, finding-prom16-parallelism-D2-a7f3c8d1, finding-prom16-parallelism-D4-a7f2b3c9, ATOM_Skill_jaebaeman
+
+---
+
 # /jaebaeman — Subagent Runtime Protocol
 
 > **재배맨 = 씨앗에서 에이전트를 재배하는 사람.**

@@ -34,7 +34,7 @@ L4-L7 reference 가 모두 BX-conformant 여야 한다 (Foster 2007 lenses theor
 
 ---
 
-## 3. Refinement Types (v3 branded types)
+## 3. Refinement Types (Pierce TAPL §22; *branded type* = colloquial TypeScript alias)
 
 ```rust
 type CrystallizedContract = Contract & { status: 'CRYSTALLIZED' }

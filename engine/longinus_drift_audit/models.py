@@ -19,6 +19,8 @@ class DriftType(str, Enum):
     SIG_MISMATCH = "SigMismatch"  # PutGet violation: ref ↔ 시그니처 불일치
     PATTERN_DIV = "PatternDiv"  # PutPut violation: 동일 대상 ↔ 상충 ref
     LABEL_ROT = "LabelRot"  # PutPut violation: 라벨/이름 변경 미반영
+    DISPATCH_DRIFT = "DispatchDrift"  # PutPut violation: intent_N dispatched ↔ actual_N spawned mismatch (GH#29181)
+    # KG: finding-prom16-parallelism-bhgman-dep-D4 (2026-05-19 cycle, AP1 plug)
 
 
 class ReferenceLayer(str, Enum):

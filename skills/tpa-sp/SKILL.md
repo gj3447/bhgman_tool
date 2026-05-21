@@ -298,6 +298,9 @@ MATCH (p:DesignPattern) RETURN count(p) AS lib_size
 ```
 
 ### Subagent 출격 (3줄, 카테고리별 병렬)
+
+> ⚠️ **Dispatch는 반드시 jaebaeman Phase 2 (single-message multi-call) 규약**: N개 카테고리 agent **하나의 assistant message 안에서 동시 emit** (NOT for-loop). 정전: [`SKILLS/jaebaeman/references/phases.md §Phase 2`](../jaebaeman/references/phases.md#phase-2--dispatch-lead_link). cardinality_match gate: `intent_N == actual_N` AND `dispatch_pattern == 'single-message-multi-call'`.
+
 ```
 역할: TPA SP pattern matcher — category={Structural|Behavioral|Creational|Distributed|PL} (agentId=D<idx>)
 TaskSpec: MATCH (ts:SubagentTaskSpec {name:'taskspec-tpa-SP'}) RETURN ts.*

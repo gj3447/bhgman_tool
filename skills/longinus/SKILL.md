@@ -4,15 +4,18 @@ kg_ref: ATOM_Skill_longinus
 version: "3.3.0"
 channel: stable
 description: >
-  롱기누스 방법론 v3.3 — 참조의 미학. KG 의미 계층을 소스코드까지 관통(貫通)시키는 참조 바인딩.
+  롱기누스 방법론 v3.4 — 참조의 미학. KG 의미 계층을 소스코드까지 관통(貫通)시키는 참조 바인딩.
   v3: 7-Layer Reference Model + BX Lens Laws + Refinement Types + GED Drift 정량화.
   v3.1: Reverse Orphan Scan (Code→KG blind-spot fix) + Crate/Script-level binding + Naesengmoon --lens longinus.
   v3.3 (Wave 6 absorbed 2026-05-14): sha256 baseline daemon (KG-anchored disk hash) + Forward Orphan Scan
   (KG :KnowledgeHub → package_path materialization, GetPut blind-spot) + 7-tuple ReferenceSite schema
   (sourceId/sourcePath/line_range/sha256/sha256_baseline/kg_anchor/layer/last_validated).
+  v3.4 (PROM 16 OQ2 absorbed 2026-05-19): L2 URDNA2015 Jaccard channel (multi-channel detector v3.4) — simplified
+  blank-node-free canonicalization, thresholds inherit from L1 GED (0.05 warn / 0.15 halt). L3 PROV diff /
+  L4 in-toto / L5 embedding cosine / L6 sheaf cohomology layers remain FUTURE (PROM_16_GED_THRESHOLD_REPORT.md).
   Invoke when: ST→SCW 전환 후 코드가 물질화되었을 때, KG 노드와 소스코드 간 추적성 확보가 필요할 때,
   기존 코드베이스를 KG에 역매핑할 때, Contract-Code 정합성 감사(audit) 시.
-  Enforces: 7-layer ref model, BX lens laws (GetPut/PutGet), branded types, GED drift metrics,
+  Enforces: 7-layer ref model, BX lens laws (GetPut/PutGet), refinement types (Pierce TAPL 2002 §22 — branded-type is colloquial alias, not canonical), GED drift metrics,
   sha256 baseline drift (Wave 6), forward orphan scan (Wave 6).
   # KG: ATOM_Skill_longinus, SA_methodology_v4_triple_upgrade, MIC_v1.ReasoningProtocol→KGFirstCheck_v1 (R1-R5 mandatory before any framing/diagnostic, lesson-ai-skipped-kg-check-before-framing-2026-04-29)
   # KG: lesson-longinus-wave6-full-symposium-binding-2026-05-14 (Wave 6 binding absorbed)
@@ -107,10 +110,10 @@ PUT: Code → KG  (코드 변경 시 KG 참조 갱신)
 
 ## Refinement Types for References (v3 신규)
 
-sourceId/sourcePath는 **단순 문자열이 아닌 branded type**이다.
+sourceId/sourcePath는 **단순 문자열이 아닌 refinement type** (Pierce TAPL 2002 §22; TypeScript/Rust 커뮤니티에서 *branded type* 으로 불리는 idiom — phantom-field nominal distinction).
 
 ```typescript
-// Branded Types (Zod-style)
+// Refinement Types via phantom field (TypeScript "branded type" idiom, Zod-style)
 type SourceId = string & { readonly __brand: 'SourceId' };
 type SourcePath = string & { readonly __brand: 'SourcePath' };
 

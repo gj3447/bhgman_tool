@@ -238,6 +238,9 @@ MATCH (ts:SubagentTaskSpec {skill:'tpa', phase:'ST'}) RETURN ts.checkItems, ts.p
 ```
 
 ### Subagent 출격 (3줄)
+
+> ⚠️ **Dispatch는 반드시 jaebaeman Phase 2 (single-message multi-call) 규약**: N개 symbol-subset agent **하나의 assistant message 안에서 동시 emit** (NOT for-loop). 정전: [`SKILLS/jaebaeman/references/phases.md §Phase 2`](../jaebaeman/references/phases.md#phase-2--dispatch-lead_link). Parent post-dispatch self-check: `assert intent_N == actual_N`.
+
 ```
 역할: TPA ST Contract extractor (agentId=D<idx>)
 TaskSpec: MATCH (ts:SubagentTaskSpec {name:'taskspec-tpa-ST'}) RETURN ts.*

@@ -87,10 +87,13 @@ kubectl logs -n <ns> <pod> --tail=50
 
 ### Step 3: haiku subagent 병렬 리서치
 
+> ⚠️ **Dispatch는 반드시 jaebaeman Phase 2 (single-message multi-call) 규약을 따른다** — N개 `Agent()` tool_use를 **하나의 assistant message 안에 모두 emit**. for-loop 분산 = sequential drift (GH#29181, `dispatch_pattern≠'single-message-multi-call'`). 정전: [`SKILLS/jaebaeman/references/phases.md §Phase 2`](../jaebaeman/references/phases.md#phase-2--dispatch-lead_link). Parent post-dispatch self-check: `assert intent_N == actual_N AND he.dispatch_pattern == 'single-message-multi-call'`.
+
 문제 도메인별로 haiku 에이전트를 분리하여 병렬 투입:
 
 ```
-Agent(model=haiku, run_in_background=true) × N
+# 단일 assistant message 안에 N개 Agent tool_use 동시 emit (병렬), NOT for-loop sequential
+[Agent(model=haiku, run_in_background=true, prompt=seed_i) for i in range(N)]  # 같은 turn
 
 에이전트 수 가이드:
 - 단순 이슈 (1개 기술): 3~5개

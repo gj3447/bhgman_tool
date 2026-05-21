@@ -1,17 +1,26 @@
 """In-memory vector store with cosine similarity search.
 
 KG: span-phase2-hnsw-memory-skeleton-2026-05-13 (planned :AtomicSpan)
+KG: finding-prom16-parallelism-bhgman-dep-A4 (thread-safety, lock on add)
 
 Backend selection:
 - hnswlib (preferred, HNSW approximate NN, O(log N))
 - linear scan fallback (no external dep, O(N) — adequate for skeleton + tests)
 
 The hnswlib path is *optional* — skeleton works without it.
+
+Thread-safety: ``add`` / ``add_many`` mutate ``_records`` / ``_next_label`` /
+``_hnsw_id_to_label`` non-atomically, and hnswlib's ``add_items`` is documented
+as not thread-safe for concurrent writes. A module ``threading.Lock`` guards
+the write path. ``search`` / ``get`` are read-only and safe to run concurrently
+with each other but not with a concurrent ``add`` (the lock serializes writes
+against readers via context guard on the write side only).
 """
 
 from __future__ import annotations
 
 import dataclasses as dc
+import threading
 from typing import Any, Iterable
 
 
@@ -42,6 +51,10 @@ class VectorStore:
         self._hnsw: Any = None
         self._hnsw_id_to_label: dict[str, int] = {}
         self._next_label = 0
+        # Bernstein W∩W guard: _records.append + _next_label += 1 + hnsw.add_items
+        # is non-atomic; serialize the write path.
+        # KG: finding-prom16-parallelism-bhgman-dep-A4
+        self._write_lock = threading.Lock()
         if prefer_hnsw:
             try:
                 import hnswlib  # noqa: F401
@@ -62,16 +75,17 @@ class VectorStore:
     def add(self, id: str, vector: list[float], metadata: dict[str, Any] | None = None) -> None:
         if len(vector) != self.dim:
             raise ValueError(f"vector dim {len(vector)} != store dim {self.dim}")
-        # Duplicate check across both backends (linear scan checks _records)
-        if any(r[0] == id for r in self._records):
-            raise ValueError(f"id already present: {id}")
         meta = dict(metadata or {})
-        self._records.append((id, list(vector), meta))
-        if self._hnsw is not None:
-            label = self._next_label
-            self._next_label += 1
-            self._hnsw_id_to_label[id] = label
-            self._hnsw.add_items([vector], [label])
+        # Serialize: dup check + append + label increment + hnsw add must be one critical section.
+        with self._write_lock:
+            if any(r[0] == id for r in self._records):
+                raise ValueError(f"id already present: {id}")
+            self._records.append((id, list(vector), meta))
+            if self._hnsw is not None:
+                label = self._next_label
+                self._next_label += 1
+                self._hnsw_id_to_label[id] = label
+                self._hnsw.add_items([vector], [label])
 
     def add_many(self, items: Iterable[tuple[str, list[float], dict[str, Any] | None]]) -> int:
         n = 0

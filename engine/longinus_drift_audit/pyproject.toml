@@ -1,7 +1,7 @@
 [project]
 name = "longinus-drift-audit"
-version = "0.2.0"
-description = "Longinus methodology v3.3 — 7-Layer Reference Model + BX Lens Laws + 5 drift detector + GED + Reverse Orphan Scan + sha256 baseline + Forward Orphan Scan (Wave 6 absorbed 2026-05-14)"
+version = "0.8.0"
+description = "Longinus methodology v3.4 — 7-Layer Reference Model + BX Lens Laws + 5 drift detector + GED L1 + Reverse Orphan Scan + sha256 baseline + Forward Orphan Scan (Wave 6) + L2 URDNA2015 Jaccard channel + L3 PROV diff channel + L4 in-toto attestation gate + SCIP adapter (Sourcegraph SCIP scip.proto v0.5+, LSIF migration 2026-05-19) + dynamic dispatch hybrid probe (static AST + runtime trace, v3.3 STATUS §6.2 closed 2026-05-19) + L5 embedding cosine channel (optional opt-in, Procrustes-aligned, v3.4 ALT1 absorbed 2026-05-19)"
 requires-python = ">=3.11"
 dependencies = [
   "pydantic>=2.9",
@@ -32,6 +32,12 @@ py-modules = [
   "reverse_orphan_scan",
   "sha256_baseline",
   "forward_orphan_scan",
+  "urdna2015_channel",
+  "prov_channel",
+  "intoto_channel",
+  "scip_adapter",
+  "dynamic_dispatch_probe",
+  "embedding_channel",
   "audit_runner",
   "daemon",
   "daemon_cli",

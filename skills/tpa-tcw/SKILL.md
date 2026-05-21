@@ -149,6 +149,8 @@ for file in files:
 
 #### Step 3.3: 에이전트 프롬프트에 파일 목록 직접 주입
 
+> ⚠️ **Dispatch는 반드시 jaebaeman Phase 2 (single-message multi-call) 규약**: N개 agent 모두 **하나의 assistant message 안에서 동시 emit**. for-loop 분산 시 sequential drift (GH#29181). 정전: [`SKILLS/jaebaeman/references/phases.md §Phase 2`](../jaebaeman/references/phases.md#phase-2--dispatch-lead_link).
+
 ```
 역할: TPA TCW AST scanner (agentId=D{idx})
 스캔 대상 파일 (정확히 이 파일들만 읽을 것):
@@ -159,6 +161,15 @@ for file in files:
 
 ⚠️ feature-gated 코드(#[cfg(feature=...)])도 동등하게 스캔할 것. 축약 금지.
 ⚠️ feature flag 목록도 보고할 것.
+```
+
+**Parent post-dispatch self-check** (Step 3.4 직전):
+```cypher
+MATCH (he:DispatchHyperedge {cycle_id:$cid})
+WHERE he.dispatch_pattern <> 'single-message-multi-call'
+   OR he.cardinality_match = false
+RETURN he.name AS drift_detected
+// non-empty → status='INCOMPLETE', re-dispatch 필요
 ```
 
 #### Step 3.4: 부모 post-dispatch 커버리지 검증
