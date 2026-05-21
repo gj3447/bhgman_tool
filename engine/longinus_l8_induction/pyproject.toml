@@ -35,19 +35,32 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 
 # deptry config for the l8 subpackage CI step
-# (see .github/workflows/deptry-l8-subpkg.yml, vr-bhgman-442702e L2-F1).
-# l8 reserves a runtime surface for the full Naesengmoon Gate + Hybrid
-# retrieval + Drift loop pipeline; several deps (neo4j, numpy, scientific
-# extras) are runtime-only and not imported at module-load time. Until
-# those code paths are wired in tests too, deptry's static scan flags
-# them as DEP002. pytest is the test runner — no Python import — also
-# DEP002 by deptry semantics. Ignored here:
+# (see .github/workflows/deptry-l8-subpkg.yml, vr-bhgman-442702e L2-F1 +
+# vr-bhgman-e031271-deptry-l8-ci-3lens-2026-05-21 L1 honesty correction).
+#
+# HONEST DISCLOSURE (per Naesengmoon L1 finding 2026-05-21):
+# At commit time, the only tracked l8 file with any imports is
+# ged_drift_detector.py (dataclasses, typing) + tests/conftest.py
+# (sys, pathlib). NONE of {neo4j, numpy, scikit-learn, networkx,
+# scipy} are imported by tracked Python code.
+#
+# Pytest is the only honestly-needed entry: it is the declared test
+# runner with no Python import surface. The remaining 5 are
+# ASPIRATIONAL — kept in [project.dependencies] / [scientific extras]
+# as a forward-declaration of the planned l8 pipeline surface
+# (Naesengmoon Gate + Hybrid retrieval + Drift loop). Each is marked
+# TODO(future-phase) below.
+#
+# If aspirational deps remain unused after 5 sprints, the honest action
+# is to REMOVE them from pyproject [project.dependencies] / extras
+# (downgrade to actual imports), NOT to keep silencing deptry.
 [tool.deptry.per_rule_ignores]
 DEP002 = [
-  "neo4j",        # runtime KG client (lazy imported via pipeline stages)
-  "numpy",        # used by induction_operators numerical paths (test-gated)
-  "pytest",       # test runner; never imported by package code
-  "scikit-learn", # scientific extras: clustering for community phase
-  "networkx",     # scientific extras: hypergraph manipulation
-  "scipy",        # scientific extras: distance metrics for GED
+  "pytest",       # test runner; never imported by package code (genuinely unused-in-code)
+  # TODO(future-phase) — aspirational, not yet imported:
+  "neo4j",        # planned: runtime KG client in pipeline stages
+  "numpy",        # planned: numerical paths in induction_operators
+  "scikit-learn", # planned: clustering for community phase
+  "networkx",     # planned: hypergraph manipulation
+  "scipy",        # planned: distance metrics for GED
 ]

@@ -69,7 +69,10 @@ jobs:
               if p.stem not in {"__init__", "conftest"}
           }
 
-          import_pat = re.compile(r"^(?:from|import)\s+([\w.]+)", re.MULTILINE)
+          # L2 fix vr-bhgman-e031271 2026-05-21: tolerate leading whitespace
+          # so indented imports inside TYPE_CHECKING / try / function bodies
+          # are caught. Future upgrade: ast.parse for full correctness.
+          import_pat = re.compile(r"^\s*(?:from|import)\s+([\w.]+)", re.MULTILINE)
 
           cross_imports = set()
           for py in L8_DIR.rglob("*.py"):
