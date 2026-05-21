@@ -1,0 +1,53 @@
+[project]
+name = "longinus-l8-induction"
+version = "0.1.0"
+description = "Longinus L8 induction — Extract/Community/Summarize/Induce/Naesengmoon Gate/Hybrid retrieval/Drift loop. AbstractClass + GENERALIZES edge crystallization. CONTRACT_AbstractClass_v1 2026-05-20 mirror. KG: plan-prom16lag-l8-induction-2026-05-20"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.9",
+  "neo4j>=5.20.0",
+  "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+scientific = ["scikit-learn>=1.4", "networkx>=3.2", "scipy>=1.12"]
+
+[project.scripts]
+longinus-l8 = "pipeline:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+  "models",
+  "validator",
+  "quality_gate",
+  "ged_drift_detector",
+  "pipeline",
+]
+packages = ["induction_operators"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+# deptry config for the l8 subpackage CI step
+# (see .github/workflows/deptry-l8-subpkg.yml, vr-bhgman-442702e L2-F1).
+# l8 reserves a runtime surface for the full Naesengmoon Gate + Hybrid
+# retrieval + Drift loop pipeline; several deps (neo4j, numpy, scientific
+# extras) are runtime-only and not imported at module-load time. Until
+# those code paths are wired in tests too, deptry's static scan flags
+# them as DEP002. pytest is the test runner — no Python import — also
+# DEP002 by deptry semantics. Ignored here:
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+  "neo4j",        # runtime KG client (lazy imported via pipeline stages)
+  "numpy",        # used by induction_operators numerical paths (test-gated)
+  "pytest",       # test runner; never imported by package code
+  "scikit-learn", # scientific extras: clustering for community phase
+  "networkx",     # scientific extras: hypergraph manipulation
+  "scipy",        # scientific extras: distance metrics for GED
+]
