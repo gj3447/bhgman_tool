@@ -42,6 +42,7 @@ dev = [
     "build>=1.2",
     "twine>=5.1",
     "pre-commit>=4.0",  # wave11 — 4-ratchet local gate (lesson-bhgman-tool-quality-ratchet-drift-2026-05-17)
+    "hypothesis>=6.0",  # property-based testing (test_delta_lens_properties.py); moved from DEP001 ignore 2026-05-21 per vr-bhgman-442702e L2-F2
 ]
 # APT v27 A6 pre-prompt resolver (engine/resolver, Wave 7 P3-H 2026-05-14)
 resolver = [
@@ -170,7 +171,6 @@ python-frontmatter = "frontmatter"
 # DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
 DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
           "tree_sitter",   # optional AST adapter (importorskip in tree_sitter_adapter.py)
-          "hypothesis",    # dev-only property test runner (test_delta_lens_properties.py)
          ]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
