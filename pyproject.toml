@@ -150,6 +150,14 @@ known_first_party = [
   "sha256_baseline", "kg_client", "forward_orphan_scan",
   "bx_lens", "code_scanner", "daemon", "daemon_cli", "drift_detector",
   "audit_runner",
+  # Wave 9c DIP refactor — DeltaCategoryRegistry + DeltaLens core
+  "delta_lens", "delta_category_registry", "edit_lens_line_range",
+  # Wave 12c SRP split — KG binding facade + 5 submodules
+  "kg_binding_state", "kg_binding_delta", "kg_binding_categories",
+  "kg_binding_lenses", "kg_binding_registry_install", "kg_binding_delta_lens",
+  # v3.4 multi-channel drift detectors + dispatch probe + scip adapter
+  "prov_channel", "intoto_channel", "embedding_channel", "urdna2015_channel",
+  "dynamic_dispatch_probe", "scip_adapter",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
@@ -160,7 +168,10 @@ python-frontmatter = "frontmatter"
 # These do exist in pyproject [project.optional-dependencies] but deptry's default scan flags them.
 [tool.deptry.per_rule_ignores]
 # DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
-DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp"]
+DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
+          "tree_sitter",   # optional AST adapter (importorskip in tree_sitter_adapter.py)
+          "hypothesis",    # dev-only property test runner (test_delta_lens_properties.py)
+         ]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
   "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)

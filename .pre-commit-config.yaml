@@ -67,20 +67,24 @@ repos:
     hooks:
       - id: deptry
         name: deptry (dependency drift check)
-        entry: uvx deptry . --ignore-notebooks
+        entry: uvx deptry . --ignore-notebooks --extend-exclude 'engine/longinus_l8_induction'
         language: system
         stages: [pre-commit]
         pass_filenames: false
         always_run: true
 
   # ============================================================
-  # Stage 5: pytest (pre-commit, fast — 268 tests ~2s)
+  # Stage 5: pytest (pre-commit, fast — split into two invocations to
+  # avoid sibling-package sys.modules collision between
+  # engine/longinus_drift_audit and engine/longinus_l8_induction, both of
+  # which have flat-layout models.py / validator.py / pipeline.py with
+  # different contents. Fresh pytest invocation = fresh sys.modules.
   # ============================================================
   - repo: local
     hooks:
       - id: pytest
-        name: pytest (engine + worked, 268 tests)
-        entry: bash -c 'source .venv/bin/activate && pytest --tb=line -q'
+        name: pytest (engine + worked, two-invocation split for sibling collision)
+        entry: bash -c 'source .venv/bin/activate && pytest --tb=line -q --ignore=engine/longinus_l8_induction && pytest --tb=line -q engine/longinus_l8_induction'
         language: system
         stages: [pre-commit]
         pass_filenames: false
@@ -97,3 +101,18 @@ repos:
         stages: [pre-push]
         args: [--config, lychee.toml, --no-progress, --offline, README.md, README.ko-KR.md, docs/, skills/]
         pass_filenames: false
+
+  # ============================================================
+  # Stage 7: audit_grep_coverage — GrepPatternCatalog v1 enforcement (pre-push)
+  # naesengmoon cycle 2 C3-residual HIGH (defense in depth layer A)
+  # ============================================================
+  # KG: grep-pattern-catalog-v1-2026-05-20, lesson-audit-grep-coverage-drift-2026-05-20
+  - repo: local
+    hooks:
+      - id: audit_grep_coverage
+        name: audit_grep_coverage (catalog v1 file-coverage ≥ 5%)
+        entry: bash bin/audit_grep_coverage.sh engine
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
