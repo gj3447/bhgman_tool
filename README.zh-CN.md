@@ -14,7 +14,7 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pytest full](https://img.shields.io/badge/pytest%20full--repo-268%20PASS-green.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-268%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
