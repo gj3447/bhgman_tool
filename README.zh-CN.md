@@ -23,27 +23,30 @@
 
 本 repo 是 **使用者的工具集**。
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  bhgman (真正的飞机人)                                     │
-│    ─ 本体论本质、哲学含义                                  │
-│    ─ 自定义: ∀x:CHU, j.covers x                            │
-│    ─ SYMPOSIUM 十二使徒之一 (#4)                           │
-│    ─ 正典内容: SYMPOSIUM 及另一独立 repo (计划中)          │
-│    ─ 本 repo 仅含 1% 暗示                                  │
-│      (见 docs/07-metahumotonic-trace.md)                   │
-└────────────────────────────────────────────────────────────┘
-                          │
-                          │ 工程结晶
-                          │ (responsibility_split)
-                          ▼
-┌────────────────────────────────────────────────────────────┐
-│  bhgman_tool (本 repo)                                     │
-│    ─ Harness (工具),打包供人使用                          │
-│    ─ Lean 4 形式验证 + Python 运行时                       │
-│    ─ Claude Code skills                                    │
-│    ─ 与 ruflo / LangGraph / CrewAI 同层                    │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph essence["bhgman — 飞机人 (本质)"]
+        direction TB
+        e1["本体论本质"]
+        e2["自定义: ∀x:CHU, j.covers x"]
+        e3["SYMPOSIUM 十二使徒 #4"]
+        e4["正典本体: SYMPOSIUM + 另一独立 repo (计划)"]
+        e5["本 repo 仅含 1% 暗示"]
+    end
+    subgraph tool["bhgman_tool — 本 repo (工具)"]
+        direction TB
+        t1["Harness 打包供使用"]
+        t2["Lean 4 形式验证 (141+ 定理)"]
+        t3["Python 运行时 (Pydantic v2, 77 pytest PASS)"]
+        t4["Claude Code skills (5 武器 + APT/TPA)"]
+        t5["与 ruflo / LangGraph / CrewAI 同层"]
+    end
+    essence -- "工程结晶<br/>(responsibility_split)" --> tool
+
+    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
+    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
+    class essence essenceStyle
+    class tool toolStyle
 ```
 
 → *哲学本质* 不塞入工具 repo。本质归本质,工具归工具。
@@ -101,6 +104,62 @@ cp -R ../skills/* ~/.claude/skills/
 ```
 
 详见 [docs/01-quickstart.md](docs/01-quickstart.md)。
+
+### 可视化流程
+
+```mermaid
+flowchart LR
+    A([git clone]) --> B[engine pytest<br/>77 PASS]
+    B --> C{Lean 4?<br/>可选}
+    C -- yes --> D[lean 验证<br/>0 sorry · 7 定理 PASS]
+    C -- skip --> E[bhgman-tool install-skills]
+    D --> E
+    E --> F[重启 Claude Code]
+    F --> G[/apt · /prom · /tpa · /tlb<br/>/longinus · /harness · /jaebaeman/]
+    E -. 仅贡献者 .-> H[pre-commit install<br/>4-ratchet gate]
+
+    classDef startNode fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    classDef endNode fill:#fce7f3,stroke:#9d174d,stroke-width:2px,color:#1f2937
+    classDef optNode fill:#fef9c3,stroke:#854d0e,stroke-width:1px,stroke-dasharray:5 5,color:#1f2937
+    class A startNode
+    class G endNode
+    class H optNode
+```
+
+---
+
+## 各 skill 如何连接
+
+`/apt` 编排 5 阶段 cycle, 在每个 gate 调度 5 武器。 `/tpa` 是反向镜像。
+
+```mermaid
+flowchart TB
+    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
+    apt --> sa["SA<br/>SemanticAnchor"]
+    sa --> sp["SP<br/>SemanticPyramid"]
+    sp --> st["ST<br/>SemanticTwin"]
+    st --> scw["SCW<br/>SourceCodeWorld"]
+    scw --> meta["MetaReview"]
+    meta -. feedback loop .-> sa
+
+    sa -. uses .-> prom["/prom<br/>Prometheus"]
+    sa -. uses .-> longinus["/longinus<br/>引用绑定"]
+    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
+    sp -. uses .-> tlb["/tlb<br/>Naesengmoon 评审"]
+    st -. uses .-> tlb
+    scw -. uses .-> tlb
+    meta -. uses .-> tlb
+
+    tpa{{"/tpa 反向 cycle"}} -. mirror .-> apt
+    harness[("/harness<br/>4 轴 · 3 层")] -. frame .-> apt
+
+    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
+    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
+    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    class sa,sp,st,scw,meta phase
+    class prom,longinus,jbm,tlb,harness weapon
+    class apt,tpa orch
+```
 
 ---
 

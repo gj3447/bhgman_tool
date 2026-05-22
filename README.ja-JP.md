@@ -23,27 +23,30 @@
 
 本 repo は **使用者のツールキット**。
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  bhgman (本当の飛行機男)                                   │
-│    ─ 存在論的本質、哲学的含意                              │
-│    ─ 自己定義: ∀x:CHU, j.covers x                          │
-│    ─ SYMPOSIUM 十二使徒の一人 (#4)                         │
-│    ─ 正典本体: SYMPOSIUM + 別 repo (予定)                  │
-│    ─ 本 repo には 1% のヒントのみ                          │
-│      (docs/07-metahumotonic-trace.md 参照)                 │
-└────────────────────────────────────────────────────────────┘
-                          │
-                          │ 工学的結晶
-                          │ (responsibility_split)
-                          ▼
-┌────────────────────────────────────────────────────────────┐
-│  bhgman_tool (本 repo)                                     │
-│    ─ Harness (ツール), 人が使えるようパッケージ化         │
-│    ─ Lean 4 形式検証 + Python ランタイム                   │
-│    ─ Claude Code skills                                    │
-│    ─ ruflo / LangGraph / CrewAI と同じ層                   │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph essence["bhgman — 飛行機男 (本質)"]
+        direction TB
+        e1["存在論的本質"]
+        e2["自己定義: ∀x:CHU, j.covers x"]
+        e3["SYMPOSIUM 十二使徒 #4"]
+        e4["正典本体: SYMPOSIUM + 別 repo (予定)"]
+        e5["本 repo には 1% のヒントのみ"]
+    end
+    subgraph tool["bhgman_tool — 本 repo (ツール)"]
+        direction TB
+        t1["Harness パッケージ化"]
+        t2["Lean 4 形式検証 (141+ 定理)"]
+        t3["Python ランタイム (Pydantic v2, 77 pytest PASS)"]
+        t4["Claude Code skill (5 武器 + APT/TPA)"]
+        t5["ruflo / LangGraph / CrewAI と同じ層"]
+    end
+    essence -- "工学的結晶<br/>(responsibility_split)" --> tool
+
+    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
+    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
+    class essence essenceStyle
+    class tool toolStyle
 ```
 
 → *哲学的本質* をツール repo に押し込まない。本質は本質に。ツールはツールに。
@@ -101,6 +104,62 @@ cp -R ../skills/* ~/.claude/skills/
 ```
 
 詳細は [docs/01-quickstart.md](docs/01-quickstart.md)。
+
+### 視覚的なフロー
+
+```mermaid
+flowchart LR
+    A([git clone]) --> B[engine pytest<br/>77 PASS]
+    B --> C{Lean 4?<br/>任意}
+    C -- yes --> D[lean 検証<br/>0 sorry · 7 定理 PASS]
+    C -- skip --> E[bhgman-tool install-skills]
+    D --> E
+    E --> F[Claude Code 再起動]
+    F --> G[/apt · /prom · /tpa · /tlb<br/>/longinus · /harness · /jaebaeman/]
+    E -. 貢献者のみ .-> H[pre-commit install<br/>4-ratchet gate]
+
+    classDef startNode fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    classDef endNode fill:#fce7f3,stroke:#9d174d,stroke-width:2px,color:#1f2937
+    classDef optNode fill:#fef9c3,stroke:#854d0e,stroke-width:1px,stroke-dasharray:5 5,color:#1f2937
+    class A startNode
+    class G endNode
+    class H optNode
+```
+
+---
+
+## スキルの繋がり
+
+`/apt` が 5 フェーズ cycle を統制し、各 gate で 5 武器を派遣。 `/tpa` は逆方向ミラー。
+
+```mermaid
+flowchart TB
+    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
+    apt --> sa["SA<br/>SemanticAnchor"]
+    sa --> sp["SP<br/>SemanticPyramid"]
+    sp --> st["ST<br/>SemanticTwin"]
+    st --> scw["SCW<br/>SourceCodeWorld"]
+    scw --> meta["MetaReview"]
+    meta -. feedback loop .-> sa
+
+    sa -. uses .-> prom["/prom<br/>Prometheus"]
+    sa -. uses .-> longinus["/longinus<br/>参照バインディング"]
+    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
+    sp -. uses .-> tlb["/tlb<br/>Naesengmoon critic"]
+    st -. uses .-> tlb
+    scw -. uses .-> tlb
+    meta -. uses .-> tlb
+
+    tpa{{"/tpa 逆方向 cycle"}} -. mirror .-> apt
+    harness[("/harness<br/>4 軸 · 3 層")] -. frame .-> apt
+
+    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
+    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
+    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    class sa,sp,st,scw,meta phase
+    class prom,longinus,jbm,tlb,harness weapon
+    class apt,tpa orch
+```
 
 ---
 

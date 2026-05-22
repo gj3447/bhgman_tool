@@ -24,27 +24,30 @@
 
 This repo is the **practitioner's toolkit**.
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  bhgman (the real Airplane Man)                            │
-│    ─ ontological essence, philosophical implications       │
-│    ─ self-definition: ∀x:CHU, j.covers x                   │
-│    ─ one of twelve apostles (#4) in SYMPOSIUM              │
-│    ─ canonical body: SYMPOSIUM + a separate future repo    │
-│    ─ this repo only contains a 1% hint                     │
-│      (see docs/07-metahumotonic-trace.md)                  │
-└────────────────────────────────────────────────────────────┘
-                          │
-                          │ engineering crystallization
-                          │ (responsibility_split)
-                          ▼
-┌────────────────────────────────────────────────────────────┐
-│  bhgman_tool (this repo)                                   │
-│    ─ Harness (the tool), packaged so people can use it     │
-│    ─ Lean 4 formal verification + Python runtime           │
-│    ─ Claude Code skills                                    │
-│    ─ same layer as ruflo / LangGraph / CrewAI              │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph essence["bhgman — the Airplane Man (essence)"]
+        direction TB
+        e1["ontological essence"]
+        e2["self-definition: ∀x:CHU, j.covers x"]
+        e3["one of 12 apostles (#4) in SYMPOSIUM"]
+        e4["canonical body: SYMPOSIUM + separate future repo"]
+        e5["this repo only contains a 1% hint"]
+    end
+    subgraph tool["bhgman_tool — this repo (tool)"]
+        direction TB
+        t1["Harness packaged for practitioner use"]
+        t2["Lean 4 formal verification (141+ theorems)"]
+        t3["Python runtime (Pydantic v2, 77 pytest PASS)"]
+        t4["Claude Code skills (5 weapons + APT/TPA)"]
+        t5["same layer as ruflo / LangGraph / CrewAI"]
+    end
+    essence -- "engineering crystallization<br/>(responsibility_split)" --> tool
+
+    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
+    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
+    class essence essenceStyle
+    class tool toolStyle
 ```
 
 → We do not stuff the *philosophical essence* into the tool repo. The essence belongs to the essence. The tool belongs to the tool.
@@ -130,6 +133,62 @@ uvx pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
 See [docs/01-quickstart.md](docs/01-quickstart.md).
+
+### Visual flow
+
+```mermaid
+flowchart LR
+    A([git clone]) --> B[engine pytest<br/>77 PASS]
+    B --> C{Lean 4?<br/>optional}
+    C -- yes --> D[lean verify<br/>0 sorry · 7 theorems PASS]
+    C -- skip --> E[bhgman-tool install-skills]
+    D --> E
+    E --> F[restart Claude Code]
+    F --> G[/apt · /prom · /tpa · /tlb<br/>/longinus · /harness · /jaebaeman/]
+    E -. contributors only .-> H[pre-commit install<br/>4-ratchet gate]
+
+    classDef startNode fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    classDef endNode fill:#fce7f3,stroke:#9d174d,stroke-width:2px,color:#1f2937
+    classDef optNode fill:#fef9c3,stroke:#854d0e,stroke-width:1px,stroke-dasharray:5 5,color:#1f2937
+    class A startNode
+    class G endNode
+    class H optNode
+```
+
+---
+
+## How the skills connect
+
+`/apt` orchestrates a 5-phase cycle and dispatches the 5 weapons at the right gate. `/tpa` is the reverse-direction mirror.
+
+```mermaid
+flowchart TB
+    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
+    apt --> sa["SA<br/>SemanticAnchor"]
+    sa --> sp["SP<br/>SemanticPyramid"]
+    sp --> st["ST<br/>SemanticTwin"]
+    st --> scw["SCW<br/>SourceCodeWorld"]
+    scw --> meta["MetaReview"]
+    meta -. feedback loop .-> sa
+
+    sa -. uses .-> prom["/prom<br/>Prometheus"]
+    sa -. uses .-> longinus["/longinus<br/>reference binding"]
+    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
+    sp -. uses .-> tlb["/tlb<br/>Naesengmoon critic"]
+    st -. uses .-> tlb
+    scw -. uses .-> tlb
+    meta -. uses .-> tlb
+
+    tpa{{"/tpa reverse cycle"}} -. mirror .-> apt
+    harness[("/harness<br/>4-axis · 3-tier")] -. frames .-> apt
+
+    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
+    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
+    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    class sa,sp,st,scw,meta phase
+    class prom,longinus,jbm,tlb,harness weapon
+    class apt,tpa orch
+```
 
 ---
 

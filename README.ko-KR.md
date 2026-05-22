@@ -23,24 +23,30 @@
 
 이 repo 는 **사람들이 쓸 수 있게 만든 tool** layer.
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  bhgman (실제 비행기맨)                                    │
-│    ─ 존재론적 본질, 철학적 함의                            │
-│    ─ ∀x:CHU, j.covers x 자기 정의                          │
-│    ─ 12사도 framework 안의 한 명 (#4)                      │
-│    ─ 정전 본문: SYMPOSIUM 측 + 미래 별도 repo              │
-│    ─ 본 repo 에서는 docs/07-metahumotonic-trace.md 의 hint │
-└────────────────────────────────────────────────────────────┘
-                          │
-                          │ 공학적 결정화 (responsibility_split)
-                          ▼
-┌────────────────────────────────────────────────────────────┐
-│  bhgman_tool (이 repo)                                     │
-│    ─ Harness (도구) 측 사람들이 즉시 쓸 수 있게            │
-│    ─ Lean 4 형식 검증 + Python runtime + Claude Code skill │
-│    ─ ruflo / LangGraph / CrewAI 같은 industry layer 측    │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph essence["bhgman — 비행기맨 (본질)"]
+        direction TB
+        e1["존재론적 본질"]
+        e2["자기 정의: ∀x:CHU, j.covers x"]
+        e3["12사도 framework #4"]
+        e4["정전 본문: SYMPOSIUM + 별도 repo 예정"]
+        e5["이 repo 에는 1% hint 만"]
+    end
+    subgraph tool["bhgman_tool — 이 repo (도구)"]
+        direction TB
+        t1["Harness 즉시 사용 packaging"]
+        t2["Lean 4 형식 검증 (141+ 정리)"]
+        t3["Python runtime (Pydantic v2, 77 pytest PASS)"]
+        t4["Claude Code skill (5무기 + APT/TPA)"]
+        t5["ruflo / LangGraph / CrewAI 같은 layer"]
+    end
+    essence -- "공학적 결정화<br/>(responsibility_split)" --> tool
+
+    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
+    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
+    class essence essenceStyle
+    class tool toolStyle
 ```
 
 → 이 repo 에 *철학적 본질* 을 욱여넣지 않는다. 본질은 본질 측에. 도구는 도구 측에.
@@ -98,6 +104,62 @@ cp -R ../skills/* ~/.claude/skills/
 ```
 
 자세히는 [docs/01-quickstart.md](docs/01-quickstart.md).
+
+### 시각적 흐름
+
+```mermaid
+flowchart LR
+    A([git clone]) --> B[engine pytest<br/>77 PASS]
+    B --> C{Lean 4?<br/>선택}
+    C -- yes --> D[lean 검증<br/>0 sorry · 7 theorem PASS]
+    C -- skip --> E[bhgman-tool install-skills]
+    D --> E
+    E --> F[Claude Code 재시작]
+    F --> G[/apt · /prom · /tpa · /tlb<br/>/longinus · /harness · /jaebaeman/]
+    E -. 기여자만 .-> H[pre-commit install<br/>4-ratchet gate]
+
+    classDef startNode fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    classDef endNode fill:#fce7f3,stroke:#9d174d,stroke-width:2px,color:#1f2937
+    classDef optNode fill:#fef9c3,stroke:#854d0e,stroke-width:1px,stroke-dasharray:5 5,color:#1f2937
+    class A startNode
+    class G endNode
+    class H optNode
+```
+
+---
+
+## skill 끼리 어떻게 엮이나
+
+`/apt` 가 5-phase cycle 측 orchestrate 하고 각 gate 에서 5무기 측 dispatch. `/tpa` 는 역방향 거울.
+
+```mermaid
+flowchart TB
+    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
+    apt --> sa["SA<br/>SemanticAnchor"]
+    sa --> sp["SP<br/>SemanticPyramid"]
+    sp --> st["ST<br/>SemanticTwin"]
+    st --> scw["SCW<br/>SourceCodeWorld"]
+    scw --> meta["MetaReview"]
+    meta -. feedback loop .-> sa
+
+    sa -. uses .-> prom["/prom<br/>Prometheus"]
+    sa -. uses .-> longinus["/longinus<br/>참조 바인딩"]
+    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
+    sp -. uses .-> tlb["/tlb<br/>나생문 critic"]
+    st -. uses .-> tlb
+    scw -. uses .-> tlb
+    meta -. uses .-> tlb
+
+    tpa{{"/tpa 역방향 cycle"}} -. mirror .-> apt
+    harness[("/harness<br/>4축 · 3-tier")] -. frame .-> apt
+
+    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
+    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
+    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
+    class sa,sp,st,scw,meta phase
+    class prom,longinus,jbm,tlb,harness weapon
+    class apt,tpa orch
+```
 
 ---
 
