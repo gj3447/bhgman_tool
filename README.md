@@ -2,9 +2,7 @@
 
 # bhgman_tool
 
-**Engineering crystallization of the Airplane Man (#4) — Harness toolkit**
-
-<sub>This repo = tool layer. The ontology, philosophical implications, and metahumotonic motivation of *the Airplane Man himself* live in a separate repo. One of twelve apostles (#4) in the SYMPOSIUM framework.</sub>
+**A KG-anchored agent orchestration toolkit with Lean-verified drift audit, for Claude Code skill workflows.**
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (click for full mp4)"></a>
 
@@ -20,127 +18,76 @@
 
 ---
 
-## Two-layer separation (read first)
-
-This repo is the **practitioner's toolkit**.
-
-```mermaid
-flowchart TB
-    subgraph essence["bhgman — the Airplane Man (essence)"]
-        direction TB
-        e1["ontological essence"]
-        e2["self-definition: ∀x:CHU, j.covers x"]
-        e3["one of 12 apostles (#4) in SYMPOSIUM"]
-        e4["canonical body: SYMPOSIUM + separate future repo"]
-        e5["this repo only contains a 1% hint"]
-    end
-    subgraph tool["bhgman_tool — this repo (tool)"]
-        direction TB
-        t1["Harness packaged for practitioner use"]
-        t2["Lean 4 formal verification (141+ theorems)"]
-        t3["Python runtime (Pydantic v2, 77 pytest PASS)"]
-        t4["Claude Code skills (5 weapons + APT/TPA)"]
-        t5["same layer as ruflo / LangGraph / CrewAI"]
-    end
-    essence -- "engineering crystallization<br/>(responsibility_split)" --> tool
-
-    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
-    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
-    class essence essenceStyle
-    class tool toolStyle
-```
-
-→ We do not stuff the *philosophical essence* into the tool repo. The essence belongs to the essence. The tool belongs to the tool.
-
----
-
-## What this repo *is*
-
-The engineering crystallization (called **Harness**) of the Airplane Man (#4)'s ∀-cover definition (`∀x:CHU, j.covers x`), packaged for practitioner use.
-
-| What | Where |
-|---|---|
-| Harness 4-axis model + 3-tier family (L_MC/L_RT/L_IDE) | [docs/02-concepts/harness.md](docs/02-concepts/harness.md) |
-| Airplane Man definition + self-claim | [docs/02-concepts/airplane-man.md](docs/02-concepts/airplane-man.md) |
-| Lean 4 verified theorems (50 PASS, Mathlib-free) | [lean/](lean/) |
-| Python runtime (77 pytest PASS, Pydantic v2) | [engine/longinus_drift_audit/](engine/longinus_drift_audit/) |
-| Claude Code skills (5 weapons + APT/TPA cycle) | [skills/](skills/) |
-| Philosophical implications (summary + essence pointers) | [docs/06-philosophy/](docs/06-philosophy/) |
-| 1% hint towards the essence layer | [docs/07-metahumotonic-trace.md](docs/07-metahumotonic-trace.md) |
-
----
-
-## What this repo *is not*
-
-- ❌ The Airplane Man's own ontology (separate)
-- ❌ The full twelve apostles framework (each apostle has/will-have its own repo)
-- ❌ CHU type theory canon → separate repo `chu` (planned, Computable Hyper Universe)
-- ❌ OMC (Orbital Motion Cloud, OM=OMC, apostle #8) canon → separate repo `omc` (planned)
-- ❌ 333 (Hypervoid Volunteer, apostle #3) canon → separate repo `333` (planned)
-- ❌ Other 4 weapons (Longinus / Prometheus / Naesengmoon / Jaebaeman) canon → reference only here, body in SYMPOSIUM
-
----
-
-## Install from PyPI
+## What you get in 30 seconds
 
 ```bash
-# minimal (CLI + Pydantic-only models)
 pip install bhgman_tool
-
-# with APT v27 resolver (frontmatter + Jinja2 + Neo4j)
-pip install "bhgman_tool[resolver]"
-
-# with APT v27 gate endpoint (FastAPI + Redis + tenacity)
-pip install "bhgman_tool[gate]"
-
-# everything (resolver + gate + longinus runtime)
-pip install "bhgman_tool[all]"
+uv run bhgman-tool install-skills    # adds /apt /prom /tpa /tlb /longinus /harness /jaebaeman to Claude Code
 ```
 
-> **Honest scope (Goodhart safeguard):** the PyPI wheel ships `engine/` only. Cohort A subcommands (`install-skills`, `verify`, `version`) require the source repo (`skills/` + `lean/`) to be present alongside — clone the repo for full functionality. The wheel is sufficient for `resolver` + `gate` + `engine.longinus_drift_audit` runtime use. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md) for publish protocol.
+Restart Claude Code. In a chat:
+
+```
+/prom 16 "investigate <topic>"
+# parent dispatches 16 parallel research subagents (haiku),
+# each returns JSON, parent batch-writes to your knowledge graph,
+# every claim ends up with a citation_url and a reproducible cycle_id.
+```
+
+Ephemeral subagent runs become first-class, auditable records.
+
+---
+
+## Why bhgman_tool
+
+- **Verifiable provenance** — every subagent run produces a KG-anchored, sha256-baselined `ResearchFinding` node with cycle_id, axis seeds, citation URLs, and parent-lesson edges. Re-running a cycle is idempotent. Claims survive past the chat session.
+- **Drift audit built-in** — Longinus 7-layer reference model + sha256 baselining + forward/reverse orphan scan catches knowledge-graph ↔ source-code drift before it compounds. Run as a CLI, a pre-commit hook, or a CI job.
+- **Methodology skills, ready to use** — one-liner `bhgman-tool install-skills` installs APT/TPA cycle orchestrators and the 5-tool stack (Prometheus / Longinus / Naesengmoon / Jaebaeman / Harness) as Claude Code slash commands. No custom MCP wiring required.
+
+---
+
+## Install
+
+```bash
+pip install bhgman_tool                       # minimal (CLI + Pydantic models)
+pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
+pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
+pip install "bhgman_tool[all]"                # everything
+```
+
+> The PyPI wheel ships `engine/` only. The `install-skills` / `verify` / `version` subcommands need the source repo (`skills/` + `lean/`) alongside — clone for full functionality. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
 
 ---
 
 ## Quickstart (3 min)
 
 ```bash
-# 1. clone
 git clone https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool
 
-# 2. engine (Python runtime) — verify 77 pytest PASS
+# 1. engine — verify pytest
 cd engine/longinus_drift_audit
-uv run --with pytest pytest tests/ -q
-# expected: 77 passed in 0.41s
+uv run --with pytest pytest tests/ -q          # expected: 77 passed in ~0.4s
 
-# 3. Lean 4 verification (optional)
+# 2. Lean 4 — verify formal claims (optional)
 cd ../../lean
-lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean
-# exit 0, 0 sorry, 7 theorems PASS
+lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean   # exit 0, sorry=0
 
-# 4. Install Claude Code skills (one-liner, replaces manual cp)
-cd ../..   # back to repo root
-uv run bhgman-tool install-skills           # default target: ~/.claude/skills
-# add --dry-run to preview, --force to overwrite existing skill dirs.
-# Restart Claude Code, then in chat:
-# /apt   /prom   /tpa   /tlb   /longinus   /harness   /jaebaeman
+# 3. Install Claude Code skills
+cd ../..
+uv run bhgman-tool install-skills              # default: ~/.claude/skills
 
-# 5. (Contributors only) install pre-commit 4-ratchet gate — wave11
+# 4. (Contributors only) pre-commit ratchet
 uvx pre-commit install --hook-type pre-commit --hook-type pre-push
-# pre-commit: ruff lint+format, complexipy ≤15, deptry, pytest 268 tests (~2s)
-# pre-push:   lychee link check
-# Runs automatically on `git commit` / `git push`. Manual: `uvx pre-commit run --all-files`
 ```
 
-See [docs/01-quickstart.md](docs/01-quickstart.md).
-
-### Visual flow
+Restart Claude Code, then `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/jaebaeman` are live. Full guide: [docs/01-quickstart.md](docs/01-quickstart.md).
 
 ```mermaid
 flowchart LR
     A([git clone]) --> B[engine pytest<br/>77 PASS]
     B --> C{Lean 4?<br/>optional}
-    C -- yes --> D[lean verify<br/>0 sorry · 7 theorems PASS]
+    C -- yes --> D[lean verify<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
     D --> E
     E --> F[restart Claude Code]
@@ -157,65 +104,46 @@ flowchart LR
 
 ---
 
-## How the skills connect
+## How it works
 
-`/apt` orchestrates a 5-phase cycle and dispatches the 5 weapons at the right gate. `/tpa` is the reverse-direction mirror.
-
-```mermaid
-flowchart TB
-    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
-    apt --> sa["SA<br/>SemanticAnchor"]
-    sa --> sp["SP<br/>SemanticPyramid"]
-    sp --> st["ST<br/>SemanticTwin"]
-    st --> scw["SCW<br/>SourceCodeWorld"]
-    scw --> meta["MetaReview"]
-    meta -. feedback loop .-> sa
-
-    sa -. uses .-> prom["/prom<br/>Prometheus"]
-    sa -. uses .-> longinus["/longinus<br/>reference binding"]
-    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
-    sp -. uses .-> tlb["/tlb<br/>Naesengmoon critic"]
-    st -. uses .-> tlb
-    scw -. uses .-> tlb
-    meta -. uses .-> tlb
-
-    tpa{{"/tpa reverse cycle"}} -. mirror .-> apt
-    harness[("/harness<br/>4-axis · 3-tier")] -. frames .-> apt
-
-    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
-    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
-    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
-    class sa,sp,st,scw,meta phase
-    class prom,longinus,jbm,tlb,harness weapon
-    class apt,tpa orch
-```
+`/apt` runs a 5-phase cycle (SemanticAnchor → SemanticPyramid → SemanticTwin → SourceCodeWorld → MetaReview) and dispatches the right tool at each gate. `/tpa` is the reverse direction (code → design recovery). For the skill-dispatch graph and a 4-axis Harness / 3-tier family diagram, see [docs/02-concepts/skills-graph.md](docs/02-concepts/skills-graph.md) and [docs/02-concepts/harness.md](docs/02-concepts/harness.md).
 
 ---
 
-## Differentiation vs. ruflo
+## Reproducing the claims
 
-| Axis | ruflo | bhgman_tool |
+Every numeric claim in this README ships with a one-command verifier. Run them on a fresh clone:
+
+| Claim | Command | What it checks |
 |---|---|---|
-| **Layer separation** | none (single layer self-claim) | apostle (existence) ⊥ tool (this repo) ⊥ essence (separate) — **3 layers** |
-| **External canonical citations** | 0 | **17 axes** — Lawvere / Tarski / Gödel / Yanofsky / Hofstadter / Goodhart / Evans / Smith / Cherns / ... |
-| **Formal verification** | `ruflo verify` signed witness (code integrity only) | **141+ Lean 4 theorems** (Mathlib-free, 0 sorry) |
-| **Self-reference safety** | "84.8% SWE-Bench / 32% token reduction" — Goodhart violation itself | Lawvere FPT + Lakatos quarterly audit + Naesengmoon adversarial **3-layer safeguard** |
-| **Family structure** | flat 32 plugins / 100 agents / 314 tools (CCP/CRP violation) | 3-tier sibling family + responsibility_split sub-type (Mirror STRONG) |
-| **Confidence schema** | float edge confidence (under-specified) | **EXTRACTED / INFERRED / AMBIGUOUS** 3-tier enum (graphify mirror, Lean T1 verified, 19 pytest PASS) |
-| **Tool vs essence separation** | none | **explicit** (this repo = tool only) |
+| `77 pytest PASS` | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | pass count + runtime |
+| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton integrity |
+| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | top-level theorem count |
+| `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
 
-See [docs/04-references/related-work.md](docs/04-references/related-work.md) for the full TPA 5-drift audit of ruflo (what was absorbed as anti-pattern lesson, what was rejected as re-invention).
+**Goodhart disclaimer:** these scripts verify *reproducibility of the indicator value*, not *validity of what the indicator measures*. Theorem count, sorry count, and pytest count are Goodhart-vulnerable — they confirm "this number is stable and reachable from a clean clone," not "this number means the system is correct." Validity lives in the proofs themselves, the test bodies, and the cycle outputs — not the count.
+
+---
+
+## Documentation
+
+- [docs/01-quickstart.md](docs/01-quickstart.md) — full setup
+- [docs/02-concepts/](docs/02-concepts/) — Harness, APT, TPA, the 5 weapons
+- [docs/04-references/related-work.md](docs/04-references/related-work.md) — comparison with adjacent OSS (LangGraph, CrewAI, ruflo)
+- [docs/06-philosophy/](docs/06-philosophy/) — the conceptual essence layer, including the SYMPOSIUM 12-apostle framework this tool was carved out of (optional reading)
+
+---
+
+## Contributing
+
+Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 268 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 
 ## License
 
-MIT.
-
-## Author
-
-[gj3447@gmail.com](mailto:gj3447@gmail.com) (METAHUMOTONIC).
+MIT. Author: [gj3447@gmail.com](mailto:gj3447@gmail.com).
 
 ---
 
-<sub>This repo is the *tool layer* of the Airplane Man framework. The Airplane Man's own essence + the other 11 apostles + CHU + OMC canonical bodies live in separate repos (planned) or in SYMPOSIUM internal. KG: `github-mirror-bhgman-2026-05-13` (:PublicReferenceRepo:Canonical, scope=tool-layer-only).</sub>
+<sub>Built within the SYMPOSIUM 12-apostle / 5-weapon framework. The tool itself stands alone; the conceptual essence layer lives at [docs/06-philosophy/](docs/06-philosophy/). KG provenance: `github-mirror-bhgman-2026-05-13` (`:PublicReferenceRepo:Canonical`, scope=tool-layer-only).</sub>

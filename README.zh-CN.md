@@ -2,116 +2,92 @@
 
 # bhgman_tool
 
-**飞机人 (#4) 的工程结晶 —— Harness 工具集**
-
-<sub>本 repo = 工具层。*飞机人本身的本体论、哲学含义、metahumotonic 动机* 位于另一个 repo。SYMPOSIUM 框架中十二使徒之一 (#4)。</sub>
+**一个 KG 锚定 + Lean 验证的 drift 审计工具,为 Claude Code skill workflow 设计的 agent orchestration toolkit。**
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (点击查看完整 mp4)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
+[![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/pytest-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest](https://img.shields.io/badge/pytest-90%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
 
 </div>
 
 ---
 
-## 两层分离 (必读)
-
-本 repo 是 **使用者的工具集**。
-
-```mermaid
-flowchart TB
-    subgraph essence["bhgman — 飞机人 (本质)"]
-        direction TB
-        e1["本体论本质"]
-        e2["自定义: ∀x:CHU, j.covers x"]
-        e3["SYMPOSIUM 十二使徒 #4"]
-        e4["正典本体: SYMPOSIUM + 另一独立 repo (计划)"]
-        e5["本 repo 仅含 1% 暗示"]
-    end
-    subgraph tool["bhgman_tool — 本 repo (工具)"]
-        direction TB
-        t1["Harness 打包供使用"]
-        t2["Lean 4 形式验证 (141+ 定理)"]
-        t3["Python 运行时 (Pydantic v2, 77 pytest PASS)"]
-        t4["Claude Code skills (5 武器 + APT/TPA)"]
-        t5["与 ruflo / LangGraph / CrewAI 同层"]
-    end
-    essence -- "工程结晶<br/>(responsibility_split)" --> tool
-
-    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
-    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
-    class essence essenceStyle
-    class tool toolStyle
-```
-
-→ *哲学本质* 不塞入工具 repo。本质归本质,工具归工具。
-
----
-
-## 本 repo 是什么
-
-飞机人 (#4) 的 ∀-cover 定义 (`∀x:CHU, j.covers x`) 的工程结晶 —— **Harness**,打包供使用者直接采用。
-
-| 内容 | 位置 |
-|---|---|
-| Harness 4 轴模型 + 3 层家族 (L_MC/L_RT/L_IDE) | [docs/02-concepts/harness.md](docs/02-concepts/harness.md) |
-| 飞机人定义 + 自称 | [docs/02-concepts/airplane-man.md](docs/02-concepts/airplane-man.md) |
-| Lean 4 验证定理 (50 PASS, Mathlib-free) | [lean/](lean/) |
-| Python 运行时 (77 pytest PASS, Pydantic v2) | [engine/longinus_drift_audit/](engine/longinus_drift_audit/) |
-| Claude Code skills (5 武器 + APT/TPA cycle) | [skills/](skills/) |
-| 哲学含义 (摘要 + 本质指针) | [docs/06-philosophy/](docs/06-philosophy/) |
-| 通往本质层的 1% 暗示 | [docs/07-metahumotonic-trace.md](docs/07-metahumotonic-trace.md) |
-
----
-
-## 本 repo 不是什么
-
-- ❌ 飞机人自身的本体论 (另立 repo)
-- ❌ 完整十二使徒框架 (每位使徒各有/将有自己的 repo)
-- ❌ CHU 类型理论正典 → 另立 repo `chu` (计划中, Computable Hyper Universe)
-- ❌ OMC (Orbital Motion Cloud, OM=OMC, 使徒 #8) 正典 → 另立 repo `omc` (计划中)
-- ❌ 333 (超空动义勇士, 使徒 #3) 正典 → 另立 repo `333` (计划中)
-- ❌ 其余 4 武器 (Longinus / Prometheus / Naesengmoon / Jaebaeman) 正典 → 本 repo 仅作 reference, 正典体在 SYMPOSIUM
-
----
-
-## 快速开始 (3 分钟)
+## 30 秒内可获得
 
 ```bash
-# 1. clone
+pip install bhgman_tool
+uv run bhgman-tool install-skills    # 添加 /apt /prom /tpa /tlb /longinus /harness /jaebaeman 到 Claude Code
+```
+
+重启 Claude Code,在 chat 中:
+
+```
+/prom 16 "调研主题"
+# parent 派发 16 个 haiku 并行 subagent,
+# 各自返回 JSON,parent 批量写入 knowledge graph,
+# 每个 claim 都带有 citation_url + 可复现的 cycle_id。
+```
+
+短暂的 subagent run 变为一等公民、可审计的 record。
+
+---
+
+## 为什么选择 bhgman_tool
+
+- **可验证的 provenance** — 每次 subagent run 都产生 KG 锚定、sha256 基线的 `ResearchFinding` 节点,含 cycle_id、axis seed、citation URL、parent-lesson edge。重跑幂等。会话结束后 claim 仍在。
+- **内建 drift 审计** — Longinus 7-layer 引用模型 + sha256 基线 + 正反向 orphan 扫描,在 drift 累积前发现 KG↔source-code 偏差。可作 CLI、pre-commit hook 或 CI job 运行。
+- **即用的方法论 skill** — `bhgman-tool install-skills` 一行命令安装 APT/TPA cycle orchestrator + 5-tool 堆栈(Prometheus / Longinus / Naesengmoon / Jaebaeman / Harness)为 Claude Code slash command。无需自定义 MCP wiring。
+
+---
+
+## 安装
+
+```bash
+pip install bhgman_tool                       # 最小 (CLI + Pydantic 模型)
+pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
+pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
+pip install "bhgman_tool[all]"                # 全部
+```
+
+> PyPI wheel 仅包含 `engine/`。`install-skills` / `verify` / `version` subcommand 需要 source repo(`skills/` + `lean/`)同时存在 — 完整功能需 clone。详见 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md)。
+
+---
+
+## Quickstart (3 分钟)
+
+```bash
 git clone https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool
 
-# 2. engine (Python 运行时) — 验证 77 pytest PASS
+# 1. engine — pytest 验证
 cd engine/longinus_drift_audit
-uv run --with pytest pytest tests/ -q
-# 期望: 77 passed in 0.41s
+uv run --with pytest pytest tests/ -q          # 预期: 77 passed, ~0.4s
 
-# 3. Lean 4 验证 (可选)
+# 2. Lean 4 — 形式验证 (可选)
 cd ../../lean
-lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean
-# exit 0, 0 sorry, 7 个定理 PASS
+lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean   # exit 0, sorry=0
 
-# 4. 安装 Claude Code skills
-cp -R ../skills/* ~/.claude/skills/
-# 重启 Claude Code, 然后在 chat 中:
-# /apt   /prom   /tpa   /tlb   /longinus   /harness   /jaebaeman
+# 3. Claude Code skill 安装
+cd ../..
+uv run bhgman-tool install-skills              # 默认: ~/.claude/skills
+
+# 4. (仅贡献者) pre-commit ratchet
+uvx pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
-详见 [docs/01-quickstart.md](docs/01-quickstart.md)。
-
-### 可视化流程
+重启 Claude Code,之后 `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/jaebaeman` 即可使用。完整指南: [docs/01-quickstart.md](docs/01-quickstart.md)。
 
 ```mermaid
 flowchart LR
     A([git clone]) --> B[engine pytest<br/>77 PASS]
     B --> C{Lean 4?<br/>可选}
-    C -- yes --> D[lean 验证<br/>0 sorry · 7 定理 PASS]
+    C -- yes --> D[lean 验证<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
     D --> E
     E --> F[重启 Claude Code]
@@ -128,65 +104,46 @@ flowchart LR
 
 ---
 
-## 各 skill 如何连接
+## 它是如何工作的
 
-`/apt` 编排 5 阶段 cycle, 在每个 gate 调度 5 武器。 `/tpa` 是反向镜像。
-
-```mermaid
-flowchart TB
-    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
-    apt --> sa["SA<br/>SemanticAnchor"]
-    sa --> sp["SP<br/>SemanticPyramid"]
-    sp --> st["ST<br/>SemanticTwin"]
-    st --> scw["SCW<br/>SourceCodeWorld"]
-    scw --> meta["MetaReview"]
-    meta -. feedback loop .-> sa
-
-    sa -. uses .-> prom["/prom<br/>Prometheus"]
-    sa -. uses .-> longinus["/longinus<br/>引用绑定"]
-    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
-    sp -. uses .-> tlb["/tlb<br/>Naesengmoon 评审"]
-    st -. uses .-> tlb
-    scw -. uses .-> tlb
-    meta -. uses .-> tlb
-
-    tpa{{"/tpa 反向 cycle"}} -. mirror .-> apt
-    harness[("/harness<br/>4 轴 · 3 层")] -. frame .-> apt
-
-    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
-    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
-    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
-    class sa,sp,st,scw,meta phase
-    class prom,longinus,jbm,tlb,harness weapon
-    class apt,tpa orch
-```
+`/apt` 编排 5 阶段 cycle(SemanticAnchor → SemanticPyramid → SemanticTwin → SourceCodeWorld → MetaReview),在每个 gate 派发合适的工具。`/tpa` 是反向(代码 → 设计还原)。skill 派发图 + Harness 4-axis / 3-tier family 图详见 [docs/02-concepts/skills-graph.md](docs/02-concepts/skills-graph.md)、[docs/02-concepts/harness.md](docs/02-concepts/harness.md)。
 
 ---
 
-## 与 ruflo 的差异
+## 复现 claim
 
-| 轴 | ruflo | bhgman_tool |
+README 中所有定量 claim 都附有一条命令验证器。在干净的 clone 上运行:
+
+| Claim | Command | 检查什么 |
 |---|---|---|
-| **层级分离明示** | 无 (单层自称) | 使徒 (存在) ⊥ 工具 (本 repo) ⊥ 本质 (另立) —— **3 层分离** |
-| **外部正典引用** | 0 | **17 轴** —— Lawvere / Tarski / Gödel / Yanofsky / Hofstadter / Goodhart / Evans / Smith / Cherns / ... |
-| **形式验证** | `ruflo verify` signed witness (仅代码完整性) | **141+ Lean 4 定理** (Mathlib-free, 0 sorry) |
-| **自指安全** | "84.8% SWE-Bench / 32% token reduction" —— Goodhart 自身违反 | Lawvere FPT + Lakatos 季度审计 + Naesengmoon adversarial **3 层安全** |
-| **家族结构** | flat 32 plugins / 100 agents / 314 tools (CCP/CRP 违反) | 3 层 sibling family + responsibility_split sub-type (Mirror STRONG) |
-| **Confidence schema** | 浮点边置信度 (规范不足) | **EXTRACTED / INFERRED / AMBIGUOUS** 3 级 enum (graphify mirror, Lean T1 已验证) |
-| **工具 vs 本质分离** | 无 | **明示** (本 repo = 仅工具层) |
+| `77 pytest PASS` | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | pass count + runtime |
+| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | 证明骨架完整性 |
+| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | 顶级 theorem 数量 |
+| `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | 重跑 cycle 并 diff KG output |
 
-详见 [docs/04-references/related-work.md](docs/04-references/related-work.md) 中 ruflo 的 TPA 5-drift 完整审计结果 (哪些 anti-pattern 作为 lesson 吸收, 哪些功能因属业界正典再发明而拒绝)。
+**Goodhart 声明:** 这些脚本验证的是*指标值的可复现性*,不是*指标所要度量之物的有效性*。theorem count / sorry count / pytest count 都易受 Goodhart 法则影响 — 它们确认"这个数字在 clean clone 上稳定可达",而非"这个数字意味着系统是正确的"。有效性在于证明本体、测试主体、cycle 输出,不在 count 里。
+
+---
+
+## Documentation
+
+- [docs/01-quickstart.md](docs/01-quickstart.md) — 完整 setup
+- [docs/02-concepts/](docs/02-concepts/) — Harness、APT、TPA、5 武器
+- [docs/04-references/related-work.md](docs/04-references/related-work.md) — 与相邻 OSS(LangGraph、CrewAI、ruflo)对比
+- [docs/06-philosophy/](docs/06-philosophy/) — 概念本质层,以及本工具是从 SYMPOSIUM 十二使徒框架中分离出来的背景(可选阅读)
+
+---
+
+## Contributing
+
+Pre-commit 4-ratchet gate 在每次 commit 运行 ruff lint+format / complexipy ≤15 / deptry / 268 个 pytest,每次 push 运行 lychee 链接检查。安装: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
 
 ---
 
 ## License
 
-MIT。
-
-## 作者
-
-[gj3447@gmail.com](mailto:gj3447@gmail.com) (METAHUMOTONIC)。
+MIT. 作者: [gj3447@gmail.com](mailto:gj3447@gmail.com)。
 
 ---
 
-<sub>本 repo 为飞机人框架的 *工具层*。飞机人自身本质 + 其余 11 位使徒 + CHU + OMC 正典体位于另立 repo (计划中) 或 SYMPOSIUM 内部。KG: `github-mirror-bhgman-2026-05-13` (:PublicReferenceRepo:Canonical, scope=tool-layer-only)。</sub>
+<sub>在 SYMPOSIUM 十二使徒 / 5 武器框架内结晶。工具本身独立可用;概念本质层位于 [docs/06-philosophy/](docs/06-philosophy/)。KG provenance: `github-mirror-bhgman-2026-05-13` (`:PublicReferenceRepo:Canonical`, scope=tool-layer-only)。</sub>

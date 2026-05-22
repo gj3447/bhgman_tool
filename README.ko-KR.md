@@ -2,116 +2,92 @@
 
 # bhgman_tool
 
-**비행기맨의 *공학적 결정화* 측 도구 모음**
-
-<sub>이 repo = Harness (도구). *비행기맨 그 자체의 존재론 + 철학적 함의* 는 별도. SYMPOSIUM family 12사도 중 한 명 (#4) 측.</sub>
+**KG에 결정화되는, Lean으로 검증된 drift 감사 도구 — Claude Code skill workflow를 위한 에이전트 orchestration toolkit.**
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (클릭하면 mp4 원본)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
+[![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/pytest-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest](https://img.shields.io/badge/pytest-90%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
 
 </div>
 
 ---
 
-## 두 layer 분리 (필독)
+## 30초 안에 얻는 것
 
-이 repo 는 **사람들이 쓸 수 있게 만든 tool** layer.
-
-```mermaid
-flowchart TB
-    subgraph essence["bhgman — 비행기맨 (본질)"]
-        direction TB
-        e1["존재론적 본질"]
-        e2["자기 정의: ∀x:CHU, j.covers x"]
-        e3["12사도 framework #4"]
-        e4["정전 본문: SYMPOSIUM + 별도 repo 예정"]
-        e5["이 repo 에는 1% hint 만"]
-    end
-    subgraph tool["bhgman_tool — 이 repo (도구)"]
-        direction TB
-        t1["Harness 즉시 사용 packaging"]
-        t2["Lean 4 형식 검증 (141+ 정리)"]
-        t3["Python runtime (Pydantic v2, 77 pytest PASS)"]
-        t4["Claude Code skill (5무기 + APT/TPA)"]
-        t5["ruflo / LangGraph / CrewAI 같은 layer"]
-    end
-    essence -- "공학적 결정화<br/>(responsibility_split)" --> tool
-
-    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
-    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
-    class essence essenceStyle
-    class tool toolStyle
+```bash
+pip install bhgman_tool
+uv run bhgman-tool install-skills    # /apt /prom /tpa /tlb /longinus /harness /jaebaeman 추가
 ```
 
-→ 이 repo 에 *철학적 본질* 을 욱여넣지 않는다. 본질은 본질 측에. 도구는 도구 측에.
+Claude Code 재시작 후 chat에서:
+
+```
+/prom 16 "조사할 주제"
+# parent가 haiku 16개 병렬 dispatch,
+# 각자 JSON 반환, parent가 batch로 knowledge graph에 write,
+# 모든 claim에 citation_url + 재실행 가능한 cycle_id 남음.
+```
+
+휘발성 subagent run을 first-class, 감사 가능한 record로.
 
 ---
 
-## 본 repo 가 무엇인가
+## 왜 bhgman_tool인가
 
-비행기맨 (#4 사도) 측 ∀-cover (`∀x:CHU, j.covers x`) 의 *공학적 결정화* 인 **Harness** 를 사람들이 쓸 수 있게 packaging.
-
-| 무엇 | 어디 |
-|---|---|
-| Harness 4축 모델 + 3-tier family (L_MC/L_RT/L_IDE) | [docs/02-concepts/harness.md](docs/02-concepts/harness.md) |
-| 비행기맨 정의 + 자기 정의 | [docs/02-concepts/airplane-man.md](docs/02-concepts/airplane-man.md) |
-| Lean 4 verified theorem (24 PASS, Mathlib-free) | [lean/](lean/) |
-| Python runtime (77 pytest PASS, Pydantic v2) | [engine/longinus_drift_audit/](engine/longinus_drift_audit/) |
-| Claude Code skill (5무기 + APT/TPA cycle) | [skills/](skills/) |
-| 철학적 함의 (요약 + 본질 측 link) | [docs/06-philosophy/](docs/06-philosophy/) |
-| 본질 측 1% hint | [docs/07-metahumotonic-trace.md](docs/07-metahumotonic-trace.md) |
+- **검증 가능한 provenance** — 모든 subagent run이 KG-anchored, sha256-baselined `ResearchFinding` 노드로 결정화. cycle_id / axis seed / citation URL / parent-lesson edge 포함. 재실행 시 idempotent. 채팅 세션이 끝나도 claim이 살아남음.
+- **drift 감사 내장** — Longinus 7-layer 참조 모델 + sha256 baseline + forward/reverse orphan scan으로 KG↔source-code drift를 누적 전에 탐지. CLI / pre-commit hook / CI job 어떤 형태로도 운용 가능.
+- **즉시 쓰는 방법론 skill** — `bhgman-tool install-skills` 한 줄로 APT/TPA cycle orchestrator + 5-tool stack(Prometheus / Longinus / Naesengmoon / Jaebaeman / Harness)이 Claude Code slash command가 됨. 별도 MCP wiring 불필요.
 
 ---
 
-## 본 repo 가 *아닌* 것
+## 설치
 
-- ❌ 비행기맨 그 자체의 존재론 본문 (별도)
-- ❌ 12사도 framework 전체 본문 (각 사도별 별도 repo / SYMPOSIUM 측)
-- ❌ CHU type theory 본문 → 별도 repo `chu` (예정, Computable Hyper Universe)
-- ❌ OMC (Orbital Motion Cloud, OM=OMC #8 사도) 본문 → 별도 repo `omc` (예정)
-- ❌ 333 (초공동의용사 #3) 본문 → 별도 repo `333` (예정)
-- ❌ 5무기 다른 4 (Longinus / Prometheus / Naesengmoon / 재배맨) 본문 → reference 만, 본문은 SYMPOSIUM 측
+```bash
+pip install bhgman_tool                       # 최소 (CLI + Pydantic 모델)
+pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
+pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
+pip install "bhgman_tool[all]"                # 전체
+```
+
+> PyPI wheel은 `engine/`만 포함. `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함 — 전체 기능을 위해서는 clone. 자세히는 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
 
 ---
 
 ## Quickstart (3분)
 
 ```bash
-# 1. clone
 git clone https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool
 
-# 2. engine (Python runtime) — 77 pytest PASS 검증
+# 1. engine — pytest 검증
 cd engine/longinus_drift_audit
-uv run --with pytest pytest tests/ -q
-# 기대: 77 passed in 0.41s
+uv run --with pytest pytest tests/ -q          # 예상: 77 passed, ~0.4s
 
-# 3. Lean 4 검증 (선택)
+# 2. Lean 4 — 형식 검증 (선택)
 cd ../../lean
-lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean
-# exit 0, 0 sorry, 7 theorem PASS
+lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean   # exit 0, sorry=0
 
-# 4. Claude Code skill 설치
-cp -R ../skills/* ~/.claude/skills/
-# Claude Code 재시작 후
-# /apt   /prom   /tpa   /tlb   /longinus   /harness   /jaebaeman
+# 3. Claude Code skill 설치
+cd ../..
+uv run bhgman-tool install-skills              # 기본: ~/.claude/skills
+
+# 4. (기여자만) pre-commit ratchet
+uvx pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
-자세히는 [docs/01-quickstart.md](docs/01-quickstart.md).
-
-### 시각적 흐름
+Claude Code 재시작 후 `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/jaebaeman` 사용 가능. 전체 가이드: [docs/01-quickstart.md](docs/01-quickstart.md).
 
 ```mermaid
 flowchart LR
     A([git clone]) --> B[engine pytest<br/>77 PASS]
     B --> C{Lean 4?<br/>선택}
-    C -- yes --> D[lean 검증<br/>0 sorry · 7 theorem PASS]
+    C -- yes --> D[lean 검증<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
     D --> E
     E --> F[Claude Code 재시작]
@@ -128,65 +104,46 @@ flowchart LR
 
 ---
 
-## skill 끼리 어떻게 엮이나
+## 어떻게 동작하나
 
-`/apt` 가 5-phase cycle 측 orchestrate 하고 각 gate 에서 5무기 측 dispatch. `/tpa` 는 역방향 거울.
-
-```mermaid
-flowchart TB
-    user(["user: /apt &lt;goal&gt;"]) --> apt{{"/apt orchestrator"}}
-    apt --> sa["SA<br/>SemanticAnchor"]
-    sa --> sp["SP<br/>SemanticPyramid"]
-    sp --> st["ST<br/>SemanticTwin"]
-    st --> scw["SCW<br/>SourceCodeWorld"]
-    scw --> meta["MetaReview"]
-    meta -. feedback loop .-> sa
-
-    sa -. uses .-> prom["/prom<br/>Prometheus"]
-    sa -. uses .-> longinus["/longinus<br/>참조 바인딩"]
-    sp -. uses .-> jbm["/jaebaeman<br/>SOP dispatch"]
-    sp -. uses .-> tlb["/tlb<br/>나생문 critic"]
-    st -. uses .-> tlb
-    scw -. uses .-> tlb
-    meta -. uses .-> tlb
-
-    tpa{{"/tpa 역방향 cycle"}} -. mirror .-> apt
-    harness[("/harness<br/>4축 · 3-tier")] -. frame .-> apt
-
-    classDef phase fill:#e0e7ff,stroke:#3730a3,stroke-width:2px,color:#1f2937
-    classDef weapon fill:#fef3c7,stroke:#92400e,stroke-width:1px,color:#1f2937
-    classDef orch fill:#dcfce7,stroke:#166534,stroke-width:2px,color:#1f2937
-    class sa,sp,st,scw,meta phase
-    class prom,longinus,jbm,tlb,harness weapon
-    class apt,tpa orch
-```
+`/apt`는 5-phase cycle (SemanticAnchor → SemanticPyramid → SemanticTwin → SourceCodeWorld → MetaReview)을 운영하고 각 gate에서 5무기를 dispatch. `/tpa`는 역방향(code → design recovery). skill-dispatch graph + Harness 4-axis / 3-tier family 다이어그램은 [docs/02-concepts/skills-graph.md](docs/02-concepts/skills-graph.md), [docs/02-concepts/harness.md](docs/02-concepts/harness.md) 참고.
 
 ---
 
-## ruflo 대비 차별점 표
+## Claim 재현 방법
 
-| 축 | ruflo | bhgman_tool |
+README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. clean clone에서 실행 가능:
+
+| Claim | Command | 무엇을 확인 |
 |---|---|---|
-| **layer 명시** | "multi-agent orchestration" (단일 layer 자칭) | 사도(존재) ⊥ 도구(이 repo) ⊥ 본질(별도) **3 layer 분리** |
-| **외부 정전 인용** | 0 | **17 axes** — Lawvere/Tarski/Gödel/Yanofsky/Hofstadter/Goodhart/Evans/Smith/Cherns/... |
-| **Formal verification** | `ruflo verify` signed witness (code integrity only) | **141+ Lean 4 theorem** (Mathlib-free, 0 sorry) |
-| **Self-reference 안전** | "84.8% SWE-Bench / 32% token reduction" Goodhart 자체 위반 | Lawvere FPT + Lakatos quarterly audit + Naesengmoon adversarial 3 layer 안전 |
-| **Family 구조** | flat 32 plugin / 100 agent / 314 tool (CCP/CRP 위반) | 3-tier sibling family (responsibility_split, Mirror STRONG) |
-| **Confidence schema** | edge confidence float (under-specified) | **EXTRACTED / INFERRED / AMBIGUOUS** 3-tier enum (graphify mirror, Lean T1 verified, Python 19 pytest PASS) |
-| **본질 vs 도구 분리** | 없음 | **명시적 분리** (이 repo = 도구 only) |
+| `77 pytest PASS` | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | pass count + runtime |
+| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton 무결성 |
+| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | 최상위 theorem count |
+| `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 재실행 + KG output diff |
 
-자세히는 [docs/04-references/related-work.md](docs/04-references/related-work.md) 측 ruflo TPA 5-drift audit 결과 (어떤 anti-pattern 만 lesson 으로 흡수했고 어떤 기능은 산업 재발명이라 거부했는지).
+**Goodhart disclaimer:** 이 스크립트들은 *지표 값의 재현성*을 검증하는 것이지, *그 지표가 측정하려는 것의 타당성*을 검증하는 게 아니다. theorem count / sorry count / pytest count는 모두 Goodhart-vulnerable — "이 숫자가 clean clone에서 안정적으로 도달 가능"을 확인하지, "이 숫자가 시스템이 정확하다는 의미"를 확인하지 않는다. 타당성은 증명 자체 / 테스트 본문 / cycle output에 있지 count에 있지 않다.
+
+---
+
+## Documentation
+
+- [docs/01-quickstart.md](docs/01-quickstart.md) — 전체 setup
+- [docs/02-concepts/](docs/02-concepts/) — Harness, APT, TPA, 5무기
+- [docs/04-references/related-work.md](docs/04-references/related-work.md) — 인접 OSS(LangGraph, CrewAI, ruflo) 비교
+- [docs/06-philosophy/](docs/06-philosophy/) — 개념적 본질 layer. 이 도구가 SYMPOSIUM 12-apostle framework에서 분리되어 나온 배경 (선택 독서)
+
+---
+
+## Contributing
+
+Pre-commit 4-ratchet gate가 모든 commit에 ruff lint+format / complexipy ≤15 / deptry / 268 pytest 실행, push마다 lychee 링크 검사. 설치: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 
 ## License
 
-MIT.
-
-## Author
-
-[gj3447@gmail.com](mailto:gj3447@gmail.com) (METAHUMOTONIC).
+MIT. Author: [gj3447@gmail.com](mailto:gj3447@gmail.com).
 
 ---
 
-<sub>본 repo 는 비행기맨 framework 의 *도구 layer*. 비행기맨 그 자체 + 12사도 다른 사도 + CHU + OMC 측 본질 본문은 별도 repo (예정) 또는 SYMPOSIUM 내부 정전. KG: github-mirror-bhgman-2026-05-13 (:PublicReferenceRepo:Canonical, scope=tool-layer-only).</sub>
+<sub>SYMPOSIUM 12사도 / 5무기 framework 안에서 결정화됨. 도구 자체는 독립 운용; 개념적 본질 layer는 [docs/06-philosophy/](docs/06-philosophy/)에 있음. KG provenance: `github-mirror-bhgman-2026-05-13` (`:PublicReferenceRepo:Canonical`, scope=tool-layer-only).</sub>

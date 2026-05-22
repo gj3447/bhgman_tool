@@ -1,6 +1,63 @@
 # 철학적 함의 — 도구 측 요약
 
 > 본질 본문은 별도. 이 폴더는 *도구를 쓰는 사람이 알면 좋은 함의 요약* 만.
+> Root README에서 분리된 내용 (PROM 16 README persuasion design cycle 2026-05-22 reconciliation R4): mythology / two-layer separation framing은 사용자가 의식적으로 들어왔을 때만 노출.
+
+---
+
+## Two-layer separation — essence vs tool
+
+이 repo는 **도구 layer**다. 사도(존재) layer는 SYMPOSIUM에 있다.
+
+```mermaid
+flowchart TB
+    subgraph essence["bhgman — the Airplane Man (essence)"]
+        direction TB
+        e1["ontological essence"]
+        e2["self-definition: ∀x:CHU, j.covers x"]
+        e3["one of 12 apostles (#4) in SYMPOSIUM"]
+        e4["canonical body: SYMPOSIUM + separate future repo"]
+        e5["this repo only contains a 1% hint"]
+    end
+    subgraph tool["bhgman_tool — this repo (tool)"]
+        direction TB
+        t1["Harness packaged for practitioner use"]
+        t2["Lean 4 formal verification (141+ theorems)"]
+        t3["Python runtime (Pydantic v2, 77 pytest PASS)"]
+        t4["Claude Code skills (5 weapons + APT/TPA)"]
+        t5["same layer as ruflo / LangGraph / CrewAI"]
+    end
+    essence -- "engineering crystallization<br/>(responsibility_split)" --> tool
+
+    classDef essenceStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#1f2937
+    classDef toolStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1f2937
+    class essence essenceStyle
+    class tool toolStyle
+```
+
+→ 도구 repo에 *철학적 본질*을 욱여넣지 않는다. 본질은 본질에, 도구는 도구에.
+
+### What this repo *is*
+
+비행기맨(#4)의 ∀-cover 정의(`∀x:CHU, j.covers x`)에 대한 **공학적 결정화 (= Harness)**, 사람들이 쓸 수 있게 packaging 한 것.
+
+| What | Where |
+|---|---|
+| Harness 4-axis model + 3-tier family (L_MC/L_RT/L_IDE) | [../02-concepts/harness.md](../02-concepts/harness.md) |
+| Airplane Man definition + self-claim | [../02-concepts/airplane-man.md](../02-concepts/airplane-man.md) |
+| Lean 4 verified theorems | [../../lean/](../../lean/) |
+| Python runtime | [../../engine/longinus_drift_audit/](../../engine/longinus_drift_audit/) |
+| Claude Code skills (5 weapons + APT/TPA) | [../../skills/](../../skills/) |
+| 1% hint towards essence layer | [../07-metahumotonic-trace.md](../07-metahumotonic-trace.md) |
+
+### What this repo *is not*
+
+- 비행기맨 자체의 존재론 (SYMPOSIUM 측 별도)
+- 12사도 framework 전체 (각 사도별 별도 repo 또는 SYMPOSIUM 측)
+- CHU type theory canon → `chu` repo (예정)
+- OMC (#8) canon → `omc` repo (예정)
+- 333 (#3) canon → `333` repo (예정)
+- 5무기 중 Longinus / Prometheus / Naesengmoon / Jaebaeman canon → 이 repo는 reference만, body는 SYMPOSIUM 측
 
 ---
 
