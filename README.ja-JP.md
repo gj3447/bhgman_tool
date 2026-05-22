@@ -6,6 +6,8 @@
 
 <sub>本 repo = ツール層。*飛行機男自身の存在論・哲学的含意・メタヒューモトニック動機* は別 repo に。SYMPOSIUM フレームワークの十二使徒の一人 (#4)。</sub>
 
+<a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (クリックで mp4 原本)"></a>
+
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)

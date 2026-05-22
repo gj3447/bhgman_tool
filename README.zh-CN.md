@@ -6,6 +6,8 @@
 
 <sub>本 repo = 工具层。*飞机人本身的本体论、哲学含义、metahumotonic 动机* 位于另一个 repo。SYMPOSIUM 框架中十二使徒之一 (#4)。</sub>
 
+<a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (点击查看完整 mp4)"></a>
+
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)

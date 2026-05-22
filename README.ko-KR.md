@@ -6,6 +6,8 @@
 
 <sub>이 repo = Harness (도구). *비행기맨 그 자체의 존재론 + 철학적 함의* 는 별도. SYMPOSIUM family 12사도 중 한 명 (#4) 측.</sub>
 
+<a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (클릭하면 mp4 원본)"></a>
+
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)

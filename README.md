@@ -6,7 +6,7 @@
 
 <sub>This repo = tool layer. The ontology, philosophical implications, and metahumotonic motivation of *the Airplane Man himself* live in a separate repo. One of twelve apostles (#4) in the SYMPOSIUM framework.</sub>
 
-<video src="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4" width="720" controls muted playsinline></video>
+<a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (click for full mp4)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
