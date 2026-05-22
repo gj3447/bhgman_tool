@@ -2,17 +2,19 @@
 
 # bhgman_tool
 
-**一个 KG 锚定 + Lean 验证的 drift 审计工具,为 Claude Code skill workflow 设计的 agent orchestration toolkit。**
+**为 Claude Code skill workflow 设计的 KG 锚定 agent orchestration toolkit。** Lean 4 验证的 confidence schema (定理 7 个,`sorry=0`) · KG↔code drift 审计 (Python + APOC trigger, 当前 warn-mode)。
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (点击查看完整 mp4)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
+[![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg?style=flat-square)](https://github.com/gj3447/bhgman_tool#status-experimental)
 [![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/pytest-90%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest full](https://img.shields.io/badge/pytest%20full--repo-268%20PASS-green.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -116,7 +118,8 @@ README 中所有定量 claim 都附有一条命令验证器。在干净的 clone
 
 | Claim | Command | 检查什么 |
 |---|---|---|
-| `77 pytest PASS` | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | pass count + runtime |
+| `77 pytest PASS` (engine 子集) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 子集 pass count + runtime |
+| `268 pytest PASS` (整个 repo) | `uvx pre-commit run --all-files` (或在 root 运行 `pytest -q`) | 整个 repo pre-commit gate pass count |
 | `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | 证明骨架完整性 |
 | `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | 顶级 theorem 数量 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | 重跑 cycle 并 diff KG output |
@@ -133,6 +136,10 @@ README 中所有定量 claim 都附有一条命令验证器。在干净的 clone
 - [docs/06-philosophy/](docs/06-philosophy/) — 概念本质层,以及本工具是从 SYMPOSIUM 十二使徒框架中分离出来的背景(可选阅读)
 
 ---
+
+## Status: experimental
+
+早期 adopter 阶段。API surface、skill contract、badge 数字均可能不经 deprecation cycle 而变更。production 用途请 pin specific commit (或 `pip install bhgman_tool==<version>`)。生成本 README 的 cycle (PROM 16 + 三层 Naesengmoon round-2) 在 project KG 中标记 `EXPLORATORY_NOT_CONFIRMATORY` — 详见 SYMPOSIUM monorepo 中 `THEORY/bhgman_tool_readme_design/PROM_16_REPORT.md`。
 
 ## Contributing
 

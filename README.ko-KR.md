@@ -2,17 +2,19 @@
 
 # bhgman_tool
 
-**KG에 결정화되는, Lean으로 검증된 drift 감사 도구 — Claude Code skill workflow를 위한 에이전트 orchestration toolkit.**
+**Claude Code skill workflow를 위한 KG-anchored agent orchestration toolkit.** Lean 4로 검증된 confidence schema (정리 7개, `sorry=0`) · KG↔code drift 감사 (Python + APOC trigger, 현재 warn-mode).
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (클릭하면 mp4 원본)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
+[![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg?style=flat-square)](https://github.com/gj3447/bhgman_tool#status-experimental)
 [![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/pytest-90%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest full](https://img.shields.io/badge/pytest%20full--repo-268%20PASS-green.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -116,7 +118,8 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 
 | Claim | Command | 무엇을 확인 |
 |---|---|---|
-| `77 pytest PASS` | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | pass count + runtime |
+| `77 pytest PASS` (engine 부분) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 부분 pass count + runtime |
+| `268 pytest PASS` (전체 repo) | `uvx pre-commit run --all-files` (또는 root에서 `pytest -q`) | 전체 repo pre-commit gate pass count |
 | `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton 무결성 |
 | `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | 최상위 theorem count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 재실행 + KG output diff |
@@ -133,6 +136,10 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 - [docs/06-philosophy/](docs/06-philosophy/) — 개념적 본질 layer. 이 도구가 SYMPOSIUM 12-apostle framework에서 분리되어 나온 배경 (선택 독서)
 
 ---
+
+## Status: experimental
+
+초기 adopter 단계. API surface, skill contract, badge 숫자 모두 deprecation cycle 없이 바뀔 수 있음. production 용으로는 specific commit (또는 `pip install bhgman_tool==<version>`) pin 권장. 이 README를 만든 cycle (PROM 16 + 3중 나생문 round-2)은 project KG에 `EXPLORATORY_NOT_CONFIRMATORY` tag — SYMPOSIUM monorepo의 `THEORY/bhgman_tool_readme_design/PROM_16_REPORT.md` 참고.
 
 ## Contributing
 

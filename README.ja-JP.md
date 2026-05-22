@@ -2,17 +2,19 @@
 
 # bhgman_tool
 
-**KG にアンカーされ、Lean で検証された drift 監査ツール — Claude Code skill workflow のための agent オーケストレーション toolkit。**
+**Claude Code skill workflow のための KG-anchored agent オーケストレーション toolkit。** Lean 4 で検証された confidence schema (定理 7 個、`sorry=0`) · KG↔code drift 監査 (Python + APOC trigger、現在 warn-mode)。
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (クリックで mp4 原本)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
+[![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg?style=flat-square)](https://github.com/gj3447/bhgman_tool#status-experimental)
 [![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/pytest-90%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-77%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest full](https://img.shields.io/badge/pytest%20full--repo-268%20PASS-green.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -116,7 +118,8 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 
 | Claim | Command | 何を確認するか |
 |---|---|---|
-| `77 pytest PASS` | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | pass count + runtime |
+| `77 pytest PASS` (engine 部分) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 部分 pass count + runtime |
+| `268 pytest PASS` (リポジトリ全体) | `uvx pre-commit run --all-files` (またはルートで `pytest -q`) | リポジトリ全体の pre-commit gate pass count |
 | `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | 証明骨格の完全性 |
 | `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | トップレベル theorem 数 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 再実行 + KG output diff |
@@ -133,6 +136,10 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 - [docs/06-philosophy/](docs/06-philosophy/) — 概念的本質層、本ツールが SYMPOSIUM 十二使徒フレームワークから分離して生まれた経緯(任意読み物)
 
 ---
+
+## Status: experimental
+
+アーリーアダプター段階。API surface、skill contract、badge 数値はすべて deprecation cycle なしで変更される可能性あり。production 用途には specific commit pin (または `pip install bhgman_tool==<version>`) 推奨。本 README を生成した cycle (PROM 16 + 3 レンズ Naesengmoon round-2) は project KG で `EXPLORATORY_NOT_CONFIRMATORY` タグ — SYMPOSIUM monorepo の `THEORY/bhgman_tool_readme_design/PROM_16_REPORT.md` 参照。
 
 ## Contributing
 
