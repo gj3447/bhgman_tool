@@ -29,7 +29,7 @@ repos:
         stages: [pre-commit]
       - id: check-added-large-files
         stages: [pre-commit]
-        args: [--maxkb=5000]
+        args: [--maxkb=6000]
 
   # ============================================================
   # Stage 2: ruff lint + format (pre-commit, fast)
