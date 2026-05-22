@@ -175,21 +175,7 @@ flowchart TB
 | **Confidence schema** | edge confidence float (under-specified) | **EXTRACTED / INFERRED / AMBIGUOUS** 3-tier enum (graphify mirror, Lean T1 verified, Python 19 pytest PASS) |
 | **본질 vs 도구 분리** | 없음 | **명시적 분리** (이 repo = 도구 only) |
 
-자세히는 [docs/04-references/related-work.md](docs/04-references/related-work.md).
-
----
-
-## ruflo 에서 흡수한 것 (이 repo 측)
-
-| 측면 | 흡수 결과 |
-|---|---|
-| ❌ orchestration framework | (Harness L_RT 한 sibling 일 뿐) |
-| ❌ SONA self-learning | (학문 정전 부재) |
-| ❌ federation mTLS+WireGuard | (industry 정전 재발명) |
-| ✅ **Goodhart antipattern** | [docs/02-concepts/goodhart-safeguard.md](docs/02-concepts/goodhart-safeguard.md) (negative case study) |
-| ✅ **enumeration inflation antipattern** | [docs/02-concepts/family-expansion.md](docs/02-concepts/family-expansion.md) §anti-pattern |
-| ✅ **graphify confidence schema** (EXTRACTED/INFERRED/AMBIGUOUS) | [engine/longinus_drift_audit/models.py](engine/longinus_drift_audit/models.py) + [lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean](lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean) |
-| ✅ **code-review-graph daemon 패턴** | (planned, [docs/03-tutorials/](docs/03-tutorials/) 측) |
+자세히는 [docs/04-references/related-work.md](docs/04-references/related-work.md) 측 ruflo TPA 5-drift audit 결과 (어떤 anti-pattern 만 lesson 으로 흡수했고 어떤 기능은 산업 재발명이라 거부했는지).
 
 ---
 

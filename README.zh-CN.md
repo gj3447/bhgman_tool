@@ -175,20 +175,7 @@ flowchart TB
 | **Confidence schema** | 浮点边置信度 (规范不足) | **EXTRACTED / INFERRED / AMBIGUOUS** 3 级 enum (graphify mirror, Lean T1 已验证) |
 | **工具 vs 本质分离** | 无 | **明示** (本 repo = 仅工具层) |
 
-详见 [docs/04-references/related-work.md](docs/04-references/related-work.md)。
-
----
-
-## 本 repo 从 ruflo 吸收的内容
-
-| 方面 | 吸收为 |
-|---|---|
-| ❌ orchestration framework | (Harness L_RT 中的一个 sibling) |
-| ❌ SONA self-learning | (无学术接地) |
-| ❌ federation mTLS+WireGuard | (industry canon 再发明) |
-| ✅ **Goodhart antipattern** | [docs/02-concepts/goodhart-safeguard.md](docs/02-concepts/goodhart-safeguard.md) (negative case study) |
-| ✅ **enumeration inflation antipattern** | [docs/02-concepts/family-expansion.md](docs/02-concepts/family-expansion.md) §anti-pattern |
-| ✅ **graphify confidence schema** | [engine/longinus_drift_audit/models.py](engine/longinus_drift_audit/models.py) + [lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean](lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean) |
+详见 [docs/04-references/related-work.md](docs/04-references/related-work.md) 中 ruflo 的 TPA 5-drift 完整审计结果 (哪些 anti-pattern 作为 lesson 吸收, 哪些功能因属业界正典再发明而拒绝)。
 
 ---
 

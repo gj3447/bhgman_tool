@@ -175,20 +175,7 @@ flowchart TB
 | **Confidence schema** | 浮動小数の edge confidence (仕様不足) | **EXTRACTED / INFERRED / AMBIGUOUS** 3 段 enum (graphify mirror, Lean T1 検証済) |
 | **ツール vs 本質分離** | なし | **明示** (本 repo = ツール層のみ) |
 
-詳細は [docs/04-references/related-work.md](docs/04-references/related-work.md)。
-
----
-
-## 本 repo が ruflo から吸収したもの
-
-| 側面 | 吸収結果 |
-|---|---|
-| ❌ orchestration framework | (Harness L_RT の一 sibling にすぎず) |
-| ❌ SONA self-learning | (学術接地なし) |
-| ❌ federation mTLS+WireGuard | (industry canon の再発明) |
-| ✅ **Goodhart antipattern** | [docs/02-concepts/goodhart-safeguard.md](docs/02-concepts/goodhart-safeguard.md) (negative case study) |
-| ✅ **enumeration inflation antipattern** | [docs/02-concepts/family-expansion.md](docs/02-concepts/family-expansion.md) §anti-pattern |
-| ✅ **graphify confidence schema** | [engine/longinus_drift_audit/models.py](engine/longinus_drift_audit/models.py) + [lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean](lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean) |
+詳細は [docs/04-references/related-work.md](docs/04-references/related-work.md) の ruflo TPA 5-drift 完全監査 (どの anti-pattern を lesson として吸収し、どの機能を industry canon 再発明として拒否したか) を参照。
 
 ---
 

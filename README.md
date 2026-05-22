@@ -204,20 +204,7 @@ flowchart TB
 | **Confidence schema** | float edge confidence (under-specified) | **EXTRACTED / INFERRED / AMBIGUOUS** 3-tier enum (graphify mirror, Lean T1 verified, 19 pytest PASS) |
 | **Tool vs essence separation** | none | **explicit** (this repo = tool only) |
 
-See [docs/04-references/related-work.md](docs/04-references/related-work.md).
-
----
-
-## What this repo absorbed from ruflo
-
-| Aspect | Absorbed as |
-|---|---|
-| ❌ orchestration framework | (just one sibling in Harness L_RT) |
-| ❌ SONA self-learning | (no academic grounding) |
-| ❌ federation mTLS+WireGuard | (industry canon re-invention) |
-| ✅ **Goodhart antipattern** | [docs/02-concepts/goodhart-safeguard.md](docs/02-concepts/goodhart-safeguard.md) (negative case study) |
-| ✅ **enumeration inflation antipattern** | [docs/02-concepts/family-expansion.md](docs/02-concepts/family-expansion.md) §anti-pattern |
-| ✅ **graphify confidence schema** | [engine/longinus_drift_audit/models.py](engine/longinus_drift_audit/models.py) + [lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean](lean/Longinus_ConfidenceSchema_GraphifyAbsorbed.lean) |
+See [docs/04-references/related-work.md](docs/04-references/related-work.md) for the full TPA 5-drift audit of ruflo (what was absorbed as anti-pattern lesson, what was rejected as re-invention).
 
 ---
 
