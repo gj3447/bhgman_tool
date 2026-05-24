@@ -46,3 +46,8 @@ lakefile.olean
 # Logs
 *.log
 .lycheecache
+
+# Vendor binaries (downloaded by NEXT_SESSION_INSTRUCTIONS, not tracked)
+engine/longinus_l8_induction/vendor/*.jar
+engine/longinus_l8_induction/vendor/*.tar.gz
+engine/longinus_l8_induction/vendor/*.zip
