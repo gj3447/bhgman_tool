@@ -80,6 +80,21 @@ Added 2026-05-19 (lesson-bhgman-tool-sha256-baseline-already-covered-2026-05-19)
 """
 
 
+class GuaranteeLevel(str, Enum):
+    """v3.4 (2026-05-24 user RATIFY) — hermeticity spectrum tagging.
+
+    Binary hermetic flag is insufficient — toolchain leaks, --remote_local_fallback,
+    /proc, locale, timestamps need explicit spectrum tagging. PROM 16 Blaze C6
+    consensus (3 cell independent flag).
+
+    KG: rfc-longinus-v3.4-guarantee-level-2026-05-21 (CANONICAL).
+    """
+
+    PURE = "pure"  # Nix-derivation: declared inputs only, no ambient env, no network, content-addressed
+    SANDBOXED = "sandboxed"  # Bazel default: explicit sandbox boundary, some leak allowed (/proc, locale, timestamps)
+    TRUST_HOST = "trust_host"  # ambient host trust — no hermeticity claim
+
+
 class Sha256Status(str, Enum):
     """SYMPOSIUM Wave 6 absorbed (2026-05-14) — sha256 baseline lifecycle.
 
@@ -140,6 +155,12 @@ class ReferenceSite(BaseModel):
     last_validated: Optional[str] = Field(
         default=None,
         description="ISO-8601 timestamp of last sha256 verification round (Wave 6).",
+    )
+
+    # ── v3.4 (2026-05-24) — 8-tuple expansion: guarantee_level ──────────
+    guarantee_level: Optional[GuaranteeLevel] = Field(
+        default=None,
+        description="Hermeticity spectrum tag. pure/sandboxed/trust_host. None = unspecified (backward compat).",
     )
 
     @field_validator("sourceId")
