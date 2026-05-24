@@ -1,0 +1,27 @@
+name: audit-coverage
+# naesengmoon cycle 2 C3-residual HIGH (defense in depth layer B — CI gate)
+# KG: grep-pattern-catalog-v1-2026-05-20, lesson-audit-grep-coverage-drift-2026-05-20
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  audit-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: run audit_grep_coverage.sh
+        run: |
+          chmod +x bin/audit_grep_coverage.sh
+          bin/audit_grep_coverage.sh engine
+
+      - name: report (informational artifact)
+        if: always()
+        run: |
+          echo "::notice::audit_grep_coverage executed on engine/. See KG node grep-pattern-catalog-v1-2026-05-20."
