@@ -11,6 +11,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# OTel GenAI-semconv dispatch trace channel (otel_channel.py). Graceful no-op when absent.
+otel = ["opentelemetry-sdk>=1.20"]
 
 [project.scripts]
 longinus-audit = "audit_runner:main"
@@ -32,6 +34,8 @@ py-modules = [
   "reverse_orphan_scan",
   "sha256_baseline",
   "forward_orphan_scan",
+  "otel_channel",
+  "dispatch_eval",
   "audit_runner",
   "daemon",
   "daemon_cli",

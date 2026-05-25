@@ -65,6 +65,12 @@ longinus = [
     "neo4j>=5.20.0",
     "tenacity>=9.0",
 ]
+# OTel GenAI-semconv dispatch trace channel (engine/longinus_drift_audit/otel_channel.py,
+# Wave 12 2026-05-25, PROM 16 prom16-ai-dev-tools lever ①). Graceful no-op when absent.
+otel = [
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-exporter-otlp>=1.20",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
@@ -87,6 +93,8 @@ all = [
     "tenacity>=9.0",
     "structlog>=24.4",
     "httpx>=0.27",
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-exporter-otlp>=1.20",
 ]
 
 [project.scripts]
@@ -159,6 +167,8 @@ known_first_party = [
   # v3.4 multi-channel drift detectors + dispatch probe + scip adapter
   "prov_channel", "intoto_channel", "embedding_channel", "urdna2015_channel",
   "dynamic_dispatch_probe", "scip_adapter",
+  # Wave 12 — PROM16 ai-dev-tools levers (OTel channel + deterministic dispatch eval)
+  "otel_channel", "dispatch_eval",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
@@ -171,6 +181,7 @@ python-frontmatter = "frontmatter"
 # DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
 DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
           "tree_sitter",   # optional AST adapter (importorskip in tree_sitter_adapter.py)
+          "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
          ]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
@@ -183,8 +194,13 @@ DEP002 = [
   "fakeredis",        # importorskip in engine/gate/tests/test_gate.py
   "structlog",        # placeholder for engine/gate audit log (TODO in gate_endpoint.py:237)
   "pre-commit",       # wave11 — local 4-ratchet gate (uvx-invoked, no Python import)
+  "opentelemetry-sdk",          # wave12 [otel] — importorskip in test_otel_channel.py
+  "opentelemetry-exporter-otlp",# wave12 [otel] — runtime OTLP export, host-configured (no direct import)
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["engine", "worked"]
 python_files = "test_*.py"
+markers = [
+    "apt_invariant: marks test as an APT methodology invariant (auto-recorded as :TestRunResult per cycle-bhgman-apt-completeness-remediation-2026-05-25 WQI F7). Usage: @pytest.mark.apt_invariant(rule='SA→SP→ST→SCW gate chain') on tests that defend an APT phase contract.",
+]

@@ -41,6 +41,11 @@ from typing import Optional
 from kg_client import KgClient
 from models import DriftType, SourceCodeDriftEvent
 
+try:
+    import otel_channel
+except ImportError:  # pragma: no cover - otel_channel ships with this package
+    otel_channel = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 
@@ -205,6 +210,16 @@ class DispatchAuditor:
             actual_N,
             severity,
         )
+        # OTel GenAI: surface drift on any active span (no-op if [otel] absent / no span).
+        if otel_channel is not None:
+            otel_channel.record_active_drift_event(
+                cycle_id=cycle_id,
+                wave_index=wave_index,
+                intent_n=intent_N,
+                actual_n=actual_N,
+                severity=severity,
+                note=note,
+            )
         # Return value shape mirrors the cypher RETURN; concrete decoding
         # is delegated to the caller (audit_runner integrates via .name).
         return rows[0]["e"] if rows else None  # type: ignore[return-value]

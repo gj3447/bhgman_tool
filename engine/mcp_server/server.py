@@ -11,7 +11,10 @@ Design:
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def build_server() -> Any:
@@ -41,6 +44,21 @@ def build_server() -> Any:
     register_taliban(mcp)
     register_tpa(mcp)
     register_symposium(mcp)
+
+    # Security audit (PROM 16 lever ④): log the toolset's lethal-trifecta profile.
+    # AUDIT-mode / warn-only by default — never alters tool behavior, so no impact
+    # on Claude Code development. Opt-in enforcement via BHGMAN_SECURITY_ENFORCE=1 is
+    # applied by callers of engine.mcp_server.security.audit_tool_call.
+    try:
+        from .security import audit_toolset, current_mode
+
+        report = audit_toolset(list_registered_tool_names())
+        if report.has_trifecta:
+            logger.warning("MCP security: %s", report.summary)
+        else:
+            logger.info("MCP security: %s (mode=%s)", report.summary, current_mode().value)
+    except Exception:  # pragma: no cover - audit must never break server build
+        logger.debug("MCP security audit skipped (non-fatal)", exc_info=True)
 
     return mcp
 
