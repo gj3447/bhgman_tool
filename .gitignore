@@ -51,3 +51,4 @@ lakefile.olean
 engine/longinus_l8_induction/vendor/*.jar
 engine/longinus_l8_induction/vendor/*.tar.gz
 engine/longinus_l8_induction/vendor/*.zip
+.pytest_apt_invariant_results.tsv
