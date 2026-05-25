@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Iterable
+from typing import Callable, Iterable
 
 from models import (
     CodeSymbol,
@@ -22,13 +22,23 @@ def detect_missing(
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
     require_kg_ref_kinds: set[str] | None = None,
+    ref_exists: Callable[[str], bool] | None = None,
 ) -> list[DriftRecord]:
     """PutGet violation: code symbol 존재 ∧ KG ref 부재.
 
     require_kg_ref_kinds: filter only these kinds (default: all).
+    ref_exists: anchor-existence predicate. Default checks membership in the
+        ``kg_refs`` ReferenceSite snapshot — but a ``# KG:`` comment may anchor
+        ANY node kind (:Lesson/:Span/:ATOM…), not only a ReferenceSite, so that
+        default false-flags valid non-ReferenceSite anchors as MISSING. Callers
+        with a live KG should pass ``kg.has_node`` (matches name OR sourceId
+        across all node kinds). Naesengmoon ensemble finding
+        ac-bhgman-5f5a905-goodhart-self-audit-mock-zero-drift (deeper refinement).
     """
     if require_kg_ref_kinds is None:
         require_kg_ref_kinds = {"function", "class"}
+    if ref_exists is None:
+        ref_exists = lambda r: r in kg_refs  # noqa: E731 — backward-compat default
     out: list[DriftRecord] = []
     for s in symbols:
         if s.kind not in require_kg_ref_kinds:
@@ -36,7 +46,7 @@ def detect_missing(
         if s.kg_refs:
             # symbol declares some KG refs; ensure each exists in KG
             for ref in s.kg_refs:
-                if ref not in kg_refs:
+                if not ref_exists(ref):
                     out.append(
                         DriftRecord(
                             drift_type=DriftType.MISSING,
@@ -186,11 +196,16 @@ def detect_all(
     *,
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
+    ref_exists: Callable[[str], bool] | None = None,
 ) -> list[DriftRecord]:
-    """모든 5 drift 검출 — single dispatch."""
+    """모든 5 drift 검출 — single dispatch.
+
+    ref_exists threads to detect_missing only (the other 4 drifts compare
+    against the ReferenceSite registry by design). See detect_missing.
+    """
     syms = list(symbols)
     out: list[DriftRecord] = []
-    out.extend(detect_missing(symbols=syms, kg_refs=kg_refs))
+    out.extend(detect_missing(symbols=syms, kg_refs=kg_refs, ref_exists=ref_exists))
     out.extend(detect_orphan(symbols=syms, kg_refs=kg_refs))
     out.extend(detect_sig_mismatch(symbols=syms, kg_refs=kg_refs))
     out.extend(detect_pattern_div(symbols=syms))

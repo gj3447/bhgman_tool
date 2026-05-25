@@ -13,8 +13,8 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest engine](https://img.shields.io/badge/pytest%20engine-265%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-448%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-267%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-447%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -69,7 +69,7 @@ cd bhgman_tool
 
 # 1. engine — verify pytest
 cd engine/longinus_drift_audit
-uv run --with pytest pytest tests/ -q          # expected: 265 passed in ~2s
+uv run --with pytest pytest tests/ -q          # expected: 267 passed in ~2s
 
 # 2. Lean 4 — verify formal claims (optional)
 cd ../../lean
@@ -87,7 +87,7 @@ Restart Claude Code, then `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/
 
 ```mermaid
 flowchart LR
-    A([git clone]) --> B[engine pytest<br/>265 PASS]
+    A([git clone]) --> B[engine pytest<br/>267 PASS]
     B --> C{Lean 4?<br/>optional}
     C -- yes --> D[lean verify<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
@@ -118,8 +118,8 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 
 | Claim | Command | What it checks |
 |---|---|---|
-| `265 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
-| `448 pytest PASS` (full repo) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo pass count, single invocation |
+| `267 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
+| `447 pytest PASS` (full repo) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo pass count, single invocation |
 | `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton integrity |
 | `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | top-level theorem count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
@@ -145,7 +145,7 @@ Early-adopter stage. API surface, skill contracts, and badge counts may change w
 
 ## Contributing
 
-Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 448 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
+Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 447 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 

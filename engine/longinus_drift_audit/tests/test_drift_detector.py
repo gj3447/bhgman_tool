@@ -33,6 +33,21 @@ class TestMissing:
         out = drift_detector.detect_missing(symbols=syms, kg_refs=kgs)
         assert out == []
 
+    def test_ref_exists_predicate_clears_non_referencesite_anchor(self):
+        # Anchor exists in KG but NOT as a ReferenceSite (e.g. a :Lesson node).
+        # Default kg_refs-membership check false-flags it MISSING; a has_node-style
+        # predicate clears it. Naesengmoon ensemble finding deeper refinement
+        # (ac-bhgman-5f5a905-goodhart-self-audit-mock-zero-drift).
+        syms = [_sym("foo", 1, kg_refs=["lesson-exists-as-non-refsite"])]
+        kgs: dict = {}  # empty ReferenceSite snapshot
+        # default predicate (membership) → flagged MISSING
+        assert len(drift_detector.detect_missing(symbols=syms, kg_refs=kgs)) == 1
+        # has_node-style predicate (node exists by name/sourceId) → cleared
+        out = drift_detector.detect_missing(
+            symbols=syms, kg_refs=kgs, ref_exists=lambda r: r == "lesson-exists-as-non-refsite"
+        )
+        assert out == []
+
 
 class TestOrphan:
     def test_kg_ref_not_in_code(self):

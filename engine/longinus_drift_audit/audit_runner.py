@@ -95,7 +95,12 @@ class LonginusAudit:
         # Barrier 2: 5 independent phases (drift / reverse / forward / sha256 / GED)
         if self.parallel:
             with ThreadPoolExecutor(max_workers=5) as ex:
-                f_drift = ex.submit(drift_detector.detect_all, symbols=symbols, kg_refs=kg_refs)
+                f_drift = ex.submit(
+                    drift_detector.detect_all,
+                    symbols=symbols,
+                    kg_refs=kg_refs,
+                    ref_exists=self.kg.has_node,
+                )
                 f_reverse = ex.submit(reverse_orphan_scan.scan_reverse_orphans, symbols=symbols)
                 f_forward = ex.submit(_forward_orphan_phase, self.kg)
                 f_sha = ex.submit(_sha256_phase, self.kg, verify_sha256)
@@ -106,7 +111,9 @@ class LonginusAudit:
                 sha256_drift_events, sha256_baseline_count = f_sha.result()
                 ged_report = f_ged.result()
         else:
-            drift_records = drift_detector.detect_all(symbols=symbols, kg_refs=kg_refs)
+            drift_records = drift_detector.detect_all(
+                symbols=symbols, kg_refs=kg_refs, ref_exists=self.kg.has_node
+            )
             orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=symbols)
             forward_orphans = _forward_orphan_phase(self.kg)
             sha256_drift_events, sha256_baseline_count = _sha256_phase(self.kg, verify_sha256)

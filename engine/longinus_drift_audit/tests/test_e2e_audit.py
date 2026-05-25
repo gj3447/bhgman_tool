@@ -49,6 +49,18 @@ class TestE2E:
         report = audit.run_full()
         assert report.drifts_by_type.get("Missing", 0) >= 1
 
+    def test_anchor_existing_as_non_referencesite_is_not_missing(self, tmp_path):
+        # run_full now threads kg.has_node into detect_missing, so a # KG: anchor
+        # that exists as a non-ReferenceSite node (here: other_nodes, i.e. a
+        # :Lesson/:Span/:ATOM) is NOT false-flagged MISSING — the empirical gap
+        # the mock path used to hide (Naesengmoon ensemble finding deeper refinement).
+        _seed_code(tmp_path)  # a.py -> lesson-foo, b.py -> lesson-bar
+        kg = MockKgClient(refs=[])  # neither is a ReferenceSite
+        kg.other_nodes.update({"lesson-foo-2026-05-12", "lesson-bar-2026-05-12"})
+        audit = LonginusAudit(kg=kg, code_root=tmp_path)
+        report = audit.run_full()
+        assert report.drifts_by_type.get("Missing", 0) == 0
+
     def test_orphan_drift_detected(self, tmp_path):
         _seed_code(tmp_path)
         kg = MockKgClient(
