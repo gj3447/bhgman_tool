@@ -17,17 +17,35 @@ ingestion separately.
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 
 import pytest
 
 RESULTS_TSV = Path(__file__).parent / ".pytest_apt_invariant_results.tsv"
-RESULTS_HEADER = "ts\tnodeid\trule\toutcome\tduration_s\n"
+# run_id (col 1) groups rows from one pytest session so the batch ingester can
+# MERGE one :TestRunResult per run (WQI F7). Header is versioned: a mismatch
+# (old 5-col format) triggers a one-time rewrite — the TSV is gitignored and
+# fully regenerable, so legacy demo rows are not precious.
+RESULTS_HEADER = "run_id\tts\tnodeid\trule\toutcome\tduration_s\n"
+
+# Session-scoped run id, assigned at configure time.
+_RUN_ID = "uninitialized"
+
+
+def pytest_configure(config) -> None:
+    global _RUN_ID
+    _RUN_ID = f"{time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime())}Z-{os.getpid()}"
 
 
 def _ensure_header() -> None:
     if not RESULTS_TSV.exists():
+        RESULTS_TSV.write_text(RESULTS_HEADER, encoding="utf-8")
+        return
+    with RESULTS_TSV.open("r", encoding="utf-8") as f:
+        first = f.readline()
+    if first != RESULTS_HEADER:  # legacy/older format → rewrite fresh
         RESULTS_TSV.write_text(RESULTS_HEADER, encoding="utf-8")
 
 
@@ -46,6 +64,7 @@ def pytest_runtest_makereport(item, call):
     row = (
         "\t".join(
             [
+                _RUN_ID,
                 time.strftime("%Y-%m-%dT%H:%M:%S%z", time.gmtime()),
                 item.nodeid.replace("\t", " "),
                 str(rule).replace("\t", " "),

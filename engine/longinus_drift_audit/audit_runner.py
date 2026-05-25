@@ -33,13 +33,35 @@ def _forward_orphan_phase(kg: KgClient):
     return forward_orphan_scan.scan_forward_orphans(hubs)
 
 
+def _dedup_drift_events_by_file(events: list) -> list:
+    """Collapse per-node drift events to one event per (path, kind).
+
+    sha256 drift is a property of the FILE, not the KG node. The live KG keys
+    ReferenceSites by ``name`` while ``sourceId`` is a shared corpus label, so a
+    single drifted file (e.g. one source cited by 277 concept-nodes) otherwise
+    emits 277 identical events — inflating the report. Dedup restores the honest
+    "how many files drifted" count.
+
+    # KG: lesson-longinus-audit-sourceid-vs-name-pk-drift-inflation-2026-05-26
+    """
+    seen: set = set()
+    out: list = []
+    for e in events:
+        key = (e.path, e.kind)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(e)
+    return out
+
+
 def _sha256_phase(kg: KgClient, verify_sha256: bool):
     sites = kg.list_reference_site_states()
     baseline_count = sum(1 for s in sites if s.sha256_baseline)
     events: list = []
     if verify_sha256 and sites:
         result = sha256_baseline.verify_baseline(kg=kg, sites=sites)
-        events = result.drift_events
+        events = _dedup_drift_events_by_file(result.drift_events)
     return events, baseline_count
 
 
