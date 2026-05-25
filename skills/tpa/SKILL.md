@@ -3,6 +3,7 @@ name: tpa
 kg_ref: ATOM_Skill_tpa_orchestrator_v10
 version: "1.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   TPA v1.0 orchestrator — APT v24 역분석 기반 역순 사이클.
   코드→설계 복원 (TCW→ST→SP→TA). 5대 본질 MIC 참조.

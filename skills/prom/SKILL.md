@@ -3,6 +3,7 @@ name: prom
 kg_ref: ATOM_Skill_prom_alias
 version: "3.0.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   `/prometheus`의 짧은 별칭(alias). `/prom <N> <problem>` == `/prometheus <N> <problem>`.
   사용법: `/prom 16 "문제"`, `/prom 100 "TOE"`, `/prom "간단한 문제"`.

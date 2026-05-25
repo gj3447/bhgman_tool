@@ -3,6 +3,7 @@ name: skill-creator
 kg_ref: ATOM_Skill_skill_creator
 version: "1.0.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   Anthropic's official Skill Creator — develop, test, and refine Claude skills through iterative workflow.
   Creates SKILL.md files with frontmatter, instructions, examples, and references structure.

@@ -3,6 +3,7 @@ name: tpa-tcw
 kg_ref: ATOM_Skill_tpa_tcw
 version: "1.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   TPA TargetCodeWorld (TCW) — Phase 1/4. APT SCW 거울 (역순).
   외부/레거시 코드에서 실제 존재하는 모든 것을 기록. AST 기반 pub 심볼 추출.

@@ -3,6 +3,7 @@ name: tpa-st
 kg_ref: ATOM_Skill_tpa_st
 version: "1.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   TPA TargetTwin (ST) — Phase 2/4. APT ST 거울 (역순).
   각 pub 심볼의 암묵적/명시적 Contract 추출. AptContract(명시 interface/trait)

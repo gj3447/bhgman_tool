@@ -3,6 +3,7 @@ name: harness
 kg_ref: ATOM_Skill_harness
 version: "3.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   하네스 — industry agent scaffolding. 12사도 #4 비행기맨의 공학 측 결정화이며 1:N sibling family.
   "구조가 에이전트를 제약한다" 4축 모델(Inform/Constrain/Verify/Correct)은 *각 instance 내부* 조직 원리이지

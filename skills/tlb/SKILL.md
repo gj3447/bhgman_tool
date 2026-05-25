@@ -3,6 +3,7 @@ name: tlb
 kg_ref: ATOM_Skill_tlb_alias
 version: "2.0.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   `/taliban`의 짧은 별칭(alias). `/tlb <target>` == `/taliban <target>` == `/나생문 <target>`.
   Canonical 측 나생문 (사용자 verdict 2026-05-19 PRIMARY).

@@ -3,6 +3,7 @@ name: tpa-ta
 kg_ref: ATOM_Skill_tpa_ta
 version: "1.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   TPA TargetAnchor (TA) — Phase 4/4. APT SA 거울 (최종 앵커링).
   SemanticAnchor 라우팅 (2-A 신규/2-B 재사용/2-C 브랜치).

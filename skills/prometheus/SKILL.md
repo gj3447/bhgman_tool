@@ -3,6 +3,7 @@ name: prometheus
 kg_ref: ATOM_Skill_prometheus
 version: "6.3.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   프로메테우스 방법론 v6.1 — **지식-행동 spiral** (Hegel reframe, NOT 단방향 "지식 선행").
   "바로 고치지 마"는 유지하되, "먼저 불(지식) 훔쳐와"는 thesis-antithesis-synthesis 순환의 첫 thesis로 해석.

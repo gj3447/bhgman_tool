@@ -3,6 +3,7 @@ name: tpa-sp
 kg_ref: ATOM_Skill_tpa_sp
 version: "1.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 description: >
   TPA TargetPyramid (SP) — Phase 3/4. APT SP 거울 (역순).
   Pattern Library (51 DesignPattern 노드) 매칭. confidence ≥0.7 INSTANCE_OF / <0.7 RESEMBLES.

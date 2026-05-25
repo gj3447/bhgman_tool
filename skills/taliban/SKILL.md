@@ -3,6 +3,7 @@ name: taliban
 kg_ref: ATOM_Skill_taliban
 version: "3.2.0"
 channel: stable
+provenance: AI_DERIVED_FROM_USER_PRIMARY  # SKILL.md = AI engineering; underlying methodology = user-primary mythology (12 apostles + 5 weapons). Per PseudepigraphaValidationGate-v1-2026-04-30.
 canonical_name: 나생문
 aliases: [taliban, tlb, 88-taliban, Rashomon, naesengmoon]
 description: >
