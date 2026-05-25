@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from audit_runner import LonginusAudit
-from kg_client import MockKgClient
+import argparse
+
+import pytest
+
+from audit_runner import LonginusAudit, build_kg
+from kg_client import MockKgClient, Neo4jKgClient
 from models import KgRefRecord
 
 
@@ -84,3 +88,29 @@ class TestE2E:
         assert report.ged_report.insertions == 0
         assert report.ged_report.deletions == 0
         assert report.ged_report.relabels == 0
+
+
+class TestBuildKg:
+    """build_kg backend selection — guards the Goodhart hole where the CLI
+    silently defaulted to an empty-ref mock and the neo4j path was an
+    unwired stub (Naesengmoon ensemble VR_bhgman_tool_ensemble_2026-05-25
+    finding ac-bhgman-5f5a905-goodhart-self-audit-mock-zero-drift).
+    """
+
+    def test_mock_backend(self):
+        ns = argparse.Namespace(kg="mock", uri=None, user="neo4j", password=None)
+        assert isinstance(build_kg(ns), MockKgClient)
+
+    def test_neo4j_without_creds_raises(self):
+        ns = argparse.Namespace(kg="neo4j", uri=None, user="neo4j", password=None)
+        with pytest.raises(ValueError, match="requires --uri/--password"):
+            build_kg(ns)
+
+    def test_neo4j_with_creds_constructs_real_client(self):
+        # lazy driver: constructs without connecting
+        ns = argparse.Namespace(kg="neo4j", uri="bolt://localhost:7687", user="neo4j", password="x")
+        kg = build_kg(ns)
+        try:
+            assert isinstance(kg, Neo4jKgClient)
+        finally:
+            kg.close()

@@ -22,7 +22,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = [
-  "models",
+  "induction_models",
   "validator",
   "quality_gate",
   "ged_drift_detector",

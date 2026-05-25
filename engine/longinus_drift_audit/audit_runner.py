@@ -11,6 +11,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -23,7 +24,7 @@ import reference_layers
 import reverse_orphan_scan
 import sha256_baseline
 from bx_lens import make_dict_lens
-from kg_client import KgClient, MockKgClient
+from kg_client import KgClient, MockKgClient, Neo4jKgClient
 from models import AuditReport
 
 
@@ -156,19 +157,60 @@ class LonginusAudit:
         )
 
 
+def build_kg(args: argparse.Namespace) -> KgClient:
+    """Construct the KG backend from parsed args.
+
+    ``--kg mock`` (default) is a self-test fixture with empty refs — NOT a real
+    audit. ``--kg neo4j`` wires the live Neo4jKgClient so the audit runs against
+    ground truth (uri/creds via --uri/--user/--password or NEO4J_* env).
+
+    Raises ValueError when --kg neo4j is requested without uri+password.
+    """
+    if args.kg == "mock":
+        return MockKgClient()
+    if not args.uri or not args.password:
+        raise ValueError("--kg neo4j requires --uri/--password (or NEO4J_URI / NEO4J_PASSWORD env)")
+    return Neo4jKgClient(args.uri, (args.user, args.password))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="longinus-audit")
     parser.add_argument("--code-root", required=True)
-    parser.add_argument("--kg", choices=["mock", "neo4j"], default="mock")
+    parser.add_argument(
+        "--kg",
+        choices=["mock", "neo4j"],
+        default="mock",
+        help="mock = empty-ref self-test fixture (verifies nothing); "
+        "neo4j = live audit against ground truth.",
+    )
+    parser.add_argument(
+        "--uri", default=os.environ.get("NEO4J_URI"), help="Neo4j bolt URI (or NEO4J_URI env)."
+    )
+    parser.add_argument(
+        "--user",
+        default=os.environ.get("NEO4J_USER", "neo4j"),
+        help="Neo4j user (or NEO4J_USER env, default 'neo4j').",
+    )
+    parser.add_argument(
+        "--password",
+        default=os.environ.get("NEO4J_PASSWORD"),
+        help="Neo4j password (or NEO4J_PASSWORD env).",
+    )
     args = parser.parse_args()
 
-    kg = MockKgClient() if args.kg == "mock" else None
-    if kg is None:
-        print("neo4j backend requires --uri/auth args (not wired in stub)", file=sys.stderr)
+    try:
+        kg = build_kg(args)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
         return 1
 
-    audit = LonginusAudit(kg=kg, code_root=args.code_root)
-    report = audit.run_full()
+    try:
+        audit = LonginusAudit(kg=kg, code_root=args.code_root)
+        report = audit.run_full()
+    finally:
+        close = getattr(kg, "close", None)
+        if callable(close):
+            close()
     print(json.dumps(report.model_dump(), indent=2, default=str))
     return 0 if report.is_clean else 2
 

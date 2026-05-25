@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from models import AbstractClass, GeneralizesEdge
+from induction_models import AbstractClass, GeneralizesEdge
 
 
 class SchemaViolation(ValueError):

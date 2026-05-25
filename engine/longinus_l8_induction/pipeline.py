@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 import quality_gate as quality_gate_module
 from induction_operators import FcaResult, induce_fca
-from models import AbstractClass, AbstractClassStatus, GeneralizesEdge, InductionMethod
+from induction_models import AbstractClass, AbstractClassStatus, GeneralizesEdge, InductionMethod
 from protocols import NotImplementedStage, NotImplementedStageError, Stage, StageResult
 from validator import gate_before_merge
 

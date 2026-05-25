@@ -74,17 +74,18 @@ repos:
         always_run: true
 
   # ============================================================
-  # Stage 5: pytest (pre-commit, fast — split into two invocations to
-  # avoid sibling-package sys.modules collision between
-  # engine/longinus_drift_audit and engine/longinus_l8_induction, both of
-  # which have flat-layout models.py / validator.py / pipeline.py with
-  # different contents. Fresh pytest invocation = fresh sys.modules.
+  # Stage 5: pytest (pre-commit, fast — single invocation).
+  # The former two-invocation split worked around a sibling sys.modules
+  # collision (engine/longinus_drift_audit + engine/longinus_l8_induction both
+  # shipped a flat-layout models.py). Fixed 2026-05-25 by renaming the l8 copy
+  # to induction_models.py (Naesengmoon ensemble finding #1), so a single root
+  # pytest now collects both flat-layout packages cleanly.
   # ============================================================
   - repo: local
     hooks:
       - id: pytest
-        name: pytest (engine + worked, two-invocation split for sibling collision)
-        entry: bash -c 'source .venv/bin/activate && pytest --tb=line -q --ignore=engine/longinus_l8_induction && pytest --tb=line -q engine/longinus_l8_induction'
+        name: pytest (engine + worked, single invocation)
+        entry: bash -c 'source .venv/bin/activate && pytest --tb=line -q'
         language: system
         stages: [pre-commit]
         pass_filenames: false

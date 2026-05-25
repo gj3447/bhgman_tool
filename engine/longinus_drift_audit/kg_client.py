@@ -148,9 +148,15 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
         self._driver.close()
 
     def list_reference_sites(self) -> list[KgRefRecord]:
+        # Filter null sourceId/sourcePath in Cypher: such nodes carry no usable
+        # drift-comparison key, and KgRefRecord requires both to be str. (Live
+        # audit smoke 2026-05-25 surfaced real null-sourcePath ReferenceSites
+        # that crashed this previously-uncovered path — Naesengmoon ensemble
+        # finding ac-bhgman-5f5a905-goodhart-self-audit-mock-zero-drift.)
         with self._driver.session() as s:
             rows = s.run(
                 "MATCH (n:ReferenceSite) "
+                "WHERE n.sourceId IS NOT NULL AND n.sourcePath IS NOT NULL "
                 "RETURN n.sourceId AS sourceId, n.sourcePath AS sourcePath, "
                 "n.label AS label"
             )
@@ -274,12 +280,16 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 "RETURN h.name AS name, h.package_path AS package_path, "
                 "h.source_file AS source_file, h.ruflo_grade AS ruflo_grade"
             )
+            # ruflo_grade is a free-form tag in KG (sometimes stored as bool
+            # True/False, int, or str) but KnowledgeHubRecord types it as str —
+            # coerce non-null values so live data variance doesn't crash the
+            # previously-uncovered path. (Live smoke 2026-05-25, same finding.)
             return [
                 KnowledgeHubRecord(
                     name=r["name"],
                     package_path=r.get("package_path"),
                     source_file=r.get("source_file"),
-                    ruflo_grade=r.get("ruflo_grade"),
+                    ruflo_grade=None if r.get("ruflo_grade") is None else str(r.get("ruflo_grade")),
                 )
                 for r in rows
             ]
