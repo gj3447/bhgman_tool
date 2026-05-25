@@ -11,15 +11,34 @@ Wave 6 (2026-05-14) extensions:
 
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from typing import Iterable
 
 from models import (
     KgRefRecord,
     KnowledgeHubRecord,
+    ReferenceLayer,
     ReferenceSite,
+    Sha256Status,
     SourceCodeDriftEvent,
 )
+
+
+def _coerce_enum(value, enum_cls):
+    """Return value iff it is a valid member of enum_cls, else None.
+
+    KG stores free-form layer values + non-enum sha256 statuses
+    (OK/PENDING_COMPUTE/…); this degrades unrecognized values to the field
+    default instead of rejecting the whole ReferenceSite row.
+    """
+    if value is None:
+        return None
+    try:
+        enum_cls(value)
+    except ValueError:
+        return None
+    return value
 
 
 class KgClient(ABC):
@@ -192,30 +211,54 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
     # ── Wave 6 ────────────────────────────────────────────────────────────
 
     def list_reference_site_states(self) -> list[ReferenceSite]:
+        # Mirrors list_reference_sites: null-key sites (no sourceId/sourcePath =
+        # no usable sha256-verify key) are excluded at the Cypher level rather
+        # than swallowed by a bare except, and remaining reconstruction failures
+        # are COUNTED + surfaced (no silent drop). sha256_status + layer are
+        # carried through so the BX GetPut roundtrip is faithful — DIRECTORY_SKIP
+        # sites stay skipped instead of false-flagging FILE_MISSING. Naesengmoon
+        # re-validation v2 findings: ...-sibling-list_reference_site_states
+        # -goodhart (HIGH) + ...-drops-status-layer (MED).
         with self._driver.session() as s:
             rows = s.run(
                 "MATCH (n:ReferenceSite) "
+                "WHERE n.sourceId IS NOT NULL AND n.sourcePath IS NOT NULL "
                 "RETURN n.sourceId AS sourceId, n.sourcePath AS sourcePath, "
                 "n.sha256 AS sha256, n.sha256_baseline AS sha256_baseline, "
                 "n.sha256_status AS sha256_status, n.kg_anchor AS kg_anchor, "
                 "n.layer AS layer, n.last_validated AS last_validated"
             )
             out: list[ReferenceSite] = []
+            skipped = 0
             for r in rows:
-                # Build via constructor; Pydantic enums tolerate missing/None.
+                kwargs = dict(
+                    sourceId=r["sourceId"],
+                    sourcePath=r["sourcePath"],
+                    sha256=r.get("sha256"),
+                    sha256_baseline=r.get("sha256_baseline"),
+                    kg_anchor=r.get("kg_anchor"),
+                    last_validated=r.get("last_validated"),
+                )
+                # Carry sha256_status/layer ONLY when the stored value is a valid
+                # enum member (so DIRECTORY_SKIP etc. survive the roundtrip), else
+                # let the field default apply — never drop the whole row over a
+                # free-form layer string or a non-enum status.
+                st = _coerce_enum(r.get("sha256_status"), Sha256Status)
+                if st is not None:
+                    kwargs["sha256_status"] = st
+                ly = _coerce_enum(r.get("layer"), ReferenceLayer)
+                if ly is not None:
+                    kwargs["layer"] = ly
                 try:
-                    out.append(
-                        ReferenceSite(
-                            sourceId=r["sourceId"],
-                            sourcePath=r["sourcePath"],
-                            sha256=r.get("sha256"),
-                            sha256_baseline=r.get("sha256_baseline"),
-                            kg_anchor=r.get("kg_anchor"),
-                            last_validated=r.get("last_validated"),
-                        )
-                    )
-                except Exception:
-                    continue
+                    out.append(ReferenceSite(**kwargs))
+                except Exception:  # noqa: BLE001 — genuinely broken row; count, never silently swallow
+                    skipped += 1
+            if skipped:
+                warnings.warn(
+                    f"list_reference_site_states: {skipped} ReferenceSite row(s) skipped "
+                    "(malformed despite non-null key); sha256 verify is incomplete for those.",
+                    stacklevel=2,
+                )
             return out
 
     def merge_reference_site_state(self, site: ReferenceSite) -> None:

@@ -119,7 +119,7 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 | Claim | Command | What it checks |
 |---|---|---|
 | `267 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
-| `447 pytest PASS` (full repo) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo pass count, single invocation |
+| `446 passed, 1 skipped` (full repo; 447 collected) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (the 1 skip is test_amie3 — needs Java 21) |
 | `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton integrity |
 | `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | top-level theorem count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
