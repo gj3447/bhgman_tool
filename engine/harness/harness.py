@@ -5,8 +5,10 @@
   ② 키워드 신호 추출 — 미상 subject의 free-text에서 tier/축 신호 탐지(MEDIUM).
 호출자가 explicit signals dict 주면 그게 우선(override).
 
-정직: 축 부재는 Presence.UNKNOWN (부재 ≠ 능력 없음). primitive 축은 "그 도구에 해당 축
-원시기능이 있나"라는 falsifiable 판정 — 임의 레벨 점수(수비학) 아님.
+정직: 축 부재는 Presence.UNKNOWN (부재 ≠ 능력 없음). **KNOWN_FRAMEWORKS의 framework→축 매핑은
+*주관적 휴리스틱 KB*(외부 인용 미첨부, 빌더 단정) — falsifiable 외형이나 매핑 자체는 미검증.**
+신호 추출(키워드 매칭)은 결정론이지만 그 키워드 집합도 휴리스틱. tier 분류(이름 매치)가 가장
+근거 강함. 나생문 AC-bhgman-harness-4axis-subjective (2026-05-28) 반영.
 
 # KG: ATOM_Skill_harness, lesson-harness-drift-corrected-2026-04-29,
 #     bhgman-harness-diagnose-engine-2026-05-28
@@ -125,6 +127,7 @@ def diagnose(subject: str, signals: dict[str, bool] | None = None) -> HarnessDia
     notes = (
         "4축=instance 내부 조직원리(family 정의 아님), 3계층=결정이 사는 곳 (harness v3).",
         "축 부재=UNKNOWN(능력 없음 아님). MCP=계층 간 어댑터.",
+        "framework→축 매핑은 주관적 휴리스틱 KB(미검증 단정). tier(이름매치)가 근거 가장 강함.",
     )
     return HarnessDiagnosis(
         subject=subject,

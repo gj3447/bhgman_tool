@@ -66,10 +66,15 @@ The 7 비행기맨 commanders split by what a bare checkout actually runs:
 | Commander (verb) | Standalone? | Needs |
 |---|---|---|
 | 오캄 `occam` / 유레카 `eureka` / 하데스 `hades` / 롱기누스 `longinus` | **yes, neo4j-free** via `--local` | nothing — `--local` uses the bundled JSON KG (`~/.bhgman/kg.json`). Or attach external Neo4j (default) for a shared graph. |
-| 프로메테우스 `prom` / 나생문 `tlb` | **real engine** (`engine/agents`) — executes via Anthropic API | `pip install 'bhgman_tool[agents]'` + `ANTHROPIC_API_KEY`. Absent → falls back to skill-routing (Claude Code harness). |
-| 재배맨 (dispatch) | **real engine** (`engine/agents/dispatch.py`) — parallel subagent fan-out, used by prom/tlb | same `[agents]` runtime. (`apt` verb = the APT *methodology cycle*, routes to skill.) |
+| 프로메테우스 `prom` / 나생문 `tlb` | engine **structure complete** (`engine/agents`) — wires the Anthropic API | `pip install 'bhgman_tool[agents]'` + `ANTHROPIC_API_KEY`. Absent → falls back to skill-routing. |
+| 재배맨 (dispatch) | engine structure complete (`engine/agents/dispatch.py`) — parallel subagent fan-out | same `[agents]` runtime. (`apt` verb = APT *methodology cycle*, routes to skill.) |
 
-So all 7 commanders have a real engine. The 4 KG commanders run **neo4j-free** via `--local`; the 3 LLM commanders (research / critique / dispatch) run via the bundled Anthropic-API runtime (`[agents]` extra + `ANTHROPIC_API_KEY`) and **gracefully fall back to skill-routing** when the key/SDK is absent — so they still work under the Claude Code harness too. Verified by Naesengmoon ensemble (`VR-bhgman-standalone-7commander-2026-05-28`).
+**Honest engine-maturity disclosure** (Naesengmoon `VR-bhgman-session-7commander-engines-2026-05-28`, CONDITIONAL):
+
+- **4 KG commanders** (occam/eureka/hades/longinus) — code + unit tests + **real end-to-end** (occam does real KG supersession against Neo4j; run with `--local` for zero infra). Eureka full power (gds.leiden/vector/AMIE3-Java) is opt-in and not exercised by default.
+- **3 LLM commanders** (prom/tlb/dispatch) — code + unit tests **with a `FakeAnthropic` double**; the real Anthropic API path (web_search loop, effort, caching) is **not yet smoke-tested with a live key**. Structure is complete and degrades gracefully, but "runs against a real LLM" is unverified until you supply a key.
+- `eureka`'s `leiden_llm` operator is **greedy modularity (Clauset-Newman-Moore), a Leiden *family* member — not the Leiden algorithm itself**; large graphs delegate to `gds.leiden` (opt-in).
+- `harness`'s framework→4-axis mapping is a **subjective heuristic KB** (tier classification is the well-grounded part).
 
 ```bash
 pip install 'bhgman_tool[agents]'; export ANTHROPIC_API_KEY=sk-...

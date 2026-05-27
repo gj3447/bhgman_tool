@@ -201,6 +201,8 @@ known_first_party = [
   "agent_models", "client", "dispatch", "prometheus", "naesengmoon", "fake_anthropic",
   # engine/harness — 3계층/4축 진단 엔진 (2026-05-28), flat-layout bare imports
   "harness", "harness_models",
+  # engine/eureka bare module referenced by kg_local coupling-contract test (2026-05-28)
+  "formal_context_builder",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
