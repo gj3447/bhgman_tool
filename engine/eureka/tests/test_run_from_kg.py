@@ -49,6 +49,31 @@ def test_run_from_kg_induces_concepts():
     assert induce.payload["abstract_classes"] >= 1
 
 
+def test_fidelity_stage_skipped_without_runner():
+    pr = run_from_kg(_math_and_compiler_rows, PipelineConfig(cycle_id="phase1-test"))
+    fid = [s for s in pr.stages if s.stage == "4.8-fidelity-gate"]
+    if fid:  # acs 생산됐을 때만 stage 존재
+        assert "skipped" in fid[0].payload
+
+
+def test_fidelity_stage_runs_with_runner():
+    from fidelity_gate import FidelityConfig
+
+    def fid_runner(query, params):  # 멤버가 witness로 cohere (PASS)
+        return [
+            {"witness": "IN_CATEGORY", "top_shared": 4, "extent": 4},
+            {"witness": "RELATED_TO", "top_shared": 4, "extent": 4},
+        ]
+
+    cfg = PipelineConfig(
+        cycle_id="phase2-test", fidelity_runner=fid_runner, fidelity_cfg=FidelityConfig()
+    )
+    pr = run_from_kg(_math_and_compiler_rows, cfg)
+    fid = [s for s in pr.stages if s.stage == "4.8-fidelity-gate"]
+    if fid:
+        assert "results" in fid[0].payload
+
+
 def test_run_from_kg_empty_context_no_crash():
     pr = run_from_kg(lambda q, p: [], PipelineConfig(cycle_id="phase1-empty"))
     assert pr.stages[0].stage == "0-kg-extract-formal-context"

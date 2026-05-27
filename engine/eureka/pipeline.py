@@ -17,7 +17,8 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import quality_gate as quality_gate_module
-from formal_context_builder import FormalContextConfig, CypherRunner, build_formal_context
+from fidelity_gate import FidelityConfig, run_fidelity_for_members
+from formal_context_builder import CypherRunner, FormalContextConfig, build_formal_context
 from induction_operators import FcaResult, induce_fca
 from induction_models import AbstractClass, AbstractClassStatus, GeneralizesEdge, InductionMethod
 from oracle_lens import (
@@ -47,6 +48,10 @@ class PipelineConfig:
     # default_eureka_lenses(target)으로 ruff+pytest 주입. runner=None → subprocess_runner.
     oracle_lenses: tuple[OracleLens, ...] = ()
     oracle_runner: Optional[CommandRunner] = None
+
+    # fidelity gate (stage_4.8, SOFT — consilience). runner 주입 시 per-ac 측정(block 안 함).
+    fidelity_runner: Optional[CypherRunner] = None
+    fidelity_cfg: Optional[FidelityConfig] = None
 
     def resolve_stage_community(self) -> Stage:
         return self.stage_community or NotImplementedStage(
@@ -181,6 +186,31 @@ def stage_4_7_oracle_gate(
     return True
 
 
+def stage_4_8_fidelity_gate(
+    acs: list[AbstractClass], config: "PipelineConfig", pr: "PipelineRun"
+) -> None:
+    """fidelity gate (SOFT, stage_4.8) — consilience. config.fidelity_runner 없으면 skip.
+
+    per-ac witness coherence 측정 → SOFT_WARN/PASS 기록. block 안 함(판단렌즈가 흡수).
+    """
+    if config.fidelity_runner is None:
+        pr.record("4.8-fidelity-gate", True, payload={"skipped": "no fidelity_runner (opt-out)"})
+        return
+    results = []
+    for ac in acs:
+        members = list(getattr(ac, "extent", []) or [])
+        v = run_fidelity_for_members(ac.name, members, config.fidelity_runner, config.fidelity_cfg)
+        results.append(
+            {"concept": ac.name, "passed": v.passed, "witnesses_passing": v.witnesses_passing}
+        )
+    n_warn = sum(1 for r in results if not r["passed"])
+    pr.record(
+        "4.8-fidelity-gate",
+        True,  # SOFT — 항상 통과(판단렌즈 escalate), 경고만 기록
+        payload={"results": results, "soft_warns": n_warn},
+    )
+
+
 def stage_5_naesengmoon_gate(abstract_classes: list[AbstractClass]) -> list[AbstractClass]:
     return [
         ac.model_copy(update={"status": AbstractClassStatus.VERDICT_PENDING})
@@ -238,6 +268,10 @@ def run(
     if acs and not stage_4_7_oracle_gate(acs, config, pr):
         return pr
 
+    # 4.8 fidelity gate (SOFT, consilience) — 경고만, block 안 함.
+    if acs:
+        stage_4_8_fidelity_gate(acs, config, pr)
+
     gated_acs = stage_5_naesengmoon_gate(acs)
     pr.record("5-naesengmoon-gate", True, payload={"verdict_pending": len(gated_acs)})
 
@@ -292,6 +326,7 @@ __all__ = [
     "run_from_kg",
     "stage_1_extract",
     "stage_4_7_oracle_gate",
+    "stage_4_8_fidelity_gate",
     "stage_4_induce_fca",
     "stage_5_naesengmoon_gate",
 ]

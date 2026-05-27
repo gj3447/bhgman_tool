@@ -68,6 +68,29 @@ def fidelity_witness_cypher(concept_name: str, cfg: FidelityConfig) -> tuple[str
     return query, {"concept": concept_name, "witness_rels": list(cfg.witness_rels)}
 
 
+def fidelity_members_cypher(member_names: list[str], cfg: FidelityConfig) -> tuple[str, dict]:
+    """pre-materialize 모드: extent 멤버명 직접 받아 witness top_share 계산 (INSTANCE_OF 불필요).
+
+    pipeline stage용 — induce_fca 직후 ac.extent(멤버명)로 fidelity 측정.
+    """
+    query = """
+    UNWIND $witness_rels AS wrel
+    CALL {
+      WITH wrel
+      MATCH (o)-[r]->(t)
+      WHERE o.name IN $members AND type(r)=wrel AND t.name IS NOT NULL
+      WITH t.name AS target, count(DISTINCT o) AS shared
+      RETURN max(shared) AS top_shared
+    }
+    RETURN wrel AS witness, coalesce(top_shared,0) AS top_shared, $extent AS extent
+    """
+    return query, {
+        "members": list(member_names),
+        "witness_rels": list(cfg.witness_rels),
+        "extent": len(member_names),
+    }
+
+
 def assess_fidelity(
     concept: str, rows: list[dict], cfg: FidelityConfig | None = None
 ) -> FidelityVerdict:
@@ -106,12 +129,28 @@ def run_fidelity_gate(
     return assess_fidelity(concept_name, rows, cfg)
 
 
+def run_fidelity_for_members(
+    concept: str,
+    member_names: list[str],
+    run_cypher: CypherRunner,
+    cfg: FidelityConfig | None = None,
+) -> FidelityVerdict:
+    """pre-materialize fidelity (pipeline stage용) — 멤버명으로 측정."""
+    cfg = cfg or FidelityConfig()
+    if not member_names:
+        return FidelityVerdict(concept, 0, {}, 0, False, "empty extent")
+    query, params = fidelity_members_cypher(member_names, cfg)
+    return assess_fidelity(concept, run_cypher(query, params), cfg)
+
+
 __all__ = [
     "DEFAULT_WITNESS_RELS",
     "CypherRunner",
     "FidelityConfig",
     "FidelityVerdict",
     "assess_fidelity",
+    "fidelity_members_cypher",
     "fidelity_witness_cypher",
+    "run_fidelity_for_members",
     "run_fidelity_gate",
 ]
