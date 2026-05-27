@@ -39,6 +39,12 @@ class PipelineConfig:
     fca_min_extent: int = 2
     fca_min_stability: float = 0.5
 
+    # induction operator 선택 (bake-off): 'fca'(default) | 'amie3'. amie3는 Java subprocess.
+    method: str = "fca"
+    # amie3 주입점 (테스트=fake, 실전=induce_amie3 default). amie3 전용 threshold도 재사용.
+    amie3_runner: Optional[Any] = None
+    amie3_min_pca: float = 0.5
+
     stage_community: Optional[Stage] = None
     stage_summarize: Optional[Stage] = None
     stage_hybrid_retrieval: Optional[Stage] = None
@@ -96,47 +102,83 @@ def stage_1_extract(reference_sites: list[dict]) -> list[dict]:
     return [{**rs, "_label": "Candidate"} for rs in reference_sites]
 
 
-def stage_4_induce_fca(
-    formal_context: dict[str, frozenset[str]],
-    cycle_id: str,
-    config: PipelineConfig,
-) -> tuple[list[AbstractClass], list[GeneralizesEdge], FcaResult]:
-    fca_result = induce_fca(
-        formal_context,
-        min_extent=config.fca_min_extent,
-        min_stability=config.fca_min_stability,
-    )
-
+def _concepts_to_acs(
+    fca_result: FcaResult, cycle_id: str, method: InductionMethod
+) -> tuple[list[AbstractClass], list[GeneralizesEdge]]:
+    """FormalConcept(FCA든 AMIE3 어댑터든 동일 shape) → AbstractClass + GeneralizesEdge."""
     abstract_classes: list[AbstractClass] = []
     edges: list[GeneralizesEdge] = []
     now = dt.datetime.now(dt.timezone.utc)
-
+    tag = method.value
     for i, concept in enumerate(fca_result.concepts):
-        ac_name = f"ac_fca_{cycle_id}_{i:04d}"
+        ac_name = f"ac_{tag}_{cycle_id}_{i:04d}"
         intent_summary = ", ".join(sorted(concept.intent))[:200] or "(empty intent)"
-        ac = AbstractClass(
-            name=ac_name,
-            summary=f"FCA concept: {intent_summary}",
-            inductionMethod=InductionMethod.FCA,
-            cycleId=cycle_id,
-            createdAt=now,
-            status=AbstractClassStatus.PROPOSED,
-            extent=sorted(concept.extent),
-            intent=sorted(concept.intent),
-            stabilityScore=concept.stability,
+        abstract_classes.append(
+            AbstractClass(
+                name=ac_name,
+                summary=f"{tag.upper()} concept: {intent_summary}",
+                inductionMethod=method,
+                cycleId=cycle_id,
+                createdAt=now,
+                status=AbstractClassStatus.PROPOSED,
+                extent=sorted(concept.extent),
+                intent=sorted(concept.intent),
+                stabilityScore=concept.stability,
+            )
         )
-        abstract_classes.append(ac)
         for _ in concept.extent:
             edges.append(
                 GeneralizesEdge(
                     confidence=concept.stability,
-                    method=InductionMethod.FCA,
+                    method=method,
                     cycleId=cycle_id,
                     createdAt=now,
                     induced=True,
                 )
             )
-    return abstract_classes, edges, fca_result
+    return abstract_classes, edges
+
+
+def stage_4_induce(
+    formal_context: dict[str, frozenset[str]],
+    cycle_id: str,
+    config: PipelineConfig,
+) -> tuple[list[AbstractClass], list[GeneralizesEdge], FcaResult]:
+    """induction operator dispatch (config.method): 'fca'(default) | 'amie3'.
+
+    두 operator 모두 FcaResult(FormalConcept) shape로 정규화 → 후단(quality/oracle/fidelity/gate)
+    동일 처리. amie3는 Java subprocess(amie3_runner 주입식, 어댑터가 Horn rule→concept 변환).
+    """
+    if config.method == "amie3":
+        from amie3_adapter import induce_via_amie3  # noqa: PLC0415 (Java-optional path)
+
+        kw = {} if config.amie3_runner is None else {"amie3_fn": config.amie3_runner}
+        fca_result = induce_via_amie3(
+            formal_context,
+            min_pca_confidence=config.amie3_min_pca,
+            min_extent=config.fca_min_extent,
+            **kw,
+        )
+        method = InductionMethod.AMIE3
+    else:
+        fca_result = induce_fca(
+            formal_context,
+            min_extent=config.fca_min_extent,
+            min_stability=config.fca_min_stability,
+        )
+        method = InductionMethod.FCA
+
+    acs, edges = _concepts_to_acs(fca_result, cycle_id, method)
+    return acs, edges, fca_result
+
+
+def stage_4_induce_fca(
+    formal_context: dict[str, frozenset[str]],
+    cycle_id: str,
+    config: PipelineConfig,
+) -> tuple[list[AbstractClass], list[GeneralizesEdge], FcaResult]:
+    """Back-compat alias — FCA path. 신규 호출은 stage_4_induce(dispatch) 권장."""
+    return stage_4_induce(formal_context, cycle_id, config)
 
 
 def stage_4_7_oracle_gate(
@@ -224,6 +266,9 @@ def _try_run_stage(stage: Stage, context: dict[str, Any], record_to: PipelineRun
     try:
         result = stage.run(context)
         record_to.record(result.stage, result.ok, payload=result.payload, error=result.error)
+        # 성공 + dict payload면 context에 merge → 다음 stage가 산출을 본다 (GraphRAG 체인).
+        if result.ok and isinstance(result.payload, dict):
+            context.update(result.payload)
         return result.ok
     except NotImplementedStageError as e:
         record_to.record(stage.name, False, error=str(e), payload={"not_implemented": True})
@@ -244,9 +289,9 @@ def run(
     _try_run_stage(config.resolve_stage_community(), ctx, pr)
     _try_run_stage(config.resolve_stage_summarize(), ctx, pr)
 
-    acs, edges, fca_result = stage_4_induce_fca(formal_context, config.cycle_id, config)
+    acs, edges, fca_result = stage_4_induce(formal_context, config.cycle_id, config)
     pr.record(
-        "4-induce-fca",
+        f"4-induce-{config.method}",
         fca_result.fallback_reason is None,
         payload={"abstract_classes": len(acs), "edges": len(edges), "pruned": fca_result.pruned},
         error=fca_result.fallback_reason,
@@ -327,6 +372,7 @@ __all__ = [
     "stage_1_extract",
     "stage_4_7_oracle_gate",
     "stage_4_8_fidelity_gate",
+    "stage_4_induce",
     "stage_4_induce_fca",
     "stage_5_naesengmoon_gate",
 ]

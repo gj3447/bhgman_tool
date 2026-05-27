@@ -614,9 +614,13 @@ def cmd_eureka(args: argparse.Namespace) -> int:
         return 2
 
     run_cypher, _write, close = runners
+    eureka_stages = _load_engine_module("eureka", "stages")
     cycle_id = "cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+    cfg = pipeline.PipelineConfig(
+        cycle_id=cycle_id, **eureka_stages.wire_default_stages(run_cypher)
+    )
     try:
-        pr = pipeline.run_from_kg(run_cypher, pipeline.PipelineConfig(cycle_id=cycle_id))
+        pr = pipeline.run_from_kg(run_cypher, cfg)
     finally:
         close()
 

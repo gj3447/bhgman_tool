@@ -46,10 +46,12 @@ naive FCA(전체 KG 그냥)는 bulk 노이즈 + hub 오염 = garbage (실측 확
 - `pipeline.py` — 7-stage orchestrator + `run_from_kg`. stage 2/3/6/7 = `NotImplementedStage` (DI 주입점)
 - `formal_context_builder.py` — `build_formal_context` (CypherRunner, FormalContextConfig). stage_0 KG-EXTRACT, 3 pre-filter
 - `induction_operators/`:
-  - `fca.py` — Galois lattice extent/intent (Ganter-Wille 1999), iceberg pruning, stability σ. **pipeline-wired** (stage_4 default)
-  - `amie3.py` — Horn rule mining (Lajus-Galárraga-Suchanek 2020), AMIE 3.5.1 Java subprocess. **구현 완료**, 단 입력=triples(s,p,o)·출력=Horn rule이라 pipeline operator-wiring(Horn→AbstractClass 어댑터)은 미완 (다음 과제)
+  - `fca.py` — Galois lattice extent/intent (Ganter-Wille 1999), iceberg pruning, stability σ. **pipeline-wired** (stage_4 default `method='fca'`)
+  - `amie3.py` — Horn rule mining (Lajus-Galárraga-Suchanek 2020), AMIE 3.5.1 Java subprocess
   - `leiden_llm.py` — GraphRAG hierarchical Leiden + LLM summary **stub** (Edge 2024). gds.leiden 인프라 의존
   - `registry.py` — InductionMethod 이름 registry (OCP, induced→required-field 검증용)
+- `amie3_adapter.py` — **amie3 pipeline-wiring** (2026-05-27): context→triples + Horn rule→FormalConcept 어댑터 + `induce_via_amie3`(Java 주입식). `PipelineConfig(method='amie3')`로 선택. 보수적(high-PCA·Rule of Three).
+- `stages.py` — **stage 2/3/6/7 구현체** (2026-05-27): `LeidenCommunityStage`(gds.leiden, 인프라-degrade) / `SummarizeStage`(결정론 digest) / `HybridRetrievalStage`(lexical RRF) / `DriftLoopStage`(partition Jaccard vs τ). `wire_default_stages(run_cypher)`로 주입. pipeline이 stage payload를 context로 체인(GraphRAG).
 - `induction_models.py` — `AbstractClass`, `GeneralizesEdge`, `InductionMethod`, `AbstractClassStatus` (Pydantic v2)
 - `oracle_lens.py` — `kg_oracle_gate` (KG 결정론 불변식) + `run_oracle_gate`/`subprocess_runner` (shell oracle, opt-in). 나생문 2 lens-class 중 oracle(실행) 렌즈
 - `fidelity_gate.py` — `run_fidelity_for_members` (Whewell consilience, SOFT). 형성에 안 쓴 witness 관계로 cohere 측정
@@ -70,9 +72,9 @@ naive FCA(전체 KG 그냥)는 bulk 노이즈 + hub 오염 = garbage (실측 확
 
 - **2026-05-27**: Phase 0-3 완료 — formal_context_builder → run_from_kg → fidelity_gate(4.8 wire) → anti_unify(code backend PoC). 나생문 oracle KG backend 재조정.
 - **tests**: 63 passed (FCA / oracle / fidelity / pipeline / anti_unify / formal_context / run_from_kg / quality_gate / validator / amie3)
-- **CLI**: `bhgman-tool eureka` — KG dogfood (run_from_kg), PROPOSE only.
-- **injectable stub**: stage 2(Leiden)/3(summarize)/6(retrieval)/7(drift) — `PipelineConfig` 주입 대기
-- **bake-off**: FCA pipeline-wired(default). AMIE3 구현 완료(Java subprocess)·pipeline operator-wiring 미완. Leiden-LLM stub
+- **CLI**: `bhgman-tool eureka` — KG dogfood (run_from_kg + wire_default_stages), PROPOSE only.
+- **stage 2/3/6/7**: `stages.py` 구현체 제공(`wire_default_stages`). Leiden은 gds 인프라-gated(degrade), summarize/RRF/drift는 결정론 완성. pipeline context-threading으로 체인.
+- **bake-off**: FCA(default) + AMIE3 둘 다 pipeline-wired(`method` 선택). amie3는 Java subprocess(어댑터 변환). Leiden-LLM stub은 gds.leiden 인프라 대기.
 
 ## KG anchors (Longinus-bound 2026-05-27)
 
