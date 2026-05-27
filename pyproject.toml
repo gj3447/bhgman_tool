@@ -169,6 +169,8 @@ known_first_party = [
   "dynamic_dispatch_probe", "scip_adapter",
   # Wave 12 — PROM16 ai-dev-tools levers (OTel channel + deterministic dispatch eval)
   "otel_channel", "dispatch_eval",
+  # engine/occam — 오캄 결정화 + 나생문 oracle-lens (Legion step 1+2, flat-layout bare imports)
+  "occam", "occam_models", "oracle_lens",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
