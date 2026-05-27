@@ -9,12 +9,26 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from oracle_lens import OracleLens, default_eureka_lenses, run_oracle_gate
+from types import SimpleNamespace
+
+from oracle_lens import (
+    OracleLens,
+    default_eureka_lenses,
+    kg_oracle_gate,
+    run_oracle_gate,
+)
 from pipeline import PipelineConfig, PipelineRun, stage_4_7_oracle_gate
 
 
 def _fake(code: int, out: str = ""):
     return lambda cmd: (code, out)
+
+
+def _ac(name="ac0", extent=("a", "b", "c"), intent=("p",), stability=0.8):
+    """fake AbstractClass 후보 (kg_oracle_gate는 getattr 기반)."""
+    return SimpleNamespace(
+        name=name, extent=list(extent), intent=list(intent), stabilityScore=stability
+    )
 
 
 # ---- primitive (occam mirror) ----
@@ -70,41 +84,76 @@ def test_default_eureka_lenses_shape():
     assert any(ln.command[0] == "pytest" for ln in lenses)
 
 
-# ---- pipeline 와이어링 (stage 4.7) ----
+# ---- KG oracle (concept 불변식) ----
+
+
+def test_kg_oracle_pass_wellformed():
+    passed, verdicts = kg_oracle_gate([_ac()], min_extent=2, min_stability=0.5)
+    assert passed is True
+    assert verdicts[-1].passed is True
+
+
+def test_kg_oracle_fail_extent_too_small():
+    passed, verdicts = kg_oracle_gate([_ac(extent=("a",))], min_extent=2)
+    assert passed is False
+    assert verdicts[-1].kind == "recount"
+    assert "extent" in verdicts[-1].detail
+
+
+def test_kg_oracle_fail_empty_intent():
+    passed, verdicts = kg_oracle_gate([_ac(intent=())], min_extent=2)
+    assert passed is False
+    assert verdicts[-1].kind == "schema"
+
+
+def test_kg_oracle_fail_self_loop():
+    passed, verdicts = kg_oracle_gate([_ac(name="x", extent=("x", "y", "z"))])
+    assert passed is False
+    assert verdicts[-1].kind == "acyclic"
+
+
+def test_kg_oracle_fail_low_stability():
+    passed, verdicts = kg_oracle_gate([_ac(stability=0.1)], min_stability=0.5)
+    assert passed is False
+    assert "stability" in verdicts[-1].detail
+
+
+# ---- pipeline 와이어링 (stage 4.7: KG oracle + optional shell) ----
 
 
 def _cfg(**kw) -> PipelineConfig:
     return PipelineConfig(cycle_id="test-oracle", **kw)
 
 
-def test_pipeline_gate_skips_when_no_lenses():
+def test_pipeline_gate_kg_only_passes_on_good_candidate():
     pr = PipelineRun(config=_cfg())
-    assert stage_4_7_oracle_gate(pr.config, pr) is True
+    assert stage_4_7_oracle_gate([_ac()], pr.config, pr) is True
     rec = pr.stages[-1]
-    assert rec.stage == "4.7-naesengmoon-oracle-gate"
+    assert rec.stage == "4.7-naesengmoon-oracle-gate(KG)"
     assert rec.ok is True
-    assert "skipped" in rec.payload
 
 
-def test_pipeline_gate_blocks_on_oracle_fail():
+def test_pipeline_gate_kg_blocks_malformed_concept():
+    pr = PipelineRun(config=_cfg())
+    assert stage_4_7_oracle_gate([_ac(intent=())], pr.config, pr) is False  # HARD GATE
+    assert pr.stages[-1].ok is False
+
+
+def test_pipeline_gate_shell_blocks_after_kg_pass():
     cfg = _cfg(
         oracle_lenses=(OracleLens("pytest", "test", ("pytest",)),),
         oracle_runner=_fake(1, "1 failed"),
     )
     pr = PipelineRun(config=cfg)
-    assert stage_4_7_oracle_gate(cfg, pr) is False  # HARD GATE
+    assert stage_4_7_oracle_gate([_ac()], cfg, pr) is False  # KG pass, shell FAIL
     rec = pr.stages[-1]
+    assert rec.stage == "4.7b-naesengmoon-oracle-gate(shell)"
     assert rec.ok is False
     assert rec.error and "pytest" in rec.error
 
 
-def test_pipeline_gate_passes_on_oracle_green():
-    cfg = _cfg(
-        oracle_lenses=default_eureka_lenses("."),
-        oracle_runner=_fake(0, ""),
-    )
+def test_pipeline_gate_both_green():
+    cfg = _cfg(oracle_lenses=default_eureka_lenses("."), oracle_runner=_fake(0, ""))
     pr = PipelineRun(config=cfg)
-    assert stage_4_7_oracle_gate(cfg, pr) is True
-    rec = pr.stages[-1]
-    assert rec.ok is True
-    assert len(rec.payload["verdicts"]) == 2
+    assert stage_4_7_oracle_gate([_ac()], cfg, pr) is True
+    assert pr.stages[-1].payload["verdicts"][0]["passed"] is True

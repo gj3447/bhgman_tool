@@ -77,8 +77,10 @@ def run_oracle_gate(
 
 
 def default_eureka_lenses(target: str = ".") -> tuple[OracleLens, ...]:
-    """유레카 MATERIALIZE 전 기본 checkable 렌즈: 추상이 lint + test 통과해야.
+    """CODE backend 기본 checkable 렌즈: 추상이 lint + test 통과해야.
 
+    **주의**: 이건 *코드* materialize 경로용(Extract Superclass 등). KG induction 경로엔
+    kg_oracle_gate()를 써라 (cypher/concept 불변식). 둘은 다른 backend (위험도 비대칭).
     round-trip(추상 적용→원본 일치)·characterization test는 호출자가 target에 포함.
     """
     return (
@@ -87,11 +89,64 @@ def default_eureka_lenses(target: str = ".") -> tuple[OracleLens, ...]:
     )
 
 
+def kg_oracle_gate(
+    abstract_classes: Sequence[object],
+    *,
+    min_extent: int = 2,
+    min_stability: float = 0.5,
+) -> tuple[bool, list[OracleVerdict]]:
+    """KG backend 컴파일러나생문 — concept 후보의 결정론 *불변식* 검증 (HARD GATE).
+
+    checkable only (의미 판단 X — 그건 stage_5 판단렌즈 + semantic-fidelity proxy 몫):
+      1. extent recount  : |extent| ≥ min_extent  (주장한 support가 실제 성립?)
+      2. schema          : intent 비어있지 않음    (empty intent = degenerate concept)
+      3. acyclic         : name ∉ extent           (self-referential = cycle)
+      4. recount/stability: stabilityScore ≥ min_stability (주장한 안정성 성립?)
+
+    code backend의 compile/test 와 동형 역할 — "추상이 형식적으로 well-formed인가"만 본다.
+    첫 FAIL에서 short-circuit (hard gate).
+    """
+    verdicts: list[OracleVerdict] = []
+    for ac in abstract_classes:
+        name = str(getattr(ac, "name", "?"))
+        extent = list(getattr(ac, "extent", []) or [])
+        intent = list(getattr(ac, "intent", []) or [])
+        stability = getattr(ac, "stabilityScore", None)
+
+        if len(extent) < min_extent:
+            verdicts.append(
+                OracleVerdict(
+                    name, "recount", False, f"extent {len(extent)} < min_extent {min_extent}"
+                )
+            )
+            return False, verdicts
+        if not intent:
+            verdicts.append(
+                OracleVerdict(name, "schema", False, "empty intent (degenerate concept)")
+            )
+            return False, verdicts
+        if name in extent:
+            verdicts.append(
+                OracleVerdict(name, "acyclic", False, "self-referential extent (cycle)")
+            )
+            return False, verdicts
+        if stability is not None and stability < min_stability:
+            verdicts.append(
+                OracleVerdict(
+                    name, "recount", False, f"stability {stability:.3f} < {min_stability}"
+                )
+            )
+            return False, verdicts
+        verdicts.append(OracleVerdict(name, "recount", True, "PASS"))
+    return True, verdicts
+
+
 __all__ = [
     "CommandRunner",
     "OracleLens",
     "OracleVerdict",
     "default_eureka_lenses",
+    "kg_oracle_gate",
     "run_oracle_gate",
     "subprocess_runner",
 ]
