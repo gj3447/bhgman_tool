@@ -2,6 +2,7 @@
 
 - **Status**: PRELIMINARY (propose, awaiting user CANONICAL verdict)
 - **Date proposed**: 2026-05-27
+- **Revised**: 2026-05-27 (나생문 3중 검증 `vr-adr-seven-commander-legion-naesengmoon-3lens-2026-05-27` REQUIRES_CHANGES 0.62 반영 — Contract 1급 추가 / 재배맨 plan-first 정정 / edge dedup / feedback loop 폐합 / stigmergy 용어 정정)
 - **KG ref**: `adr-seven-commander-legion-architecture-2026-05-27`
 - **Parent constraints**:
   - `adr-bhgman-tool-in-process-default-2026-05-19` (in-process embedding, RPC 아님)
@@ -44,7 +45,8 @@
 
 모든 군단장이 읽고 쓰는 단일 in-process 기층:
 
-- **KG** = `resolver/cypher_kg_client.py::CypherKgClient` — 정전 데이터 버스. 군단장 간 데이터는 인자 전달이 아니라 **KG 노드/edge를 통해 흐른다**(stigmergy). 한 군단장의 output 노드가 다음 군단장의 input.
+- **KG** = `resolver/cypher_kg_client.py::CypherKgClient` — 정전 데이터 버스. 군단장 간 데이터는 인자 전달이 아니라 **KG 노드/edge를 통해 흐른다** (KG-mediated handoff — 직접 read/write 동기 handoff이지, 간접·비동기 stigmergy 아님). 한 군단장의 output 노드가 다음 군단장의 input.
+- **Contract** = 군단장 간 handoff/gate edge는 전부 **인터페이스 계약(Contract)에 bound**. Contract = APT 전역 root 공리(`apt-contract-root-axiom-2026-05-27`) + 재배맨의 dual complement. 병렬분해된 군단장 조각은 Contract 없이 compose 불가. enforcement는 `gate/` + KG-resolve 상속.
 - **벡터 메모리** = `memory/vector_store.py` + `embedder.py`.
 - **enforcement** = `gate/`(circuit_breaker / opa_client / policies) — 하네스의 제약이 물리적으로 거주.
 
@@ -60,20 +62,32 @@ engine/
   longinus/     bind:     code ↔ KG drift/sha + KG↔KG link    [drift_audit 유지]
   occam/        cleanup:  KG+code stale → SUPERSEDED_BY/archive [신설]
   naesengmoon/  verify:   임의 artifact → :ValidationResult     [taliban 유지]
-  jaebaeman/    dispatch: SubagentTaskSpec → 병렬 출격           [dispatch 유지]
+  jaebaeman/    plan-first: 계획 먼저(본질) → 병렬분해+출격(공학 그림자)  [dispatch 유지]
   harness/      constrain: 3계층 구조제약 (cross-cutting)        [gate 유지]
 ```
+
+> **재배맨 본질 = plan-first 일반원칙** (`jaebaeman-planfirst-essence-reframe-2026-05-27`):
+> 어떤 일이든 *계획을 먼저 세운다*가 origin level 본질. SubagentTaskSpec 출격(dispatch)은
+> 병렬-default 기층 위 공학적 instantiation((b)plan-first ⊇ (a)dispatch). 7직교 partition 내
+> distinguishing verb는 여전히 "출격"(boundary level, 층위 다름 — reconcile OPEN).
+> **Contract는 재배맨의 dual complement** — 병렬 plan(분해) ↔ 인터페이스 계약(compose 합의)이
+> 한 동전 양면. 그래서 Contract가 본 아키텍처의 1급 요소(§1).
 
 ### 3. USES call-graph (= "긴밀한 연결") — 핵심 산출물
 
 경계 스펙의 `uses_not_is`(USES≠IS, 비대칭)를 **실제 edge + in-process call**로 materialize.
 두 종류:
 
-**(a) 파이프라인 handoff (input USES)** — 한 군단장 output이 다음 input:
+**(a) 파이프라인 handoff** — *데이터 흐름* 방향 (producer→consumer):
 ```
-프로메테우스 ──acquire──▶ 유레카 ──create──▶ 롱기누스 ──bind──▶ 오캄 ──cleanup──▶ (loop back)
-   (외부지식)        (새 추상클래스)      (code에 바인딩)    (대체된 낡은것 archive)
+프로메테우스 ──acquire──▶ 롱기누스 ──bind/link──▶ 유레카 ──create──▶ 오캄 ──cleanup──▶ (loop back)
+   (외부지식)         (KG 노드 엮기)         (엮인그래프서 귀납)   (대체된 낡은것 archive)
 ```
+> ⚠ **flow ≠ USES 방향**: 데이터 flow는 producer→consumer지만 canonical USES edge는 dependency
+> 방향(consumer→producer). 그래서 `유레카─USES→롱기누스`(유레카가 롱기누스의 엮인 그래프를 input으로
+> 의존)는 flow `롱기누스→유레카`의 dual이다 — 같은 관계의 두 view. KG엔 USES(dependency) edge를 정전으로
+> 저장, 본 flow는 그 dual 서술. **두 군단장 정렬 순서(롱기누스 vs 유레카)는 canonical USES로 확정**
+> (유레카가 엮인 그래프에서 귀납 ⇒ 롱기누스가 flow상 선행).
 
 **(b) gate USES (검증 관문)** — output을 commit하기 전 나생문이 검증:
 ```
@@ -83,22 +97,27 @@ engine/
 ```
 
 **(c) cross-cutting 2인**:
-- **재배맨** = 임의 군단장을 subagent로 dispatch (나생문 3중도 재배맨 SOP로 출격). 모든 군단장 위에.
+- **재배맨** = plan-first(계획 먼저)가 본질. 그 공학적 그림자로 임의 군단장을 subagent로 출격(나생문 3중도 재배맨 SOP). 모든 군단장 위에.
 - **하네스** = 모든 군단장이 거주하는 3계층 scaffold(IDE-host / runtime / managed) 제약. 모든 군단장 아래.
+
+> KG materialize 결과: **17 distinct `:LEGION_USES` edge** (중복 0 — `오캄→나생문`은 canonical gate
+> 1개로 통합, manual precedent는 edge property `manual_precedent`로 흡수).
 
 ### 4. 닫힌 루프 (the great loop)
 
 ```
-        ┌─────────────────── 재배맨 (dispatch, 위) ───────────────────┐
-        │                                                              │
-  프로메테우스 → 유레카 → 롱기누스 → 오캄 ──┐                          │
-   (획득)     (창조)    (연결)   (정리)    │                          │
-        ▲                                  ▼                          │
-        └────────── 나생문 (verify, 매 단계 gate) ────────────────────┘
-        └─────────────────── 하네스 (constrain, 아래) ────────────────┘
+        ┌────────────────── 재배맨 (plan-first/dispatch, 위) ──────────────┐
+        │                                                                  │
+  프로메테우스 → 롱기누스 → 유레카 → 오캄 ──[나생문 gate]──┐                │
+   (획득)     (연결)    (창조)   (정리)                    │                │
+        ▲                                                  ▼                │
+        └──────── 나생문 verdict ──(feedback)──▶ 다음 acquire ─────────────┘
+        └────────────────── 하네스 (constrain, 아래) ─────────────────────┘
 ```
 
-획득→창조→연결→정리가 KG를 한 바퀴 돌고, 나생문이 매 단계 gate, 재배맨이 출격, 하네스가 제약.
+획득→연결→창조→정리가 KG를 한 바퀴 돌고, 나생문이 매 단계 gate, 재배맨이 plan-first/출격, 하네스가 제약.
+**루프는 실제로 폐합됨**: `나생문 ─(feedback)→ 프로메테우스` edge를 KG에 materialize했으므로
+DAG가 아니라 진짜 cycle(검증 12개 확인). 단 feedback edge는 status=PROPOSED.
 피드백 루프(`agent-feedback-loop-canonical-2026-04-27`)가 이 순환의 창발 속성.
 
 ### 5. 3 직교축 (형식 속성, 유지)
@@ -111,7 +130,7 @@ engine/
 
 ## Consequences
 
-**좋음**: silo 해소 / 수동 패턴(오늘 Occam→나생문)이 정식 파이프라인화 / KG-stigmergy로 느슨한 결합 유지하며 in-process 긴밀성 확보 / 피드백 루프가 자연 창발.
+**좋음**: silo 해소 / 수동 패턴(오늘 Occam→나생문)이 정식 파이프라인화 / KG-mediated handoff로 느슨한 결합 유지하며 in-process 긴밀성 확보 / Contract가 compose 보증 / 피드백 루프가 자연 창발.
 
 **비용/리스크**: KG 버스 단일 장애점(완화: in-process replica) / 정명 시 import 경로 변경(롱기누스 path-mismatch ← 오캄/롱기누스 본인이 처리) / 순환 의존 방지 위해 USES는 비대칭 단방향 유지(ADP).
 
