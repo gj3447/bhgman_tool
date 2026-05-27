@@ -352,11 +352,21 @@ def cmd_longinus(args: argparse.Namespace) -> int:
 
 
 def cmd_harness(args: argparse.Namespace) -> int:
-    """Harness 3-tier scaffolding diagnose. Routes to skills/harness/SKILL.md."""
+    """하네스 — 3계층/4축 진단 엔진(결정론, 인프라 0). --route로 skill 라우팅."""
     if not args.action:
-        print("usage: bhgman-tool harness <action>", file=sys.stderr)
+        print("usage: bhgman-tool harness <subject>", file=sys.stderr)
         return 2
-    return _route_skill("harness", args.action)
+    if getattr(args, "route", False):
+        return _route_skill("harness", args.action)
+    harness = _load_engine_module("harness", "harness", evict=("harness", "harness_models"))
+    diag = harness.diagnose(" ".join(args.action))
+    print(diag.summary)
+    print(f"  tier: {diag.tier.value} ({diag.tier_confidence.value}) — {diag.tier_reason}")
+    for f in diag.axes:
+        print(f"  [{f.presence.value:8s}] {f.axis.value:10s} ({f.signal})")
+    if diag.mcp_adapter:
+        print("  MCP: cross-tier adapter detected")
+    return 0
 
 
 _STATUS_CYPHER = """MATCH (n) WITH labels(n) AS l, count(*) AS c
@@ -804,8 +814,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_long.set_defaults(func=cmd_longinus)
 
-    p_hns = sub.add_parser("harness", help="Harness 3-tier scaffolding diagnose.")
-    p_hns.add_argument("action", nargs="+", help="Action forwarded to /harness.")
+    p_hns = sub.add_parser("harness", help="하네스 3계층/4축 진단 (결정론 엔진). --route=skill.")
+    p_hns.add_argument("action", nargs="+", help="진단 대상 (프레임워크명 또는 설명 텍스트).")
+    p_hns.add_argument("--route", action="store_true", help="진단 대신 SKILL.md 경로만 출력.")
     p_hns.set_defaults(func=cmd_harness)
 
     p_st = sub.add_parser("status", help="KG audit (ssh dgx → cypher-shell).")
