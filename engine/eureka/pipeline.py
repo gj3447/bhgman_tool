@@ -19,6 +19,7 @@ from typing import Any, Optional
 import quality_gate as quality_gate_module
 from induction_operators import FcaResult, induce_fca
 from induction_models import AbstractClass, AbstractClassStatus, GeneralizesEdge, InductionMethod
+from oracle_lens import CommandRunner, OracleLens, run_oracle_gate, subprocess_runner
 from protocols import NotImplementedStage, NotImplementedStageError, Stage, StageResult
 from validator import gate_before_merge
 
@@ -34,6 +35,11 @@ class PipelineConfig:
     stage_summarize: Optional[Stage] = None
     stage_hybrid_retrieval: Optional[Stage] = None
     stage_drift_loop: Optional[Stage] = None
+
+    # 나생문 oracle 렌즈 (executable hard-gate, 2 lens-class). 비어있으면 opt-out(skip).
+    # default_eureka_lenses(target)으로 ruff+pytest 주입. runner=None → subprocess_runner.
+    oracle_lenses: tuple[OracleLens, ...] = ()
+    oracle_runner: Optional[CommandRunner] = None
 
     def resolve_stage_community(self) -> Stage:
         return self.stage_community or NotImplementedStage(
@@ -121,6 +127,35 @@ def stage_4_induce_fca(
     return abstract_classes, edges, fca_result
 
 
+def stage_4_7_oracle_gate(config: "PipelineConfig", pr: "PipelineRun") -> bool:
+    """나생문 oracle hard-gate (executable lens-class) — 선(先) gate.
+
+    config.oracle_lenses 비면 skip(통과, opt-out). 첫 FAIL에서 short-circuit reject.
+    2 lens-class: 이 oracle(실행) 렌즈가 hard pre-gate, 이후 판단(LLM) 렌즈 = stage_5.
+    컴파일/테스트가 깨지면 의미검증(stage_5) 무의미하므로 여기서 차단.
+    """
+    if not config.oracle_lenses:
+        pr.record(
+            "4.7-naesengmoon-oracle-gate",
+            True,
+            payload={"skipped": "no oracle lenses configured (opt-out)"},
+        )
+        return True
+    runner = config.oracle_runner or subprocess_runner
+    gate_passed, verdicts = run_oracle_gate(config.oracle_lenses, runner)
+    pr.record(
+        "4.7-naesengmoon-oracle-gate",
+        gate_passed,
+        payload={
+            "verdicts": [{"lens": v.lens, "kind": v.kind, "passed": v.passed} for v in verdicts]
+        },
+        error=None
+        if gate_passed
+        else "; ".join(f"{v.lens}: {v.detail}" for v in verdicts if not v.passed),
+    )
+    return gate_passed
+
+
 def stage_5_naesengmoon_gate(abstract_classes: list[AbstractClass]) -> list[AbstractClass]:
     return [
         ac.model_copy(update={"status": AbstractClassStatus.VERDICT_PENDING})
@@ -174,6 +209,10 @@ def run(
         if not q_report.passed:
             return pr
 
+    # 4.7 나생문 oracle hard-gate (executable). FAIL → 판단렌즈(stage_5) 진입 차단.
+    if not stage_4_7_oracle_gate(config, pr):
+        return pr
+
     gated_acs = stage_5_naesengmoon_gate(acs)
     pr.record("5-naesengmoon-gate", True, payload={"verdict_pending": len(gated_acs)})
 
@@ -208,6 +247,7 @@ __all__ = [
     "PipelineRun",
     "run",
     "stage_1_extract",
+    "stage_4_7_oracle_gate",
     "stage_4_induce_fca",
     "stage_5_naesengmoon_gate",
 ]
