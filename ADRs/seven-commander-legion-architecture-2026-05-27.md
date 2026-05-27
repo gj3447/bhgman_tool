@@ -106,6 +106,13 @@ drift)·#5(KG진실 못넘음) 3개가 "결정론 oracle로 해결"이었다. �
 나생문**. 즉 나생문을 wired-ensemble(판단+oracle 2-class)로 올리면 6한계 중 3개가 구조적으로 사라지고,
 #3·#6은 multi-model 탈상관으로 완화, #4만 inherent(Rice/Gödel)로 남아 정직 공시.
 
+> **TDD = 나생문** (`naesengmoon-tdd-connection-2026-05-27`). TDD 테스트 = oracle-렌즈 나생문
+> instance. **RED = 나생문 FAIL, GREEN = 나생문 PASS** (나생문=GAN의 D, code=G가 D를 satisfy하도록
+> 학습). "테스트 먼저" = 나생문을 **pre-emit-gate**로 돌림 (코드 emit 전 critic 선존). **단 boundary**:
+> TDD 전체 사이클은 multi-commander — test-FIRST=재배맨(plan-first)+Contract / RED·GREEN gate=나생문 /
+> REFACTOR=오캄·유레카. "TDD=나생문"은 *검증 core* 한정. **APT SCW가 이미 이 dance를 인코딩**:
+> Contract→Test first(RED)→Code(GREEN)→Refactor.
+
 ### 3. USES call-graph (= "긴밀한 연결") — 핵심 산출물
 
 경계 스펙의 `uses_not_is`(USES≠IS, 비대칭)를 **실제 edge + in-process call**로 materialize.
