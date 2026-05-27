@@ -180,6 +180,8 @@ known_first_party = [
   "occam", "occam_models", "oracle_lens",
   # engine/longinus_drift — eureka-l8-rectification split (drift부, root-scanned; eureka는 extend-exclude)
   "ged_drift_detector", "nightly_drift_check",
+  # engine/legion — 7군단장 합성 orchestrator (Legion step 5, flat-layout bare imports)
+  "legion", "legion_models",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).

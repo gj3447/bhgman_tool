@@ -50,6 +50,7 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "apt_phase_detect": frozenset({Capability.READS_PRIVATE_DATA}),
     "taliban_lens_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "tpa_drift_audit": frozenset({Capability.READS_PRIVATE_DATA}),
+    "prometheus_research": frozenset({Capability.READS_PRIVATE_DATA}),
     "kg_query": frozenset({Capability.READS_PRIVATE_DATA}),
     "gate_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "seed_germinate": frozenset({Capability.READS_PRIVATE_DATA}),

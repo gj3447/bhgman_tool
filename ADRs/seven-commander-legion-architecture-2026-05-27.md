@@ -185,8 +185,12 @@ DAG가 아니라 진짜 cycle(검증 12개 확인). 단 feedback edge는 status=
    안전. **atomic 갱신 전부 완료**: 라이브 crontab(→longinus_drift, cron 안 깨짐) + CI(deptry-eureka-subpkg)
    + pyproject(name=eureka) + gitignore + pre-commit + README + 20 KG path. 493 passed, deptry 양쪽 clean.
    유레카→롱기누스 input edge는 §3에 materialize.
-4. **USES edge materialize** — KG에 7군단장 call-graph를 실제 edge로(본 ADR과 함께 1차분).
-5. **Legion 합성 layer** — 닫힌 루프 orchestrator (APT 사이클로 dogfood).
-6. **프로메테우스 승격** — MCP tool 노출 (나생문 oracle 렌즈에 외부 ground-truth 공급 = #5 해결 보강).
+4. ✅ **USES edge materialize** — KG에 7군단장 call-graph 17 LEGION_USES edge.
+5. ✅ **Legion 합성 layer** — `engine/legion/` orchestrator (Contract-bound handoff + 나생문 oracle
+   gate hard-stop + USES 순서 실행, gate 주입식으로 occam/oracle_lens 결합 끊음). 6 테스트 GREEN.
+6. ✅ **프로메테우스 승격** — `engine/mcp_server/tools/prometheus.py` MCP tool `prometheus_research`
+   (knowledge-first 계획 + KG-first 진입 = 나생문 oracle 렌즈에 ground-truth 공급, #5 보강). 5 테스트 + catalog/security 등록.
+
+**Legion 구현 완료 (step 1-6 전부 ✅, 2026-05-27)**: full engine 504 passed. occam/oracle-lens/eureka/longinus_drift/legion/prometheus-tool 전부 코드+테스트+KG 바인딩.
 
 # KG: adr-seven-commander-legion-architecture-2026-05-27, bihaenggiman-legioncommanders-2026-05-26, bihaenggiman-7commander-boundaries-2026-05-26, adr-bhgman-tool-in-process-default-2026-05-19, occam-pass-bhgman_tool-2026-05-27, naesengmoon-wired-ensemble-upgrade-2026-05-27, consensus-naesengmoon-limits-prom16-2026-05-27

@@ -66,6 +66,12 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
         "read",
     ),
     (
+        "prometheus_research",
+        "Knowledge-first 연구 계획 (프로메테우스, 획득): topic → N + axis×sub-axis 매트릭스 + KG-first.",
+        "planning research before acting (knowledge-first), grounding a critic with KG truth",
+        "read",
+    ),
+    (
         "kg_query",
         "Neo4j Cypher read wrapper (fail-open via ssh dgx → cypher-shell).",
         "reading the knowledge graph with a Cypher query",

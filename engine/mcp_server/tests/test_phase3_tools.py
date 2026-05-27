@@ -18,6 +18,7 @@ sys.path.insert(0, str(HERE.parent.parent))  # engine/
 from mcp_server.tools.apt import APT_PHASES, apt_phase_detect_impl
 from mcp_server.tools.taliban import LENS_REGISTRY, taliban_lens_check_impl
 from mcp_server.tools.tpa import DRIFT_TYPES, tpa_drift_audit_impl
+from mcp_server.tools.prometheus import prometheus_research_impl
 from mcp_server.server import list_registered_tool_names
 
 
@@ -45,6 +46,37 @@ def test_symposium_absorbed_tools_registered():
     tools = set(list_registered_tool_names())
     absorbed = {"apt_dispatch", "kg_query", "gate_check", "seed_germinate"}
     assert absorbed.issubset(tools), f"SYMPOSIUM cohort missing: {absorbed - tools}"
+
+
+# ─── prometheus_research (Legion step 6, 획득) ─────────────────────────
+
+
+def test_prometheus_research_registered():
+    assert "prometheus_research" in set(list_registered_tool_names())
+
+
+def test_prometheus_auto_estimate_bands():
+    assert prometheus_research_impl("docker")["n"] == 5  # 1 word → small
+    assert prometheus_research_impl("a b c d e f g")["n"] == 11  # 7 words → medium
+    big = prometheus_research_impl(" ".join(str(i) for i in range(15)))  # 15 words → large
+    assert big["n"] == 20
+
+
+def test_prometheus_large_topic_yields_axis_matrix():
+    plan = prometheus_research_impl("x", n=16)
+    assert plan["strategy"].startswith("axis")
+    assert plan["matrix"] is not None
+    assert "axes" in plan["matrix"] and "sub_axes" in plan["matrix"]
+
+
+def test_prometheus_grounds_critic_and_kg_first():
+    plan = prometheus_research_impl("naesengmoon limits", n=4)
+    assert plan["matrix"] is None  # n=4 small → no matrix
+    assert "kg_first" in plan and "grounds_critic" in plan
+
+
+def test_prometheus_empty_topic_rejected():
+    assert prometheus_research_impl("   ")["n"] == 0
 
 
 # ─── apt_phase_detect ──────────────────────────────────────────────────
