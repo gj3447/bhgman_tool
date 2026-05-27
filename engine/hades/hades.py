@@ -47,20 +47,26 @@ def realize_kg_abstraction(
             concept_name, RealizeStatus.REFUSED, None, "empty extent — 실현 대상 없음"
         )
 
+    # 파라미터화 cypher (injection 차단 + concept_name에 따옴표 들어가도 안전).
+    # op1은 새 쿼리라 op0의 (a) 바인딩이 안 넘어옴 → AbstractClass를 *재-MATCH* 해야 함
+    # (옛 bare `(a)`는 익명 신규 노드를 MERGE하던 버그).
     ops = (
-        f"MERGE (a:AbstractClass {{name:'{concept_name}'}}) SET a.status='CANONICAL', a.realizedBy='hades'",
-        f"UNWIND $members AS m MATCH (o {{name:m}}) MERGE (o)-[:INSTANCE_OF]->(a)  // {len(member_names)} members",
+        "MERGE (a:AbstractClass {name:$concept}) SET a.status='CANONICAL', a.realizedBy='hades'",
+        "UNWIND $members AS m "
+        "MATCH (a:AbstractClass {name:$concept}) "
+        "MATCH (o {name:m}) "
+        "MERGE (o)-[:INSTANCE_OF]->(a)",
     )
     undo = (
-        f"MATCH (a:AbstractClass {{name:'{concept_name}'}}) SET a.status='SUPERSEDED'  // reversible",
-        f"MATCH (o)-[r:INSTANCE_OF]->(a {{name:'{concept_name}'}}) DELETE r  // undo edges",
+        "MATCH (a:AbstractClass {name:$concept}) SET a.status='SUPERSEDED'",
+        "MATCH (o)-[r:INSTANCE_OF]->(a:AbstractClass {name:$concept}) DELETE r",
     )
     plan = MaterializationPlan(concept_name, "kg", ops, undo, reversible=True)
 
     applied = False
     if not dry_run and apply_cypher is not None:
-        apply_cypher(ops[0], {})
-        apply_cypher(ops[1], {"members": list(member_names)})
+        apply_cypher(ops[0], {"concept": concept_name})
+        apply_cypher(ops[1], {"concept": concept_name, "members": list(member_names)})
         applied = True
     status = RealizeStatus.APPLIED if applied else RealizeStatus.PLANNED
     return RealizeVerdict(

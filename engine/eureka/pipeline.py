@@ -160,6 +160,17 @@ def stage_4_induce(
             **kw,
         )
         method = InductionMethod.AMIE3
+    elif config.method == "leiden-llm":
+        from induction_operators import induce_leiden_llm  # noqa: PLC0415
+
+        resolution = config.gamma_sweep[0] if config.gamma_sweep else 1.0
+        fca_result = induce_leiden_llm(
+            formal_context,
+            resolution=resolution,
+            min_extent=config.fca_min_extent,
+            min_stability=config.fca_min_stability,
+        )
+        method = InductionMethod.LEIDEN_LLM
     else:
         fca_result = induce_fca(
             formal_context,

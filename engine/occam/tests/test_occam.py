@@ -75,3 +75,108 @@ def test_three_node_lineage_supersedes_two_toward_disk_current():
     assert report.superseded_count == 2
     assert all(c.current.name == "v2" for c in report.candidates)
     assert all(c.confidence is Confidence.HIGH for c in report.candidates)
+
+
+# ─── mode-2: sha-이동 (challenge-occam-pass-...-missed-own-domain-stale-nodes) ───
+
+
+def test_sha_move_supersedes_orphan_toward_live_twin_HIGH():
+    # 실제 ged_drift_detector.py 케이스: longinus_l8_induction/(디스크 삭제) vs
+    # longinus_drift/(생존), 동일 sha → 옛 경로 노드를 살아있는 twin으로 supersede.
+    old = NodeRecord(
+        "ged_drift_detector.py",
+        "/Users/x/bhgman_tool/engine/longinus_l8_induction/ged_drift_detector.py",
+        "4465964fad4d",
+        157,
+    )
+    new = NodeRecord(
+        "l8ind-ged_drift_detector.py",
+        "bhgman_tool/engine/longinus_drift/ged_drift_detector.py",
+        "4465964fad4d",
+        157,
+    )
+    disk = frozenset({"engine/longinus_drift/ged_drift_detector.py"})  # 옛 경로는 없음
+    report = occam_pass([old, new], disk_paths=disk)
+    assert report.superseded_count == 1
+    cand = report.candidates[0]
+    assert cand.stale.name == "ged_drift_detector.py"
+    assert cand.current.name == "l8ind-ged_drift_detector.py"
+    assert cand.confidence is Confidence.HIGH
+    assert "moved" in cand.reason and "absent on disk" in cand.reason
+    assert report.orphan_count == 0  # live twin 있으니 orphan 아님
+
+
+def test_sha_move_skipped_without_disk_paths():
+    # disk_paths=None → mode-1만. 다른 경로라 same-path 그룹도 안 묶임 → 후보 0.
+    old = NodeRecord("a", "bhgman_tool/engine/old/x.py", "samesha", 10)
+    new = NodeRecord("b", "bhgman_tool/engine/new/x.py", "samesha", 10)
+    report = occam_pass([old, new])
+    assert report.superseded_count == 0
+    assert report.orphan_count == 0
+
+
+def test_both_paths_live_not_superseded():
+    # 동일 sha지만 둘 다 디스크 존재 = 의도적 사본(보존). supersede 안 함.
+    a = NodeRecord("a", "bhgman_tool/engine/p/x.py", "s", 10)
+    b = NodeRecord("b", "bhgman_tool/engine/q/x.py", "s", 10)
+    disk = frozenset({"engine/p/x.py", "engine/q/x.py"})
+    report = occam_pass([a, b], disk_paths=disk)
+    assert report.superseded_count == 0
+    assert report.orphan_count == 0
+
+
+# ─── mode-3: disk-orphan flag-only (machloket 보존) ───
+
+
+def test_disk_orphan_no_twin_flagged_not_superseded():
+    # 경로가 디스크에 없고 동일-sha live twin도 없음 → orphans에 flag, supersede 안 함.
+    dead = NodeRecord(
+        "l8ind-next-session.md",
+        "bhgman_tool/engine/longinus_l8_induction/NEXT_SESSION.md",
+        "deadsha",
+        200,
+    )
+    live = NodeRecord("other.py", "bhgman_tool/engine/longinus_drift/other.py", "othersha", 30)
+    disk = frozenset({"engine/longinus_drift/other.py"})
+    report = occam_pass([dead, live], disk_paths=disk)
+    assert report.superseded_count == 0  # supersede 안 함 (machloket)
+    assert report.orphan_count == 1
+    assert report.orphans[0].name == "l8ind-next-session.md"
+
+
+def test_external_node_not_flagged_as_orphan():
+    # repo 밖 노드(bhgman_tool/ 마커 없음)는 이 repo 디스크로 판정 불가 → orphan/move 평가 제외.
+    # (실측 회귀: SYMPOSIUM/THEORY/*BHGMAN* 노드가 false-orphan으로 잡히던 버그.)
+    external = NodeRecord(
+        "finding.json",
+        "/Users/x/CD/SYMPOSIUM/THEORY/PROM_16_BHGMAN_APPLICATION/finding.json",
+        "ext",
+        45,
+    )
+    disk = frozenset({"engine/live.py"})
+    report = occam_pass([external], disk_paths=disk)
+    assert report.orphan_count == 0
+    assert report.superseded_count == 0
+
+
+def test_orphan_survivor_after_samepath_dedup_still_flagged():
+    # 같은 죽은 경로에 2 노드(abs 18L / rel 8L): mode-1이 8L를 18L로 supersede,
+    # 그 18L survivor는 disk-orphan(경로 없음+live twin 없음)으로 flag.
+    abs_ = NodeRecord(
+        "conftest.py",
+        "/Users/x/bhgman_tool/engine/longinus_l8_induction/tests/conftest.py",
+        "bbb",
+        18,
+    )
+    rel = NodeRecord(
+        "l8ind-tests-conftest.py",
+        "bhgman_tool/engine/longinus_l8_induction/tests/conftest.py",
+        "aaa",
+        8,
+    )
+    disk = frozenset({"engine/longinus_drift/tests/conftest.py"})  # l8 경로 없음
+    report = occam_pass([abs_, rel], disk_paths=disk)
+    assert report.superseded_count == 1  # 8L → 18L
+    assert report.candidates[0].stale.name == "l8ind-tests-conftest.py"
+    assert report.orphan_count == 1  # 18L survivor는 orphan
+    assert report.orphans[0].name == "conftest.py"

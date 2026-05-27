@@ -38,13 +38,23 @@ class SupersessionCandidate:
 
 @dataclass(frozen=True)
 class OccamReport:
-    """오캄 pass 결과. delete 필드 없음 (covenant)."""
+    """오캄 pass 결과. delete 필드 없음 (covenant).
+
+    orphans = 디스크에서 사라진 경로의 노드 중 *동일 sha live twin 부재*인 것.
+    auto-supersede 안 함 (machloket/Eilu va-Eilu: 의도적 보존 노드일 수 있음) — flag-only,
+    사용자/Longinus 판단 대상. live twin 있는 disk-orphan은 candidates(이동=HIGH)로 간다.
+    """
 
     candidates: tuple[SupersessionCandidate, ...] = ()
     scanned_nodes: int = 0
     groups_with_dups: int = 0
     notes: tuple[str, ...] = field(default_factory=tuple)
+    orphans: tuple[NodeRecord, ...] = ()
 
     @property
     def superseded_count(self) -> int:
         return len(self.candidates)
+
+    @property
+    def orphan_count(self) -> int:
+        return len(self.orphans)

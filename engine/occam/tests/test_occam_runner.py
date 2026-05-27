@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from occam_runner import run_occam
+from occam_runner import run_occam, scan_disk_paths
 
 
 class _Runner:
@@ -56,3 +56,66 @@ def test_run_occam_scope_passed_to_fetch():
     read = _Runner(_CLEAN_ROWS)
     run_occam(read, scope="engine/occam")
     assert read.calls[0][1] == {"scope": "engine/occam"}
+
+
+# ─── disk-aware (mode-2/3) ───
+
+_MOVED_ROWS = [
+    {
+        "name": "old-ged",
+        "source_path": "bhgman_tool/engine/longinus_l8_induction/ged.py",
+        "sha256": "samesha",
+        "line_count": 157,
+    },
+    {
+        "name": "new-ged",
+        "source_path": "bhgman_tool/engine/longinus_drift/ged.py",
+        "sha256": "samesha",
+        "line_count": 157,
+    },
+]
+
+
+def test_scan_disk_paths_normalizes_and_skips_caches(tmp_path):
+    (tmp_path / "bhgman_tool" / "engine").mkdir(parents=True)
+    (tmp_path / "bhgman_tool" / "engine" / "live.py").write_text("x=1\n")
+    (tmp_path / "bhgman_tool" / "engine" / "__pycache__").mkdir()
+    (tmp_path / "bhgman_tool" / "engine" / "__pycache__" / "live.cpython.pyc").write_text("z")
+    paths = scan_disk_paths(tmp_path)
+    assert "engine/live.py" in paths
+    assert not any("__pycache__" in p for p in paths)
+
+
+def test_scan_disk_paths_follows_symlinked_dirs(tmp_path):
+    # bhgman_tool/skills/* = SYMPOSIUM/SKILLS 심링크 (정전). followlinks 없으면 false-orphan.
+    real = tmp_path / "real_skills" / "harness"
+    real.mkdir(parents=True)
+    (real / "SKILL.md").write_text("# harness\n")
+    repo = tmp_path / "bhgman_tool"
+    (repo).mkdir()
+    (repo / "skills").symlink_to(tmp_path / "real_skills")
+    paths = scan_disk_paths(repo)
+    assert "skills/harness/SKILL.md" in paths  # 심링크 통해 발견돼야
+
+
+def test_run_occam_disk_aware_supersedes_moved_node(monkeypatch):
+    import occam_runner
+
+    # 옛 경로는 디스크에 없고 새 경로만 살아있다고 위장.
+    monkeypatch.setattr(
+        occam_runner, "scan_disk_paths", lambda _root: frozenset({"engine/longinus_drift/ged.py"})
+    )
+    read = _Runner(_MOVED_ROWS)
+    write = _Runner()
+    res = run_occam(read, write_cypher=write, apply=True, repo_root="/fake")
+    assert res.report.superseded_count == 1
+    cand = res.report.candidates[0]
+    assert cand.stale.name == "old-ged"
+    assert cand.current.name == "new-ged"
+    assert len(write.calls) == 1
+
+
+def test_run_occam_no_repo_root_is_disk_unaware(monkeypatch):
+    read = _Runner(_MOVED_ROWS)
+    res = run_occam(read)  # repo_root=None → mode-1만, 다른 경로라 후보 0
+    assert res.report.superseded_count == 0

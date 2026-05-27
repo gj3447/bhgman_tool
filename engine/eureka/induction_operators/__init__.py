@@ -7,5 +7,6 @@
 """
 
 from induction_operators.fca import FcaResult, induce_fca
+from induction_operators.leiden_llm import induce_leiden_llm
 
-__all__ = ["FcaResult", "induce_fca"]
+__all__ = ["FcaResult", "induce_fca", "induce_leiden_llm"]

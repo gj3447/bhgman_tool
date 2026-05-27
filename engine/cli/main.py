@@ -525,9 +525,15 @@ def cmd_occam(args: argparse.Namespace) -> int:
         return 2
 
     run_cypher, write_cypher, close = runners
+    # 디스크-aware 기본 ON (sha-이동/orphan 탐지). --no-disk-scan으로 끔(KG-only).
+    repo_root = None if getattr(args, "no_disk_scan", False) else str(_repo_root())
     try:
         res = occam_runner.run_occam(
-            run_cypher, write_cypher=write_cypher, scope=args.scope, apply=args.apply
+            run_cypher,
+            write_cypher=write_cypher,
+            scope=args.scope,
+            apply=args.apply,
+            repo_root=repo_root,
         )
     finally:
         close()
@@ -540,6 +546,13 @@ def cmd_occam(args: argparse.Namespace) -> int:
             print("  (dry-run — pass --apply to write SUPERSEDED; reversible via status+edge)")
     elif res.apply_result.superseded:
         print(f"  applied: {', '.join(res.apply_result.superseded)}")
+    if res.report.orphan_count:
+        print(
+            f"  disk-orphans (flag-only, machloket 보존 — supersede 안 함, Longinus/사용자 판단): "
+            f"{res.report.orphan_count}"
+        )
+        for o in res.report.orphans:
+            print(f"    [orphan] {o.name} @ {o.source_path}")
     return 0
 
 
@@ -722,6 +735,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--apply",
         action="store_true",
         help="Write SUPERSEDED (reversible). Omit = dry-run (covenant: archive-only).",
+    )
+    p_oc.add_argument(
+        "--no-disk-scan",
+        action="store_true",
+        help="KG-only (mode-1 same-path dedup). Default scans disk for moved-node/orphan detection.",
     )
     p_oc.set_defaults(func=cmd_occam)
 

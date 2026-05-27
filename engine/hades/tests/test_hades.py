@@ -47,6 +47,33 @@ def test_kg_realize_empty_extent_refused():
     assert v.status == RealizeStatus.REFUSED
 
 
+def test_kg_realize_uses_parameterized_cypher_no_injection():
+    # concept_name이 cypher 문자열에 직접 박히지 않는다 ($concept 파라미터).
+    calls = []
+
+    def fake_apply(q, p):
+        calls.append((q, p))
+        return []
+
+    name = "ac'; MATCH (n) DETACH DELETE n //"  # injection 시도용 악성 이름
+    v = realize_kg_abstraction(name, "ACCEPTED", ["a", "b"], dry_run=False, apply_cypher=fake_apply)
+    assert v.status == RealizeStatus.APPLIED
+    # 악성 이름이 cypher 본문에 들어가지 않고 params로만 전달돼야 한다.
+    for q, p in calls:
+        assert name not in q
+        assert "DETACH DELETE" not in q
+        assert p.get("concept") == name
+
+
+def test_kg_realize_instance_of_binds_named_abstractclass_not_anonymous():
+    # op1이 AbstractClass를 재-MATCH해서 같은 노드에 INSTANCE_OF를 건다 (익명 (a) 버그 회귀 방지).
+    v = realize_kg_abstraction("my-concept", "ACCEPTED", ["x", "y"])
+    instance_op = next(op for op in v.plan.operations if "INSTANCE_OF" in op)
+    assert "MATCH (a:AbstractClass {name:$concept})" in instance_op
+    # undo도 named AbstractClass로 한정 (전역 INSTANCE_OF 삭제 금지).
+    assert all("$concept" in u for u in v.plan.undo)
+
+
 def test_code_realize_refuses_over_max_sites():
     v = realize_code_template("c", "tmpl", [f"s{i}" for i in range(6)], max_sites=5)
     assert v.status == RealizeStatus.REFUSED

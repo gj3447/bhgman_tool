@@ -106,3 +106,28 @@ def test_pipeline_default_method_is_fca():
     cfg = PipelineConfig(cycle_id="fca-default")
     acs, _edges, _r = stage_4_induce(context, cfg.cycle_id, cfg)
     assert all(ac.inductionMethod == "fca" for ac in acs)
+
+
+# ── leiden-llm operator dispatch (offline greedy-modularity, 2026-05-27) ──────
+
+
+def test_pipeline_leiden_llm_method_dispatches_to_operator():
+    """config.method='leiden-llm' → induce_leiden_llm 경유 → AbstractClass(inductionMethod=leiden-llm)."""
+    from pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
+
+    context = {
+        "a": frozenset({"X", "Y"}),
+        "b": frozenset({"X", "Y"}),
+        "c": frozenset({"X", "Y"}),
+        "d": frozenset({"P", "Q"}),
+        "e": frozenset({"P", "Q"}),
+        "f": frozenset({"P", "Q"}),
+    }
+    cfg = PipelineConfig(cycle_id="leiden-test", method="leiden-llm", fca_min_stability=0.0)
+    acs, edges, fca_result = stage_4_induce(context, cfg.cycle_id, cfg)
+    assert fca_result.fallback_reason is None
+    assert len(acs) == 2  # 두 클러스터
+    assert all(ac.inductionMethod == "leiden-llm" for ac in acs)
+    assert all(ac.name.startswith("ac_leiden-llm_") for ac in acs)
+    # induced inducer → extent/intent/stability 필수 (induction_models 검증) — 비어있지 않음.
+    assert all(ac.extent and ac.intent is not None and ac.stabilityScore is not None for ac in acs)
