@@ -73,6 +73,39 @@ engine/
 > **Contract는 재배맨의 dual complement** — 병렬 plan(분해) ↔ 인터페이스 계약(compose 합의)이
 > 한 동전 양면. 그래서 Contract가 본 아키텍처의 1급 요소(§1).
 
+### 2.6 나생문 wired-ensemble 업그레이드 — 2 lens-class (v0.9)
+
+> `naesengmoon-wired-ensemble-upgrade-2026-05-27` (사용자 verdict). PROM 16
+> `consensus-naesengmoon-limits-prom16-2026-05-27`이 검증한 설계.
+
+나생문 = **검증(verify)**. 렌즈가 두 종류 — 둘 다 나생문이다:
+
+| lens-class | 메커니즘 | 검증 대상 | 한계 관계 | aggregation |
+|---|---|---|---|---|
+| **(A) 판단 렌즈** | LLM | 의미·논증·아키텍처 적합성(주관) | #3·#4·#6 잔여 (탈상관+정직공시로 관리) | soft consensus 투표 |
+| **(B) oracle 렌즈** | 결정론 실행 | 문법·빌드·타입·테스트·수치(checkable) | #1·#2·#5 **해결** (LLM 판단 아닌 실제 도구) | **hard gate** (FAIL=즉시 reject) |
+
+**(B) oracle 렌즈 = 나생문이 *지혼자 컴파일러·스크립트 돌려* "문법 틀렸구요 / 아키텍처 틀렸구요" 판정.**
+LLM 의견이 아니라 실제 실행 결과. 하위 family (1:N family-expansion):
+
+```
+oracle 렌즈
+└─ 컴파일러나생문 (CompilerCritic)        ← roster OPEN_ENDED
+   ├─ C언어 컴파일러나생문   = gcc/clang -fsyntax-only -Wall
+   ├─ Python 나생문          = ruff / mypy / pytest
+   ├─ Lean 나생문            = lake build (sorry=0 error=0)
+   └─ cypher recount 나생문  = neo4j count (수치 claim 검증)
+```
+
+**실행 순서**: oracle 렌즈 먼저(hard gate) → 통과해야 판단 렌즈(soft consensus) 진입.
+컴파일 안 되면 의미 검증은 무의미하니 oracle이 선(先) gate. **경계**: oracle은 semantic
+의도(hermeneutic)는 못 본다 — 거기는 판단 렌즈. (PROM: 결정론 oracle은 checkable만, 의미는 LLM.)
+
+**왜 이게 핵심 upgrade인가**: PROM 16이 나생문 6한계를 partition했는데 — #1(도구범위)·#2(수치
+drift)·#5(KG진실 못넘음) 3개가 "결정론 oracle로 해결"이었다. 그 oracle이 곧 **oracle 렌즈 = 컴파일러
+나생문**. 즉 나생문을 wired-ensemble(판단+oracle 2-class)로 올리면 6한계 중 3개가 구조적으로 사라지고,
+#3·#6은 multi-model 탈상관으로 완화, #4만 inherent(Rice/Gödel)로 남아 정직 공시.
+
 ### 3. USES call-graph (= "긴밀한 연결") — 핵심 산출물
 
 경계 스펙의 `uses_not_is`(USES≠IS, 비대칭)를 **실제 edge + in-process call**로 materialize.
@@ -137,9 +170,10 @@ DAG가 아니라 진짜 cycle(검증 12개 확인). 단 feedback edge는 status=
 ## 권장 시퀀싱 (이 ADR 이후, 별도 verdict)
 
 1. **오캄 결정화** `engine/occam/` — 0-file 메우기 + 나생문 gate wiring (오늘 검증된 절차 코드화). 첫 실제 연결.
-2. **유레카 정명** `longinus_l8_induction` → `engine/eureka/` + 유레카→롱기누스 input edge.
-3. **USES edge materialize** — KG에 7군단장 call-graph를 실제 edge로(본 ADR과 함께 1차분).
-4. **Legion 합성 layer** — 닫힌 루프 orchestrator (APT 사이클로 dogfood).
-5. **프로메테우스 승격** — MCP tool 노출.
+2. **나생문 oracle-lens 배선** (§2.6) — 컴파일러나생문 family를 실행 critic으로 구현: oracle 렌즈 = `gate/`에 hard-gate runner (gcc/ruff/mypy/pytest/lake/cypher-recount) 추가, 판단 렌즈(LLM)는 그 다음. PROM #1·#2·#5 구조적 해결. **기존 자산 재활용**: `mcp_server/tools/taliban.py`(판단) + `longinus_drift_audit`(파일 진실) + APT FulfillmentGate(이미 test 실행) 를 oracle 렌즈로 묶음.
+3. **유레카 정명** `longinus_l8_induction` → `engine/eureka/` + 유레카→롱기누스 input edge.
+4. **USES edge materialize** — KG에 7군단장 call-graph를 실제 edge로(본 ADR과 함께 1차분).
+5. **Legion 합성 layer** — 닫힌 루프 orchestrator (APT 사이클로 dogfood).
+6. **프로메테우스 승격** — MCP tool 노출 (나생문 oracle 렌즈에 외부 ground-truth 공급 = #5 해결 보강).
 
-# KG: adr-seven-commander-legion-architecture-2026-05-27, bihaenggiman-legioncommanders-2026-05-26, bihaenggiman-7commander-boundaries-2026-05-26, adr-bhgman-tool-in-process-default-2026-05-19, occam-pass-bhgman_tool-2026-05-27
+# KG: adr-seven-commander-legion-architecture-2026-05-27, bihaenggiman-legioncommanders-2026-05-26, bihaenggiman-7commander-boundaries-2026-05-26, adr-bhgman-tool-in-process-default-2026-05-19, occam-pass-bhgman_tool-2026-05-27, naesengmoon-wired-ensemble-upgrade-2026-05-27, consensus-naesengmoon-limits-prom16-2026-05-27
