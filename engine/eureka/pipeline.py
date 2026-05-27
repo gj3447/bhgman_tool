@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import quality_gate as quality_gate_module
+from formal_context_builder import FormalContextConfig, CypherRunner, build_formal_context
 from induction_operators import FcaResult, induce_fca
 from induction_models import AbstractClass, AbstractClassStatus, GeneralizesEdge, InductionMethod
 from oracle_lens import (
@@ -254,6 +255,24 @@ def run(
     return pr
 
 
+def run_from_kg(
+    run_cypher: CypherRunner,
+    config: PipelineConfig,
+    fc_cfg: FormalContextConfig | None = None,
+) -> PipelineRun:
+    """stage_0 (KG-EXTRACT) → 전체 pipeline. formal_context_builder로 KG에서 context 빌드 후 run().
+
+    Phase 1 wiring (2026-05-27): build_formal_context(3 pre-filter) → induce_fca.
+    run_cypher 주입 (실전=Neo4j read, 테스트=fake). 실측 oracle: 321 obj/avg_intent 3.63 → 비자명 concept.
+    """
+    formal_context, meta = build_formal_context(run_cypher, fc_cfg)
+    pr = run(reference_sites=[], formal_context=formal_context, config=config)
+    pr.stages.insert(
+        0, StageResult(stage="0-kg-extract-formal-context", ok=bool(formal_context), payload=meta)
+    )
+    return pr
+
+
 def main() -> None:
     cfg = PipelineConfig(cycle_id="cli-demo")
     result = run(reference_sites=[], formal_context={}, config=cfg)
@@ -270,6 +289,7 @@ __all__ = [
     "PipelineConfig",
     "PipelineRun",
     "run",
+    "run_from_kg",
     "stage_1_extract",
     "stage_4_7_oracle_gate",
     "stage_4_induce_fca",
