@@ -1,6 +1,10 @@
-# longinus_l8_induction
+# eureka (유레카) — 창조(귀납→추상)
 
-Longinus L8 induction prototype — pattern detection over L1-L7 ReferenceSite KG → `:AbstractClass` + `:GENERALIZES` super-node crystallization.
+> 정명 2026-05-27 (`eureka-l8-rectification-2026-05-27`): formerly `longinus_l8_induction`
+> ("Longinus Layer-8 induction" = 2026-05-26 commander-split 이전 작명). induction은 유레카의
+> 본령이라 정명, drift부(`ged_drift_detector`/`nightly_drift_check`)는 `engine/longinus_drift`로 분리.
+
+유레카 induction — pattern detection over L1-L7 ReferenceSite KG → `:AbstractClass` + `:GENERALIZES` super-node crystallization. 비행기맨 #4 LegionCommander, 창조(구체→추상 축).
 
 ## Spec sources
 

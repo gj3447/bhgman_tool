@@ -178,13 +178,13 @@ DAG가 아니라 진짜 cycle(검증 12개 확인). 단 feedback edge는 status=
 
 1. **오캄 결정화** `engine/occam/` — 0-file 메우기 + 나생문 gate wiring (오늘 검증된 절차 코드화). 첫 실제 연결.
 2. **나생문 oracle-lens 배선** (§2.6) — 컴파일러나생문 family를 실행 critic으로 구현: oracle 렌즈 = `gate/`에 hard-gate runner (gcc/ruff/mypy/pytest/lake/cypher-recount) 추가, 판단 렌즈(LLM)는 그 다음. PROM #1·#2·#5 구조적 해결. **기존 자산 재활용**: `mcp_server/tools/taliban.py`(판단) + `longinus_drift_audit`(파일 진실) + APT FulfillmentGate(이미 test 실행) 를 oracle 렌즈로 묶음.
-3. **유레카 정명** — ⚠ 단순 rename 아닌 **capability split** (`eureka-l8-rectification-2026-05-27`).
-   `longinus_l8_induction`("L8=Longinus 7층+induction" = 2026-05-26 split 이전 작명)이 혼합:
-   induction부(`induction_operators/`,`pipeline`,`quality_gate`,`validator`)=**유레카** /
-   drift부(`ged_drift_detector`,`nightly_drift_check`)=**롱기누스**. **KG capability 정명 완료**
-   (induction nodes realm=eureka / drift nodes realm=longinus). 물리 split은 DEFERRED — **라이브
-   crontab**(`17 3 * * * .../longinus_l8_induction`) + CI(`deptry-l8-subpkg.yml`) + 자체 pyproject +
-   egg-link 동시 갱신 필요(블라인드 git mv = cron 조용히 깨짐). 유레카→롱기누스 input edge는 §3에 이미 materialize.
+3. ✅ **유레카 정명 — capability split 완료** (`eureka-l8-rectification-2026-05-27`).
+   `longinus_l8_induction`("L8=Longinus 7층+induction" = 2026-05-26 split 이전 작명)이 혼합이라
+   단순 rename 아닌 **split**: induction부 → `engine/eureka/`(유레카, 창조) / drift부
+   (`ged_drift_detector`,`nightly_drift_check`) → `engine/longinus_drift/`(롱기누스). import 결합 0이라
+   안전. **atomic 갱신 전부 완료**: 라이브 crontab(→longinus_drift, cron 안 깨짐) + CI(deptry-eureka-subpkg)
+   + pyproject(name=eureka) + gitignore + pre-commit + README + 20 KG path. 493 passed, deptry 양쪽 clean.
+   유레카→롱기누스 input edge는 §3에 materialize.
 4. **USES edge materialize** — KG에 7군단장 call-graph를 실제 edge로(본 ADR과 함께 1차분).
 5. **Legion 합성 layer** — 닫힌 루프 orchestrator (APT 사이클로 dogfood).
 6. **프로메테우스 승격** — MCP tool 노출 (나생문 oracle 렌즈에 외부 ground-truth 공급 = #5 해결 보강).

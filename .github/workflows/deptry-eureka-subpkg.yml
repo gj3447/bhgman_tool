@@ -1,12 +1,14 @@
-name: deptry-l8-subpkg
+name: deptry-eureka-subpkg
 # Naesengmoon vr-bhgman-442702e-baseline-unblocking-3lens-2026-05-21 L2-F1 MED
-# Root pyproject.toml's [tool.deptry] uses extend_exclude='engine/longinus_l8_induction'
-# (l8 has its own pyproject). This workflow closes the blind spot by:
-#   (1) running deptry inside the l8 subpackage with its own pyproject
-#   (2) asserting that any l8 → root import resolves to a module already
+# (formerly deptry-l8-subpkg; eureka-l8-rectification-2026-05-27 split renamed
+#  engine/longinus_l8_induction → engine/eureka, drift부 → engine/longinus_drift)
+# Root pyproject.toml's [tool.deptry] uses extend_exclude='engine/eureka'
+# (eureka has its own pyproject). This workflow closes the blind spot by:
+#   (1) running deptry inside the eureka subpackage with its own pyproject
+#   (2) asserting that any eureka → root import resolves to a module already
 #       listed in root's [tool.deptry] known_first_party (catch implicit
 #       cross-package coupling that root's deptry no longer audits).
-# KG: wqi-bhgman-l2f1-deptry-l8-subpkg-ci-step-2026-05-21
+# KG: wqi-bhgman-l2f1-deptry-l8-subpkg-ci-step-2026-05-21, eureka-l8-rectification-2026-05-27
 
 on:
   push:
@@ -15,7 +17,7 @@ on:
     branches: [main, master]
 
 jobs:
-  deptry-l8:
+  deptry-eureka:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -30,12 +32,12 @@ jobs:
       - name: install uv
         run: pip install uv
 
-      - name: deptry inside l8 subpackage
-        working-directory: engine/longinus_l8_induction
+      - name: deptry inside eureka subpackage
+        working-directory: engine/eureka
         run: |
           uvx deptry . --ignore-notebooks
 
-      - name: l8 -> root cross-import audit
+      - name: eureka -> root cross-import audit
         run: |
           python3 - <<'PY'
           import re
@@ -44,23 +46,23 @@ jobs:
           from pathlib import Path
 
           ROOT = Path(".").resolve()
-          L8_DIR = ROOT / "engine" / "longinus_l8_induction"
+          PKG_DIR = ROOT / "engine" / "eureka"
 
           with open(ROOT / "pyproject.toml", "rb") as f:
               root_cfg = tomllib.load(f)
           known_first_party = set(root_cfg["tool"]["deptry"]["known_first_party"])
 
-          # Modules visible to a bare `from <name> import ...` from inside l8:
-          # (a) l8's own flat modules, (b) Python stdlib (we don't audit), (c) declared
+          # Modules visible to a bare `from <name> import ...` from inside eureka:
+          # (a) eureka's own flat modules, (b) Python stdlib (we don't audit), (c) declared
           # dependencies of either pyproject. We only flag imports that resolve to
           # *root engine subpackage names* not already in known_first_party.
-          l8_own = {
+          pkg_own = {
               p.stem
-              for p in L8_DIR.glob("*.py")
+              for p in PKG_DIR.glob("*.py")
               if p.stem not in {"__init__", "conftest"}
           } | {
               p.parent.name
-              for p in L8_DIR.glob("*/__init__.py")
+              for p in PKG_DIR.glob("*/__init__.py")
           }
 
           # Anything in root engine/ tree is a "root module"
@@ -75,23 +77,23 @@ jobs:
           import_pat = re.compile(r"^\s*(?:from|import)\s+([\w.]+)", re.MULTILINE)
 
           cross_imports = set()
-          for py in L8_DIR.rglob("*.py"):
+          for py in PKG_DIR.rglob("*.py"):
               if "tests" in py.parts and py.name == "conftest.py":
                   continue
               text = py.read_text(encoding="utf-8", errors="ignore")
               for m in import_pat.finditer(text):
                   top = m.group(1).split(".")[0]
-                  if top in l8_own:
+                  if top in pkg_own:
                       continue
                   if top in root_modules:
                       cross_imports.add(top)
 
           violations = cross_imports - known_first_party
           if violations:
-              print(f"::error::l8 imports cross-package symbols NOT in root known_first_party: {sorted(violations)}", file=sys.stderr)
+              print(f"::error::eureka imports cross-package symbols NOT in root known_first_party: {sorted(violations)}", file=sys.stderr)
               sys.exit(1)
           if cross_imports:
-              print(f"::notice::l8 -> root cross-imports OK (all in known_first_party): {sorted(cross_imports)}")
+              print(f"::notice::eureka -> root cross-imports OK (all in known_first_party): {sorted(cross_imports)}")
           else:
-              print("::notice::l8 has no cross-imports into root engine modules.")
+              print("::notice::eureka has no cross-imports into root engine modules.")
           PY

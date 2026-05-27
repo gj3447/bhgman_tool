@@ -7,8 +7,8 @@ and emits a :DriftCheck record into the KG. If the gate fires, also emits a
 
 Cron snippet (install with `crontab -e`):
 
-    # L8 induction drift check — nightly 03:17 KST
-    17 3 * * * cd /Users/lagyeongjun/CD/bhgman_tool/engine/longinus_l8_induction && \\
+    # GED drift check — nightly 03:17 KST (eureka-l8-rectification split: drift→longinus_drift)
+    17 3 * * * cd /Users/lagyeongjun/CD/bhgman_tool/engine/longinus_drift && \\
         /usr/bin/env python3 nightly_drift_check.py >> ~/.bhgman/l8_drift.log 2>&1
 
 Until GDS is installed on the Neo4j VM, the community-detection inputs (nGED, NMI,

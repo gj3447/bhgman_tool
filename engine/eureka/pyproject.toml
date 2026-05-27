@@ -1,7 +1,7 @@
 [project]
-name = "longinus-l8-induction"
+name = "eureka"
 version = "0.1.0"
-description = "Longinus L8 induction — Extract/Community/Summarize/Induce/Naesengmoon Gate/Hybrid retrieval/Drift loop. AbstractClass + GENERALIZES edge crystallization. CONTRACT_AbstractClass_v1 2026-05-20 mirror. KG: plan-prom16lag-l8-induction-2026-05-20"
+description = "유레카(Eureka) — 비행기맨 #4 LegionCommander, 창조(귀납→추상). FCA/AMIE3/Leiden-LLM Induce + Naesengmoon Gate. AbstractClass + GENERALIZES edge 결정화. (formerly longinus_l8_induction; 정명 eureka-l8-rectification-2026-05-27, drift부는 engine/longinus_drift로 split). KG: eureka-canonical-2026-05-26"
 requires-python = ">=3.11"
 dependencies = [
   "pydantic>=2.9",

@@ -48,7 +48,7 @@ lakefile.olean
 .lycheecache
 
 # Vendor binaries (downloaded by NEXT_SESSION_INSTRUCTIONS, not tracked)
-engine/longinus_l8_induction/vendor/*.jar
-engine/longinus_l8_induction/vendor/*.tar.gz
-engine/longinus_l8_induction/vendor/*.zip
+engine/eureka/vendor/*.jar
+engine/eureka/vendor/*.tar.gz
+engine/eureka/vendor/*.zip
 .pytest_apt_invariant_results.tsv
