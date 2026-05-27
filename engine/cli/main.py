@@ -507,10 +507,30 @@ def make_kg_runners():
     return run_cypher, run_cypher, driver.close
 
 
+def _make_local_runners():
+    """무의존 로컬 KG backend (engine/kg_local) → (run, write, close). neo4j 불필요.
+
+    occam/hades/eureka가 외부 neo4j 없이 로컬 JSON KG(~/.bhgman/kg.json) 위에서 돈다.
+    KG: bhgman-local-kg-backend-2026-05-28.
+    """
+    store_mod = _load_engine_module("kg_local", "store")
+    runner_mod = _load_engine_module("kg_local", "runner")
+    store = store_mod.LocalKgStore()
+    run = runner_mod.make_local_runner(store)
+    return run, run, (lambda: None)
+
+
+def _resolve_kg_runners(args: argparse.Namespace):
+    """--local 또는 BHGMAN_KG=local 이면 로컬 backend, 아니면 neo4j. (run, write, close) | None."""
+    if getattr(args, "local", False) or os.environ.get("BHGMAN_KG") == "local":
+        return _make_local_runners()
+    return make_kg_runners()
+
+
 def cmd_occam(args: argparse.Namespace) -> int:
     """오캄 — KG SourceCodeNode dedup pass. dry-run 기본, --apply로 SUPERSEDED write (reversible)."""
     occam_runner = _load_occam_runner()
-    runners = make_kg_runners()
+    runners = _resolve_kg_runners(args)
 
     if runners is None:
         from kg_adapter import fetch_cypher  # noqa: PLC0415
@@ -583,7 +603,7 @@ def _load_engine_module(subdir: str, module: str, evict: tuple[str, ...] = ()):
 def cmd_hades(args: argparse.Namespace) -> int:
     """하데스 — ACCEPTED 추상을 KG에 실현(CANONICAL+INSTANCE_OF). dry-run 기본, --apply로 write."""
     hades_runner = _load_engine_module("hades", "hades_runner")
-    runners = make_kg_runners()
+    runners = _resolve_kg_runners(args)
     if runners is None:
         from hades_runner import fetch_accepted_cypher  # noqa: PLC0415
 
@@ -617,7 +637,7 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     import datetime as _dt  # noqa: PLC0415
 
     pipeline = _load_engine_module("eureka", "pipeline", evict=("oracle_lens",))
-    runners = make_kg_runners()
+    runners = _resolve_kg_runners(args)
     if runners is None:
         print(
             "[eureka] neo4j unavailable (set NEO4J_*, or run via parent Claude MCP). "
@@ -643,6 +663,22 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     print(
         "[eureka] PROPOSE only — candidates surfaced; materialize via 하데스 + 나생문 gate (no auto-commit)."
     )
+    return 0
+
+
+def cmd_kg_schema(args: argparse.Namespace) -> int:
+    """KG 스키마(코드) 출력 / Neo4j 부트스트랩 DDL emit. neo4j 없이도 schema 코드가 정본."""
+    schema = _load_engine_module("kg_local", "schema")
+    if args.emit == "neo4j":
+        for line in schema.neo4j_ddl():
+            print(line)
+        return 0
+    print("# bhgman_tool KG schema (in-code — local backend + Neo4j 공용 단일 정의)")
+    for name, s in schema.NODE_SCHEMAS.items():
+        print(f"  ({name})  key={s.key}  required={list(s.required)}  unique={list(s.unique)}")
+    print(f"  edges: {sorted(schema.EDGE_TYPES)}")
+    print("\n  → neo4j 부트스트랩: bhgman-tool kg-schema --emit neo4j | cypher-shell")
+    print("  → neo4j 없이 실행:  bhgman-tool <occam|hades|eureka> --local")
     return 0
 
 
@@ -741,6 +777,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="KG-only (mode-1 same-path dedup). Default scans disk for moved-node/orphan detection.",
     )
+    p_oc.add_argument(
+        "--local",
+        action="store_true",
+        help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
+    )
     p_oc.set_defaults(func=cmd_occam)
 
     p_hd = sub.add_parser(
@@ -755,13 +796,35 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Materialize (reversible via undo). Omit = dry-run (c6 danger guard).",
     )
+    p_hd.add_argument(
+        "--local",
+        action="store_true",
+        help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
+    )
     p_hd.set_defaults(func=cmd_hades)
 
     p_eu = sub.add_parser(
         "eureka",
         help="유레카 — KG 패턴→추상 개념 induce (PROPOSE only, no write; materialize via hades).",
     )
+    p_eu.add_argument(
+        "--local",
+        action="store_true",
+        help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
+    )
     p_eu.set_defaults(func=cmd_eureka)
+
+    p_ks = sub.add_parser(
+        "kg-schema",
+        help="Print the in-code KG schema (node/edge defs) or emit Neo4j bootstrap DDL.",
+    )
+    p_ks.add_argument(
+        "--emit",
+        choices=["summary", "neo4j"],
+        default="summary",
+        help="summary = human view; neo4j = CREATE CONSTRAINT DDL to bootstrap a fresh Neo4j.",
+    )
+    p_ks.set_defaults(func=cmd_kg_schema)
 
     # ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ──────────
     p_rs = sub.add_parser(

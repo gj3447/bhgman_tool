@@ -65,10 +65,19 @@ The 7 비행기맨 commanders split by what a bare checkout actually runs:
 
 | Commander (verb) | Standalone? | Needs |
 |---|---|---|
-| 오캄 `occam` / 유레카 `eureka` / 하데스 `hades` / 롱기누스 `longinus` | engine code ships in-repo | external **Neo4j** for live KG ops (no KG → prints the fetch cypher and exits) |
+| 오캄 `occam` / 유레카 `eureka` / 하데스 `hades` / 롱기누스 `longinus` | **yes, neo4j-free** via `--local` | nothing — `--local` uses the bundled JSON KG (`~/.bhgman/kg.json`). Or attach external Neo4j (default) for a shared graph. |
 | 프로메테우스 `prom` / 나생문 `tlb` / 재배맨 `apt` | **router only** (`_route_skill` resolves the SKILL.md, does **not** execute) | the **Claude Code harness** (LLM + subagent dispatch) as runtime + the `symposium-skills` submodule checked out |
 
-So `bhgman-tool <verb>` is *callable* for all 7, but `prom`/`tlb`/`apt` are routers that hand off to the Claude Code harness — they are not self-executing CLIs. Verified by Naesengmoon ensemble (`VR-bhgman-standalone-7commander-2026-05-28`).
+So `bhgman-tool <verb>` is *callable* for all 7. The 4 engine commanders run with **zero external infra** using `--local` (or `BHGMAN_KG=local`); `prom`/`tlb`/`apt` are routers that hand off to the Claude Code harness — not self-executing CLIs. Verified by Naesengmoon ensemble (`VR-bhgman-standalone-7commander-2026-05-28`).
+
+```bash
+# neo4j 없이 (no server, no setup):
+bhgman-tool occam  --local            # KG node-dedup against ~/.bhgman/kg.json
+bhgman-tool hades  --local --apply    # materialize ACCEPTED abstractions
+bhgman-tool eureka --local            # induce concepts from the local KG
+# schema is code (no pre-seeded neo4j needed); bootstrap a real neo4j from it:
+bhgman-tool kg-schema --emit neo4j | cypher-shell
+```
 
 ---
 
