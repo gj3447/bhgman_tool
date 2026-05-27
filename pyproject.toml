@@ -139,6 +139,13 @@ exclude = [
   "/build",
 ]
 
+[tool.uv]
+# Security floor on a transitive dep (fastapi[gate] → starlette). uv.lock is
+# gitignored, so the CVE remediation is persisted here (tracked) not in the lock.
+# starlette 1.0.0 = PYSEC-2026-161 (fix ≥1.0.1). Found by pip-audit, SYMPOSIUM
+# PROM 16 종속성 cycle P2 (2026-05-27).
+constraint-dependencies = ["starlette>=1.0.1"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
