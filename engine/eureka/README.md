@@ -46,10 +46,10 @@ naive FCA(전체 KG 그냥)는 bulk 노이즈 + hub 오염 = garbage (실측 확
 - `pipeline.py` — 7-stage orchestrator + `run_from_kg`. stage 2/3/6/7 = `NotImplementedStage` (DI 주입점)
 - `formal_context_builder.py` — `build_formal_context` (CypherRunner, FormalContextConfig). stage_0 KG-EXTRACT, 3 pre-filter
 - `induction_operators/`:
-  - `fca.py` — Galois lattice extent/intent (Ganter-Wille 1999), iceberg pruning, stability σ
-  - `amie3.py` — Horn rule mining stub (Lajus-Galárraga-Suchanek 2020)
-  - `leiden_llm.py` — GraphRAG hierarchical Leiden + LLM summary stub (Edge 2024)
-  - `registry.py` — InductionOperator registry
+  - `fca.py` — Galois lattice extent/intent (Ganter-Wille 1999), iceberg pruning, stability σ. **pipeline-wired** (stage_4 default)
+  - `amie3.py` — Horn rule mining (Lajus-Galárraga-Suchanek 2020), AMIE 3.5.1 Java subprocess. **구현 완료**, 단 입력=triples(s,p,o)·출력=Horn rule이라 pipeline operator-wiring(Horn→AbstractClass 어댑터)은 미완 (다음 과제)
+  - `leiden_llm.py` — GraphRAG hierarchical Leiden + LLM summary **stub** (Edge 2024). gds.leiden 인프라 의존
+  - `registry.py` — InductionMethod 이름 registry (OCP, induced→required-field 검증용)
 - `induction_models.py` — `AbstractClass`, `GeneralizesEdge`, `InductionMethod`, `AbstractClassStatus` (Pydantic v2)
 - `oracle_lens.py` — `kg_oracle_gate` (KG 결정론 불변식) + `run_oracle_gate`/`subprocess_runner` (shell oracle, opt-in). 나생문 2 lens-class 중 oracle(실행) 렌즈
 - `fidelity_gate.py` — `run_fidelity_for_members` (Whewell consilience, SOFT). 형성에 안 쓴 witness 관계로 cohere 측정
@@ -70,8 +70,9 @@ naive FCA(전체 KG 그냥)는 bulk 노이즈 + hub 오염 = garbage (실측 확
 
 - **2026-05-27**: Phase 0-3 완료 — formal_context_builder → run_from_kg → fidelity_gate(4.8 wire) → anti_unify(code backend PoC). 나생문 oracle KG backend 재조정.
 - **tests**: 63 passed (FCA / oracle / fidelity / pipeline / anti_unify / formal_context / run_from_kg / quality_gate / validator / amie3)
+- **CLI**: `bhgman-tool eureka` — KG dogfood (run_from_kg), PROPOSE only.
 - **injectable stub**: stage 2(Leiden)/3(summarize)/6(retrieval)/7(drift) — `PipelineConfig` 주입 대기
-- **bake-off**: FCA functional. AMIE3 + Leiden-LLM 본구현 pending (stub)
+- **bake-off**: FCA pipeline-wired(default). AMIE3 구현 완료(Java subprocess)·pipeline operator-wiring 미완. Leiden-LLM stub
 
 ## KG anchors (Longinus-bound 2026-05-27)
 
