@@ -172,3 +172,83 @@ def test_occam_degrades_when_no_neo4j(monkeypatch, capsys):
     err = capsys.readouterr().err
     assert rc == 2
     assert "neo4j unavailable" in err
+
+
+# ─── hades verb (materialize ACCEPTED abstractions) ─────────────────────────
+# KG: hades-canonical-2026-05-27
+
+
+def test_parser_has_hades_subcommand():
+    choices = set([a for a in build_parser()._actions if a.dest == "cmd"][0].choices.keys())
+    assert "hades" in choices
+
+
+def test_hades_parser_defaults_dry_run():
+    args = build_parser().parse_args(["hades"])
+    assert args.apply is False  # c6 danger: dry-run default
+    assert args.concept is None
+
+
+_ACCEPTED_ROWS = [
+    {"concept": "ac_x", "verdict": "ACCEPTED", "members": ["a", "b", "c"]},
+]
+
+
+def test_hades_dry_run_default_does_not_write(monkeypatch, capsys):
+    read, write = _FakeRunner(_ACCEPTED_ROWS), _FakeRunner()
+    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, write, lambda: None))
+    rc = cli(["hades"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert write.calls == []  # dry-run never materializes
+    assert "DRY-RUN" in out
+
+
+def test_hades_apply_materializes(monkeypatch, capsys):
+    read, write = _FakeRunner(_ACCEPTED_ROWS), _FakeRunner()
+    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, write, lambda: None))
+    rc = cli(["hades", "--apply"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert len(write.calls) >= 1
+    assert "APPLIED" in out
+
+
+# ─── eureka verb (induce abstractions, PROPOSE only) ────────────────────────
+# KG: eureka-canonical-2026-05-26
+
+
+def test_parser_has_eureka_subcommand():
+    choices = set([a for a in build_parser()._actions if a.dest == "cmd"][0].choices.keys())
+    assert "eureka" in choices
+
+
+def test_eureka_degrades_when_no_neo4j(monkeypatch, capsys):
+    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: None)
+    rc = cli(["eureka"])
+    assert rc == 2
+    assert "neo4j unavailable" in capsys.readouterr().err
+
+
+_EUREKA_ROWS = [
+    {"object": o, "attributes": ["ALIGNS_WITH_AXIS:Math", "USES_ABSTRACT_DOMAIN:Algebra"]}
+    for o in ("Topology", "Group Theory", "Abstract Algebra", "Spectral Sequences")
+]
+
+
+def test_eureka_runs_pipeline_even_after_occam_oracle_lens_cached(monkeypatch, capsys):
+    """oracle_lens 충돌 회귀 가드: occam oracle_lens가 먼저 캐시돼도 eureka가 동작."""
+    import sys as _sys
+    from pathlib import Path
+
+    # occam oracle_lens를 먼저 sys.modules에 캐시 (충돌 조건 재현)
+    _sys.path.insert(0, str(Path(_repo_root()) / "engine" / "occam"))
+    import oracle_lens as _occ  # noqa: F401  # occam's — lacks kg_oracle_gate
+
+    read = _FakeRunner(_EUREKA_ROWS)
+    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, read, lambda: None))
+    rc = cli(["eureka"])  # _load_engine_module이 oracle_lens를 evict해야 동작
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "PROPOSE only" in out
+    assert "kg-extract" in out.lower() or "induce" in out.lower()

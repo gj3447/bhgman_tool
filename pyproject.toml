@@ -184,7 +184,8 @@ known_first_party = [
   # engine/legion — 7군단장 합성 orchestrator (Legion step 5, flat-layout bare imports)
   "legion", "legion_models",
   # engine/hades — 7번째 동사 실현(materialize, 유레카 dual), flat-layout bare imports
-  "hades", "hades_models",
+  # + 실전화 2026-05-27: ACCEPTED 추상 fetch → realize end-to-end runner
+  "hades", "hades_models", "hades_runner",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).

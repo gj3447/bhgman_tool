@@ -543,6 +543,92 @@ def cmd_occam(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_engine_module(subdir: str, module: str, evict: tuple[str, ...] = ()):
+    """Lazy-import a flat-layout engine module with its dir on sys.path[0].
+
+    Sibling subsystems share bare module names (e.g. occam + eureka both ship
+    `oracle_lens.py`). `evict` drops stale cached names from sys.modules so the
+    bare import re-resolves to *this* subdir. CLI runtime is one-command-per-process
+    (no collision), but the same-process pytest session needs the eviction.
+    KG: ap-bhgman-longinus-import-drift-fix-2026-05-15 (flat-layout bridge).
+    """
+    import importlib  # noqa: PLC0415
+
+    engine_dir = _repo_root() / "engine" / subdir
+    sys.path.insert(0, str(engine_dir))
+    for name in evict:
+        cached = sys.modules.get(name)
+        if (
+            cached is not None
+            and getattr(cached, "__file__", "")
+            and str(engine_dir) not in cached.__file__
+        ):
+            del sys.modules[name]
+    return importlib.import_module(module)
+
+
+def cmd_hades(args: argparse.Namespace) -> int:
+    """하데스 — ACCEPTED 추상을 KG에 실현(CANONICAL+INSTANCE_OF). dry-run 기본, --apply로 write."""
+    hades_runner = _load_engine_module("hades", "hades_runner")
+    runners = make_kg_runners()
+    if runners is None:
+        from hades_runner import fetch_accepted_cypher  # noqa: PLC0415
+
+        cypher, _ = fetch_accepted_cypher(args.concept)
+        print(
+            "[hades] neo4j unavailable (set NEO4J_*, or run via parent Claude MCP). "
+            "ACCEPTED 추상 fetch cypher below → realize:",
+            file=sys.stderr,
+        )
+        print(cypher)
+        return 2
+
+    run_cypher, write_cypher, close = runners
+    try:
+        res = hades_runner.run_hades(
+            run_cypher, apply_cypher=write_cypher, concept=args.concept, apply=args.apply
+        )
+    finally:
+        close()
+
+    print(res.summary)
+    for v in res.verdicts:
+        print(f"  [{v.status.value}] {v.concept}: {v.reason}")
+    if res.dry_run and res.verdicts:
+        print("  (dry-run — pass --apply to materialize; reversible via undo ops)")
+    return 0
+
+
+def cmd_eureka(args: argparse.Namespace) -> int:
+    """유레카 — KG 패턴→추상 개념 induce (PROPOSE only). covenant: auto-commit 금지, 실현은 하데스."""
+    import datetime as _dt  # noqa: PLC0415
+
+    pipeline = _load_engine_module("eureka", "pipeline", evict=("oracle_lens",))
+    runners = make_kg_runners()
+    if runners is None:
+        print(
+            "[eureka] neo4j unavailable (set NEO4J_*, or run via parent Claude MCP). "
+            "eureka reads KG to build a formal context — no live connection to scan.",
+            file=sys.stderr,
+        )
+        return 2
+
+    run_cypher, _write, close = runners
+    cycle_id = "cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+    try:
+        pr = pipeline.run_from_kg(run_cypher, pipeline.PipelineConfig(cycle_id=cycle_id))
+    finally:
+        close()
+
+    for s in pr.stages:
+        status = "ok" if s.ok else "FAIL"
+        print(f"  [{status}] {s.stage}")
+    print(
+        "[eureka] PROPOSE only — candidates surfaced; materialize via 하데스 + 나생문 gate (no auto-commit)."
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="bhgman-tool",
@@ -634,6 +720,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write SUPERSEDED (reversible). Omit = dry-run (covenant: archive-only).",
     )
     p_oc.set_defaults(func=cmd_occam)
+
+    p_hd = sub.add_parser(
+        "hades",
+        help="하데스 — ACCEPTED 추상을 KG에 실현 (CANONICAL+INSTANCE_OF). dry-run default, --apply to write.",
+    )
+    p_hd.add_argument(
+        "--concept", help="Realize only this AbstractClass name (default: all ACCEPTED)."
+    )
+    p_hd.add_argument(
+        "--apply",
+        action="store_true",
+        help="Materialize (reversible via undo). Omit = dry-run (c6 danger guard).",
+    )
+    p_hd.set_defaults(func=cmd_hades)
+
+    p_eu = sub.add_parser(
+        "eureka",
+        help="유레카 — KG 패턴→추상 개념 induce (PROPOSE only, no write; materialize via hades).",
+    )
+    p_eu.set_defaults(func=cmd_eureka)
 
     # ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ──────────
     p_rs = sub.add_parser(
