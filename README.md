@@ -57,15 +57,29 @@ pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI
 pip install "bhgman_tool[all]"                # everything
 ```
 
-> The PyPI wheel ships `engine/` only. The `install-skills` / `verify` / `version` subcommands need the source repo (`skills/` + `lean/`) alongside — clone for full functionality. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
+> The PyPI wheel ships `engine/` only. The `install-skills` / `verify` / `version` subcommands need the source repo (`skills/` + `lean/`) alongside — clone (with `--recurse-submodules`) for full functionality. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
+
+### LegionCommander standalone scope (honest disclosure)
+
+The 7 비행기맨 commanders split by what a bare checkout actually runs:
+
+| Commander (verb) | Standalone? | Needs |
+|---|---|---|
+| 오캄 `occam` / 유레카 `eureka` / 하데스 `hades` / 롱기누스 `longinus` | engine code ships in-repo | external **Neo4j** for live KG ops (no KG → prints the fetch cypher and exits) |
+| 프로메테우스 `prom` / 나생문 `tlb` / 재배맨 `apt` | **router only** (`_route_skill` resolves the SKILL.md, does **not** execute) | the **Claude Code harness** (LLM + subagent dispatch) as runtime + the `symposium-skills` submodule checked out |
+
+So `bhgman-tool <verb>` is *callable* for all 7, but `prom`/`tlb`/`apt` are routers that hand off to the Claude Code harness — they are not self-executing CLIs. Verified by Naesengmoon ensemble (`VR-bhgman-standalone-7commander-2026-05-28`).
 
 ---
 
 ## Quickstart (3 min)
 
 ```bash
-git clone https://github.com/gj3447/bhgman_tool.git
+# skills/ are backed by the symposium-skills submodule — clone with --recurse-submodules,
+# else skills/* dangle and prom/tlb/apt/harness routing fails.
+git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool
+# (already cloned without it? → git submodule update --init --recursive)
 
 # 1. engine — verify pytest
 cd engine/longinus_drift_audit

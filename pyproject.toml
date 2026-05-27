@@ -137,6 +137,9 @@ exclude = [
   "/.venv",
   "/dist",
   "/build",
+  # symposium-skills is a separate git submodule with its own dependency context
+  # (numpy/scipy in its bin/ scripts) — bhgman_tool's deptry must not audit it.
+  "symposium-skills",
 ]
 
 [tool.uv]
