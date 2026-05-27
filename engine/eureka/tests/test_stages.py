@@ -13,11 +13,14 @@ from stages import (
     HybridRetrievalStage,
     LeidenCommunityStage,
     SummarizeStage,
+    drop_cypher,
     leiden_stream_cypher,
     lexical_rrf,
     parse_communities,
     partition_stability,
+    project_cypher,
     summarize_community,
+    vector_query_cypher,
     wire_default_stages,
 )
 
@@ -42,6 +45,30 @@ def test_leiden_cypher_binds_graph_and_gamma():
     cypher, params = leiden_stream_cypher("g1", 2.0)
     assert "gds.leiden.stream" in cypher
     assert params == {"graph": "g1", "gamma": 2.0}
+
+
+def test_project_cypher_is_undirected():
+    # 실 검증: leiden은 UNDIRECTED projection 필수
+    cypher, params = project_cypher("g1")
+    assert "gds.graph.project" in cypher
+    assert params == {"graph": "g1", "orient": "UNDIRECTED"}
+
+
+def test_drop_cypher_is_idempotent():
+    cypher, params = drop_cypher("g1")
+    assert "gds.graph.drop" in cypher and "false" in cypher  # failIfMissing=false
+    assert params == {"graph": "g1"}
+
+
+def test_leiden_stage_runs_project_stream_drop_sequence():
+    # drop → project → stream → drop = 4 calls; stream 결과만 parse
+    runner = _Runner([{"name": "A", "community": 0}, {"name": "B", "community": 0}])
+    res = LeidenCommunityStage(runner).run({})
+    assert res.ok
+    assert res.payload["communities"] == {0: ["A", "B"]}
+    assert len(runner.calls) == 4  # drop, project, stream, drop
+    assert "gds.graph.project" in runner.calls[1][0]
+    assert "gds.leiden.stream" in runner.calls[2][0]
 
 
 def test_parse_communities_groups_by_id_skips_null():
@@ -95,7 +122,40 @@ def test_lexical_rrf_ranks_by_token_overlap():
 
 def test_hybrid_retrieval_no_query_is_pass():
     res = HybridRetrievalStage().run({"summaries": {0: "x"}})
-    assert res.ok and res.payload["ranked"] == []
+    assert res.ok and res.payload["lexical"] == [] and res.payload["vector"] == []
+
+
+def test_vector_query_cypher_uses_native_index():
+    cypher, params = vector_query_cypher("lesson_embedding", 5)
+    assert "db.index.vector.queryNodes" in cypher
+    assert params == {"index": "lesson_embedding", "k": 5}
+
+
+def test_hybrid_vector_channel_when_embedding_and_index():
+    # query_embedding + vector_index + run_cypher 모두 있을 때 vector 채널 활성 (실 cypher 검증된 shape)
+    runner = _Runner(
+        [{"name": "research-001", "score": 0.97}, {"name": "research-002", "score": 0.81}]
+    )
+    stage = HybridRetrievalStage(run_cypher=runner, vector_index="researchfinding_embedding", k=3)
+    res = stage.run(
+        {
+            "query": "abstraction",
+            "summaries": {0: "abstraction concept"},
+            "query_embedding": [0.1] * 768,
+        }
+    )
+    assert res.ok
+    assert res.payload["vector"] == [("research-001", 0.97), ("research-002", 0.81)]
+    assert res.payload["lexical"]  # lexical channel도 동작
+    assert "db.index.vector.queryNodes" in runner.calls[0][0]
+
+
+def test_hybrid_vector_degrades_on_index_error():
+    runner = _Runner(raise_exc=RuntimeError("no such index"))
+    stage = HybridRetrievalStage(run_cypher=runner, vector_index="missing")
+    res = stage.run({"query": "x", "summaries": {0: "x match"}, "query_embedding": [0.1]})
+    assert res.ok  # degrade to lexical, not fatal
+    assert res.payload["vector"] == []
 
 
 # ── Stage 7: drift ────────────────────────────────────────────────────────────
