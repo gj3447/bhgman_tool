@@ -177,7 +177,8 @@ known_first_party = [
   # Wave 12 — PROM16 ai-dev-tools levers (OTel channel + deterministic dispatch eval)
   "otel_channel", "dispatch_eval",
   # engine/occam — 오캄 결정화 + 나생문 oracle-lens (Legion step 1+2, flat-layout bare imports)
-  "occam", "occam_models", "oracle_lens",
+  # + 실전화 2026-05-27: KG read/write IO 어댑터 + end-to-end runner
+  "occam", "occam_models", "oracle_lens", "kg_adapter", "occam_runner",
   # engine/longinus_drift — eureka-l8-rectification split (drift부, root-scanned; eureka는 extend-exclude)
   "ged_drift_detector", "nightly_drift_check",
   # engine/legion — 7군단장 합성 orchestrator (Legion step 5, flat-layout bare imports)

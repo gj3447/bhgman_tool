@@ -457,6 +457,92 @@ def cmd_status(_args: argparse.Namespace) -> int:
         return 2
 
 
+# ─── occam verb (engine-executing, like longinus — not SKILL-routing) ─────────
+# KG: occam-kam-canonical-2026-05-26, occam-pass-kg-wide-2026-05-27
+# occam은 실제 엔진(occam_pass)을 KG에 대해 돌린다. covenant: archive-only, dry-run 기본.
+
+
+def _load_occam_runner():
+    """Lazy-import engine.occam.occam_runner with the occam dir on sys.path.
+
+    occam modules use bare imports (`from occam import ...`); the test conftest
+    injects the path. The CLI mirrors that bridge at call time.
+    KG: ap-bhgman-longinus-import-drift-fix-2026-05-15 (Option A precedent).
+    """
+    occam_dir = _repo_root() / "engine" / "occam"
+    if str(occam_dir) not in sys.path:
+        sys.path.insert(0, str(occam_dir))
+    import occam_runner  # noqa: E402,PLC0415
+
+    return occam_runner
+
+
+def make_kg_runners():
+    """Build (run_cypher, write_cypher, close) backed by the neo4j driver, or None.
+
+    Env: NEO4J_URI (default bolt://localhost:7687), NEO4J_USER (neo4j), NEO4J_PASSWORD.
+    Returns None when the driver or credentials are unavailable — the caller then
+    degrades to printing the fetch cypher for the parent Claude harness (MCP) to run.
+    Monkeypatched in tests to inject fakes.
+    """
+    try:
+        from neo4j import GraphDatabase  # noqa: PLC0415
+    except ImportError:
+        return None
+    pw = os.environ.get("NEO4J_PASSWORD")
+    if not pw:
+        return None
+    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+    user = os.environ.get("NEO4J_USER", "neo4j")
+    try:
+        driver = GraphDatabase.driver(uri, auth=(user, pw))
+    except Exception as e:  # noqa: BLE001 — any driver init failure → graceful degrade
+        print(f"[occam] neo4j driver init failed: {e}", file=sys.stderr)
+        return None
+
+    def run_cypher(cypher: str, params: dict) -> list[dict]:
+        with driver.session() as s:
+            return [dict(r) for r in s.run(cypher, **params)]
+
+    return run_cypher, run_cypher, driver.close
+
+
+def cmd_occam(args: argparse.Namespace) -> int:
+    """오캄 — KG SourceCodeNode dedup pass. dry-run 기본, --apply로 SUPERSEDED write (reversible)."""
+    occam_runner = _load_occam_runner()
+    runners = make_kg_runners()
+
+    if runners is None:
+        from kg_adapter import fetch_cypher  # noqa: PLC0415
+
+        cypher, _ = fetch_cypher(args.scope)
+        print(
+            "[occam] neo4j unavailable (set NEO4J_URI/NEO4J_USER/NEO4J_PASSWORD, or run via "
+            "parent Claude MCP). fetch cypher below → occam_pass → supersede:",
+            file=sys.stderr,
+        )
+        print(cypher)
+        return 2
+
+    run_cypher, write_cypher, close = runners
+    try:
+        res = occam_runner.run_occam(
+            run_cypher, write_cypher=write_cypher, scope=args.scope, apply=args.apply
+        )
+    finally:
+        close()
+
+    print(res.summary)
+    if res.apply_result.dry_run:
+        for i, (_cy, pa) in enumerate(res.apply_result.planned_cyphers, 1):
+            print(f"  [plan {i}] supersede {pa['stale_name']} → {pa['current_name']}")
+        if res.report.superseded_count:
+            print("  (dry-run — pass --apply to write SUPERSEDED; reversible via status+edge)")
+    elif res.apply_result.superseded:
+        print(f"  applied: {', '.join(res.apply_result.superseded)}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="bhgman-tool",
@@ -534,6 +620,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_st = sub.add_parser("status", help="KG audit (ssh dgx → cypher-shell).")
     p_st.set_defaults(func=cmd_status)
+
+    p_oc = sub.add_parser(
+        "occam",
+        help="오캄 KG dedup — superseded/dup SourceCodeNode archive (dry-run default, --apply to write).",
+    )
+    p_oc.add_argument(
+        "--scope", help="Restrict to nodes whose sourcePath CONTAINS this (label/path)."
+    )
+    p_oc.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write SUPERSEDED (reversible). Omit = dry-run (covenant: archive-only).",
+    )
+    p_oc.set_defaults(func=cmd_occam)
 
     # ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ──────────
     p_rs = sub.add_parser(

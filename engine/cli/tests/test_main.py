@@ -106,3 +106,69 @@ def test_cli_console_script_callable_via_python_m():
         cwd=root,
     )
     assert rc == 0
+
+
+# ─── occam verb (KG dedup engine) ──────────────────────────────────────────
+# KG: occam-kam-canonical-2026-05-26, occam-pass-kg-wide-2026-05-27
+
+
+def test_parser_has_occam_subcommand():
+    parser = build_parser()
+    actions = [a for a in parser._actions if a.dest == "cmd"]
+    choices = set(actions[0].choices.keys())
+    assert "occam" in choices
+
+
+def test_occam_parser_defaults_dry_run():
+    args = build_parser().parse_args(["occam"])
+    assert args.apply is False  # covenant: dry-run default
+    assert args.scope is None
+
+
+class _FakeRunner:
+    def __init__(self, rows=None):
+        self.rows = rows or []
+        self.calls = []
+
+    def __call__(self, cypher, params):
+        self.calls.append((cypher, params))
+        return self.rows
+
+
+_DUP_ROWS = [
+    {"name": "old", "source_path": "bhgman_tool/x.py", "sha256": "o", "line_count": 10},
+    {"name": "new", "source_path": "bhgman_tool/x.py", "sha256": "n", "line_count": 99},
+]
+
+
+def _patch_runners(monkeypatch, read_rows):
+    read, write = _FakeRunner(read_rows), _FakeRunner()
+    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, write, lambda: None))
+    return read, write
+
+
+def test_occam_dry_run_default_does_not_write(monkeypatch, capsys):
+    _read, write = _patch_runners(monkeypatch, _DUP_ROWS)
+    rc = cli(["occam"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert write.calls == []  # covenant: dry-run never writes
+    assert "DRY-RUN" in out
+    assert "supersede old → new" in out
+
+
+def test_occam_apply_writes_supersession(monkeypatch, capsys):
+    _read, write = _patch_runners(monkeypatch, _DUP_ROWS)
+    rc = cli(["occam", "--apply"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert len(write.calls) == 1  # one supersession written
+    assert "APPLIED 1" in out
+
+
+def test_occam_degrades_when_no_neo4j(monkeypatch, capsys):
+    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: None)
+    rc = cli(["occam", "--scope", "engine/occam"])
+    err = capsys.readouterr().err
+    assert rc == 2
+    assert "neo4j unavailable" in err
