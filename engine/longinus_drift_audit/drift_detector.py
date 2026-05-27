@@ -39,26 +39,31 @@ def detect_missing(
         require_kg_ref_kinds = {"function", "class"}
     if ref_exists is None:
         ref_exists = lambda r: r in kg_refs  # noqa: E731 — backward-compat default
+
+    # Pre-resolve anchor existence once per *unique* ref (ac-bhgman-cd3eeaa-detect_missing-...):
+    # the same `# KG:` anchor (esp. hub nodes) recurs across many symbols. Without dedup,
+    # kg.has_node (label-less MATCH = full node-store scan) fires per occurrence. This memo
+    # → 1 query per unique ref. (Label-less scan itself = KG-index territory, OPEN_TRACKED LOW.)
+    symbols = [s for s in symbols if s.kind in require_kg_ref_kinds]
+    unique_refs = {ref for s in symbols for ref in (s.kg_refs or [])}
+    exists = {ref: ref_exists(ref) for ref in unique_refs}
+
     out: list[DriftRecord] = []
     for s in symbols:
-        if s.kind not in require_kg_ref_kinds:
-            continue
-        if s.kg_refs:
-            # symbol declares some KG refs; ensure each exists in KG
-            for ref in s.kg_refs:
-                if not ref_exists(ref):
-                    out.append(
-                        DriftRecord(
-                            drift_type=DriftType.MISSING,
-                            sourceId=ref,
-                            sourcePath=s.sourcePath,
-                            expected="KG node present",
-                            actual="missing",
-                            layer_violated=ReferenceLayer.L5_DISTRIBUTED,
-                            lens_law_violated="PutGet",
-                        )
+        # else (no kg_refs): could be Reverse Orphan — separate scan.
+        for ref in s.kg_refs or []:
+            if not exists[ref]:
+                out.append(
+                    DriftRecord(
+                        drift_type=DriftType.MISSING,
+                        sourceId=ref,
+                        sourcePath=s.sourcePath,
+                        expected="KG node present",
+                        actual="missing",
+                        layer_violated=ReferenceLayer.L5_DISTRIBUTED,
+                        lens_law_violated="PutGet",
                     )
-        # else: no kg_refs declared by code — could be Reverse Orphan (separate scan).
+                )
     return out
 
 

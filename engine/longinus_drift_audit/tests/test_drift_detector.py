@@ -48,6 +48,25 @@ class TestMissing:
         )
         assert out == []
 
+    def test_ref_exists_memoized_one_query_per_unique_ref(self):
+        # ac-bhgman-cd3eeaa-detect_missing-n-unmemoized-fullscan: 같은 hub ref가 여러 symbol에
+        # 걸쳐 반복돼도 ref_exists는 *유니크 ref당 1회*만 호출돼야 (label-less full-scan 비용 절감).
+        calls: list[str] = []
+
+        def counting_exists(ref: str) -> bool:
+            calls.append(ref)
+            return True  # 전부 존재 → MISSING 0
+
+        # hub-A가 3 symbol, hub-B가 2 symbol에서 반복 (총 5 occurrence, 2 unique).
+        syms = [
+            _sym("s1", 1, kg_refs=["hub-A", "hub-B"]),
+            _sym("s2", 2, kg_refs=["hub-A"]),
+            _sym("s3", 3, kg_refs=["hub-A", "hub-B"]),
+        ]
+        out = drift_detector.detect_missing(symbols=syms, kg_refs={}, ref_exists=counting_exists)
+        assert out == []
+        assert sorted(calls) == ["hub-A", "hub-B"]  # 5 occurrence → 2 query (memoized)
+
 
 class TestOrphan:
     def test_kg_ref_not_in_code(self):
