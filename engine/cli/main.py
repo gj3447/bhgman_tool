@@ -256,23 +256,68 @@ def cmd_tpa(args: argparse.Namespace) -> int:
     return _route_skill("tpa", args.path)
 
 
+def _agent_runtime():
+    """engine.agents 로드 → (namespace | None, reason). flat-layout: 개별 모듈 import.
+
+    namespace = AgentClient/research/critique/DEFAULT_LENSES. 런타임 불가면 (None, reason).
+    """
+    import importlib  # noqa: PLC0415
+    import types  # noqa: PLC0415
+
+    evict = ("client", "dispatch", "agent_models", "prometheus", "naesengmoon")
+    client_mod = _load_engine_module("agents", "client", evict=evict)
+    prom = importlib.import_module("prometheus")
+    naes = importlib.import_module("naesengmoon")
+    ok, reason = client_mod.runtime_status()
+    if not ok:
+        return None, reason
+    ns = types.SimpleNamespace(
+        AgentClient=client_mod.AgentClient,
+        research=prom.research,
+        critique=naes.critique,
+        DEFAULT_LENSES=naes.DEFAULT_LENSES,
+    )
+    return ns, reason
+
+
 def cmd_prom(args: argparse.Namespace) -> int:
-    """Prometheus N-subagent research. Routes to skills/prometheus/SKILL.md."""
+    """프로메테우스 — 지식 선행 리서치. 런타임 있으면 실행, 없으면 skill route(graceful)."""
     if not args.topic:
         print("usage: bhgman-tool prom <N> <topic>", file=sys.stderr)
         return 2
-    return _route_skill("prometheus", [str(args.N), *args.topic])
+    topic = " ".join(args.topic)
+    if getattr(args, "route", False):
+        return _route_skill("prometheus", [str(args.N), *args.topic])
+    agents, reason = _agent_runtime()
+    if agents is None:
+        print(f"[prom] LLM runtime 사용 불가 ({reason}) → skill route fallback.", file=sys.stderr)
+        return _route_skill("prometheus", [str(args.N), *args.topic])
+    report = agents.research(topic, args.N, agents.AgentClient(), web_search=not args.no_web)
+    print(report.summary)
+    print("\n" + report.synthesis)
+    return 0
 
 
 def cmd_tlb(args: argparse.Namespace) -> int:
-    """Taliban adversarial verification. Routes to skills/taliban/SKILL.md."""
+    """나생문 — 판단렌즈 ensemble critic. 런타임 있으면 실행, 없으면 skill route(graceful)."""
     if not args.target:
-        print("usage: bhgman-tool tlb <target> [--lens NAME]", file=sys.stderr)
+        print("usage: bhgman-tool tlb <target> [--lens NAME] [--claim TEXT]", file=sys.stderr)
         return 2
-    suffix = [*args.target]
-    if args.lens:
-        suffix.extend(["--lens", args.lens])
-    return _route_skill("taliban", suffix)
+    target = " ".join(args.target)
+    if getattr(args, "route", False):
+        suffix = [*args.target] + (["--lens", args.lens] if args.lens else [])
+        return _route_skill("taliban", suffix)
+    agents, reason = _agent_runtime()
+    if agents is None:
+        print(f"[tlb] LLM runtime 사용 불가 ({reason}) → skill route fallback.", file=sys.stderr)
+        suffix = [*args.target] + (["--lens", args.lens] if args.lens else [])
+        return _route_skill("taliban", suffix)
+    lenses = (args.lens,) if args.lens else agents.DEFAULT_LENSES
+    verdict = agents.critique(target, args.claim or target, agents.AgentClient(), lenses=lenses)
+    print(verdict.summary)
+    for lv in verdict.lens_verdicts:
+        print(f"  [{lv.verdict}] {lv.lens}")
+    return 0
 
 
 def cmd_longinus(args: argparse.Namespace) -> int:
@@ -735,14 +780,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_tpa.add_argument("path", nargs="+", help="Codebase path to reverse-engineer.")
     p_tpa.set_defaults(func=cmd_tpa)
 
-    p_prom = sub.add_parser("prom", help="Prometheus N-subagent research.")
-    p_prom.add_argument("N", type=int, help="Subagent count (16 / 32 / 64 / 100).")
+    p_prom = sub.add_parser("prom", help="프로메테우스 리서치 (런타임 실행 / 없으면 skill route).")
+    p_prom.add_argument("N", type=int, help="Sub-question 수 (병렬 서브에이전트).")
     p_prom.add_argument("topic", nargs="+", help="Research topic.")
+    p_prom.add_argument("--no-web", action="store_true", help="web_search 끄기 (LLM 지식만).")
+    p_prom.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
     p_prom.set_defaults(func=cmd_prom)
 
-    p_tlb = sub.add_parser("tlb", help="Taliban adversarial verification.")
-    p_tlb.add_argument("target", nargs="+", help="Verification target (SPAN/CONTRACT/etc.).")
-    p_tlb.add_argument("--lens", help="Lens set (constitutional / mathematical / solid).")
+    p_tlb = sub.add_parser("tlb", help="나생문 ensemble critic (런타임 실행 / 없으면 skill route).")
+    p_tlb.add_argument("target", nargs="+", help="검증 대상 식별자 (SPAN/CONTRACT/claim 이름).")
+    p_tlb.add_argument(
+        "--lens", help="단일 lens (constitutional / mathematical / solid). 생략=3중."
+    )
+    p_tlb.add_argument("--claim", help="검증할 주장/산출물 텍스트 (생략 시 target을 사용).")
+    p_tlb.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
     p_tlb.set_defaults(func=cmd_tlb)
 
     p_long = sub.add_parser(

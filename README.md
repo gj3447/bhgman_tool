@@ -66,9 +66,17 @@ The 7 비행기맨 commanders split by what a bare checkout actually runs:
 | Commander (verb) | Standalone? | Needs |
 |---|---|---|
 | 오캄 `occam` / 유레카 `eureka` / 하데스 `hades` / 롱기누스 `longinus` | **yes, neo4j-free** via `--local` | nothing — `--local` uses the bundled JSON KG (`~/.bhgman/kg.json`). Or attach external Neo4j (default) for a shared graph. |
-| 프로메테우스 `prom` / 나생문 `tlb` / 재배맨 `apt` | **router only** (`_route_skill` resolves the SKILL.md, does **not** execute) | the **Claude Code harness** (LLM + subagent dispatch) as runtime + the `symposium-skills` submodule checked out |
+| 프로메테우스 `prom` / 나생문 `tlb` | **real engine** (`engine/agents`) — executes via Anthropic API | `pip install 'bhgman_tool[agents]'` + `ANTHROPIC_API_KEY`. Absent → falls back to skill-routing (Claude Code harness). |
+| 재배맨 (dispatch) | **real engine** (`engine/agents/dispatch.py`) — parallel subagent fan-out, used by prom/tlb | same `[agents]` runtime. (`apt` verb = the APT *methodology cycle*, routes to skill.) |
 
-So `bhgman-tool <verb>` is *callable* for all 7. The 4 engine commanders run with **zero external infra** using `--local` (or `BHGMAN_KG=local`); `prom`/`tlb`/`apt` are routers that hand off to the Claude Code harness — not self-executing CLIs. Verified by Naesengmoon ensemble (`VR-bhgman-standalone-7commander-2026-05-28`).
+So all 7 commanders have a real engine. The 4 KG commanders run **neo4j-free** via `--local`; the 3 LLM commanders (research / critique / dispatch) run via the bundled Anthropic-API runtime (`[agents]` extra + `ANTHROPIC_API_KEY`) and **gracefully fall back to skill-routing** when the key/SDK is absent — so they still work under the Claude Code harness too. Verified by Naesengmoon ensemble (`VR-bhgman-standalone-7commander-2026-05-28`).
+
+```bash
+pip install 'bhgman_tool[agents]'; export ANTHROPIC_API_KEY=sk-...
+bhgman-tool prom 4 "your research topic"     # plan → N web-search subagents → synthesis
+bhgman-tool tlb "CLAIM-x" --claim "the artifact text"   # 3-lens adversarial ensemble verdict
+# no key? both auto-route to the SKILL.md for the Claude Code harness instead (graceful).
+```
 
 ```bash
 # neo4j 없이 (no server, no setup):

@@ -71,6 +71,11 @@ otel = [
     "opentelemetry-sdk>=1.20",
     "opentelemetry-exporter-otlp>=1.20",
 ]
+# LLM 군단장 런타임 (engine/agents — 프로메테우스 research / 나생문 critique / 재배맨 dispatch).
+# Anthropic API 호출. 부재 시 AgentRuntimeUnavailable → CLI가 skill-route fallback (2026-05-28).
+agents = [
+    "anthropic>=0.40",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
@@ -95,6 +100,7 @@ all = [
     "httpx>=0.27",
     "opentelemetry-sdk>=1.20",
     "opentelemetry-exporter-otlp>=1.20",
+    "anthropic>=0.40",
 ]
 
 [project.scripts]
@@ -191,6 +197,8 @@ known_first_party = [
   "hades", "hades_models", "hades_runner",
   # engine/kg_local — neo4j-free 로컬 KG backend (2026-05-28), flat-layout bare imports
   "schema", "store", "runner",
+  # engine/agents — LLM 군단장 런타임 (재배맨 dispatch / 프로메테우스 / 나생문), flat-layout bare imports
+  "agent_models", "client", "dispatch", "prometheus", "naesengmoon", "fake_anthropic",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
@@ -204,6 +212,7 @@ python-frontmatter = "frontmatter"
 DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
           "tree_sitter",   # optional AST adapter (importorskip in tree_sitter_adapter.py)
           "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
+          "anthropic",     # 2026-05-28 — optional [agents] dep, lazy import in engine/agents/client.py
          ]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
