@@ -137,4 +137,25 @@ def diagnose(subject: str, signals: dict[str, bool] | None = None) -> HarnessDia
     )
 
 
-__all__ = ["KNOWN_FRAMEWORKS", "diagnose"]
+def build_diagnosis_cypher(diag: HarnessDiagnosis) -> tuple[str, dict]:
+    """진단을 KG에 persist하는 cypher+params (순수 — 실행은 호출자 주입 runner).
+
+    occam/hades와 동일 패턴: 코어는 인프라 0, --apply 시에만 KG(local file 또는 neo4j) 기록.
+    """
+    cypher = (
+        "MERGE (h:HarnessDiagnosis {name: $subject}) "
+        "SET h.tier=$tier, h.tierConfidence=$conf, h.presentAxes=$axes, "
+        "h.mcpAdapter=$mcp, h.diagnosedAt=datetime(), h.diagnosedBy='harness' "
+        "RETURN h.name AS diagnosed"
+    )
+    params = {
+        "subject": diag.subject,
+        "tier": diag.tier.value,
+        "conf": diag.tier_confidence.value,
+        "axes": [a.value for a in diag.present_axes],
+        "mcp": diag.mcp_adapter,
+    }
+    return cypher, params
+
+
+__all__ = ["KNOWN_FRAMEWORKS", "build_diagnosis_cypher", "diagnose"]

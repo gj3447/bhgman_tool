@@ -5,7 +5,7 @@
 # KG: ATOM_Skill_harness, bhgman-harness-diagnose-engine-2026-05-28
 """
 
-from harness import KNOWN_FRAMEWORKS, diagnose
+from harness import KNOWN_FRAMEWORKS, build_diagnosis_cypher, diagnose
 from harness_models import (
     Axis,
     AxisFinding,
@@ -18,6 +18,7 @@ from harness_models import (
 __all__ = [
     "KNOWN_FRAMEWORKS",
     "Axis",
+    "build_diagnosis_cypher",
     "AxisFinding",
     "Confidence",
     "HarnessDiagnosis",

@@ -46,6 +46,12 @@ NODE_SCHEMAS: dict[str, NodeSchema] = {
         unique=("name",),
         key="name",
     ),
+    "HarnessDiagnosis": NodeSchema(
+        label="HarnessDiagnosis",
+        required=("name",),
+        unique=("name",),
+        key="name",
+    ),
 }
 
 # 엔진들이 실제로 쓰는 엣지 타입 (occam supersede / hades materialize / eureka facet read).

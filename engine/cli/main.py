@@ -366,6 +366,22 @@ def cmd_harness(args: argparse.Namespace) -> int:
         print(f"  [{f.presence.value:8s}] {f.axis.value:10s} ({f.signal})")
     if diag.mcp_adapter:
         print("  MCP: cross-tier adapter detected")
+    # 코어 진단은 인프라 0. --apply 시에만 KG persist (occam/hades 패턴, --local 가능).
+    if getattr(args, "apply", False):
+        runners = _resolve_kg_runners(args)
+        if runners is None:
+            print(
+                "  [harness] KG 사용 불가 (NEO4J_* 또는 --local 필요) — persist 생략.",
+                file=sys.stderr,
+            )
+            return 2
+        _run, write, close = runners
+        cypher, params = harness.build_diagnosis_cypher(diag)
+        try:
+            write(cypher, params)
+        finally:
+            close()
+        print(f"  persisted → :HarnessDiagnosis {{name:'{diag.subject}'}}")
     return 0
 
 
@@ -817,6 +833,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_hns = sub.add_parser("harness", help="하네스 3계층/4축 진단 (결정론 엔진). --route=skill.")
     p_hns.add_argument("action", nargs="+", help="진단 대상 (프레임워크명 또는 설명 텍스트).")
     p_hns.add_argument("--route", action="store_true", help="진단 대신 SKILL.md 경로만 출력.")
+    p_hns.add_argument(
+        "--apply", action="store_true", help="진단을 KG(:HarnessDiagnosis)에 persist."
+    )
+    p_hns.add_argument("--no-disk-scan", action="store_true", help=argparse.SUPPRESS)
+    p_hns.add_argument(
+        "--local", action="store_true", help="KG persist에 로컬 KG 사용 (--apply과 함께)."
+    )
     p_hns.set_defaults(func=cmd_harness)
 
     p_st = sub.add_parser("status", help="KG audit (ssh dgx → cypher-shell).")

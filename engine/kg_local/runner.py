@@ -129,6 +129,13 @@ def _merge_source_node(store: LocalKgStore, params: dict) -> list[dict]:
     return []
 
 
+def _harness_persist(store: LocalKgStore, params: dict) -> list[dict]:
+    # harness 진단 persist: HarnessDiagnosis 노드 upsert (name=subject 키).
+    props = {k: v for k, v in params.items() if k != "subject"}
+    store.merge_node("HarnessDiagnosis", "name", params["subject"], props)
+    return [{"diagnosed": params["subject"]}]
+
+
 def _rebind_sha(store: LocalKgStore, params: dict) -> list[dict]:
     # Longinus UNWIND $rows: [{path, sha, lines}]
     n = 0
@@ -149,6 +156,7 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     (lambda c: "MERGE (a:AbstractClass {name:$concept})" in c, _hades_merge_concept, True),
     (lambda c: "INSTANCE_OF" in c and "$members" in c, _hades_link_members, True),
     (lambda c: "UNWIND $rows" in c and "s.sha256" in c, _rebind_sha, True),
+    (lambda c: "MERGE (h:HarnessDiagnosis" in c, _harness_persist, True),
     (lambda c: "MERGE (s:SourceCodeNode" in c, _merge_source_node, True),
     (lambda c: "$facet_rels" in c, _eureka_facets, False),
     (lambda c: "(a:AbstractClass)" in c and "verdictStatus" in c, _hades_fetch_accepted, False),

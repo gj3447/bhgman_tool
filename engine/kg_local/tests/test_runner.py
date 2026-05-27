@@ -133,6 +133,24 @@ def test_eureka_excludes_bulk_label(tmp_path):
     assert rows == []
 
 
+_HARNESS_PERSIST = (
+    "MERGE (h:HarnessDiagnosis {name: $subject}) "
+    "SET h.tier=$tier, h.presentAxes=$axes, h.mcpAdapter=$mcp RETURN h.name AS diagnosed"
+)
+
+
+def test_harness_persist_upserts_diagnosis(tmp_path):
+    s = _store(tmp_path)
+    run = make_local_runner(s)
+    out = run(
+        _HARNESS_PERSIST,
+        {"subject": "LangGraph", "tier": "RUNTIME", "axes": ["CONSTRAIN", "VERIFY"], "mcp": False},
+    )
+    assert out == [{"diagnosed": "LangGraph"}]
+    node = s.find_one("name", "LangGraph", "HarnessDiagnosis")
+    assert node["props"]["tier"] == "RUNTIME" and node["props"]["axes"] == ["CONSTRAIN", "VERIFY"]
+
+
 def test_unsupported_query_raises_not_silent(tmp_path):
     run = make_local_runner(_store(tmp_path))
     with pytest.raises(UnsupportedLocalQuery):

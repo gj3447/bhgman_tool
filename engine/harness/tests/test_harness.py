@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness import diagnose
+from harness import build_diagnosis_cypher, diagnose
 from harness_models import Axis, Confidence, Presence, Tier
 
 
@@ -62,3 +62,14 @@ def test_mcp_adapter_detection():
 def test_summary_shape():
     d = diagnose("CrewAI")
     assert d.summary.startswith("harness[CrewAI]: tier=RUNTIME(HIGH)")
+
+
+def test_build_diagnosis_cypher_persist_shape():
+    # --apply persist용 cypher+params (occam/hades 패턴). 순수 — 실행 안 함.
+    d = diagnose("LangGraph with retry")
+    cypher, params = build_diagnosis_cypher(d)
+    assert "MERGE (h:HarnessDiagnosis {name: $subject})" in cypher
+    assert params["subject"] == "LangGraph with retry"
+    assert params["tier"] == "RUNTIME"
+    assert "CORRECT" in params["axes"]  # retry → CORRECT present
+    assert isinstance(params["mcp"], bool)
