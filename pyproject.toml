@@ -182,6 +182,8 @@ known_first_party = [
   "ged_drift_detector", "nightly_drift_check",
   # engine/legion — 7군단장 합성 orchestrator (Legion step 5, flat-layout bare imports)
   "legion", "legion_models",
+  # engine/hades — 7번째 동사 실현(materialize, 유레카 dual), flat-layout bare imports
+  "hades", "hades_models",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).

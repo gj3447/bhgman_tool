@@ -1,0 +1,24 @@
+[project]
+name = "hades"
+version = "0.1.0"
+description = "하데스(Hades) — 비행기맨 #4 LegionCommander, 7번째 동사 실현(추상→구체↓, 유레카 dual). ACCEPTED 추상을 구체 KG/코드로 realize. dry_run 기본 + reversibility-first + ≤5 site rollout (engine-impl c6 materialize danger 차단). KG: hades-canonical-2026-05-27"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["hades", "hades_models"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+# hades 코어는 stdlib만 import (dataclasses/enum/collections.abc). 외부 dep 0.
+[tool.deptry.per_rule_ignores]
+DEP002 = ["pytest"]  # test runner; never imported by package code
