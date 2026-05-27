@@ -1,3 +1,20 @@
+> **[SUPERSEDED — archived by 오캄(Occam) 2026-05-27]**
+> This was a one-time session pickup-pointer. All 6 action items are now **DONE** and their
+> canonical living record is in the KG, not this doc:
+> - §1 APOC `t_abstractclass_required_fields` → `seed-hookinstall-t_abstractclass_required_fields-2026-05-20` = **INSTALLED**
+> - §2 GDS plugin → Gap `GDS not installed` = **RESOLVED** / `wqi-l8-gds-plugin-install-2026-05-20` = **COMPLETED**
+> - §3 neo4j-graphrag → Gap = **RESOLVED** / `wqi-l8-neo4j-graphrag-pip-install-2026-05-20` = **COMPLETED**
+> - §4 crontab → `wqi-l8-crontab-install-2026-05-20` = **COMPLETED**
+> - §5 AMIE3 JAR → `wqi-l8-amie3-jar-wrapper-2026-05-20` = **COMPLETED** (see `vendor/`)
+> - §6 3-way bake-off → `wqi-l8-bake-off-3way-2026-05-20` = **UNBLOCKED — STILL LIVE WORK, not done.**
+>   The §6 recipe below is still the actionable spec for this open task; it is tracked as a live
+>   WorkQueueItem in the KG, not orphaned by this archive.
+>
+> Kept (not deleted) per Occam covenant. 5/6 items done; §6 bake-off remains open.
+> For current state query the KG, not this file.
+
+---
+
 # NEXT_SESSION_INSTRUCTIONS — longinus_l8_induction
 
 Generated 2026-05-20. Pickup pointer for follow-up session.
