@@ -3,6 +3,14 @@
 유레카가 PROPOSE한 *승인된* 추상을 구체 KG 구조/코드로 실현(materialize). TDD GREEN.
 형식: Galois γ(concretization) / anamorphism·unfold / refinement calculus / TDD GREEN.
 
+**Formal status (2026-05-28 promoted)**: INDEXED_PAIR (Place, Realize-Action).
+  - component_place = 場 / scaffold (비행기맨#4 결정화 — 3계층 IDE-host / runtime / managed cloud)
+  - component_realize_action = 하계의 신 — 실현 동사 (추상→구체, 유레카 dual)
+  - relationship = USES (same entity, two aspects, NOT alias merge)
+  - hades=하네스 R1↔R2 flip-flop 은 indexed-pair structure 명시로 해소
+  - eureka 와의 dual: dual-hades-eureka-formal-galois-2026-05-28 (FORMAL_GALOIS_DUAL)
+  - Naesengmoon promoted via vr-7commander-coverage-completeness-2026-05-28
+
 **경계**: 재배맨=출격(누가/분배), 하데스=실현(실제 써냄). 하네스=바닥/場(수동), 하데스=場에 써내림(능동).
 **위험**: materialize = engine-impl c6 "가장 위험"(우연 결합 영구화/분산장애/비가역). 그래서:
   - dry_run 기본 (PLANNED만, auto-apply 금지)
@@ -10,8 +18,11 @@
   - **reversibility-first**: 모든 plan에 undo (covenant)
   - code: ≤max_sites 점진 rollout (분산장애 차단)
 
-# KG: hades-canonical-2026-05-27, eureka-canonical-2026-05-26 (dual),
-#     consensus-eureka-engine-impl-2026-05-26 (c6 materialize danger)
+# KG: hades-canonical-2026-05-27 (INDEXED_PAIR formal status, 2026-05-28),
+#     eureka-canonical-2026-05-26 (dual),
+#     dual-hades-eureka-formal-galois-2026-05-28,
+#     consensus-eureka-engine-impl-2026-05-26 (c6 materialize danger),
+#     vp-hades-harness-indexed-pair-formalization-2026-05-28 (RATIFIED_DELEGATED)
 """
 
 from __future__ import annotations

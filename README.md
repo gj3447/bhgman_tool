@@ -61,6 +61,8 @@ pip install "bhgman_tool[all]"                # everything
 
 ### LegionCommander standalone scope (honest disclosure)
 
+**Equal-standing canon (USER_PRIMARY 2026-05-28)**: All 7 commanders share **the same semantic 위격** — LOC / CLI verb / standalone-status differences below are **engineering disclosures**, not commander rank. The 7 verbs (acquisition / adversarial verification / dispatch / cleanup / creation / materialization / binding) form the closure of the SEMANTIC verb space for KG-based coding. Ops-layer verbs (observe / monitor / negotiate / deploy / document / simulate) are explicitly out-of-scope — handled at a separate ops layer, not as new commanders. KG: `canon-7commander-equal-standing-2026-05-28` + `canon-kg-based-coding-essence-2026-05-28`.
+
 The 7 비행기맨 commanders split by what a bare checkout actually runs:
 
 | Commander (verb) | Standalone? | Needs |
