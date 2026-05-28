@@ -256,6 +256,15 @@ def cmd_tpa(args: argparse.Namespace) -> int:
     return _route_skill("tpa", args.path)
 
 
+# prom/tlb fallback 시 사용자에게 *두 백엔드 옵션 모두* 명시 — ANTHROPIC 강제 인상 제거.
+_BACKEND_HINT = (
+    "        백엔드 선택:\n"
+    "          • 로컬 LLM (key 불필요): export BHGMAN_LLM_BASE_URL=<openai-compat URL> "
+    "BHGMAN_LLM_MODEL=<model>\n"
+    "          • Anthropic:              export ANTHROPIC_API_KEY=<key>"
+)
+
+
 def _agent_runtime():
     """engine.agents 로드 → (namespace | None, reason). flat-layout: 개별 모듈 import.
 
@@ -291,6 +300,7 @@ def cmd_prom(args: argparse.Namespace) -> int:
     agents, reason = _agent_runtime()
     if agents is None:
         print(f"[prom] LLM runtime 사용 불가 ({reason}) → skill route fallback.", file=sys.stderr)
+        print(_BACKEND_HINT, file=sys.stderr)
         return _route_skill("prometheus", [str(args.N), *args.topic])
     report = agents.research(topic, args.N, agents.AgentClient(), web_search=not args.no_web)
     print(report.summary)
@@ -310,6 +320,7 @@ def cmd_tlb(args: argparse.Namespace) -> int:
     agents, reason = _agent_runtime()
     if agents is None:
         print(f"[tlb] LLM runtime 사용 불가 ({reason}) → skill route fallback.", file=sys.stderr)
+        print(_BACKEND_HINT, file=sys.stderr)
         suffix = [*args.target] + (["--lens", args.lens] if args.lens else [])
         return _route_skill("taliban", suffix)
     lenses = (args.lens,) if args.lens else agents.DEFAULT_LENSES
