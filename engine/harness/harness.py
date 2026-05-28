@@ -6,12 +6,15 @@
 호출자가 explicit signals dict 주면 그게 우선(override).
 
 정직: 축 부재는 Presence.UNKNOWN (부재 ≠ 능력 없음). **KNOWN_FRAMEWORKS의 framework→축 매핑은
-*주관적 휴리스틱 KB*(외부 인용 미첨부, 빌더 단정) — falsifiable 외형이나 매핑 자체는 미검증.**
-신호 추출(키워드 매칭)은 결정론이지만 그 키워드 집합도 휴리스틱. tier 분류(이름 매치)가 가장
-근거 강함. 나생문 AC-bhgman-harness-4axis-subjective (2026-05-28) 반영.
+여전히 빌더의 *해석*이지만, 각 entry는 FRAMEWORK_CITATIONS dict를 통해 1차 source URL과
+1:1 binding됨 (2026-05-28 external grounding pass).** Citation은 framework의 *existence* +
+*advertised capability*를 근거 짓는다. axis 할당 (예: LangGraph→CONSTRAIN+VERIFY)은 여전히
+1차 source 측 docs를 빌더가 4축 schema로 해석한 결과이므로, "근거 강도 + 해석 layer 1단"으로
+명시. 사용자 반박 가능. tier 분류(이름 매치)가 여전히 가장 근거 강함.
 
 # KG: ATOM_Skill_harness, lesson-harness-drift-corrected-2026-04-29,
-#     bhgman-harness-diagnose-engine-2026-05-28
+#     bhgman-harness-diagnose-engine-2026-05-28,
+#     lesson-harness-citation-drift-bockeler-2026-04-30 (Böckeler citation 본 KB 측 미사용 — drift 회피)
 """
 
 from __future__ import annotations
@@ -53,6 +56,40 @@ KNOWN_FRAMEWORKS: dict[str, tuple[Tier, tuple[Axis, ...]]] = {
     "bedrock agent": (Tier.MANAGED_CLOUD, ()),
     "azure ai agent": (Tier.MANAGED_CLOUD, ()),
 }
+
+# External grounding: 각 framework 측 1차 source URL. axis 할당은 여전히 빌더 해석이지만,
+# entry의 existence + advertised capability는 이 URL로 근거. 2026-05-28 external grounding pass
+# (vp-harness-external-grounding 측 응답). 미상 framework는 KNOWN_FRAMEWORKS에 없음 (정직).
+FRAMEWORK_CITATIONS: dict[str, str] = {
+    "claude code": "https://docs.anthropic.com/en/docs/claude-code/hooks",
+    "cursor": "https://docs.cursor.com",
+    "aider": "https://aider.chat",
+    "copilot": "https://docs.github.com/en/copilot",
+    "windsurf": "https://docs.codeium.com/windsurf",
+    "continue": "https://docs.continue.dev",
+    "zed": "https://zed.dev/docs",
+    "langgraph": "https://langchain-ai.github.io/langgraph/",
+    "crewai": "https://docs.crewai.com",
+    "autogen": "https://microsoft.github.io/autogen/",
+    "google adk": "https://google.github.io/adk-docs/",
+    "langchain": "https://python.langchain.com/docs/",
+    "llamaindex": "https://docs.llamaindex.ai",
+    "dspy": "https://dspy.ai",
+    "semantic kernel": "https://learn.microsoft.com/en-us/semantic-kernel/",
+    "pydantic-ai": "https://ai.pydantic.dev",
+    "pydantic ai": "https://ai.pydantic.dev",
+    "managed agent": "https://docs.anthropic.com/en/docs/agents-and-tools",
+    "openai assistant": "https://platform.openai.com/docs/assistants/overview",
+    "vertex ai agent": "https://cloud.google.com/vertex-ai/generative-ai/docs/agent-builder/overview",
+    "bedrock agent": "https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html",
+    "azure ai agent": "https://learn.microsoft.com/en-us/azure/ai-services/agents/overview",
+}
+
+
+def primary_source(framework_name: str) -> str | None:
+    """Framework 측 1차 source URL 반환 (소문자 이름 매치). 미상이면 None."""
+    return FRAMEWORK_CITATIONS.get(framework_name.lower())
+
 
 # tier 키워드 휴리스틱 (이름 매치 실패 시). 순서 = 우선순위.
 _TIER_KEYWORDS: tuple[tuple[Tier, tuple[str, ...]], ...] = (

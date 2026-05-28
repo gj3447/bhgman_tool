@@ -38,6 +38,8 @@ Restart Claude Code. In a chat:
 
 Ephemeral subagent runs become first-class, auditable records.
 
+> **Not what you came for?** This is the *tool* layer. The mythological/philosophical framing (apostles, weapons, harness essence, two-layer separation) lives in [`docs/06-philosophy/`](docs/06-philosophy/) — skip it entirely if you just want to run the engine. The 30-second demo above is sufficient for the **engineering** path.
+
 ---
 
 ## Why bhgman_tool
