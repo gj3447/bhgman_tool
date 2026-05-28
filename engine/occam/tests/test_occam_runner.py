@@ -98,6 +98,31 @@ def test_scan_disk_paths_follows_symlinked_dirs(tmp_path):
     assert "skills/harness/SKILL.md" in paths  # 심링크 통해 발견돼야
 
 
+def test_scan_disk_paths_symlink_and_real_dir_coexist(tmp_path):
+    # 정전 패턴: bhgman_tool/symposium-skills/* (실디렉터리) + bhgman_tool/skills/* → symposium-skills/* (심링크).
+    # 양쪽 모두 ROOT 하위 → realpath cycle guard가 한 쪽을 통째 skip하면 KG가 그 symbolic
+    # path를 저장한 경우 false-orphan 폭증 (self-dogfood 2026-05-28: 83 file false-orphan).
+    repo = tmp_path / "bhgman_tool"
+    real = repo / "symposium-skills" / "harness"
+    real.mkdir(parents=True)
+    (real / "SKILL.md").write_text("# harness\n")
+    (repo / "skills").symlink_to(repo / "symposium-skills")
+    paths = scan_disk_paths(repo)
+    assert "symposium-skills/harness/SKILL.md" in paths
+    assert "skills/harness/SKILL.md" in paths  # symbolic alias도 walk돼야 (alias 0건 회귀)
+
+
+def test_scan_disk_paths_depth_guard_blocks_symlink_cycle(tmp_path):
+    # 자기 자신을 가리키는 심링크 = 무한 cycle. depth 가드(>50)가 폭주 차단.
+    repo = tmp_path / "bhgman_tool"
+    repo.mkdir()
+    (repo / "live.py").write_text("x=1\n")
+    (repo / "loop").symlink_to(repo)  # repo/loop/loop/loop/... 무한
+    paths = scan_disk_paths(repo)
+    assert "live.py" in paths  # 정상 파일은 잡힘
+    # 폭주 없이 return됐다는 사실 자체가 가드 동작 증거 (timeout 없이 통과)
+
+
 def test_run_occam_disk_aware_supersedes_moved_node(monkeypatch):
     import occam_runner
 

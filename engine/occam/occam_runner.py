@@ -39,17 +39,21 @@ def scan_disk_paths(repo_root: str | Path) -> frozenset[str]:
 
     normalize_path와 동일 정규화 → KG 노드 경로(abs/rel 둘 다)와 join 가능.
     **followlinks=True**: bhgman_tool/skills/*는 SYMPOSIUM/SKILLS로의 심볼릭 링크라(정전화됨)
-    안 따라가면 살아있는 파일이 false-orphan으로 잡힌다. realpath visited 가드로 심링크 loop 차단.
+    안 따라가면 살아있는 파일이 false-orphan으로 잡힌다. depth 가드로 심링크 cycle 폭주만 차단.
+
+    realpath 기반 dedup은 **안 한다** — `skills/x → symposium-skills/x` 처럼 동일 실디렉터리에
+    여러 symbolic alias가 ROOT 하위에 공존하는 경우(정전 패턴) realpath dedup이 alias 한 쪽을
+    통째로 skip → KG가 그 symbolic path를 저장했으면 false-orphan으로 잡힌다 (self-dogfood
+    2026-05-28: skills/* 83 file false-orphan). symbolic path는 그대로 walk, cycle은 depth 가드.
     """
     root = Path(repo_root)
     paths: set[str] = set()
-    seen_dirs: set[str] = set()
+    root_str = str(root)
     for dirpath, dirnames, filenames in os.walk(root, followlinks=True):
-        real = os.path.realpath(dirpath)
-        if real in seen_dirs:  # 심링크 cycle 방어
+        # depth 가드: 심링크 cycle(A→B→A→...) 무한 폭주만 차단. 실 repo는 깊이 10 미만.
+        if dirpath[len(root_str) :].count(os.sep) > 50:
             dirnames[:] = []
             continue
-        seen_dirs.add(real)
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
         for fn in filenames:
             # 확장자 무관 전부 포함: disk_paths는 "디스크 실존 경로" 집합.
