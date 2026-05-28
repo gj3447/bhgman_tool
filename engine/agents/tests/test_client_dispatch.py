@@ -12,18 +12,57 @@ from fake_anthropic import FakeAnthropic
 from agent_models import EFFORT_CAPABLE, HAIKU, OPUS
 
 
-def test_runtime_status_no_key(monkeypatch):
+def test_runtime_status_no_backend(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("BHGMAN_LLM_BASE_URL", raising=False)
     ok, reason = runtime_status()
-    # SDK 미설치거나 키 부재 — 둘 다 unavailable
     assert ok is False
-    assert "ANTHROPIC_API_KEY" in reason or "anthropic SDK" in reason
+    assert "ANTHROPIC_API_KEY" in reason or "백엔드" in reason
+
+
+def test_runtime_status_local_openai_backend(monkeypatch):
+    monkeypatch.setenv("BHGMAN_LLM_BASE_URL", "http://dgx:8000/v1")
+    monkeypatch.setenv("BHGMAN_LLM_MODEL", "qwen3.6-27b")
+    ok, reason = runtime_status()
+    assert ok is True and "openai-compat" in reason  # Anthropic 키 불필요
 
 
 def test_client_requires_runtime_or_injection(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("BHGMAN_LLM_BASE_URL", raising=False)
     with pytest.raises(AgentRuntimeUnavailable):
-        AgentClient()  # 주입 없음 + 키 없음 → degrade
+        AgentClient()  # 주입 없음 + 백엔드 없음 → degrade
+
+
+def test_openai_compat_backend_overrides_model_skips_anthropic_features(monkeypatch):
+    monkeypatch.setenv("BHGMAN_LLM_MODEL", "qwen3.6-27b")  # DGX vLLM 서빙 모델
+    calls = []
+
+    def fake_post(url, payload, headers, timeout):
+        calls.append((url, payload, headers))
+        return {
+            "model": payload["model"],
+            "choices": [
+                {
+                    "message": {"content": "echo:" + payload["messages"][-1]["content"]},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 2},
+        }
+
+    c = AgentClient(http_post=fake_post)  # openai-compat 모드 (Anthropic 키 불필요)
+    out = c.complete(
+        system="S", user="hi", model="claude-haiku-4-5", web_search=True, effort="high"
+    )
+    assert out.text == "echo:hi"
+    url, payload, headers = calls[0]
+    assert url.endswith("/chat/completions")
+    assert payload["model"] == "qwen3.6-27b"  # claude-* 무시, 로컬 모델 override
+    assert (
+        "tools" not in payload and "output_config" not in payload
+    )  # web_search/effort 미지원 무시
+    assert headers["Authorization"].startswith("Bearer ")
 
 
 def test_complete_returns_text_and_caches_system():

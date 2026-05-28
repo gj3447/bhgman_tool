@@ -1,13 +1,16 @@
 """실-API smoke test — LLM 3종(prom/tlb/dispatch) C-level(실 인프라 e2e) 검증.
 
-나생문 AC-bhgman-llm-zero-real-call (2026-05-28): agents 3종이 실 Anthropic API로 한 번도
-실행 안 됨(전부 FakeAnthropic 더블). 이 테스트가 그 공백을 닫는다 — 단, 비용/네트워크 때문에
-**ANTHROPIC_API_KEY가 있을 때만 실행**(없으면 skip). 키 꽂고 돌리면 C-level 닫힘:
+나생문 AC-bhgman-llm-zero-real-call (2026-05-28): agents 3종이 실 LLM으로 한 번도 실행 안 됨
+(전부 FakeAnthropic 더블). 이 테스트가 그 공백을 닫는다 — 백엔드(로컬 LLM 또는 Anthropic)가
+있을 때만 실행, 없으면 skip. 둘 중 하나면 C-level 닫힘:
 
+    # DGX/로컬 vLLM (Anthropic 키 불필요):
+    BHGMAN_LLM_BASE_URL=http://100.64.0.3:8000/v1 BHGMAN_LLM_MODEL=qwen3.6-27b \
+        pytest engine/agents/tests/test_smoke_real_api.py -v
+    # 또는 Anthropic:
     ANTHROPIC_API_KEY=sk-... pytest engine/agents/tests/test_smoke_real_api.py -v
 
-cheap 설정: haiku 서브에이전트 + 작은 max_tokens + N=1. prom은 web_search=True로 pause_turn
-서버루프까지 실응답으로 1회 검증. 합 ~5 API 호출(수 센트).
+cheap: 작은 max_tokens + N=1. prom web_search는 anthropic 백엔드만(로컬은 자동 no-web).
 """
 
 from __future__ import annotations
@@ -16,19 +19,14 @@ import os
 
 import pytest
 
+from client import runtime_status
 
-def _runtime_ready() -> tuple[bool, str]:
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        return False, "ANTHROPIC_API_KEY 미설정 — 실-API smoke skip"
-    try:
-        import anthropic  # noqa: F401
-    except ImportError:
-        return False, "anthropic SDK 미설치 — pip install 'bhgman_tool[agents]'"
-    return True, "ok"
-
-
-_ready, _reason = _runtime_ready()
-pytestmark = pytest.mark.skipif(not _ready, reason=_reason)
+_ready, _reason = runtime_status()
+# 로컬 백엔드면 web_search 서버툴 없음 → prom no-web.
+_LOCAL = bool(os.environ.get("BHGMAN_LLM_BASE_URL"))
+pytestmark = pytest.mark.skipif(
+    not _ready, reason=f"LLM 백엔드 없음 — 실-API smoke skip ({_reason})"
+)
 
 
 def test_prom_real_research_web_search():
@@ -40,7 +38,7 @@ def test_prom_real_research_web_search():
         "a single well-known fact about the Eiffel Tower",
         1,
         AgentClient(),
-        web_search=True,
+        web_search=not _LOCAL,  # 로컬 LLM엔 web_search 서버툴 없음
         max_tokens_per=512,
     )
     assert report.n >= 1
