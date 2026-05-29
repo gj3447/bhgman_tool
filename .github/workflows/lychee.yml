@@ -37,11 +37,6 @@ jobs:
       - name: Run lychee link checker
         uses: lycheeverse/lychee-action@v2
         with:
-          # Pin the lychee binary: lychee-action@v2 floats and bundles an older
-          # lychee whose config schema differs (include_fragments was boolean in
-          # the bundled build, string in 0.24.2). Pinning locks the schema to match
-          # lychee.toml (include_fragments = "full"). Verified against 0.24.2 locally.
-          lycheeVersion: v0.24.2
           # honors lychee.toml at repo root
           args: >-
             --config lychee.toml

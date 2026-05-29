@@ -45,8 +45,13 @@ exclude = [
   "CHANGELOG\\.md#[0-9a-f]{40}$",
 ]
 
-# Markdown fragment validation (anchor links)
-include_fragments = "full"
+# Markdown fragment validation (anchor links): intentionally omitted.
+# The `include_fragments` key's value type oscillates across lychee versions
+# (boolean true/false vs string "full"/"none"), and lychee-action@v2 bundles a
+# floating binary — so no single literal satisfies whatever build CI pulls. The
+# key was *never* parsing successfully in CI (config load failed at this line on
+# every run). Omitting it = lychee default, version-agnostic. Re-add only if the
+# action's bundled lychee version is also pinned to a matching schema.
 
 # Throttle (per host, ms)
 max_concurrency = 16
