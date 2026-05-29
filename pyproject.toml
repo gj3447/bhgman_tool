@@ -54,6 +54,7 @@ resolver = [
 code_to_kg = [
     "tree-sitter>=0.23",
     "tree-sitter-python>=0.23",
+    "jedi>=0.19",  # LSP-grade cross-file CALLS/INHERITS enrichment (enrich.py)
 ]
 # APT v27 A7 fail-closed gate endpoint (engine/gate, Wave 7 P3-H 2026-05-14)
 gate = [
@@ -209,7 +210,7 @@ known_first_party = [
   # engine/eureka bare module referenced by kg_local coupling-contract test (2026-05-28)
   "formal_context_builder",
   # engine/code_to_kg — tree-sitter source→KG (POC 2, 2026-05-29), flat-layout bare imports
-  "ts_extractor", "kg_writer",
+  "ts_extractor", "kg_writer", "enrich",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
@@ -221,7 +222,7 @@ python-frontmatter = "frontmatter"
 [tool.deptry.per_rule_ignores]
 # DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
 DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
-          "tree_sitter", "tree_sitter_python",  # optional AST adapter ([code_to_kg] extra, graceful import)
+          "tree_sitter", "tree_sitter_python", "jedi",  # optional AST adapter + LSP enrich ([code_to_kg] extra, graceful import)
           "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
           "anthropic",     # 2026-05-28 — optional [agents] dep, lazy import in engine/agents/client.py
          ]

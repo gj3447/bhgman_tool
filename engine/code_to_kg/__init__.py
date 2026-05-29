@@ -27,6 +27,7 @@ from .ts_extractor import (
     extract_python_source,
     TREE_SITTER_AVAILABLE,
 )
+from .enrich import enrich_calls, JEDI_AVAILABLE
 
 __all__ = [
     "CodeGraph",
@@ -35,4 +36,6 @@ __all__ = [
     "extract_python_file",
     "extract_python_source",
     "TREE_SITTER_AVAILABLE",
+    "enrich_calls",
+    "JEDI_AVAILABLE",
 ]

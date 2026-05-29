@@ -61,17 +61,18 @@ def write_local(graph: CodeGraph, store) -> dict:
             store.add_edge(node_by_id[mod_id], "DERIVED_FROM", scn)
             derived += 1
 
-    edge_counts = {"DEFINES": 0, "IMPORTS": 0, "CALLS": 0}
+    edge_counts = {"DEFINES": 0, "IMPORTS": 0, "CALLS": 0, "INHERITS": 0}
     for e in graph.edges:
-        if e.rel == "DEFINES" and e.src in node_by_id and e.dst in node_by_id:
+        both_in = e.src in node_by_id and e.dst in node_by_id
+        if e.rel == "DEFINES" and both_in:
             store.add_edge(node_by_id[e.src], "DEFINES", node_by_id[e.dst])
             edge_counts["DEFINES"] += 1
-        elif e.rel == "CALLS" and e.resolved and e.dst in node_by_id and e.src in node_by_id:
-            store.add_edge(node_by_id[e.src], "CALLS", node_by_id[e.dst])
-            edge_counts["CALLS"] += 1
-        # unresolved IMPORTS/CALLS (external names) are kept as node properties only
-        # in local mode (no synthetic external node) — see to_cypher for the
-        # external-stub policy.
+        elif e.rel in ("CALLS", "INHERITS") and e.resolved and both_in:
+            store.add_edge(node_by_id[e.src], e.rel, node_by_id[e.dst])
+            edge_counts[e.rel] += 1
+        # unresolved IMPORTS/CALLS/INHERITS (external names) are kept as node
+        # properties only in local mode (no synthetic external node) — see
+        # to_cypher for the external-stub policy.
 
     return {
         "nodes_merged": len(node_by_id),
@@ -113,27 +114,33 @@ def to_cypher(graph: CodeGraph, *, include_external: bool = True) -> list[str]:
     seen_external: set[str] = set()
     for e in graph.edges:
         if e.rel == "DEFINES":
-            stmts.append(_edge_by_id(e, "DEFINES"))
-        elif e.rel == "CALLS" and e.resolved:
-            stmts.append(_edge_by_id(e, "CALLS"))
+            stmts.append(_edge_by_id(e, "EXTRACTED"))
+        elif e.rel in ("CALLS", "INHERITS") and e.resolved:
+            # resolved to an in-set definition (file-local or jedi) = high confidence
+            stmts.append(_edge_by_id(e, "EXTRACTED"))
         elif include_external and not e.resolved:
-            # external import / unresolved call → stub by name
+            # external import / unresolved call|inherit → name-only stub = AMBIGUOUS
             if e.dst not in seen_external:
                 stmts.append(f"MERGE (x:{UMBRELLA_LABEL}:CodeExternal {{name: {_lit(e.dst)}}})")
                 seen_external.add(e.dst)
             stmts.append(
                 f"MATCH (a:{UMBRELLA_LABEL} {{symbol_id: {_lit(e.src)}}}) "
                 f"MATCH (x:CodeExternal {{name: {_lit(e.dst)}}}) "
-                f"MERGE (a)-[:{e.rel}]->(x)"
+                f"MERGE (a)-[r:{e.rel}]->(x) SET r.confidence_tier = 'AMBIGUOUS'"
             )
     return stmts
 
 
-def _edge_by_id(e: SymbolEdge, rel: str) -> str:
+def _edge_by_id(e: SymbolEdge, tier: str) -> str:
+    """MERGE an edge between two in-set symbols, tagging confidence_tier.
+
+    confidence_tier (CRG absorption, aligns with Longinus EXTRACTED/INFERRED/
+    AMBIGUOUS enum): resolved-to-definition edges = EXTRACTED.
+    """
     return (
         f"MATCH (a:{UMBRELLA_LABEL} {{symbol_id: {_lit(e.src)}}}) "
         f"MATCH (b:{UMBRELLA_LABEL} {{symbol_id: {_lit(e.dst)}}}) "
-        f"MERGE (a)-[:{rel}]->(b)"
+        f"MERGE (a)-[r:{e.rel}]->(b) SET r.confidence_tier = {_lit(tier)}"
     )
 
 

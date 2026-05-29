@@ -75,6 +75,10 @@ class SymbolEdge:
     rel: str
     dst: str
     resolved: bool = True  # False = unresolved name (best-effort CALLS/IMPORTS)
+    # call-site position (1-indexed line, 0-indexed col) — only set on CALLS edges,
+    # consumed by the jedi enrichment pass (enrich.py) for cross-file resolution.
+    line: Optional[int] = None
+    col: Optional[int] = None
 
 
 @dataclass
@@ -163,6 +167,11 @@ class _PyWalker:
             )
         )
         self.graph.edges.append(SymbolEdge(ctx.parent_id, "DEFINES", sym_id))
+        if is_class:  # INHERITS edges (CRG absorption: type hierarchy)
+            for base, line, col in _base_refs(child, self.src):
+                self.graph.edges.append(
+                    SymbolEdge(sym_id, "INHERITS", base, resolved=False, line=line, col=col)
+                )
         # functions/methods become the enclosing scope for nested CALLS
         new_enclosing = ctx.enclosing_func if is_class else sym_id
         self.walk(child, _Ctx(sym_id, f"{qualname}.", new_enclosing))
@@ -173,25 +182,34 @@ class _PyWalker:
         self.walk(child, ctx)
 
     def _on_call(self, child: "Node", ctx: _Ctx) -> None:
-        callee = _callee_name(child, self.src)
-        if callee:
-            self.graph.edges.append(SymbolEdge(ctx.enclosing_func, "CALLS", callee, resolved=False))
+        ref = _callee_ref(child, self.src)
+        if ref is not None:
+            name, line, col = ref
+            self.graph.edges.append(
+                SymbolEdge(ctx.enclosing_func, "CALLS", name, resolved=False, line=line, col=col)
+            )
         self.walk(child, ctx)
 
 
 def _resolve_calls(graph: CodeGraph) -> None:
-    """Second pass: resolve CALLS dst to a symbol_id when the callee name matches a
-    function/method defined in this file (best-effort, file-local scope)."""
-    by_name: dict[str, str] = {}
+    """Second pass: resolve CALLS → file-local function/method and INHERITS →
+    file-local class, by bare name (best-effort, file-local scope)."""
+    callable_by_name: dict[str, str] = {}
+    class_by_name: dict[str, str] = {}
     for n in graph.nodes:
         if n.kind in ("function", "method"):
-            by_name.setdefault(n.name, n.symbol_id)
-    graph.edges = [
-        SymbolEdge(e.src, "CALLS", by_name[e.dst], resolved=True)
-        if e.rel == "CALLS" and e.dst in by_name
-        else e
-        for e in graph.edges
-    ]
+            callable_by_name.setdefault(n.name, n.symbol_id)
+        elif n.kind == "class":
+            class_by_name.setdefault(n.name, n.symbol_id)
+
+    def _resolved(e: SymbolEdge) -> SymbolEdge:
+        if e.rel == "CALLS" and e.dst in callable_by_name:
+            return SymbolEdge(e.src, "CALLS", callable_by_name[e.dst], True, e.line, e.col)
+        if e.rel == "INHERITS" and e.dst in class_by_name:
+            return SymbolEdge(e.src, "INHERITS", class_by_name[e.dst], True, e.line, e.col)
+        return e
+
+    graph.edges = [_resolved(e) for e in graph.edges]
 
 
 def extract_python_source(source: str, source_path: str = "<memory>") -> CodeGraph:
@@ -243,17 +261,47 @@ def _imported_modules(node: "Node", src: bytes) -> list[str]:
     return out
 
 
-def _callee_name(call_node: "Node", src: bytes) -> Optional[str]:
-    """Return the bare callee name for `foo(...)` or `obj.foo(...)`."""
+def _callee_ref(call_node: "Node", src: bytes) -> Optional[tuple[str, int, int]]:
+    """Return (callee_name, line, col) for `foo(...)` or `obj.foo(...)`.
+
+    line is 1-indexed, col 0-indexed — the position of the callee *identifier*
+    (the method name for attribute calls), for jedi goto in enrich.py.
+    """
     fn = call_node.child_by_field_name("function")
     if fn is None:
         return None
-    if fn.type == "identifier":
-        return _text(fn, src)
+    target = fn
     if fn.type == "attribute":
-        attr = fn.child_by_field_name("attribute")
-        return _text(attr, src) if attr is not None else None
-    return None
+        target = fn.child_by_field_name("attribute")
+    if target is None or target.type != "identifier":
+        return None
+    return _text(target, src), target.start_point[0] + 1, target.start_point[1]
+
+
+def _callee_name(call_node: "Node", src: bytes) -> Optional[str]:
+    """Return the bare callee name only (kept for callers that ignore position)."""
+    ref = _callee_ref(call_node, src)
+    return ref[0] if ref is not None else None
+
+
+def _base_refs(class_node: "Node", src: bytes) -> list[tuple[str, int, int]]:
+    """Return [(base_name, line, col)] for a class's superclasses (INHERITS).
+
+    Bare name for `Base`; last attribute segment for `pkg.Base` (matches callee
+    convention). Position is the base identifier's, for jedi cross-file resolution.
+    """
+    sup = class_node.child_by_field_name("superclasses")
+    if sup is None:
+        return []
+    out: list[tuple[str, int, int]] = []
+    for base in sup.named_children:
+        target = base
+        if base.type == "attribute":
+            target = base.child_by_field_name("attribute")
+        if target is None or target.type != "identifier":
+            continue
+        out.append((_text(target, src), target.start_point[0] + 1, target.start_point[1]))
+    return out
 
 
 def extract_python_file(path: str | Path) -> CodeGraph:
