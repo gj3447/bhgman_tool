@@ -50,6 +50,11 @@ resolver = [
     "Jinja2>=3.1.4",
     "neo4j>=5.20.0",
 ]
+# code_to_kg — tree-sitter source→KG ingestion (POC 2, prom16-code-to-kg-2026-05-28)
+code_to_kg = [
+    "tree-sitter>=0.23",
+    "tree-sitter-python>=0.23",
+]
 # APT v27 A7 fail-closed gate endpoint (engine/gate, Wave 7 P3-H 2026-05-14)
 gate = [
     "fastapi>=0.115.0",
@@ -203,6 +208,8 @@ known_first_party = [
   "harness", "harness_models",
   # engine/eureka bare module referenced by kg_local coupling-contract test (2026-05-28)
   "formal_context_builder",
+  # engine/code_to_kg — tree-sitter source→KG (POC 2, 2026-05-29), flat-layout bare imports
+  "ts_extractor", "kg_writer",
 ]
 
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
@@ -214,7 +221,7 @@ python-frontmatter = "frontmatter"
 [tool.deptry.per_rule_ignores]
 # DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
 DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
-          "tree_sitter",   # optional AST adapter (importorskip in tree_sitter_adapter.py)
+          "tree_sitter", "tree_sitter_python",  # optional AST adapter ([code_to_kg] extra, graceful import)
           "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
           "anthropic",     # 2026-05-28 — optional [agents] dep, lazy import in engine/agents/client.py
          ]
