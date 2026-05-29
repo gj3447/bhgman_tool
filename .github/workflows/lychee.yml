@@ -25,10 +25,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          # skills/<name> are symlinks into the symposium-skills submodule (public).
-          # Without the submodule, those symlinks dangle and lychee reports the
-          # linked SKILL.md targets as "Cannot find file".
-          submodules: recursive
+          # Deliberately NOT fetching the symposium-skills submodule: skills/ is a
+          # symlink mirror of that separate repo, and its internal docs carry their
+          # own cross-repo links (THEORY/, MIND/, .agents/...) that this tool repo
+          # is not responsible for link-checking. lychee.toml excludes skills/ +
+          # theory/ (mirror dirs) so only first-party docs/ are audited.
 
       - name: Restore lychee cache
         uses: actions/cache@v4

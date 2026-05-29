@@ -15,11 +15,15 @@ exclude_path = [
   "lychee.toml",
   # External clones if any added later
   "GIT",
-  # theory/ is a SYMPOSIUM-mirror staging dir: most entries are symlinks into the
-  # PRIVATE gj3447/SYMPOSIUM sibling repo (../../../SYMPOSIUM/THEORY/...), which is
-  # never present in a standalone CI checkout — the dangling symlinks make lychee
-  # fail to read them as glob inputs. (Real engineering docs live in docs/ + skills/.)
+  # Cross-repo symlink-mirror dirs — not link-checked in a standalone CI checkout.
+  # theory/  → symlinks into PRIVATE gj3447/SYMPOSIUM (../../../SYMPOSIUM/THEORY/...)
+  # skills/  → symlinks into the symposium-skills submodule (separate repo; its docs
+  #            carry their own THEORY//MIND/.agents cross-repo links we don't own)
+  # symposium-skills → the submodule path itself
+  # First-party engineering docs (docs/, README*, engine/, lean/) stay audited.
   "theory",
+  "skills",
+  "symposium-skills",
 ]
 
 # Skip dev-internal but keep file:// (local relative links must be checked)
@@ -54,6 +58,11 @@ exclude = [
   # Covers both ../../../SYMPOSIUM/THEORY/... links and ../../theory/* symlink targets.
   "SYMPOSIUM/THEORY",
   "/theory/",
+  # Link targets into the cross-repo mirror dirs (see exclude_path above): skills/
+  # symlinks → symposium-skills submodule, THEORY/ + MIND/ → author's other repos.
+  "/skills/",
+  "/THEORY/",
+  "/MIND/",
 ]
 
 # Markdown fragment validation (anchor links): intentionally omitted.

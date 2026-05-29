@@ -278,12 +278,6 @@ def _callee_ref(call_node: "Node", src: bytes) -> Optional[tuple[str, int, int]]
     return _text(target, src), target.start_point[0] + 1, target.start_point[1]
 
 
-def _callee_name(call_node: "Node", src: bytes) -> Optional[str]:
-    """Return the bare callee name only (kept for callers that ignore position)."""
-    ref = _callee_ref(call_node, src)
-    return ref[0] if ref is not None else None
-
-
 def _base_refs(class_node: "Node", src: bytes) -> list[tuple[str, int, int]]:
     """Return [(base_name, line, col)] for a class's superclasses (INHERITS).
 
