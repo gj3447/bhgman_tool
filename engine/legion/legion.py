@@ -1,13 +1,18 @@
 """Legion orchestrator — 7군단장 in-process 합성 (closed loop).
 
-stage를 USES 순서로 등록(프로메테우스→롱기누스→유레카→오캄→나생문) → run()이
+stage를 USES 순서로 등록(프로메테우스→롱기누스→유레카→오캄→나생문→하데스) → run()이
 Contract-bound handoff(requires ⊆ accumulated provides)로 순차 실행, stage 사이 나생문
 oracle gate(hard, 주입식). 닫힌 루프는 loops>1. substrate = KG context dict.
+
+종착 = 하데스(실현: 추상 spec→구체 코드, APT/SCW). 정방향 합성의 거울 = TPA 역방향
+7-stage (tpa-7stage-eureka-core-2026-05-30). 재배맨(출격)은 stage가 아니라 dispatch
+substrate(이 run() 루프가 곧 재배맨의 in-process instantiation)이므로 CANONICAL_ORDER 제외.
 
 oracle gate는 주입식 — legion은 occam/oracle_lens에 hard-import로 결합하지 않음
 (in-process지만 모듈 결합은 DI로 끊음, ADP).
 
-# KG: adr-seven-commander-legion-architecture-2026-05-27, naesengmoon-wired-ensemble-upgrade-2026-05-27
+# KG: adr-seven-commander-legion-architecture-2026-05-27, naesengmoon-wired-ensemble-upgrade-2026-05-27,
+#     hades-canonical-2026-05-27 (실현 종착 stage), tpa-7stage-eureka-core-2026-05-30 (역방향 거울)
 """
 
 from __future__ import annotations
@@ -20,7 +25,8 @@ from legion_models import CommanderStage, LegionRun, StageOutcome
 GateFn = Callable[[dict], "tuple[bool, str]"]
 
 # 닫힌 루프 canonical verb 순서 (참조용; 등록 순서가 실제 실행 순서).
-CANONICAL_ORDER = ("획득", "연결", "창조", "정리", "검증")
+# 종착 = 실현(하데스): 검증 통과한 추상 설계를 구체 코드로 내려보냄 (APT/SCW, 유레카 dual).
+CANONICAL_ORDER = ("획득", "연결", "창조", "정리", "검증", "실현")
 
 
 def _missing_requires(stage: CommanderStage, have: set[str]) -> tuple[str, ...]:

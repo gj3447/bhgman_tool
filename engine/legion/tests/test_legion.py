@@ -90,4 +90,37 @@ def test_oracle_gate_all_pass_completes():
 
 
 def test_canonical_order_constant():
-    assert CANONICAL_ORDER == ("획득", "연결", "창조", "정리", "검증")
+    # 종착 실현(하데스) 추가 2026-05-30 — 정방향 합성 종착 = 추상→구체 (APT/SCW)
+    assert CANONICAL_ORDER == ("획득", "연결", "창조", "정리", "검증", "실현")
+
+
+def test_full_forward_pipeline_terminates_in_realize():
+    # 6-stage 정방향: 검증 통과 추상 → 하데스가 구체 코드로 실현 (종착)
+    legion = (
+        Legion()
+        .register(_stage("prometheus", "획득", (), ("knowledge",), {"knowledge": "K"}))
+        .register(
+            _stage("longinus", "연결", ("knowledge",), ("linked_graph",), {"linked_graph": "G"})
+        )
+        .register(
+            _stage("eureka", "창조", ("linked_graph",), ("abstractions",), {"abstractions": ["A"]})
+        )
+        .register(_stage("occam", "정리", ("abstractions",), ("superseded",), {"superseded": []}))
+        .register(
+            _stage("naesengmoon", "검증", ("abstractions",), ("verdict",), {"verdict": "PASS"})
+        )
+        .register(
+            _stage(
+                "hades",
+                "실현",
+                ("verdict", "abstractions"),
+                ("source_code",),
+                {"source_code": "src"},
+            )
+        )
+    )
+    run = legion.run(context={})
+    assert run.completed is True
+    assert run.ran == 6
+    assert [o.verb for o in run.outcomes] == ["획득", "연결", "창조", "정리", "검증", "실현"]
+    assert run.outcomes[-1].verb == "실현"  # 종착 = 하데스

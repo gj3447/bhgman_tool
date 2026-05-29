@@ -21,7 +21,7 @@ class CommanderStage:
     """한 군단장. requires/provides = 인터페이스 계약(Contract, 재배맨 dual)."""
 
     name: str
-    verb: str  # 획득/창조/연결/정리/검증
+    verb: str  # 획득/연결/창조/정리/검증/실현 (실현=하데스 종착, abstract→concrete)
     requires: tuple[str, ...]
     provides: tuple[str, ...]
     run: StageFn
