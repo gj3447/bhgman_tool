@@ -1,6 +1,6 @@
 # TPA Dogfood Review — bhgman_tool Phase 3 sprint (self-application)
 
-> Honest review of running the APT cycle on bhgman_tool's own Phase 3 sprint. Follows the [SYMPOSIUM `THEORY/TPA/DOGFOOD_STANDARD.md`](https://github.com/gira-airobotics/symposium) format.
+> Honest review of running the APT cycle on bhgman_tool's own Phase 3 sprint. Follows the [SYMPOSIUM `THEORY/TPA/DOGFOOD_STANDARD.md`](https://github.com/gj3447/symposium) format.
 
 ## Subject
 

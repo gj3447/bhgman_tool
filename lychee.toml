@@ -63,6 +63,9 @@ exclude = [
   "/skills/",
   "/THEORY/",
   "/MIND/",
+  # The SYMPOSIUM paper repo (gj3447/symposium) is PRIVATE — anonymous lychee in CI
+  # gets 404. Transferred from gira-airobotics→gj3447 (2026-05-27); both excluded.
+  "^https?://github\\.com/(gj3447|gira-airobotics)/symposium",
 ]
 
 # Markdown fragment validation (anchor links): intentionally omitted.
