@@ -15,6 +15,11 @@ exclude_path = [
   "lychee.toml",
   # External clones if any added later
   "GIT",
+  # theory/ is a SYMPOSIUM-mirror staging dir: most entries are symlinks into the
+  # PRIVATE gj3447/SYMPOSIUM sibling repo (../../../SYMPOSIUM/THEORY/...), which is
+  # never present in a standalone CI checkout — the dangling symlinks make lychee
+  # fail to read them as glob inputs. (Real engineering docs live in docs/ + skills/.)
+  "theory",
 ]
 
 # Skip dev-internal but keep file:// (local relative links must be checked)
@@ -43,6 +48,12 @@ exclude = [
   # git-cliff-auto-generated CHANGELOG.md commit-SHA fragments (40-char hex anchor).
   # GitHub web view 에서는 자동 해석되지만 lychee 로컬 측은 anchor 미감지 → strict mode 회피.
   "CHANGELOG\\.md#[0-9a-f]{40}$",
+  # Cross-repo pointers from docs/ into the PRIVATE gj3447/SYMPOSIUM sibling repo
+  # (paper/theory layer, separate from this tool repo). Valid by design on the
+  # author's multi-repo machine; unresolvable in a standalone CI checkout.
+  # Covers both ../../../SYMPOSIUM/THEORY/... links and ../../theory/* symlink targets.
+  "SYMPOSIUM/THEORY",
+  "/theory/",
 ]
 
 # Markdown fragment validation (anchor links): intentionally omitted.
