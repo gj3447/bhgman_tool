@@ -6,6 +6,7 @@ Provenance: SYMPOSIUM/tests/conftest.py (absorbed Wave 7 P2-A)
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,14 @@ import pytest
 # Walk up to bhgman_tool repo root: 4 parents up from this file
 # (.../bhgman_tool/engine/mcp_server/tests/symposium/conftest.py → bhgman_tool/)
 BHGMAN_ROOT = Path(__file__).resolve().parents[4]
+
+# These tests import `from engine.mcp_server.tools.symposium import ...` (repo-root
+# absolute), but the CI mcp_server suite runs from working-directory engine/mcp_server
+# where only the flat `mcp_server` package is installed — so the `engine` namespace
+# package is not importable. Bridge repo root onto sys.path at collection time
+# (project sys.path-bridge pattern; see root pyproject E402 per-file-ignore note).
+if str(BHGMAN_ROOT) not in sys.path:
+    sys.path.insert(0, str(BHGMAN_ROOT))
 
 
 @pytest.fixture(scope="session")

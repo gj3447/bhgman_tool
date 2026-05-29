@@ -12,6 +12,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 scientific = ["scikit-learn>=1.4", "networkx>=3.2", "scipy>=1.12"]
+embeddings = ["sentence-transformers>=2.2"]  # _st_embed_fn lazy import (embedding_backfill.py); heavy optional dep
 
 [project.scripts]
 longinus-l8 = "pipeline:main"
