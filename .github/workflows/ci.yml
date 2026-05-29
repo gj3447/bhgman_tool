@@ -32,7 +32,7 @@ jobs:
       - name: Run pytest (engine/longinus_drift_audit)
         working-directory: engine/longinus_drift_audit
         run: |
-          uv run --with pytest pytest tests/ -q --tb=short
+          uv run --extra dev pytest tests/ -q --tb=short
 
   lint:
     name: ruff

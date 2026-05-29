@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "hypothesis>=6.0"]  # hypothesis: property-based tests (test_delta_lens_properties.py)
 # OTel GenAI-semconv dispatch trace channel (otel_channel.py). Graceful no-op when absent.
 otel = ["opentelemetry-sdk>=1.20"]
 
