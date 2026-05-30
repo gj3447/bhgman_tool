@@ -213,7 +213,7 @@ class PrometheusMeasurement(CommanderBase):
             "research_finding_count",
             16,
             "greater",
-            "N>16 findings → verification gate per PROM 16 STAB consensus",
+            "N>16 findings → verification gate. Shannon 4-bit decomposition: 16 = 2^4 = 4 axis × 4 sub-axis matrix → log2(16)=4 bits of axis-information per cell. PROM 16 STAB consensus + Shannon 1948 channel-capacity derivation (ratified PROM 16 P1(b) 2026-05-30, see lean/Measurement_Prometheus_ShannonRatify.lean).",
         ),
         DispatchThreshold(
             "prometheus",

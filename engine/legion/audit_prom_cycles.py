@@ -111,6 +111,30 @@ def audit_tree(root: Path) -> dict[str, Any]:
     }
 
 
+def _print_file_violations(files: list[dict[str, Any]]) -> None:
+    """Print per-file violation detail (guard-clause flat — keeps main's complexity low)."""
+    print("\n--- VIOLATIONS ---")
+    for fr in files:
+        if not fr["violations"]:
+            continue
+        print(f"  {fr['path']}")
+        for v in fr["violations"][:5]:
+            print(f"    {v['commander']}.{v['metric']} ({v['scale']}) ← op={v['op']}")
+        extra = len(fr["violations"]) - 5
+        if extra > 0:
+            print(f"    ... {extra} more")
+
+
+def _print_report(report: dict[str, Any]) -> None:
+    """Human-readable report summary + violation detail."""
+    print(f"Files scanned:    {report['files_scanned']}")
+    print(f"Ops scanned:      {report['ops_scanned']}")
+    print(f"Violation count:  {report['violation_count']}")
+    print(f"GREEN:            {report['green']}")
+    if report["violation_count"]:
+        _print_file_violations(report["files"])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Audit PROM cycle findings for Stevens-scale violations"
@@ -126,19 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json_out:
         args.json_out.write_text(json.dumps(report, indent=2, ensure_ascii=False))
     if not args.quiet:
-        print(f"Files scanned:    {report['files_scanned']}")
-        print(f"Ops scanned:      {report['ops_scanned']}")
-        print(f"Violation count:  {report['violation_count']}")
-        print(f"GREEN:            {report['green']}")
-        if report["violation_count"]:
-            print("\n--- VIOLATIONS ---")
-            for fr in report["files"]:
-                if fr["violations"]:
-                    print(f"  {fr['path']}")
-                    for v in fr["violations"][:5]:
-                        print(f"    {v['commander']}.{v['metric']} ({v['scale']}) ← op={v['op']}")
-                    if len(fr["violations"]) > 5:
-                        print(f"    ... {len(fr['violations']) - 5} more")
+        _print_report(report)
     return 0 if report["green"] else 1
 
 
