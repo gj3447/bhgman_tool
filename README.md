@@ -76,9 +76,20 @@ The 7 비행기맨 commanders split by what a bare checkout actually runs:
 **Honest engine-maturity disclosure** (Naesengmoon `VR-bhgman-session-7commander-engines-2026-05-28`, CONDITIONAL):
 
 - **4 KG commanders** (occam/eureka/hades/longinus) — code + unit tests + **real end-to-end** (occam does real KG supersession against Neo4j; run with `--local` for zero infra). Eureka full power (gds.leiden/vector/AMIE3-Java) is opt-in and not exercised by default.
-- **3 LLM commanders** (prom/tlb/dispatch) — code + unit tests **with a `FakeAnthropic` double**; the real Anthropic API path (web_search loop, effort, caching) is **not yet smoke-tested with a live key**. Structure is complete and degrades gracefully, but "runs against a real LLM" is unverified until you supply a key.
+- **3 LLM commanders** (prom/tlb/dispatch) — code + unit tests **with a `FakeAnthropic` double**. The **OpenAI-compatible path (`BHGMAN_LLM_BASE_URL`, any local vLLM/Ollama) is verified end-to-end against a real LLM** (2026-05-30: `prom` produced a full Consensus/Divergence report and `tlb` returned live verdicts via a local Qwen2.5 served by Ollama and by vLLM on a GB10 box — no Anthropic key). The **Anthropic-specific** features (the hosted `web_search` server-tool, effort, caching) still need a live `ANTHROPIC_API_KEY` and remain unverified — note that `web_search` is a server-side Anthropic tool, so a local backend has no web access (provenance value then depends on a retrieval layer you supply).
 - `eureka`'s `leiden_llm` operator is **greedy modularity (Clauset-Newman-Moore), a Leiden *family* member — not the Leiden algorithm itself**; large graphs delegate to `gds.leiden` (opt-in).
 - `harness`'s framework→4-axis mapping is a **subjective heuristic KB** (tier classification is the well-grounded part).
+
+### Measured efficacy — what this does NOT add (external A/B, 2026-05-30)
+
+Falsifiable A/B tests, scored by an **external oracle** (planted ground truth / live URL checks — *not* bhgman's own KG), with the base-LLM arm given **equal tool budget**:
+
+- **Deterministic engines add no capability.** On sha256 drift detection (incl. invisible zero-width / NBSP / homoglyph edits) and KG node-dedup, `longinus` / `occam` / `hades` score **F1 1.0 — but so does a base LLM with `shasum`/reasoning, at every scale tested (to 2000 files)**. The value is **determinism, exhaustiveness, idempotence, and a signed audit trail**, not "smarter than the model."
+- **Grounding works, but it's RAG-general.** Feeding real retrieved sources cut hallucinated citations **42.9% → 0%** — the value of *retrieval*, available to any LLM + retrieval; bhgman packages it, it doesn't invent it.
+- **The adversarial verify-gate (`tlb`/naesengmoon) was over-rejecting — fixed 2026-05-30.** An earlier prompt flagged sound, well-hedged work (precision fell to 0 *as the model scaled up* — a design, not capability, problem). A calibration fix (FAIL only on a *nameable* violation; honest hedging passes) restored it to **tie the base model while keeping 100% over-claim catch**.
+- **Composition emergence is governance, not cognition.** The 7-commander contract + oracle-gate pipeline (`legion`) deterministically catches integration failures with a tamper-evident **HMAC** audit trail — something ad-hoc orchestration doesn't give you by default — but it does **not** raise reasoning beyond the base model.
+
+**Bottom line: bhgman_tool is a governance / audit layer (reproducibility, provenance, contract enforcement, drift detection) — not a capability multiplier. Treat it as *discipline*, not *intelligence*.** Reproduce any of the above from `/tmp/bhgman_ab/`-style harnesses; numbers are deliberately un-flattering where the measurement said so.
 
 ```bash
 pip install 'bhgman_tool[agents]'; export ANTHROPIC_API_KEY=sk-...
