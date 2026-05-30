@@ -120,8 +120,8 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 |---|---|---|
 | `77 pytest PASS` (engine 부분) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 부분 pass count + runtime |
 | `268 pytest PASS` (전체 repo) | `uvx pre-commit run --all-files` (또는 root에서 `pytest -q`) | 전체 repo pre-commit gate pass count |
-| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton 무결성 |
-| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | 최상위 theorem count |
+| `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13개 standalone(Mathlib-free) 파일 빌드 + 미완성 증명 수(= 0; 트리의 모든 `sorry` 토큰은 주석 안) |
+| `87 theorems` (`lean/` 트리 전체; standalone 13파일 71) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | 최상위 theorem/lemma 선언 수 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 재실행 + KG output diff |
 
 **Goodhart disclaimer:** 이 스크립트들은 *지표 값의 재현성*을 검증하는 것이지, *그 지표가 측정하려는 것의 타당성*을 검증하는 게 아니다. theorem count / sorry count / pytest count는 모두 Goodhart-vulnerable — "이 숫자가 clean clone에서 안정적으로 도달 가능"을 확인하지, "이 숫자가 시스템이 정확하다는 의미"를 확인하지 않는다. 타당성은 증명 자체 / 테스트 본문 / cycle output에 있지 count에 있지 않다.

@@ -120,8 +120,8 @@ README 中所有定量 claim 都附有一条命令验证器。在干净的 clone
 |---|---|---|
 | `77 pytest PASS` (engine 子集) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 子集 pass count + runtime |
 | `268 pytest PASS` (整个 repo) | `uvx pre-commit run --all-files` (或在 root 运行 `pytest -q`) | 整个 repo pre-commit gate pass count |
-| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | 证明骨架完整性 |
-| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | 顶级 theorem 数量 |
+| `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 个 standalone(Mathlib-free)文件构建 + 未完成证明数(= 0；树中所有 `sorry` 标记都在注释里） |
+| `87 theorems` (整个 `lean/` 树；standalone 13 文件 71) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | 顶级 theorem/lemma 声明数量 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | 重跑 cycle 并 diff KG output |
 
 **Goodhart 声明:** 这些脚本验证的是*指标值的可复现性*,不是*指标所要度量之物的有效性*。theorem count / sorry count / pytest count 都易受 Goodhart 法则影响 — 它们确认"这个数字在 clean clone 上稳定可达",而非"这个数字意味着系统是正确的"。有效性在于证明本体、测试主体、cycle 输出,不在 count 里。

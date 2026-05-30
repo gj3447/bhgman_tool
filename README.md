@@ -171,8 +171,8 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 |---|---|---|
 | `267 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
 | `446 passed, 1 skipped` (full repo; 447 collected) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (the 1 skip is test_amie3 — needs Java 21) |
-| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | proof skeleton integrity |
-| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | top-level theorem count |
+| `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 standalone (Mathlib-free) files build + count of unfinished proofs (= 0; every `sorry` token in the tree is in a comment) |
+| `87 theorems` (whole `lean/` tree; 71 in the 13 standalone files) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | top-level theorem/lemma declaration count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
 
 **Goodhart disclaimer:** these scripts verify *reproducibility of the indicator value*, not *validity of what the indicator measures*. Theorem count, sorry count, and pytest count are Goodhart-vulnerable — they confirm "this number is stable and reachable from a clean clone," not "this number means the system is correct." Validity lives in the proofs themselves, the test bodies, and the cycle outputs — not the count.

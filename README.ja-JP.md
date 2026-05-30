@@ -120,8 +120,8 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 |---|---|---|
 | `77 pytest PASS` (engine 部分) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 部分 pass count + runtime |
 | `268 pytest PASS` (リポジトリ全体) | `uvx pre-commit run --all-files` (またはルートで `pytest -q`) | リポジトリ全体の pre-commit gate pass count |
-| `Lean 4: sorry=0, build=OK` | `cd lean && lake build && grep -rn 'sorry' src/ \| wc -l` | 証明骨格の完全性 |
-| `141+ theorems` | `cd lean && grep -rcE '^(theorem\|lemma) ' src/` | トップレベル theorem 数 |
+| `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 個の standalone(Mathlib-free)ファイルをビルド + 未完成の証明数(= 0；ツリー内の全 `sorry` トークンはコメント内) |
+| `87 theorems` (`lean/` ツリー全体；standalone 13 ファイルで 71) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | トップレベル theorem/lemma 宣言数 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 再実行 + KG output diff |
 
 **Goodhart 免責事項:** これらのスクリプトは*指標値の再現性*を検証するもので、*指標が測ろうとするものの妥当性*を検証するものではありません。theorem count / sorry count / pytest count は全て Goodhart 法則に対して脆弱 — 「この数字がクリーン clone から安定的に到達可能」を確認するのであって、「この数字がシステムが正しいことを意味する」を確認するわけではありません。妥当性は証明そのもの、テスト本体、cycle output に宿るのであって、count に宿るのではありません。
