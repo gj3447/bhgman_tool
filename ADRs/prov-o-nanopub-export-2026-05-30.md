@@ -1,6 +1,6 @@
 # ADR: PROV-O / nanopub export — provenance interop로 vendor-silo 회피
 
-- **Status**: PRELIMINARY (propose, awaiting user CANONICAL verdict)
+- **Status**: PRELIMINARY (propose, awaiting user CANONICAL verdict) — **MVP IMPLEMENTED 2026-05-30** (`engine/provexport/`, 6 tests GREEN, validated on real `prom6` cycle → 223-triple PROV-O Turtle, `docs/05-papers/prom6_provenance.ttl`)
 - **Date proposed**: 2026-05-30
 - **KG ref**: `consensus-prom6-bhgman-paths-2026-05-30`, `bhgman-tool-academic-significance-2026-05-30`
 - **Parent constraints**:

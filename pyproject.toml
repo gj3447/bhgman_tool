@@ -56,6 +56,12 @@ code_to_kg = [
     "tree-sitter-python>=0.23",
     "jedi>=0.19",  # LSP-grade cross-file CALLS/INHERITS enrichment (enrich.py)
 ]
+# provexport — KG findings → W3C PROV-O / nanopub interop (ADR prov-o-nanopub-export-2026-05-30)
+provexport = [
+    "prov>=2.1",
+    "rdflib>=7.0",
+    "lxml>=5.0",  # prov serializer registry eager-loads provxml
+]
 # APT v27 A7 fail-closed gate endpoint (engine/gate, Wave 7 P3-H 2026-05-14)
 gate = [
     "fastapi>=0.115.0",
@@ -227,6 +233,7 @@ DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
           "tree_sitter", "tree_sitter_python", "jedi",  # optional AST adapter + LSP enrich ([code_to_kg] extra, graceful import)
           "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
           "anthropic",     # 2026-05-28 — optional [agents] dep, lazy import in engine/agents/client.py
+          "prov", "rdflib", "lxml",  # 2026-05-30 — optional [provexport] extra, lazy import in engine/provexport
          ]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
@@ -241,6 +248,7 @@ DEP002 = [
   "pre-commit",       # wave11 — local 4-ratchet gate (uvx-invoked, no Python import)
   "opentelemetry-sdk",          # wave12 [otel] — importorskip in test_otel_channel.py
   "opentelemetry-exporter-otlp",# wave12 [otel] — runtime OTLP export, host-configured (no direct import)
+  "lxml",             # 2026-05-30 [provexport] — prov serializer registry eager-loads provxml, no direct import
 ]
 
 [tool.pytest.ini_options]

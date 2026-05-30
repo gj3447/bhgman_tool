@@ -1,0 +1,233 @@
+@prefix bhgman: <https://bhgman.ai/kg/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+bhgman:finding-prom6-A1-swe-impl a prov:Entity,
+        bhgman:ResearchFinding ;
+    prov:qualifiedGeneration [ a prov:Generation ;
+            prov:activity bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 ;
+            prov:atTime "2026-05-30T09:38:56+00:00"^^xsd:dateTime ] ;
+    prov:qualifiedPrimarySource [ a prov:PrimarySource ;
+            prov:entity bhgman:src-c1d7b46379ba780e ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-1321403c8a5e5d00 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-0a3f5bcc769ee650 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-935cb7be8b2d5b07 ] ;
+    prov:value "mini-swe-agent wrap + bhgman Longinus KG ego-subgraph inject = ablation arm; RepoGraph ICLR25 +32.8%."^^xsd:string ;
+    prov:wasAttributedTo bhgman:agent-prom-prom6-A1 ;
+    bhgman:confidence "HIGH"^^xsd:string ;
+    bhgman:domain "A SWE-adapter × impl"^^xsd:string .
+
+bhgman:finding-prom6-A2-swe-cost a prov:Entity,
+        bhgman:ResearchFinding ;
+    prov:qualifiedGeneration [ a prov:Generation ;
+            prov:activity bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 ;
+            prov:atTime "2026-05-30T09:38:56+00:00"^^xsd:dateTime ] ;
+    prov:qualifiedPrimarySource [ a prov:PrimarySource ;
+            prov:entity bhgman:src-d3808a5adf94bbfb ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-8b77a800195570ae ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-73f634e525b54e0c ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-c775d69134488e65 ] ;
+    prov:value "leanest: 50-instance Verified Mini KG-on/off; ~$150-300, 3-6h, ~5 eng days, ~50GB."^^xsd:string ;
+    prov:wasAttributedTo bhgman:agent-prom-prom6-A2 ;
+    bhgman:confidence "MEDIUM"^^xsd:string ;
+    bhgman:domain "A SWE-adapter × MVP-cost"^^xsd:string .
+
+bhgman:finding-prom6-A3-swe-buys a prov:Entity,
+        bhgman:ResearchFinding ;
+    prov:qualifiedGeneration [ a prov:Generation ;
+            prov:activity bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 ;
+            prov:atTime "2026-05-30T09:38:56+00:00"^^xsd:dateTime ] ;
+    prov:qualifiedPrimarySource [ a prov:PrimarySource ;
+            prov:entity bhgman:src-0bf6415114d53af8 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-1f2f4679d8f443e2 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-8eaad016e3e430c6 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-3a055281a39e6bed ] ;
+    prov:value "CATEGORY TRAP: SWE-bench proves KG-helps-coding (known: CodexGraph/RepoGraph/KGCompass), not bhgman provenance."^^xsd:string ;
+    prov:wasAttributedTo bhgman:agent-prom-prom6-A3 ;
+    bhgman:confidence "HIGH"^^xsd:string ;
+    bhgman:domain "A SWE-adapter × what-it-buys"^^xsd:string .
+
+bhgman:finding-prom6-B1-provo-impl a prov:Entity,
+        bhgman:ResearchFinding ;
+    prov:qualifiedGeneration [ a prov:Generation ;
+            prov:activity bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 ;
+            prov:atTime "2026-05-30T09:38:56+00:00"^^xsd:dateTime ] ;
+    prov:qualifiedPrimarySource [ a prov:PrimarySource ;
+            prov:entity bhgman:src-cd59e0f3e1410d61 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-9f9cb7868843e0cb ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-6e48bcc4a04d13b7 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-f6eb08b3318f23db ] ;
+    prov:value "PROV-O via prov lib 1:1 mapping; layered PROV-O -> nanopub -> RO-Crate."^^xsd:string ;
+    prov:wasAttributedTo bhgman:agent-prom-prom6-B1 ;
+    bhgman:confidence "HIGH"^^xsd:string ;
+    bhgman:domain "B PROV-O export × impl"^^xsd:string .
+
+bhgman:finding-prom6-B2-provo-cost a prov:Entity,
+        bhgman:ResearchFinding ;
+    prov:qualifiedGeneration [ a prov:Generation ;
+            prov:activity bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 ;
+            prov:atTime "2026-05-30T09:38:56+00:00"^^xsd:dateTime ] ;
+    prov:qualifiedPrimarySource [ a prov:PrimarySource ;
+            prov:entity bhgman:src-9c4582ed19cc2f2b ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-a5b1470caa466ba7 ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-480a6787c007304e ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-460242f158a7599b ] ;
+    prov:value "WEEKEND, pure-python, no external service: bhgman export-prov <cycle_id> -> Turtle; rdflib + prov validate."^^xsd:string ;
+    prov:wasAttributedTo bhgman:agent-prom-prom6-B2 ;
+    bhgman:confidence "HIGH"^^xsd:string ;
+    bhgman:domain "B PROV-O export × MVP-cost"^^xsd:string .
+
+bhgman:finding-prom6-B3-provo-buys a prov:Entity,
+        bhgman:ResearchFinding ;
+    prov:qualifiedGeneration [ a prov:Generation ;
+            prov:activity bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 ;
+            prov:atTime "2026-05-30T09:38:56+00:00"^^xsd:dateTime ] ;
+    prov:qualifiedPrimarySource [ a prov:PrimarySource ;
+            prov:entity bhgman:src-c09c8367379f67bc ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-c865798e4e7bb7df ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-14c391f576be580b ],
+        [ a prov:PrimarySource ;
+            prov:entity bhgman:src-4e2d87574a2a5a5f ] ;
+    prov:value "PARTIALLY: export strengthens presentation (FAIR-citable) not substance; no consumer audience; fixes zero adoption gap."^^xsd:string ;
+    prov:wasAttributedTo bhgman:agent-prom-prom6-B3 ;
+    bhgman:confidence "MEDIUM"^^xsd:string ;
+    bhgman:domain "B PROV-O export × what-it-buys"^^xsd:string .
+
+bhgman:agent-prom-prom6-A1 a prov:Agent,
+        prov:SoftwareAgent ;
+    bhgman:kind "prov-agent:AIAgent"^^xsd:string .
+
+bhgman:agent-prom-prom6-A2 a prov:Agent,
+        prov:SoftwareAgent ;
+    bhgman:kind "prov-agent:AIAgent"^^xsd:string .
+
+bhgman:agent-prom-prom6-A3 a prov:Agent,
+        prov:SoftwareAgent ;
+    bhgman:kind "prov-agent:AIAgent"^^xsd:string .
+
+bhgman:agent-prom-prom6-B1 a prov:Agent,
+        prov:SoftwareAgent ;
+    bhgman:kind "prov-agent:AIAgent"^^xsd:string .
+
+bhgman:agent-prom-prom6-B2 a prov:Agent,
+        prov:SoftwareAgent ;
+    bhgman:kind "prov-agent:AIAgent"^^xsd:string .
+
+bhgman:agent-prom-prom6-B3 a prov:Agent,
+        prov:SoftwareAgent ;
+    bhgman:kind "prov-agent:AIAgent"^^xsd:string .
+
+bhgman:src-0a3f5bcc769ee650 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "https://arxiv.org/abs/2410.14684"^^xsd:string .
+
+bhgman:src-0bf6415114d53af8 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "RepoGraph"^^xsd:string .
+
+bhgman:src-1321403c8a5e5d00 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "RepoGraph ICLR2025 (arXiv:2410.14684)"^^xsd:string .
+
+bhgman:src-14c391f576be580b a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "EU AI Act Art.12"^^xsd:string .
+
+bhgman:src-1f2f4679d8f443e2 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "https://arxiv.org/abs/2408.03910"^^xsd:string .
+
+bhgman:src-3a055281a39e6bed a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "CodexGraph NAACL2025"^^xsd:string .
+
+bhgman:src-460242f158a7599b a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "prov 2.1.1"^^xsd:string .
+
+bhgman:src-480a6787c007304e a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "https://prov.readthedocs.io/"^^xsd:string .
+
+bhgman:src-4e2d87574a2a5a5f a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "nanopub ESWC2025"^^xsd:string .
+
+bhgman:src-6e48bcc4a04d13b7 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "https://www.w3.org/TR/prov-o/"^^xsd:string .
+
+bhgman:src-73f634e525b54e0c a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "Epoch AI registry 30GiB"^^xsd:string .
+
+bhgman:src-8b77a800195570ae a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "HAL Verified Mini 50"^^xsd:string .
+
+bhgman:src-8eaad016e3e430c6 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "KGCompass"^^xsd:string .
+
+bhgman:src-935cb7be8b2d5b07 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "mini-swe-agent"^^xsd:string .
+
+bhgman:src-9c4582ed19cc2f2b a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "nanopub-py"^^xsd:string .
+
+bhgman:src-9f9cb7868843e0cb a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "nanopub-py / PROV-AGENT (arXiv:2508.02866)"^^xsd:string .
+
+bhgman:src-a5b1470caa466ba7 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "rdflib 7.x"^^xsd:string .
+
+bhgman:src-c09c8367379f67bc a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "https://link.springer.com/article/10.1007/s00799-025-00431-x"^^xsd:string .
+
+bhgman:src-c1d7b46379ba780e a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "SWE-bench Verified + sb-cli"^^xsd:string .
+
+bhgman:src-c775d69134488e65 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "https://epoch.ai/blog/swebench-docker"^^xsd:string .
+
+bhgman:src-c865798e4e7bb7df a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "Provenance-driven nanopublications (Springer 2025)"^^xsd:string .
+
+bhgman:src-cd59e0f3e1410d61 a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "prov 2.1.1 + rdflib"^^xsd:string .
+
+bhgman:src-d3808a5adf94bbfb a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "mini-swe-agent $3/instance"^^xsd:string .
+
+bhgman:src-f6eb08b3318f23db a prov:Entity,
+        bhgman:PrimarySource ;
+    bhgman:url "W3C PROV-O"^^xsd:string .
+
+bhgman:cycle-prom6-bhgman-significance-paths-2026-05-30 a prov:Activity .
