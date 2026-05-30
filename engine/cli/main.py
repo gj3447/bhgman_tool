@@ -403,6 +403,30 @@ ORDER BY count DESC
 LIMIT 20;"""
 
 
+def cmd_longinus_floating(args: argparse.Namespace) -> int:
+    """Floating concept-node scan — concept nodes with no Longinus binding to source.
+
+    Operationalizes lesson-concept-nodes-created-without-longinus-binding-float-2026-05-29:
+    a concept node created without a binding to a SourceCodeNode "floats" (unreachable by
+    legion synthesis / TPA recovery). Local KG only; reports, never writes.
+    """
+    store_mod = _load_engine_module("kg_local", "store")
+    scan_mod = _load_engine_module("kg_local", "floating_scan")
+    store = store_mod.LocalKgStore()
+    floating = scan_mod.find_floating_concepts(store.nodes, store.edges)
+    total = sum(
+        1 for n in store.nodes if any(lbl in scan_mod.CONCEPT_LABELS for lbl in n.get("labels", []))
+    )
+    ratio = scan_mod.floating_ratio(total_concepts=total, floating_count=len(floating))
+    status = "CLEAN" if not floating else "UNBOUND"
+    print(
+        f"longinus-floating: concepts={total} floating={len(floating)} ratio={ratio:.2f} → {status}"
+    )
+    for name in floating:
+        print(f"  [floating] {name} — no edge to a SourceCodeNode (bind via longinus)")
+    return 0 if not floating else 1
+
+
 # ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ───────────────────
 # KG: span-bhgman-resolver-gate-absorption-wave7-2026-05-14
 # Provenance: SYMPOSIUM/THEORY/APT/resolver_prototype + gate_endpoint_prototype
@@ -840,6 +864,12 @@ def build_parser() -> argparse.ArgumentParser:
         "op", nargs="+", help="Operation: sha256 / ged / reverse-scan / <freeform>."
     )
     p_long.set_defaults(func=cmd_longinus)
+
+    p_lfloat = sub.add_parser(
+        "longinus-floating",
+        help="Floating concept-node scan — concept nodes with no binding to source (local KG).",
+    )
+    p_lfloat.set_defaults(func=cmd_longinus_floating)
 
     p_hns = sub.add_parser("harness", help="하네스 3계층/4축 진단 (결정론 엔진). --route=skill.")
     p_hns.add_argument("action", nargs="+", help="진단 대상 (프레임워크명 또는 설명 텍스트).")
