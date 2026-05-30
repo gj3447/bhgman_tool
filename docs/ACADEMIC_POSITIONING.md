@@ -51,6 +51,28 @@ Secondary: the 7-verb taxonomy is *principled but not formally orthogonal* (prom
 | 4 | **BFCL / AgentBench-KG** | Tests the 7-commander tool-routing under distractors. | low |
 | 5 | **Formal orthogonality** of the 7 verbs — OR drop the orthogonality claim and frame as *lifecycle coverage* | Honesty: either prove MECE or stop implying it. | low |
 
+## 6. Two paths to raise significance — how to execute (PROM-6, 2026-05-30)
+
+> KG: `consensus-prom6-bhgman-paths-2026-05-30` (6 findings). The surprise: **neither benchmark answers the real question.**
+
+### Path A — coding-adapter for real SWE-bench
+- **How**: wrap `mini-swe-agent` (~100 lines, >74% Verified) and inject a bhgman/Longinus-built Neo4j ego-subgraph of the repo into the agent's context as the KG-on ablation arm (mirrors RepoGraph ICLR 2025, +32.8%). Run KG-on vs KG-off, grade via `run_evaluation`/`sb-cli`.
+- **Cost**: 50-instance Verified-Mini pilot ≈ **$150–300, 3–6h wall-clock, ~5 eng-days, ~50GB disk** (Docker).
+- **What it buys — CATEGORY TRAP (HIGH confidence)**: a positive delta proves "KG context helps coding" — **already established** (CodexGraph 22.96%, RepoGraph +32.8%, KGCompass 58.3% SOTA). It does **not** measure bhgman's actual claim (auditable provenance). Risk = credibility laundering: "beats baseline on SWE-bench" reads as "architecture validated" when only "KG-helps-coding" (a generic result) was shown.
+
+### Path B — PROV-O / nanopub export
+- **How**: `bhgman export-prov <cycle_id>` — query Neo4j → `prov.ProvDocument` (ResearchFinding→`prov:Entity`, cycle→`prov:Activity`, agentId→`prov:SoftwareAgent`/PROV-AGENT `AIAgent`, GERMINATED_FROM→`wasDerivedFrom`, citation_url→`hadPrimarySource`) → Turtle. Layered: PROV-O core → nanopub (Trusty URI) → RO-Crate.
+- **Cost**: **a weekend (2–3 days), pure-python, zero external services, no Docker.** Validate by rdflib round-trip + prov constraint check.
+- **What it buys — necessary but insufficient (MEDIUM)**: kills the "vendor silo" critique and makes findings FAIR-citable, but **no consumer audience currently pulls for it** (nanopub≈bioinfo, EU AI Act Art.12≈high-risk only). Interop fixes **zero** of the adoption gap — it's downstream of adoption, not upstream.
+
+### The honest recommendation
+The two adversarial lenses (A3 vs B3) disagreed on priority, and resolving it reveals the real answer: **"does bhgman matter" is not a benchmark question.** SWE-bench tests an already-solved, non-differentiating axis (KG-helps-coding) — a positive result would show bhgman ≈ existing repo-graph coders (no differentiation), a negative shows nothing. PROV-O defends presentation but can't manufacture users.
+
+**Priority:**
+1. **PROV-O export first** — weekend, $0, no infra, removes the vendor-silo critique, makes findings FAIR-citable. Lowest-risk defensive move worth doing.
+2. **Skip full SWE-bench for the differentiation claim** — it's a category trap. If a coding signal is wanted, run the 50-instance pilot but frame it narrowly: *"orchestration doesn't degrade coding,"* not *"bhgman is validated."*
+3. **The actual `does-it-matter` test = a provenance-audit protocol** (can a third party reconstruct each decision from the KG alone, without model re-inference? does the KG enable targeted post-hoc correction without a full re-run?) **+ at least one external user.** Neither is a benchmark.
+
 ## Bottom line
 
 bhgman_tool is a **well-engineered hypothesis**, not yet a demonstrated result. It is *not* meaningless self-referential framework-building — it occupies a real and converging gap. But until a single external benchmark (SWE-bench Verified + KG-ablation) shows the KG-anchored orchestration beats a no-KG baseline on tasks bhgman didn't design, its significance remains asserted. **The most needed thing is also the cheapest.**

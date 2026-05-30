@@ -30,7 +30,7 @@ class TestBackfillOne:
             (0.42, "REJECTED", "vr-002"),
             (0.71, "CONDITIONAL_APPROVED", "vr-003"),
         ]
-        appended, skipped = backfill_one(
+        appended, skipped, _dup = backfill_one(
             log, "confidence", "naesengmoon", "confidence_proxy", pairs
         )
         assert appended == 3
@@ -48,7 +48,7 @@ class TestBackfillOne:
             (0.7, "INTENTIONAL_EDIT", "vr-c"),
             (0.8, "APPROVED", "vr-d"),
         ]
-        appended, skipped = backfill_one(
+        appended, skipped, _dup = backfill_one(
             log, "confidence", "naesengmoon", "confidence_proxy", pairs
         )
         assert appended == 1
@@ -64,6 +64,27 @@ class TestBackfillOne:
 
     def test_empty_pairs_no_writes(self, tmp_path: Path) -> None:
         log = DispatchInstrumentLog(path=tmp_path / "log.jsonl")
-        appended, skipped = backfill_one(log, "any", "prometheus", "x", [])
+        appended, ambig, dup = backfill_one(log, "any", "prometheus", "x", [])
         assert appended == 0
-        assert skipped == 0
+        assert ambig == 0
+        assert dup == 0
+
+    def test_incremental_dedup_skips_existing(self, tmp_path: Path) -> None:
+        from engine.legion.threshold_derivation.backfill_kg import existing_dispatch_ids
+
+        log = DispatchInstrumentLog(path=tmp_path / "log.jsonl")
+        pairs = [(0.85, "APPROVED", "vr-A"), (0.42, "REJECTED", "vr-B")]
+        backfill_one(log, "confidence", "naesengmoon", "confidence_proxy", pairs)
+        seen = existing_dispatch_ids(log)
+        assert len(seen) == 2
+        new_pairs = [
+            (0.85, "APPROVED", "vr-A"),
+            (0.42, "REJECTED", "vr-B"),
+            (0.71, "APPROVED", "vr-C"),
+        ]
+        appended, ambig, dup = backfill_one(
+            log, "confidence", "naesengmoon", "confidence_proxy", new_pairs, seen_ids=seen
+        )
+        assert appended == 1
+        assert dup == 2
+        assert ambig == 0
