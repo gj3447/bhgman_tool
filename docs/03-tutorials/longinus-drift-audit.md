@@ -1,6 +1,6 @@
 # Tutorial — Longinus Drift Audit (실 코드 walkthrough)
 
-> KG (knowledge graph) 와 source code 간 *참조 drift* 를 검출하는 실 도구. Pydantic v2 + 77 pytest PASS. 사용자가 실제로 돌릴 수 있는 시나리오.
+> KG (knowledge graph) 와 source code 간 *참조 drift* 를 검출하는 실 도구. Pydantic v2 + 298 pytest PASS. 사용자가 실제로 돌릴 수 있는 시나리오.
 
 ---
 
@@ -266,5 +266,5 @@ chat 에서:
 - [../02-concepts/harness.md](../02-concepts/harness.md) §Longinus reference layer
 - [../05-papers/foster-pierce-walker-2007-bx-lens.md](../05-papers/foster-pierce-walker-2007-bx-lens.md) — BX Lens 정전
 - [../05-papers/frege-1892-sense-reference.md](../05-papers/frege-1892-sense-reference.md) — Sinn ↔ Bedeutung 형이상학
-- [../04-references/lean-theorems.md](../04-references/lean-theorems.md) — 50 theorem list
+- [../04-references/lean-theorems.md](../04-references/lean-theorems.md) — 71-theorem list (tree 87)
 - `engine/longinus_drift_audit/README.md` — 측 자체 docs (예정)

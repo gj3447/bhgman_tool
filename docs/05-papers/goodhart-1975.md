@@ -50,7 +50,7 @@ For any framework claim, ask:
 
 If yes to all three → **Goodhart antipattern** active. KG: `errorpattern-goodhart-metric-optimization-marketing-2026-05-13`.
 
-bhgman's own metrics (50 Lean theorems, 77 pytest PASS, 17 axes) are *diagnostics*, not targets:
+bhgman's own metrics (71 Lean theorems, 298 pytest PASS, 17 axes) are *diagnostics*, not targets:
 - A theorem is *valid or invalid*. There's no "more valid" version to optimize.
 - A test passes or fails. There's no "more passing" version to optimize.
 - An axis is a *cited canonical work*. There's no number-of-citations-to-maximize.

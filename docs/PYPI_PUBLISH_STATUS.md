@@ -85,7 +85,7 @@ python -m twine upload dist/*
 git tag -a v0.1.0 -m "Release 0.1.0 — bhgman_tool first publish"
 git push origin v0.1.0
 gh release create v0.1.0 --title "bhgman_tool v0.1.0" \
-   --notes "First publish. 17 axes external grounding + 50 Lean theorems + Goodhart safeguard."
+   --notes "First publish. 17 axes external grounding + 71 Lean theorems + Goodhart safeguard."
 ```
 
 After success: update `PYPI_PUBLISH_STATUS.md` with `publish_result: SUCCESS`,

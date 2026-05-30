@@ -1,6 +1,17 @@
 # Lean 4 Verified Theorems — Index
 
-> 50 theorems total in this repo (Harness 24 + Longinus 26). All Mathlib-free standalone, 0 sorry, verified with Lean 4.29.1.
+> **71 theorems** in the 13 standalone Mathlib-free files (Harness 24 / Longinus 21 / Measurement 26), **0 proof-position `sorry`**, Lean 4. A separate Mathlib-sister proof (`apt_functor_with_mathlib/`, 16 theorems, needs `lake` + Mathlib) brings the `lean/` tree total to **87**. The broader SYMPOSIUM ecosystem holds **141+** (see [Total verified count](#total-verified-count)).
+
+Reproduce the headline counts on a fresh clone:
+
+```bash
+# top-level theorem/lemma declarations across the whole lean/ tree → 87
+grep -rcE '^(theorem|lemma) ' lean/ | awk -F: '{s+=$2} END{print s}'
+# the 13 standalone (Mathlib-free) files only → 71
+grep -cE '^(theorem|lemma) ' lean/*.lean | awk -F: '{s+=$2} END{print s}'
+# proof-position sorry → 0 (every `sorry` token in the tree is in a comment/docstring)
+grep -rEn '(:=|by) +sorry' lean/*.lean | wc -l
+```
 
 ---
 
@@ -10,13 +21,16 @@
 # Prerequisite: Lean 4 (4.29+) via elan
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 
-# Build all 5 files
+# Build all 13 standalone files (Mathlib-free, fast, no lake)
 cd bhgman_tool/lean
 for f in *.lean; do
   echo "=== $f ==="
   lean "$f"
 done
-# Each file: exit 0, no error, no warning, 0 sorry
+# Each file: exit 0, no error, 0 proof-position sorry
+
+# The Mathlib-sister (16 theorems) builds separately and needs Mathlib:
+cd apt_functor_with_mathlib && lake build   # 628/628 jobs, 0 sorry
 ```
 
 ---
@@ -70,7 +84,7 @@ External canon: **Smith 1984** (Reflection and Semantics in a Procedural Languag
 
 ---
 
-## Longinus side — 26 theorems
+## Longinus side — 21 theorems
 
 ### `Longinus_ConfidenceSchema_GraphifyAbsorbed.lean` (7 theorems)
 
@@ -86,18 +100,101 @@ External canon: **Foster-Pierce-Walker 2007** (BX Lens Laws) + **Frege 1892** (S
 | 6 | `ambiguous_in_list_forces_preliminary` | Any AMBIGUOUS in aggregate ⇒ PRELIMINARY label forced |
 | 7 | `goodhart_safeguard_confidence_not_scalar` | Confidence enum cannot collapse to scalar (Goodhart resistance) |
 
-### `Longinus_HierarchicalMirror.lean` (~19 theorems)
+### `Longinus_HierarchicalMirror.lean` (10 theorems)
 
 External canon: **Longinus 7-Layer Reference Model** + **Sanfeliu-Fu 1983** (GED) + Hofstadter strange loop + family-expansion-pattern (SYMPOSIUM canon)
 
-(Summary — full theorem list inline in the .lean file)
-
-| Group | Theorems | Topics |
+| # | Theorem | Statement (informal) |
 |---|---|---|
-| L1-L7 layer correctness | ~7 | Each layer (AddressIndirection / Lifetime / TypePermission / SemioticBinding / DistributedIdentity / InformationCompression / AestheticIntentional) is well-formed and distinct |
-| Reference Site composition | ~4 | Composing references across layers preserves invariants |
-| Drift surjective mapping | ~4 | 5 drift types (Missing/Orphan/SigMismatch/PatternDiv/LabelRot) surjectively map onto 3 BX laws |
-| Hierarchical mirror | ~4 | Longinus 7-layer mirrors apostle/tool/instance vertical hierarchy |
+| 1 | `layer_l1_least` | L1 (AddressIndirection) is the least element of the 7-layer order |
+| 2 | `layer_l7_greatest` | L7 (AestheticIntentional) is the greatest element |
+| 3 | `project_total` | The layer projection is total over all reference sites |
+| 4 | `hierarchical_mirror_validity` | Longinus 7-layer mirrors the apostle/tool/instance vertical hierarchy |
+| 5 | `projection_partition` | Layer projection partitions reference sites (no overlap) |
+| 6 | `mirror_strength_iter7_promotion` | iter-7 promotion strengthens the mirror condition |
+| 7 | `drift_5_covers_3laws` | 5 drift types (Missing/Orphan/SigMismatch/PatternDiv/LabelRot) cover the 3 BX laws |
+| 8 | `ged_severity_total` | GED severity ordering is total |
+| 9 | `sevenlayer_composition_chain` | Composing references across the 7 layers preserves invariants |
+| 10 | `mirror_strength_iter8_stays_strong` | iter-8 keeps the mirror STRONG (no regression) |
+
+### `Longinus_RefinementSoundness.lean` (4 theorems)
+
+External canon: **Pierce TAPL 2002 §8/§15** (type soundness = Progress + Preservation) + refinement types §22
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `progress` | A non-terminal ReferenceSite state always takes a step (no stuck states) |
+| 2 | `preservation_trust_noninc` | Trust is monotone *non-increasing* under drift-resolution steps |
+| 3 | `soundness` | Progress ∧ Preservation (Pierce soundness for the drift state machine) |
+| 4 | `no_silent_promotion` | Corollary: no step raises trust (Goodhart safeguard at the dynamics level) |
+
+---
+
+## Measurement side — 26 theorems
+
+Stevens 1946 measurement-theory formalization of the legion's commander metrics, composition safety, and threshold-derivation invariants. (`Measurement_Phase5_DerivationSoundness.lean` carries decision *examples* via `decide`/`native_decide` rather than `theorem`/`lemma`, so it contributes 0 to the count.)
+
+### `Measurement_MetricScale.lean` (8 theorems)
+
+External canon: **Stevens 1946** (On the Theory of Scales of Measurement)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `nominal_subset_ordinal` | Valid-op set is monotone: nominal ⊂ ordinal |
+| 2 | `ordinal_subset_interval` | ordinal ⊂ interval |
+| 3 | `interval_subset_ratio` | interval ⊂ ratio |
+| 4 | `nominal_subset_ratio` | Composed transitivity nominal ⊂ ratio |
+| 5 | `count_always_valid` | Counting is valid on every scale |
+| 6 | `mean_invalid_nominal` | Mean is invalid on a nominal scale |
+| 7 | `mean_invalid_ordinal` | Mean is invalid on an ordinal scale |
+| 8 | `pct_only_ratio` | Percentage/division is valid only on a ratio scale |
+
+### `Measurement_CommanderMetrics.lean` (6 theorems)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `naesengmoon_lens_count_is_ordinal` | Lens count is an ordinal-scale metric |
+| 2 | `occam_archival_category_is_nominal` | Archival category is nominal |
+| 3 | `eureka_colimit_depth_is_ordinal` | Colimit depth is ordinal |
+| 4 | `lens_count_mean_blocked` | Taking a mean of lens counts is blocked (scale violation) |
+| 5 | `archival_category_mean_blocked` | Mean of archival categories is blocked |
+| 6 | `supersession_confidence_pct_allowed` | Supersession-confidence percentage is allowed (ratio scale) |
+
+### `Measurement_CompositionSafety.lean` (4 theorems)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `empty_chain_valid` | An empty commander chain is valid |
+| 2 | `invalid_step_kills_chain` | One invalid step invalidates the whole chain |
+| 3 | `chain_exceeds_max_depth_invalid` | A chain over `MAX_DISPATCH_DEPTH` is invalid |
+| 4 | `lens_count_mean_chain_blocked` | Scale violation propagates through composition |
+
+### `Measurement_Contract_MonoidIdentity.lean` (3 theorems)
+
+External canon: contract-dual coupling-threshold (SYMPOSIUM canon `consensus-prom16-contract-dual-coupling-threshold-2026-05-27`)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `contract_identity_at_coupling_zero` | At coupling=0 the contract degenerates to the monoid identity ε |
+| 2 | `threshold_forced_by_monoid_uniqueness` | The coupling=0 threshold is *forced* by monoid uniqueness, not tuned |
+| 3 | `epsilon_is_identity_zero_coupling` | ε is the identity element at zero coupling (sanity) |
+
+### `Measurement_Prometheus_ShannonRatify.lean` (3 theorems)
+
+External canon: **Shannon 1948** (information content)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `prom_16_is_4_bit` | PROM 16 = 4 bits of dispatch information |
+| 2 | `matrix_product_equals_standard` | The axis×sub-axis matrix product equals the standard count |
+| 3 | `threshold_is_minimum_4bit` | The dispatch threshold is the minimum 4-bit cut |
+
+### `Measurement_Phase4_EmpiricalValidation.lean` (2 theorems)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `empty_batch_valid` | An empty validation batch is vacuously valid |
+| 2 | `batch_invalid_if_head_invalid` | A batch is invalid if its head record is invalid |
 
 ---
 
@@ -109,39 +206,50 @@ External canon: **Longinus 7-Layer Reference Model** + **Sanfeliu-Fu 1983** (GED
 | HarnessSelfReference | 9 | 0 |
 | Harness_ACI_Mirror | 10 | 0 |
 | Longinus_ConfidenceSchema_GraphifyAbsorbed | 7 | 0 |
-| Longinus_HierarchicalMirror | 19 | 0 |
-| **TOTAL (this repo)** | **50** | **0** |
+| Longinus_HierarchicalMirror | 10 | 0 |
+| Longinus_RefinementSoundness | 4 | 0 |
+| Measurement_MetricScale | 8 | 0 |
+| Measurement_CommanderMetrics | 6 | 0 |
+| Measurement_CompositionSafety | 4 | 0 |
+| Measurement_Contract_MonoidIdentity | 3 | 0 |
+| Measurement_Prometheus_ShannonRatify | 3 | 0 |
+| Measurement_Phase4_EmpiricalValidation | 2 | 0 |
+| **Standalone subtotal (13 files, Mathlib-free)** | **71** | **0** |
+| apt_functor_with_mathlib/APTFunctorFactorization (Mathlib-sister, needs `lake`) | 16 | 0 |
+| **`lean/` tree total** | **87** | **0** |
 
-The broader SYMPOSIUM ecosystem holds **141+ Lean theorems** across APT/TPA cycles, sociological axiom formalization, and family-pattern verification. This repo contains *only the Harness + Longinus subset* relevant to the Airplane Man's tool layer.
+The broader SYMPOSIUM ecosystem holds **141+ Lean theorems** across APT/TPA cycles, sociological axiom formalization, and family-pattern verification. This repo contains *only the Harness + Longinus + Measurement subset* relevant to the Airplane Man's tool layer — the 141+ figure is the **ecosystem** count, not this repo's.
 
 ---
 
 ## Why Mathlib-free?
 
-Choice rationale:
+Choice rationale (applies to the 13 standalone files; the sister proof opts into Mathlib deliberately):
+
 1. **Reproducibility** — anyone with `lean` + `elan` can build, no Mathlib download (~1GB)
 2. **Independence** — no dependency on Mathlib's evolving API
 3. **Self-contained proofs** — every step inline, no hidden lemma library
 4. **Goodhart resistance** — *we don't optimize for theorem count*. Each theorem is a *checkpoint*, not a competitive metric.
 
 Trade-off accepted:
+
 - Some proofs are longer than they'd be with Mathlib
 - Limited reuse of generic algebraic infrastructure
-- Cannot directly invoke `Mathlib.CategoryTheory.*`
-
-For SYMPOSIUM's `lean-mathlib-functor-actual-build` future sprint, parallel Mathlib-tracked versions are planned (`MIND/lean_formalization/temporal_arc_with_mathlib/`).
+- Cannot directly invoke `Mathlib.CategoryTheory.*` (the sister proof exists precisely to discharge the Mathlib-tracked version)
 
 ---
 
-## Per-theorem citation table
+## Per-file citation table
 
-| Theorem | Primary citation |
+| File | Primary citation |
 |---|---|
-| Lawvere FPT theorems (1-5) | Lawvere 1969 |
-| Self-reference unification (6-14) | Yanofsky 2003 + Russell 1901 / Cantor 1891 / Tarski 1936 / Gödel 1931 / Lawvere 1969 |
-| ACI Mirror (15-24) | Smith 1984 + Kiczales et al. 1991 + Hofstadter 1979 + Cherns 1976 |
-| Confidence schema (25-31) | Foster-Pierce-Walker 2007 + Frege 1892 + graphify 2026 |
-| Longinus 7-Layer mirror (32-50) | (composite — see `Longinus_HierarchicalMirror.lean` header) |
+| Harness_LawvereFixedPoint | Lawvere 1969 |
+| HarnessSelfReference | Yanofsky 2003 + Russell 1901 / Cantor 1891 / Tarski 1936 / Gödel 1931 / Lawvere 1969 |
+| Harness_ACI_Mirror | Smith 1984 + Kiczales et al. 1991 + Hofstadter 1979 + Cherns 1976 |
+| Longinus_ConfidenceSchema_GraphifyAbsorbed | Foster-Pierce-Walker 2007 + Frege 1892 + graphify 2026 |
+| Longinus_HierarchicalMirror | Longinus 7-Layer model + Sanfeliu-Fu 1983 + family-expansion-pattern |
+| Longinus_RefinementSoundness | Pierce TAPL 2002 §8/§15/§22 |
+| Measurement_* | Stevens 1946 (+ Shannon 1948 for ShannonRatify; contract-dual canon for MonoidIdentity) |
 
 See [citations.md](citations.md) for full bibliographic detail.
 
@@ -149,7 +257,7 @@ See [citations.md](citations.md) for full bibliographic detail.
 
 ## Cross-references
 
-- [citations.md](citations.md) — 17 external canonical axes
+- [citations.md](citations.md) — external canonical axes
 - [related-work.md](related-work.md) — Industry comparisons + absorption record
 - [../02-concepts/airplane-man.md](../02-concepts/airplane-man.md) §Lean formalization
 - [../02-concepts/harness.md](../02-concepts/harness.md) §Formal verification

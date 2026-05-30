@@ -33,8 +33,8 @@ bhgman_tool (이 repo)         : Harness 도구 + 사용자 가용
 SYMPOSIUM (정전 본문)         : 12사도 framework / 5무기 / APT-TPA cycle / 메타휴모토닉
 
 본 repo 측 산출물:
-  Lean 4 verified theorem      : 50 (Harness 24 + Longinus 26)
-  Python runtime               : engine/longinus_drift_audit/ 77 pytest PASS
+  Lean 4 verified theorem      : 71 standalone (Harness 24 + Longinus 21 + Measurement 26); tree 87
+  Python runtime               : engine/longinus_drift_audit/ 298 pytest PASS
   Claude Code skill            : 21 (5무기 + APT/TPA cycle, 다른 사도 reference 포함)
   외부 정전 인용                : 17 axes (04-references/citations.md)
 ```
