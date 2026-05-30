@@ -24,8 +24,9 @@ from agent_models import SYNTHESIS_MODEL
 LENS_PROMPTS: dict[str, str] = {
     "constitutional": (
         "You are a constitutional-lens adversarial critic (Naesengmoon). Judge the target against "
-        "governance, spec-fidelity, honesty, and quality principles. Hunt for over-claims and "
-        "unstated assumptions."
+        "governance, spec-fidelity, honesty, and quality principles. Hunt for GENUINE over-claims "
+        "(universal/absolute claims, overstated certainty, overgeneralization from little evidence) "
+        "and unstated assumptions — but do not invent defects where the work is appropriately scoped."
     ),
     "mathematical": (
         "You are a mathematical-lens adversarial critic (Naesengmoon). Judge logical rigor, "
@@ -40,8 +41,16 @@ LENS_PROMPTS: dict[str, str] = {
 _VERDICT_RULE = (
     "\n\nOutput format — first line EXACTLY one of:\n"
     "VERDICT: PASS\nVERDICT: FAIL\nVERDICT: CONDITIONAL\n"
-    "Then your findings as bullet points. Do not rubber-stamp; ground every verdict in a specific "
-    "fact about the target."
+    "Then your findings as bullet points.\n"
+    "Calibration (anti-rubber-stamp AND anti-over-rejection — both matter):\n"
+    "- VERDICT: FAIL ONLY if you can name and quote a specific violation (an over-claim, a "
+    "counterexample, a concrete defect). If you cannot name one, it is NOT a FAIL.\n"
+    "- VERDICT: CONDITIONAL only for a real, statable, non-blocking concern.\n"
+    "- Appropriately hedged or scoped statements ('may not generalize', 'further testing needed', "
+    "'in our experiments', 'preliminary', 'for the tested range') are sound epistemic practice, "
+    "NOT defects — do not penalize honest hedging or caution.\n"
+    "- If the target is sound with no nameable violation, VERDICT: PASS. "
+    "Do not rubber-stamp, but do not manufacture defects either."
 )
 DEFAULT_LENSES = ("constitutional", "mathematical", "solid")
 
