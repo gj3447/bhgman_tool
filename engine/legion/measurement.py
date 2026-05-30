@@ -138,6 +138,40 @@ class CommanderBase(ABC):
         self._epoch: int = 0
         self._cached_snapshot: dict[str, float] | None = None
         self._lock: threading.RLock = threading.RLock()
+        # PROM 16 P3(a) wire: optional ground-truth outcome logger (None = no instrument).
+        self._instrument: object | None = None
+
+    def set_instrument_log(self, instrument_log: object | None) -> None:
+        """Inject a DispatchInstrumentLog. None disables (default)."""
+        with self._lock:
+            self._instrument = instrument_log
+
+    def record_outcome(
+        self,
+        decision: DispatchDecision,
+        outcome: int,
+        cycle_id: str | None = None,
+        dispatch_id: str | None = None,
+    ) -> None:
+        """Log ground-truth outcome for a past decision.
+
+        Caller invokes after the dispatched commander's verdict is known.
+        Silently no-ops if no instrument log was injected.
+        Validates outcome ∈ {0, 1} (delegated to log).
+        """
+        if self._instrument is None:
+            return
+        record = getattr(self._instrument, "record", None)
+        if record is None:
+            return
+        record(
+            commander=decision.source_commander,
+            metric=decision.metric_name,
+            value=decision.metric_value,
+            outcome=outcome,
+            cycle_id=cycle_id,
+            dispatch_id=dispatch_id,
+        )
 
     def _bump_epoch(self) -> None:
         """Invalidate cached snapshot. Call from any mutator method in subclass."""
