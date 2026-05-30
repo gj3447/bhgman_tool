@@ -181,6 +181,40 @@ class DurableDispatcher:
         with DurableDispatcher._gates_guard:
             return DurableDispatcher._gates.setdefault(key, threading.Lock())
 
+    def _dispatch_pending(
+        self,
+        cycle_id: str,
+        pending: list[SubagentSpec],
+        client,
+        max_workers: int,
+        dispatcher: Callable,
+        done: dict[str, SubagentResult],
+    ) -> dict[str, SubagentResult]:
+        if not pending:
+            return {}
+        fresh = dispatcher(pending, client, max_workers=max_workers)
+        for r in fresh:
+            self._log.record_spec(cycle_id, r)
+            if r.ok:
+                done[r.name] = r
+        return {r.name: r for r in fresh}
+
+    @staticmethod
+    def _assemble_ordered(
+        specs: list[SubagentSpec],
+        done: dict[str, SubagentResult],
+        fresh_by_name: dict[str, SubagentResult],
+    ) -> list[SubagentResult]:
+        ordered: list[SubagentResult] = []
+        for s in specs:
+            if s.name in done:
+                ordered.append(done[s.name])
+                continue
+            ordered.append(
+                fresh_by_name.get(s.name, SubagentResult(s.name, False, "", "not dispatched"))
+            )
+        return ordered
+
     def run(
         self,
         cycle_id: str,
@@ -195,33 +229,16 @@ class DurableDispatcher:
             raise CycleInFlight(f"cycle '{cycle_id}' already in flight (single-writer gate)")
         try:
             done = self._log.completed_specs(cycle_id)
-            is_resume = bool(done)
             self._log.append_cycle_event(
                 cycle_id,
-                "CYCLE_RESUMED" if is_resume else "CYCLE_STARTED",
+                "CYCLE_RESUMED" if done else "CYCLE_STARTED",
                 {"total": len(specs), "already_done": len(done)},
             )
             pending = [s for s in specs if s.name not in done]
-            if pending:
-                fresh = dispatcher(pending, client, max_workers=max_workers)
-                for r in fresh:
-                    self._log.record_spec(cycle_id, r)
-                    if r.ok:
-                        done[r.name] = r
-                fresh_by_name = {r.name: r for r in fresh}
-            else:
-                fresh_by_name = {}
-            # invariant 3: 최종 결과 = 입력 순서대로 (완료 replay + 이번 출격) 병합
-            ordered: list[SubagentResult] = []
-            for s in specs:
-                if s.name in done:
-                    ordered.append(done[s.name])
-                else:  # 이번에도 실패한 spec — 실패 결과 그대로
-                    ordered.append(
-                        fresh_by_name.get(
-                            s.name, SubagentResult(s.name, False, "", "not dispatched")
-                        )
-                    )
+            fresh_by_name = self._dispatch_pending(
+                cycle_id, pending, client, max_workers, dispatcher, done
+            )
+            ordered = self._assemble_ordered(specs, done, fresh_by_name)
             all_ok = all(r.ok for r in ordered)
             self._log.append_cycle_event(
                 cycle_id, "CYCLE_COMPLETED", {"ok": all_ok, "n": len(ordered)}

@@ -1,0 +1,110 @@
+# SYMPOSIUM 7-commander dispatch thresholds.
+#
+# Each entry mirrors a DispatchThreshold tuple in measurement.py.
+# Override precedence (high → low):
+#   BHGMAN_THRESHOLD_CONFIG=path/to.toml
+#   ~/.config/bhgman/thresholds.toml
+#   engine/legion/thresholds.toml  (this file, bundled defaults)
+#
+# Derivation methods recognized in `derivation_method`:
+#   roc_youden_j_1950, bayesian_map_beta_bernoulli_berger_1985,
+#   shannon_1948_channel_capacity, monoid_identity_uniqueness,
+#   krippendorff_alpha_2004, hardcoded_pending_derivation.
+#
+# Empty derived_at_cycle = derivation pending (P2/P3 ActionPlan).
+#
+# KG: actionplan-threshold-derivation-2026-05-30 P2(b)
+
+# ─── Prometheus ──────────────────────────────────────────────────────────
+[[threshold]]
+commander = "prometheus"
+target_commander = "naesengmoon"
+metric = "research_finding_count"
+value = 16.0
+comparator = "greater"
+derivation_method = "shannon_1948_channel_capacity"
+derived_at_cycle = "cycle-prom16-threshold-academic-derivation-2026-05-30"
+
+[[threshold]]
+commander = "prometheus"
+target_commander = "prometheus"
+metric = "external_grounding_ratio"
+value = 0.3
+comparator = "less"
+derivation_method = "hardcoded_pending_derivation"
+
+# ─── Eureka ──────────────────────────────────────────────────────────────
+[[threshold]]
+commander = "eureka"
+target_commander = "longinus"
+metric = "binding_density"
+value = 0.5
+comparator = "less"
+derivation_method = "hardcoded_pending_derivation"
+
+[[threshold]]
+commander = "eureka"
+target_commander = "prometheus"
+metric = "novelty_score"
+value = 0.4
+comparator = "less"
+derivation_method = "hardcoded_pending_derivation"
+
+# ─── Longinus ────────────────────────────────────────────────────────────
+[[threshold]]
+commander = "longinus"
+target_commander = "occam"
+metric = "sha256_drift_rate"
+value = 0.05
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
+# ─── Occam ───────────────────────────────────────────────────────────────
+[[threshold]]
+commander = "occam"
+target_commander = "naesengmoon"
+metric = "supersession_confidence"
+value = 0.7
+comparator = "less"
+derivation_method = "bayesian_map_beta_bernoulli_berger_1985"
+# N=0 instrumented samples — derived_at_cycle pending OccamPass instrumentation.
+
+# ─── Naesengmoon ─────────────────────────────────────────────────────────
+[[threshold]]
+commander = "naesengmoon"
+target_commander = "naesengmoon"
+metric = "rti_fvr"
+value = 0.7
+comparator = "less"
+derivation_method = "roc_youden_j_1950"
+derived_at_cycle = "cycle-prom16-threshold-academic-derivation-2026-05-30"
+# Confidence-proxy derivation: τ*=0.680 N=31. Hardcoded 0.7 within ±0.02 of
+# derived value; kept until N_neg ≥ 30.
+
+# ─── Jaebaeman ───────────────────────────────────────────────────────────
+[[threshold]]
+commander = "jaebaeman"
+target_commander = "naesengmoon"
+metric = "subagent_collect_drift"
+value = 0.1
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
+# ─── Hades ───────────────────────────────────────────────────────────────
+[[threshold]]
+commander = "hades"
+target_commander = "naesengmoon"
+metric = "spec_ambiguity"
+value = 0.5
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
+# ─── Contract (root axiom) ───────────────────────────────────────────────
+[[threshold]]
+commander = "contract"
+target_commander = "_identity_"
+metric = "coupling_degree"
+value = 0.0
+comparator = "equal"
+derivation_method = "monoid_identity_uniqueness"
+derived_at_cycle = "cycle-prom16-threshold-academic-derivation-2026-05-30"
