@@ -202,9 +202,11 @@ known_first_party = [
   # + 실전화 2026-05-27: ACCEPTED 추상 fetch → realize end-to-end runner
   "hades", "hades_models", "hades_runner",
   # engine/kg_local — neo4j-free 로컬 KG backend (2026-05-28), flat-layout bare imports
-  "schema", "store", "runner",
+  "schema", "store", "runner", "floating_scan",
   # engine/agents — LLM 군단장 런타임 (재배맨 dispatch / 프로메테우스 / 나생문), flat-layout bare imports
+  # + durable: AX durable-execution wrapper (멱등 재시도 + 체크포인트, 2026-05-30)
   "agent_models", "client", "dispatch", "prometheus", "naesengmoon", "fake_anthropic",
+  "durable",
   # engine/harness — 3계층/4축 진단 엔진 (2026-05-28), flat-layout bare imports
   "harness", "harness_models",
   # engine/eureka bare module referenced by kg_local coupling-contract test (2026-05-28)
