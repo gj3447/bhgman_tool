@@ -83,8 +83,7 @@ def test_validate_detects_bare_inline_number(mock_kg, tmp_path):
 def test_validate_allows_parenthetical_hint(mock_kg, tmp_path):
     skill = tmp_path / "with_hint.md"
     skill.write_text(
-        "---\nname: ok\n---\n\n"
-        "vibe coding sweet `{{cfg.vibe_coding_sweet_min}}` (현재 200) 줄.\n"
+        "---\nname: ok\n---\n\nvibe coding sweet `{{cfg.vibe_coding_sweet_min}}` (현재 200) 줄.\n"
     )
     report = resolver.validate(skill, mock_kg)
     assert not report.bare_inline_numbers, "괄호 안 reader-facing 안내는 위반 X"

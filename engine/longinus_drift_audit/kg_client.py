@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Iterable
+from typing import Any, Iterable
 
 from engine.longinus_drift_audit.models import (
     KgRefRecord,
@@ -85,6 +85,15 @@ class KgClient(ABC):
         """Resolve a forward orphan by writing package_path/source_file/ruflo_grade."""
         ...
 
+    def run(self, cypher: str, **params: Any) -> list[dict[str, Any]]:
+        """Execute a raw read query, returning rows as dicts.
+
+        Generic escape hatch used by audits that need ad-hoc Cypher (e.g.
+        DispatchAuditor cardinality drift). Default raises; concrete clients
+        override. Non-abstract so existing subclasses stay valid.
+        """
+        raise NotImplementedError("run() not supported by this KgClient")
+
 
 class MockKgClient(KgClient):
     def __init__(
@@ -108,6 +117,11 @@ class MockKgClient(KgClient):
                 self.hubs[h.name] = h
         self.drift_events: list[SourceCodeDriftEvent] = []
         self.other_nodes: set[str] = set()
+        self.run_rows: list[dict[str, Any]] = []
+
+    def run(self, cypher: str, **params: Any) -> list[dict[str, Any]]:
+        """Return injected fake rows (tests set ``self.run_rows``)."""
+        return list(self.run_rows)
 
     def list_reference_sites(self) -> list[KgRefRecord]:
         return list(self.refs.values())
@@ -166,6 +180,10 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
     def close(self) -> None:
         self._driver.close()
 
+    def run(self, cypher: str, **params: Any) -> list[dict[str, Any]]:
+        with self._driver.session() as s:
+            return [dict(r) for r in s.run(cypher, **params)]
+
     def list_reference_sites(self) -> list[KgRefRecord]:
         # Filter null sourceId/sourcePath in Cypher: such nodes carry no usable
         # drift-comparison key, and KgRefRecord requires both to be str. (Live
@@ -191,7 +209,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
     def has_node(self, name: str) -> bool:
         with self._driver.session() as s:
             row = s.run(
-                "MATCH (n) WHERE n.name = $name OR n.sourceId = $name " "RETURN count(n) AS c",
+                "MATCH (n) WHERE n.name = $name OR n.sourceId = $name RETURN count(n) AS c",
                 name=name,
             ).single()
             return bool(row and row["c"] > 0)

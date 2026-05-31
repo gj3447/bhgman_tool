@@ -19,6 +19,7 @@ class DriftType(str, Enum):
     SIG_MISMATCH = "SigMismatch"  # PutGet violation: ref ↔ 시그니처 불일치
     PATTERN_DIV = "PatternDiv"  # PutPut violation: 동일 대상 ↔ 상충 ref
     LABEL_ROT = "LabelRot"  # PutPut violation: 라벨/이름 변경 미반영
+    DISPATCH_DRIFT = "DispatchDrift"  # cardinality: dispatch intent_N ≠ actual_N (jaebaeman V5)
 
 
 class ReferenceLayer(str, Enum):

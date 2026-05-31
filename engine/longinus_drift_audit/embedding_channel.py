@@ -289,12 +289,11 @@ def compute_embedding_drift(
         )
     if not (0.0 <= per_node_high_drift_threshold <= 2.0):
         raise ValueError(
-            "per_node_high_drift_threshold must be in [0, 2], "
-            f"got {per_node_high_drift_threshold}"
+            f"per_node_high_drift_threshold must be in [0, 2], got {per_node_high_drift_threshold}"
         )
     if not (0.0 <= high_drift_ratio_threshold <= 1.0):
         raise ValueError(
-            "high_drift_ratio_threshold must be in [0, 1], " f"got {high_drift_ratio_threshold}"
+            f"high_drift_ratio_threshold must be in [0, 1], got {high_drift_ratio_threshold}"
         )
 
     map_a = {e.node_id: e.vector for e in embeddings_a}

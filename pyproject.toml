@@ -190,6 +190,34 @@ target-version = "py311"
 # E402 is intentional here, not a code smell.
 "**/tests/test_*.py" = ["E402"]
 
+[tool.mypy]
+# Type-check shipping engine source. Adopted 2026-05-31 (was declared in deps but
+# never configured — duplicate-conftest crash + flat-layout imports blocked it).
+python_version = "3.11"
+files = ["engine"]
+# Pydantic v2 models (AbstractClass, dispatch_eval, ...) need the plugin so Field(None)
+# defaults are understood (else mypy flags optional fields as missing __init__ args).
+plugins = ["pydantic.mypy"]
+# Third-party libs without stubs (fastmcp, testcontainers, igraph, ...) and the
+# standalone mcp_server package's own bare-name imports are out of scope for the gate.
+ignore_missing_imports = true
+# Legacy adoption: untyped function bodies are not retro-annotated wholesale yet.
+check_untyped_defs = false
+exclude = '(/tests/|/bench/|/_archive/|/vendor/|\.venv|\.egg-info|/policies/)'
+
+[[tool.mypy.overrides]]
+# mcp_server ships as its own installable package (bhgman_tool_mcp_server) with
+# top-level `mcp_server.*` imports; type-check it in its own CI, not the engine gate.
+module = "engine.mcp_server.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# hades.extract_superclass is under a parallel real-CST rewrite and currently uses
+# ast.ClassDef(type_params=...) which only exists on py3.12+ — a real py3.11 incompat
+# to fix at source (or bump requires-python). Deferred to avoid racing the live edit.
+module = "engine.hades.extract_superclass"
+ignore_errors = true
+
 [tool.deptry]
 # Local source packages (resolved via sys.path inject in tests + via hatch package config).
 # longinus_drift_audit is a flat-layout standalone subpackage — its tests import submodules

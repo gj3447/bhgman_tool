@@ -241,7 +241,7 @@ def test_rollback_storm_triggers_severity():
             _activity(
                 t=start + timedelta(seconds=i),
                 entity=f"e{i}",
-                derived_from=f"e{i-1}",
+                derived_from=f"e{i - 1}",
             )
         )
     report = compute_prov_drift(acts)

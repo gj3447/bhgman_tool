@@ -79,7 +79,7 @@ def test_one_empty_other_nonempty_is_critical():
 
 def test_warn_threshold_boundary():
     """20-triple set; 1 different → Jaccard 1/21 ≈ 0.0476 < 0.05 warn threshold."""
-    base = [(f"n{i}", "knows", f"n{i+1}") for i in range(20)]
+    base = [(f"n{i}", "knows", f"n{i + 1}") for i in range(20)]
     diff_one = base[:-1] + [("n99", "knows", "n100")]
     report = compute_urdna_drift(triples_a=base, triples_b=diff_one)
     # |A∩B| = 19, |A∪B| = 21, distance = 2/21 ≈ 0.0952
@@ -91,7 +91,7 @@ def test_warn_threshold_boundary():
 
 def test_halt_threshold_boundary():
     """Drift just above halt threshold."""
-    base = [(f"n{i}", "knows", f"n{i+1}") for i in range(10)]
+    base = [(f"n{i}", "knows", f"n{i + 1}") for i in range(10)]
     # Replace 2 triples → |A∩B|=8, |A∪B|=12, distance = 4/12 ≈ 0.333 (>= 0.15)
     diff_two = base[:8] + [("nX", "p", "nY"), ("nZ", "p", "nW")]
     report = compute_urdna_drift(triples_a=base, triples_b=diff_two)

@@ -13,7 +13,7 @@ SKILL.md §"BX Lens Laws" 1:1.
 
 from __future__ import annotations
 
-from typing import Callable, TypeVar
+from typing import Callable, Generic, TypeVar
 
 from engine.longinus_drift_audit.models import LensVerification
 
@@ -21,7 +21,7 @@ S = TypeVar("S")
 V = TypeVar("V")
 
 
-class Lens:
+class Lens(Generic[S, V]):
     """Reference Lens between KG state (s : S) and code value (v : V)."""
 
     def __init__(
