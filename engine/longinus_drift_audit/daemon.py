@@ -28,6 +28,7 @@ import dataclasses as dc
 import hashlib
 import logging
 import multiprocessing as mp
+import queue
 import os
 import signal
 import time
@@ -277,7 +278,7 @@ class LonginusDaemon:
         while True:
             try:
                 events.append(self.drift_queue.get_nowait())
-            except Exception:
+            except queue.Empty:
                 break
         for ev in events:
             logger.info(f"drift detected: {ev}")
