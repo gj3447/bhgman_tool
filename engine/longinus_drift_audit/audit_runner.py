@@ -225,6 +225,12 @@ def main() -> int:
         default=os.environ.get("NEO4J_PASSWORD"),
         help="Neo4j password (or NEO4J_PASSWORD env).",
     )
+    parser.add_argument(
+        "--record-signatures",
+        action="store_true",
+        help="Record current symbol signatures as ReferenceSite baselines (enables "
+        "SigMismatch drift on later audits), then exit. Mirrors sha256 baseline init.",
+    )
     args = parser.parse_args()
 
     try:
@@ -234,6 +240,8 @@ def main() -> int:
         return 1
 
     try:
+        if args.record_signatures:
+            return _record_signatures_mode(kg, args.code_root)
         audit = LonginusAudit(kg=kg, code_root=args.code_root)
         report = audit.run_full()
     finally:
@@ -242,6 +250,16 @@ def main() -> int:
             close()
     print(json.dumps(report.model_dump(), indent=2, default=str))
     return 0 if report.is_clean else 2
+
+
+def _record_signatures_mode(kg: KgClient, code_root: str) -> int:
+    """Scan code-root and freeze symbol signatures onto ReferenceSite baselines."""
+    from engine.longinus_drift_audit.signature_baseline import record_signature_baselines
+
+    symbols, _ = code_scanner.scan_root(Path(code_root))
+    n = record_signature_baselines(kg, symbols)
+    print(f"[longinus] recorded signature baselines on {n} ReferenceSite(s) from {code_root}")
+    return 0
 
 
 if __name__ == "__main__":

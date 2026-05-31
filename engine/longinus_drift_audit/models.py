@@ -19,6 +19,7 @@ class DriftType(str, Enum):
     SIG_MISMATCH = "SigMismatch"  # PutGet violation: ref ↔ 시그니처 불일치
     PATTERN_DIV = "PatternDiv"  # PutPut violation: 동일 대상 ↔ 상충 ref
     LABEL_ROT = "LabelRot"  # PutPut violation: 라벨/이름 변경 미반영
+    DISPATCH_DRIFT = "DispatchDrift"  # cardinality: dispatch intent_N ≠ actual_N (jaebaeman V5)
 
 
 class ReferenceLayer(str, Enum):
@@ -161,6 +162,14 @@ class ReferenceSite(BaseModel):
     guarantee_level: Optional[GuaranteeLevel] = Field(
         default=None,
         description="Hermeticity spectrum tag. pure/sandboxed/trust_host. None = unspecified (backward compat).",
+    )
+
+    # ── 2026-05-31 — signature baseline (SigMismatch counterpart of sha256_baseline) ──
+    signature_baseline: Optional[str] = Field(
+        default=None,
+        description="Frozen canonical signature of the bound symbol, captured at record time "
+        "(ast scanner). On re-audit, a differing live signature → SigMismatch (PutGet). "
+        "None = never recorded (detector falls back to the label heuristic).",
     )
 
     @field_validator("sourceId")
