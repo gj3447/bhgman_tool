@@ -14,7 +14,7 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-298%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-847%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-859%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -119,7 +119,7 @@ README 中所有定量 claim 都附有一条命令验证器。在干净的 clone
 | Claim | Command | 检查什么 |
 |---|---|---|
 | `298 pytest PASS` (engine 子集) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 子集 pass count + runtime |
-| `843 passed, 4 skipped` (整个 repo; 847 collected) | `uvx pre-commit run --all-files` (或在 root 运行 `pytest -q`) | 整个 repo pass count (4 skip = 无密钥 clone: 实-API smoke 3 + otel no-op 1) |
+| `855 passed, 4 skipped` (整个 repo; 859 collected) | `uvx pre-commit run --all-files` (或在 root 运行 `pytest -q`) | 整个 repo pass count (4 skip = 无密钥 clone: 实-API smoke 3 + otel no-op 1) |
 | `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 个 standalone(Mathlib-free)文件构建 + 未完成证明数(= 0；树中所有 `sorry` 标记都在注释里） |
 | `87 theorems` (整个 `lean/` 树；standalone 13 文件 71) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | 顶级 theorem/lemma 声明数量 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | 重跑 cycle 并 diff KG output |
@@ -143,7 +143,7 @@ README 中所有定量 claim 都附有一条命令验证器。在干净的 clone
 
 ## Contributing
 
-Pre-commit 4-ratchet gate 在每次 commit 运行 ruff lint+format / complexipy ≤15 / deptry / 847 个 pytest,每次 push 运行 lychee 链接检查。安装: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
+Pre-commit 4-ratchet gate 在每次 commit 运行 ruff lint+format / complexipy ≤15 / deptry / 859 个 pytest,每次 push 运行 lychee 链接检查。安装: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
 
 ---
 
