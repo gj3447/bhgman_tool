@@ -288,6 +288,29 @@ def _agent_runtime():
     return ns, reason
 
 
+def _grounding_source(args: argparse.Namespace):
+    """LLM 군단장 KG-input 접지원 build → (source | None, close).
+
+    --no-ground → (None, noop). --local 또는 BHGMAN_KG=local → 로컬 store backed.
+    그 외 → neo4j run_cypher backed (불가하면 None, graceful 무접지).
+    KG: canon-kg-based-coding-essence-2026-05-28, KGFirstCheck_v1.
+    """
+    noop = lambda: None  # noqa: E731
+    if getattr(args, "no_ground", False):
+        return None, noop
+    import importlib  # noqa: PLC0415
+
+    grounding_mod = importlib.import_module("engine.agents.grounding")
+    if getattr(args, "local", False) or os.environ.get("BHGMAN_KG") == "local":
+        store_mod = _load_engine_module("kg_local", "store")
+        return grounding_mod.LocalGroundingSource(store_mod.LocalKgStore()), noop
+    runners = make_kg_runners()
+    if runners is None:
+        return None, noop
+    run_cypher, _write, close = runners
+    return grounding_mod.Neo4jGroundingSource(run_cypher), close
+
+
 def cmd_prom(args: argparse.Namespace) -> int:
     """프로메테우스 — 지식 선행 리서치. 런타임 있으면 실행, 없으면 skill route(graceful)."""
     if not args.topic:
@@ -301,7 +324,18 @@ def cmd_prom(args: argparse.Namespace) -> int:
         print(f"[prom] LLM runtime 사용 불가 ({reason}) → skill route fallback.", file=sys.stderr)
         print(_BACKEND_HINT, file=sys.stderr)
         return _route_skill("prometheus", [str(args.N), *args.topic])
-    report = agents.research(topic, args.N, agents.AgentClient(), web_search=not args.no_web)
+    source, close = _grounding_source(args)
+    if source is None and not getattr(args, "no_ground", False):
+        print(
+            "[prom] KG 접지원 없음 (neo4j 미가용; --local 또는 BHGMAN_KG=local 권장) → 무접지 실행.",
+            file=sys.stderr,
+        )
+    try:
+        report = agents.research(
+            topic, args.N, agents.AgentClient(), web_search=not args.no_web, grounding=source
+        )
+    finally:
+        close()
     print(report.summary)
     print("\n" + report.synthesis)
     return 0
@@ -323,7 +357,18 @@ def cmd_tlb(args: argparse.Namespace) -> int:
         suffix = [*args.target] + (["--lens", args.lens] if args.lens else [])
         return _route_skill("taliban", suffix)
     lenses = (args.lens,) if args.lens else agents.DEFAULT_LENSES
-    verdict = agents.critique(target, args.claim or target, agents.AgentClient(), lenses=lenses)
+    source, close = _grounding_source(args)
+    if source is None and not getattr(args, "no_ground", False):
+        print(
+            "[tlb] KG 접지원 없음 (neo4j 미가용; --local 또는 BHGMAN_KG=local 권장) → 무접지 비평.",
+            file=sys.stderr,
+        )
+    try:
+        verdict = agents.critique(
+            target, args.claim or target, agents.AgentClient(), lenses=lenses, grounding=source
+        )
+    finally:
+        close()
     print(verdict.summary)
     for lv in verdict.lens_verdicts:
         print(f"  [{lv.verdict}] {lv.lens}")
@@ -932,6 +977,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_prom.add_argument("topic", nargs="+", help="Research topic.")
     p_prom.add_argument("--no-web", action="store_true", help="web_search 끄기 (LLM 지식만).")
     p_prom.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
+    p_prom.add_argument(
+        "--local",
+        action="store_true",
+        help="KG 접지에 로컬 KG(~/.bhgman/kg.json) 사용 (neo4j 불필요).",
+    )
+    p_prom.add_argument(
+        "--no-ground",
+        action="store_true",
+        help="KG 사전지식 접지 끄기 (무접지 LLM, 기본은 접지 ON).",
+    )
     p_prom.set_defaults(func=cmd_prom)
 
     p_tlb = sub.add_parser("tlb", help="나생문 ensemble critic (런타임 실행 / 없으면 skill route).")
@@ -941,6 +996,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_tlb.add_argument("--claim", help="검증할 주장/산출물 텍스트 (생략 시 target을 사용).")
     p_tlb.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
+    p_tlb.add_argument(
+        "--local",
+        action="store_true",
+        help="KG 접지에 로컬 KG(~/.bhgman/kg.json) 사용 (neo4j 불필요).",
+    )
+    p_tlb.add_argument(
+        "--no-ground",
+        action="store_true",
+        help="KG 정전·교훈 접지 끄기 (무접지 비평, 기본은 접지 ON).",
+    )
     p_tlb.set_defaults(func=cmd_tlb)
 
     p_long = sub.add_parser(

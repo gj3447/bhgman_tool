@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from engine.agents.client import AgentClient
 from engine.agents.dispatch import SubagentResult, SubagentSpec, dispatch_parallel
 from engine.agents.agent_models import SUBAGENT_MODEL, SYNTHESIS_MODEL
+from engine.agents.grounding import GroundingSource, build_grounding
 
 _PLAN_SYS = (
     "You are Prometheus, a research planner. Decompose the topic into exactly N distinct, "
@@ -42,18 +43,23 @@ class ResearchReport:
     sub_questions: tuple[str, ...]
     findings: tuple[SubagentResult, ...]
     synthesis: str
+    grounded_facts: int = 0  # KG 사전지식으로 접지된 정전·교훈·발견 수 (0 = 접지 없음/미가용)
 
     @property
     def summary(self) -> str:
         ok = sum(1 for f in self.findings if f.ok)
-        return f"prometheus[{self.topic}]: planned={self.n} researched_ok={ok}/{len(self.findings)}"
+        g = f" grounded={self.grounded_facts}" if self.grounded_facts else " grounded=0"
+        return (
+            f"prometheus[{self.topic}]: planned={self.n} "
+            f"researched_ok={ok}/{len(self.findings)}{g}"
+        )
 
 
-def plan_axes(topic: str, n: int, client: AgentClient) -> list[str]:
-    """토픽 → N개 sub-question. 실패/부족 시 토픽 자체로 fallback."""
+def plan_axes(topic: str, n: int, client: AgentClient, *, grounding: str = "") -> list[str]:
+    """토픽 → N개 sub-question. 실패/부족 시 토픽 자체로 fallback. grounding = KG 사전지식 블록."""
     c = client.complete(
         system=_PLAN_SYS,
-        user=f"Topic: {topic}\nN = {n}",
+        user=f"{grounding}Topic: {topic}\nN = {n}",
         model=SYNTHESIS_MODEL,
         max_tokens=1024,
         effort="low",
@@ -63,13 +69,21 @@ def plan_axes(topic: str, n: int, client: AgentClient) -> list[str]:
 
 
 def synthesize(
-    topic: str, axes: list[str], results: list[SubagentResult], client: AgentClient
+    topic: str,
+    axes: list[str],
+    results: list[SubagentResult],
+    client: AgentClient,
+    *,
+    grounding: str = "",
 ) -> str:
     blocks = []
     for q, r in zip(axes, results):
         body = r.text if r.ok else f"(subagent failed: {r.error})"
         blocks.append(f"### Sub-question: {q}\n{body}")
-    user = f"Topic: {topic}\n\nFindings from {len(results)} subagents:\n\n" + "\n\n".join(blocks)
+    user = (
+        f"{grounding}Topic: {topic}\n\nFindings from {len(results)} subagents:\n\n"
+        + "\n\n".join(blocks)
+    )
     c = client.complete(
         system=_SYNTH_SYS, user=user, model=SYNTHESIS_MODEL, max_tokens=4096, effort="high"
     )
@@ -84,14 +98,23 @@ def research(
     subagent_model: str = SUBAGENT_MODEL,
     web_search: bool = True,
     max_tokens_per: int = 2048,
+    grounding: GroundingSource | None = None,
 ) -> ResearchReport:
-    """plan → N 병렬 리서치 → 합성. PROPOSE only (KG write 없음; /prom 보고 구조 그대로)."""
-    axes = plan_axes(topic, n, client)
+    """plan → N 병렬 리서치 → 합성. PROPOSE only (KG write 없음; /prom 보고 구조 그대로).
+
+    grounding = KG 접지원(LocalGroundingSource/Neo4jGroundingSource). 주면 LLM 호출 *전*
+    하계에서 관련 정전·교훈·발견을 읽어 plan/subagent/synthesize prompt에 주입(KG-first Step 0).
+    None이면 무접지(graceful) — 단 CLI 기본은 접지 ON.
+    """
+    ctx, n_facts = build_grounding(
+        grounding, topic, header="사전 지식 (이미 아는 것 — 재발견 금지)"
+    )
+    axes = plan_axes(topic, n, client, grounding=ctx)
     specs = [
         SubagentSpec(
             name=f"axis-{i + 1}",
             system=_RESEARCH_SYS,
-            user=f"Research question: {q}\n(Parent topic: {topic})",
+            user=f"{ctx}Research question: {q}\n(Parent topic: {topic})",
             model=subagent_model,
             max_tokens=max_tokens_per,
             web_search=web_search,
@@ -99,13 +122,14 @@ def research(
         for i, q in enumerate(axes)
     ]
     results = dispatch_parallel(specs, client)
-    synthesis = synthesize(topic, axes, results, client)
+    synthesis = synthesize(topic, axes, results, client, grounding=ctx)
     return ResearchReport(
         topic=topic,
         n=len(axes),
         sub_questions=tuple(axes),
         findings=tuple(results),
         synthesis=synthesis,
+        grounded_facts=n_facts,
     )
 
 

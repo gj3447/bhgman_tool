@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from engine.agents.client import AgentClient
 from engine.agents.dispatch import SubagentResult, SubagentSpec, dispatch_parallel
 from engine.agents.agent_models import SYNTHESIS_MODEL
+from engine.agents.grounding import GroundingSource, build_grounding
 
 from engine.naesengmoon.decorrelation import DEFAULT_RHO, effective_n
 
@@ -73,6 +74,7 @@ class EnsembleVerdict:
     aggregation: str = "UNANIMOUS_PASS"
     n_eff: float = 0.0  # effective independent votes (Kish); same-model judgment lenses → ≪ N
     n_critics: int = 0
+    grounded_facts: int = 0  # KG 사전지식으로 접지된 정전·교훈 수 (0 = 접지 없음/미가용)
 
     @property
     def summary(self) -> str:
@@ -81,7 +83,8 @@ class EnsembleVerdict:
         # (consensus-prom8-naesengmoon-decorrelation-2026-05-31). Raise n_eff via oracle lenses
         # or cross-family critics; never read N agreeing critics as N independent votes.
         neff = f" | {self.n_critics} judgment critics, n_eff≈{self.n_eff:.2f} (same-model → correlated)"
-        return f"naesengmoon[{self.target}]: {self.verdict} ({self.aggregation}) — {per}{neff}"
+        g = f" grounded={self.grounded_facts}"
+        return f"naesengmoon[{self.target}]: {self.verdict} ({self.aggregation}) — {per}{neff}{g}"
 
 
 def _parse_verdict(text: str) -> tuple[str, str]:
@@ -115,14 +118,22 @@ def critique(
     *,
     lenses: tuple[str, ...] = DEFAULT_LENSES,
     model: str = SYNTHESIS_MODEL,
+    grounding: GroundingSource | None = None,
 ) -> EnsembleVerdict:
-    """N 판단렌즈 병렬 적대 비평 → 집계. claim = 검증 대상 주장/산출물 텍스트."""
+    """N 판단렌즈 병렬 적대 비평 → 집계. claim = 검증 대상 주장/산출물 텍스트.
+
+    grounding = KG 접지원. 주면 비평 *전* 하계에서 관련 정전·교훈을 읽어 각 렌즈 prompt에 주입
+    → 렌즈가 기존 정전과의 정합/충돌을 근거로 판정(KG-first). None이면 무접지(graceful).
+    """
+    ctx, n_facts = build_grounding(
+        grounding, f"{target} {claim}", header="관련 정전·교훈 (이 기준으로 판정)"
+    )
     specs = [
         SubagentSpec(
             name=lens,
             system=LENS_PROMPTS.get(lens, f"You are a {lens}-lens adversarial critic.")
             + _VERDICT_RULE,
-            user=f"Target: {target}\n\nClaim / artifact to verify:\n{claim}",
+            user=f"{ctx}Target: {target}\n\nClaim / artifact to verify:\n{claim}",
             model=model,
             max_tokens=2048,
         )
@@ -147,6 +158,7 @@ def critique(
         verdict=_aggregate(lens_verdicts),
         n_eff=n_eff,
         n_critics=n_critics,
+        grounded_facts=n_facts,
     )
 
 
