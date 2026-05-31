@@ -252,7 +252,7 @@ DEP002 = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["engine", "worked"]
+testpaths = ["engine", "worked", "verification"]
 python_files = "test_*.py"
 markers = [
     "apt_invariant: marks test as an APT methodology invariant (auto-recorded as :TestRunResult per cycle-bhgman-apt-completeness-remediation-2026-05-25 WQI F7). Usage: @pytest.mark.apt_invariant(rule='SA→SP→ST→SCW gate chain') on tests that defend an APT phase contract.",

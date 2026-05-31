@@ -117,3 +117,20 @@ repos:
         stages: [pre-push]
         pass_filenames: false
         always_run: true
+
+  # ============================================================
+  # Stage 8: count-claim drift guard (pre-push)
+  # README/docs count claims (lean theorems, sorry, pytest) must match reality.
+  # Hard-gates the deterministic lean counts (the metric that actually rotted
+  # 50→71); soft-bands the growing pytest counts (fail only on over-claim).
+  # ============================================================
+  # KG: count-claim-drift-guard-2026-05-31 (ADRs/count-claim-drift-guard-2026-05-31.md)
+  - repo: local
+    hooks:
+      - id: count_claim_guard
+        name: count-claim drift guard (lean exact / pytest over-claim)
+        entry: bash -c 'source .venv/bin/activate && python verification/check_count_claims.py'
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
