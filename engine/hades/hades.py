@@ -29,9 +29,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from extract_superclass import extract_superclass
 from hades_models import MaterializationPlan, RealizeStatus, RealizeVerdict
 
 CypherRunner = Callable[[str, dict], "list[dict]"]
+CodeWriter = Callable[[str, dict[str, str]], None]
+"""apply 시 caller가 주입: (base_source, {class_name: new_source}) → 디스크 write."""
 
 
 def realize_kg_abstraction(
@@ -119,4 +122,65 @@ def realize_code_template(
     )
 
 
-__all__ = ["CypherRunner", "realize_code_template", "realize_kg_abstraction"]
+def realize_code_extract_superclass(
+    base_name: str,
+    class_sources: dict[str, str],
+    *,
+    verdict_status: str = "ACCEPTED",
+    max_sites: int = 5,
+    dry_run: bool = True,
+    writer: CodeWriter | None = None,
+) -> RealizeVerdict:
+    """진짜 Extract-Superclass 실현 — ast로 실 코드 생성 (문자열 plan 아님).
+
+    가드 (하데스 covenant): ACCEPTED 후보만 / ≤max_sites 점진 rollout / dry-run 기본 /
+    reversibility-first(undo) / apply는 명시적 ``writer`` 주입 + dry_run=False 시에만.
+    공통 메서드(구조 동일)가 없으면 REFUSED.
+    """
+    if verdict_status != "ACCEPTED":
+        return RealizeVerdict(
+            base_name, RealizeStatus.REFUSED, None, f"verdict={verdict_status} (ACCEPTED만 실현)."
+        )
+    if len(class_sources) > max_sites:
+        return RealizeVerdict(
+            base_name,
+            RealizeStatus.REFUSED,
+            None,
+            f"{len(class_sources)} sites > max {max_sites} — ≤{max_sites} 점진 rollout 초과.",
+        )
+    patch = extract_superclass(base_name, class_sources)
+    if patch is None:
+        return RealizeVerdict(
+            base_name, RealizeStatus.REFUSED, None, "추출할 구조-동일 공통 메서드 없음(lift 불가)."
+        )
+    ops = (
+        f"CREATE class {base_name} with methods {list(patch.common_methods)}",
+        *(f"REWRITE {n}: inherit {base_name}, drop lifted methods" for n in class_sources),
+    )
+    undo = (
+        *(
+            f"RESTORE {n}: re-inline {list(patch.common_methods)}, drop {base_name} base"
+            for n in class_sources
+        ),
+        f"DELETE class {base_name}",
+    )
+    plan = MaterializationPlan(base_name, "code", ops, undo, reversible=True)
+    applied = False
+    if not dry_run and writer is not None:
+        writer(patch.base_source, patch.modified)
+        applied = True
+    status = RealizeStatus.APPLIED if applied else RealizeStatus.PLANNED
+    reason = (
+        f"extract-superclass {'APPLIED' if applied else 'PLAN (dry-run)'}: "
+        f"{len(patch.common_methods)} methods → {base_name}. apply 전 characterization test 필수."
+    )
+    return RealizeVerdict(base_name, status, plan, reason, applied=applied)
+
+
+__all__ = [
+    "CodeWriter",
+    "CypherRunner",
+    "realize_code_extract_superclass",
+    "realize_code_template",
+    "realize_kg_abstraction",
+]
