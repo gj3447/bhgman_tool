@@ -65,6 +65,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_prom.add_argument("topic", nargs="+", help="Research topic.")
     p_prom.add_argument("--no-web", action="store_true", help="web_search 끄기 (LLM 지식만).")
     p_prom.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
+    p_prom.add_argument(
+        "--local",
+        action="store_true",
+        help="KG 접지에 로컬 KG(~/.bhgman/kg.json) 사용 (neo4j 불필요).",
+    )
+    p_prom.add_argument(
+        "--no-ground",
+        action="store_true",
+        help="KG 사전지식 접지 끄기 (무접지 LLM, 기본은 접지 ON).",
+    )
     p_prom.set_defaults(func=commands.cmd_prom)
 
     p_tlb = sub.add_parser("tlb", help="나생문 ensemble critic (런타임 실행 / 없으면 skill route).")
@@ -74,6 +84,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_tlb.add_argument("--claim", help="검증할 주장/산출물 텍스트 (생략 시 target을 사용).")
     p_tlb.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
+    p_tlb.add_argument(
+        "--local",
+        action="store_true",
+        help="KG 접지에 로컬 KG(~/.bhgman/kg.json) 사용 (neo4j 불필요).",
+    )
+    p_tlb.add_argument(
+        "--no-ground",
+        action="store_true",
+        help="KG 사전지식 접지 끄기 (무접지 LLM, 기본은 접지 ON).",
+    )
     p_tlb.set_defaults(func=commands.cmd_tlb)
 
     p_long = sub.add_parser(
