@@ -17,8 +17,12 @@ from __future__ import annotations
 import pytest
 from hypothesis import given, settings, strategies as st
 
-from edit_lens_line_range import EditLensLineRange, LineRange, LineShiftMonoid
-from kg_binding_delta_lens import (
+from engine.longinus_drift_audit.edit_lens_line_range import (
+    EditLensLineRange,
+    LineRange,
+    LineShiftMonoid,
+)
+from engine.longinus_drift_audit.kg_binding_delta_lens import (
     KGBindingState,
     KGMultiBindingState,
     LineRangeDelta,

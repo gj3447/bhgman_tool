@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from ts_extractor import (
+from engine.code_to_kg.ts_extractor import (
     TREE_SITTER_AVAILABLE,
     extract_python_source,
 )

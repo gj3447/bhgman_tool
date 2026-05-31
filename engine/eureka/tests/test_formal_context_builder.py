@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from formal_context_builder import (
+from engine.eureka.formal_context_builder import (
     DEFAULT_BULK_LABELS,
     FormalContextConfig,
     assemble_context,

@@ -28,7 +28,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping
 
-from induction_operators.fca import FcaResult, FormalConcept
+from engine.eureka.induction_operators.fca import FcaResult, FormalConcept
 
 # 오프라인 그리디는 pure-python — 큰 그래프는 gds.leiden로. 정직한 상한.
 MAX_NODES = 2000

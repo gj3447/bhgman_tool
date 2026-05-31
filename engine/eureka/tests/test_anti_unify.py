@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from anti_unify import anti_unify, propose_template, tokenize
+from engine.eureka.anti_unify import anti_unify, propose_template, tokenize
 
 
 def test_lgg_keeps_common_holes_diff():

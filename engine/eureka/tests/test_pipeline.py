@@ -1,5 +1,5 @@
-from pipeline import PipelineConfig, run
-from protocols import StageResult
+from engine.eureka.pipeline import PipelineConfig, run
+from engine.eureka.protocols import StageResult
 
 
 def test_pipeline_runs_to_completion_with_fca_input():
@@ -60,9 +60,9 @@ def test_injected_stage_runs_in_place_of_stub():
 
 def test_pipeline_amie3_method_dispatches_to_adapter():
     """config.method='amie3' → induce_via_amie3 경유. fake amie3_runner 주입(Java 불필요)."""
-    from amie3_adapter import formal_context_to_triples  # noqa: PLC0415
-    from induction_operators.amie3 import Amie3Result, HornRule  # noqa: PLC0415
-    from pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
+    from engine.eureka.amie3_adapter import formal_context_to_triples  # noqa: PLC0415
+    from engine.eureka.induction_operators.amie3 import Amie3Result, HornRule  # noqa: PLC0415
+    from engine.eureka.pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
 
     context = {
         "Topology": frozenset({"AXIS:Math", "DOMAIN:Algebra"}),
@@ -97,7 +97,7 @@ def test_pipeline_amie3_method_dispatches_to_adapter():
 
 
 def test_pipeline_default_method_is_fca():
-    from pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
+    from engine.eureka.pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
 
     context = {
         "A": frozenset({"X:1", "Y:2"}),
@@ -113,7 +113,7 @@ def test_pipeline_default_method_is_fca():
 
 def test_pipeline_leiden_llm_method_dispatches_to_operator():
     """config.method='leiden-llm' → induce_leiden_llm 경유 → AbstractClass(inductionMethod=leiden-llm)."""
-    from pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
+    from engine.eureka.pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
 
     context = {
         "a": frozenset({"X", "Y"}),

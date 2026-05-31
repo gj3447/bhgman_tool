@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from edit_lens_line_range import EditLensLineRange, LineRange, LineShiftMonoid
+from engine.longinus_drift_audit.edit_lens_line_range import (
+    EditLensLineRange,
+    LineRange,
+    LineShiftMonoid,
+)
 
 
 def test_line_range_construction_rejects_zero_start() -> None:

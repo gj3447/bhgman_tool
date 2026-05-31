@@ -38,11 +38,11 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from kg_client import KgClient
-from models import DriftType, SourceCodeDriftEvent
+from engine.longinus_drift_audit.kg_client import KgClient
+from engine.longinus_drift_audit.models import DriftType, SourceCodeDriftEvent
 
 try:
-    import otel_channel
+    from engine.longinus_drift_audit import otel_channel
 except ImportError:  # pragma: no cover - otel_channel ships with this package
     otel_channel = None  # type: ignore[assignment]
 
@@ -246,7 +246,7 @@ def main() -> None:
     import argparse
     import sys
 
-    from kg_client import KgClient as _KgClientBase  # noqa: F401 (typing only)
+    from engine.longinus_drift_audit.kg_client import KgClient as _KgClientBase  # noqa: F401 (typing only)
 
     parser = argparse.ArgumentParser(
         description=(

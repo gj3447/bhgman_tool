@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from intoto_channel import (
+from engine.longinus_drift_audit.intoto_channel import (
     AttestationChainResult,
     IntotoAttestation,
     verify_chain,

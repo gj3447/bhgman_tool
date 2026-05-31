@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from occam_models import NodeRecord, OccamReport, SupersessionCandidate
+from engine.occam.occam_models import NodeRecord, OccamReport, SupersessionCandidate
 
 # 실전=Neo4j read/write, 테스트=fake rows. (eureka/hades와 동일 시그니처)
 CypherRunner = Callable[[str, dict], "list[dict]"]

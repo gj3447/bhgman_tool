@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from occam import normalize_path, occam_pass
-from occam_models import Confidence, NodeRecord
+from engine.occam.occam import normalize_path, occam_pass
+from engine.occam.occam_models import Confidence, NodeRecord
 
 
 def test_normalize_unifies_abs_and_rel_lineage():

@@ -7,8 +7,8 @@ gds.leiden/vector 인프라부는 fake run_cypher로, 결정론부(summarize/rrf
 
 from __future__ import annotations
 
-from pipeline import PipelineConfig, run
-from stages import (
+from engine.eureka.pipeline import PipelineConfig, run
+from engine.eureka.stages import (
     DriftLoopStage,
     HybridRetrievalStage,
     LeidenCommunityStage,

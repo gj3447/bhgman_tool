@@ -10,9 +10,13 @@ from __future__ import annotations
 
 import pytest
 
-from ts_extractor import TREE_SITTER_AVAILABLE, extract_python_source, extract_python_file
-from kg_writer import to_cypher, write_local
-from enrich import enrich_calls, JEDI_AVAILABLE
+from engine.code_to_kg.ts_extractor import (
+    TREE_SITTER_AVAILABLE,
+    extract_python_source,
+    extract_python_file,
+)
+from engine.code_to_kg.kg_writer import to_cypher, write_local
+from engine.code_to_kg.enrich import enrich_calls, JEDI_AVAILABLE
 
 pytestmark = pytest.mark.skipif(not TREE_SITTER_AVAILABLE, reason="tree-sitter not installed")
 

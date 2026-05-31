@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import ged_metric
-from models import CodeSymbol, KgRefRecord
+from engine.longinus_drift_audit import ged_metric
+from engine.longinus_drift_audit.models import CodeSymbol, KgRefRecord
 
 
 def _sym(name, line, refs):

@@ -16,16 +16,16 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import code_scanner
-import drift_detector
-import forward_orphan_scan
-import ged_metric
-import reference_layers
-import reverse_orphan_scan
-import sha256_baseline
-from bx_lens import make_dict_lens
-from kg_client import KgClient, MockKgClient, Neo4jKgClient
-from models import AuditReport
+from engine.longinus_drift_audit import code_scanner
+from engine.longinus_drift_audit import drift_detector
+from engine.longinus_drift_audit import forward_orphan_scan
+from engine.longinus_drift_audit import ged_metric
+from engine.longinus_drift_audit import reference_layers
+from engine.longinus_drift_audit import reverse_orphan_scan
+from engine.longinus_drift_audit import sha256_baseline
+from engine.longinus_drift_audit.bx_lens import make_dict_lens
+from engine.longinus_drift_audit.kg_client import KgClient, MockKgClient, Neo4jKgClient
+from engine.longinus_drift_audit.models import AuditReport
 
 
 def _forward_orphan_phase(kg: KgClient):
@@ -154,7 +154,7 @@ class LonginusAudit:
         for s in symbols:
             for ref in s.kg_refs:
                 if ref in kg_refs:
-                    from models import ReferenceSite
+                    from engine.longinus_drift_audit.models import ReferenceSite
 
                     sites.append(
                         ReferenceSite(

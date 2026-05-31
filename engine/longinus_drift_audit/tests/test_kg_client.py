@@ -14,8 +14,8 @@ rest to None (→ field default) rather than rejecting the whole row.
 
 from __future__ import annotations
 
-from kg_client import _coerce_enum
-from models import ReferenceLayer, Sha256Status
+from engine.longinus_drift_audit.kg_client import _coerce_enum
+from engine.longinus_drift_audit.models import ReferenceLayer, Sha256Status
 
 
 class TestCoerceEnum:

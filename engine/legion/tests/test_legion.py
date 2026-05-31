@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from legion import CANONICAL_ORDER, Legion
-from legion_models import CommanderStage
+from engine.legion.legion import CANONICAL_ORDER, Legion
+from engine.legion.legion_models import CommanderStage
 
 
 def _stage(name, verb, requires, provides, out):

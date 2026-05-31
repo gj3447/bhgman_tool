@@ -20,8 +20,8 @@ import json
 import os
 import sys
 
-import sha256_baseline
-from kg_client import Neo4jKgClient
+from engine.longinus_drift_audit import sha256_baseline
+from engine.longinus_drift_audit.kg_client import Neo4jKgClient
 
 
 def main() -> int:

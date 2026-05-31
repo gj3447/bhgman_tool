@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from legion_models import CommanderStage, LegionRun, StageOutcome
+from engine.legion.legion_models import CommanderStage, LegionRun, StageOutcome
 
 # gate(context) -> (passed, detail). 나생문 oracle gate를 주입 (없으면 gate 생략).
 GateFn = Callable[[dict], "tuple[bool, str]"]

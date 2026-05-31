@@ -6,7 +6,7 @@
 - Leiden-LLM (Edge 2024 GraphRAG) — hierarchical Leiden + per-community LLM summary
 """
 
-from induction_operators.fca import FcaResult, induce_fca
-from induction_operators.leiden_llm import induce_leiden_llm
+from engine.eureka.induction_operators.fca import FcaResult, induce_fca
+from engine.eureka.induction_operators.leiden_llm import induce_leiden_llm
 
 __all__ = ["FcaResult", "induce_fca", "induce_leiden_llm"]

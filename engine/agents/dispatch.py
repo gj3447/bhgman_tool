@@ -16,8 +16,8 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
-from client import AgentClient, Completion
-from agent_models import SUBAGENT_MODEL
+from engine.agents.client import AgentClient, Completion
+from engine.agents.agent_models import SUBAGENT_MODEL
 
 
 @dataclass(frozen=True)

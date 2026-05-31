@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from bx_lens import Lens, make_dict_lens
+from engine.longinus_drift_audit.bx_lens import Lens, make_dict_lens
 
 
 class TestDictLens:

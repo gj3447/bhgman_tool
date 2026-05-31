@@ -23,8 +23,8 @@ try:
     from .ts_extractor import extract_python_file, TREE_SITTER_AVAILABLE
     from .kg_writer import write_local, to_cypher
 except ImportError:  # pragma: no cover - direct script run
-    from ts_extractor import extract_python_file, TREE_SITTER_AVAILABLE  # type: ignore
-    from kg_writer import write_local, to_cypher  # type: ignore
+    from engine.code_to_kg.ts_extractor import extract_python_file, TREE_SITTER_AVAILABLE  # type: ignore
+    from engine.code_to_kg.kg_writer import write_local, to_cypher  # type: ignore
 
 
 def _iter_py_files(path: Path):
@@ -42,16 +42,13 @@ def _run_enrich(graphs):
     try:
         from .enrich import enrich_calls  # noqa: PLC0415
     except ImportError:
-        from enrich import enrich_calls  # type: ignore  # noqa: PLC0415
+        from engine.code_to_kg.enrich import enrich_calls  # type: ignore  # noqa: PLC0415
     return enrich_calls(graphs)
 
 
 def _open_local_store():
-    """LocalKgStore with kg_local on sys.path (bare-import bridge, occam pattern)."""
-    kg_local_dir = Path(__file__).resolve().parent.parent / "kg_local"
-    if str(kg_local_dir) not in sys.path:
-        sys.path.insert(0, str(kg_local_dir))
-    from store import LocalKgStore  # noqa: PLC0415
+    """LocalKgStore (proper package import)."""
+    from engine.kg_local.store import LocalKgStore  # noqa: PLC0415
 
     return LocalKgStore()
 

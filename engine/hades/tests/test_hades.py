@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from hades import realize_code_template, realize_kg_abstraction
-from hades_models import RealizeStatus
+from engine.hades.hades import realize_code_template, realize_kg_abstraction
+from engine.hades.hades_models import RealizeStatus
 
 
 def test_kg_realize_refuses_provisional():

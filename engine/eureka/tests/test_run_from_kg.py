@@ -9,7 +9,7 @@ GroupTheory/AbstractAlgebra 등 latent 군집. 여기선 deterministic fixture�
 
 from __future__ import annotations
 
-from pipeline import PipelineConfig, run_from_kg
+from engine.eureka.pipeline import PipelineConfig, run_from_kg
 
 
 def _math_and_compiler_rows(query, params):
@@ -57,7 +57,7 @@ def test_fidelity_stage_skipped_without_runner():
 
 
 def test_fidelity_stage_runs_with_runner():
-    from fidelity_gate import FidelityConfig
+    from engine.eureka.fidelity_gate import FidelityConfig
 
     def fid_runner(query, params):  # 멤버가 witness로 cohere (PASS)
         return [

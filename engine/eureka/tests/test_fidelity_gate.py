@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from fidelity_gate import (
+from engine.eureka.fidelity_gate import (
     DEFAULT_WITNESS_RELS,
     FidelityConfig,
     assess_fidelity,

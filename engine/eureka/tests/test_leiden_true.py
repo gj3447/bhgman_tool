@@ -7,8 +7,8 @@ import pytest
 pytest.importorskip("leidenalg")
 pytest.importorskip("igraph")
 
-from induction_operators.leiden_llm import induce_leiden_llm  # noqa: E402
-from induction_operators.leiden_true import induce_leiden_true  # noqa: E402
+from engine.eureka.induction_operators.leiden_llm import induce_leiden_llm  # noqa: E402
+from engine.eureka.induction_operators.leiden_true import induce_leiden_true  # noqa: E402
 
 # Two clear clusters by shared attributes: {a,b,c} share {p,q}; {d,e} share {r,s}.
 _CTX = {

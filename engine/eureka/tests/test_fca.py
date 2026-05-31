@@ -1,4 +1,4 @@
-from induction_operators.fca import MAX_BATCH, induce_fca
+from engine.eureka.induction_operators.fca import MAX_BATCH, induce_fca
 
 
 def test_simple_context_produces_concept():

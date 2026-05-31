@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from harness_models import (
+from engine.harness.harness_models import (
     Axis,
     AxisFinding,
     Confidence,

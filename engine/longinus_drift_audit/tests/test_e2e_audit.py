@@ -8,9 +8,9 @@ import argparse
 
 import pytest
 
-from audit_runner import LonginusAudit, build_kg
-from kg_client import MockKgClient, Neo4jKgClient
-from models import KgRefRecord
+from engine.longinus_drift_audit.audit_runner import LonginusAudit, build_kg
+from engine.longinus_drift_audit.kg_client import MockKgClient, Neo4jKgClient
+from engine.longinus_drift_audit.models import KgRefRecord
 
 
 def _seed_code(tmp: Path) -> None:

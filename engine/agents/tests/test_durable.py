@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from dispatch import SubagentResult, SubagentSpec
-from durable import CycleInFlight, DurableDispatcher, EventLog
+from engine.agents.dispatch import SubagentResult, SubagentSpec
+from engine.agents.durable import CycleInFlight, DurableDispatcher, EventLog
 
 
 # --- fake client: dispatch_parallel이 client.complete(system,user,model,...)을 호출 ---

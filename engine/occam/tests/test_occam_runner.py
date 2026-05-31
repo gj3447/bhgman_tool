@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from occam_runner import run_occam, scan_disk_paths
+from engine.occam.occam_runner import run_occam, scan_disk_paths
 
 
 class _Runner:
@@ -124,7 +124,7 @@ def test_scan_disk_paths_depth_guard_blocks_symlink_cycle(tmp_path):
 
 
 def test_run_occam_disk_aware_supersedes_moved_node(monkeypatch):
-    import occam_runner
+    from engine.occam import occam_runner
 
     # 옛 경로는 디스크에 없고 새 경로만 살아있다고 위장.
     monkeypatch.setattr(

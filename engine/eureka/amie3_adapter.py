@@ -20,8 +20,8 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
-from induction_operators.amie3 import Amie3Result, HornRule, induce_amie3
-from induction_operators.fca import FcaResult, FormalConcept
+from engine.eureka.induction_operators.amie3 import Amie3Result, HornRule, induce_amie3
+from engine.eureka.induction_operators.fca import FcaResult, FormalConcept
 
 
 def formal_context_to_triples(

@@ -15,9 +15,14 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from kg_adapter import ApplyResult, CypherRunner, apply_supersessions, fetch_source_nodes
-from occam import normalize_path, occam_pass
-from occam_models import OccamReport
+from engine.occam.kg_adapter import (
+    ApplyResult,
+    CypherRunner,
+    apply_supersessions,
+    fetch_source_nodes,
+)
+from engine.occam.occam import normalize_path, occam_pass
+from engine.occam.occam_models import OccamReport
 
 # 디스크 스캔 시 건너뛸 디렉터리 (vendored/cache/vcs — 소스 lineage 아님).
 _SKIP_DIRS = {

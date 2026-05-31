@@ -10,8 +10,8 @@ so for backward compatibility).
 
 from __future__ import annotations
 
-from delta_category_registry import default_registry
-from kg_binding_categories import (
+from engine.longinus_drift_audit.delta_category_registry import default_registry
+from engine.longinus_drift_audit.kg_binding_categories import (
     kg_binding_cat,
     kg_multi_binding_cat,
     line_range_cat,

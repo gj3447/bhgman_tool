@@ -11,13 +11,13 @@ from collections.abc import Sequence
 
 from types import SimpleNamespace
 
-from oracle_lens import (
+from engine.eureka.oracle_lens import (
     OracleLens,
     default_eureka_lenses,
     kg_oracle_gate,
     run_oracle_gate,
 )
-from pipeline import PipelineConfig, PipelineRun, stage_4_7_oracle_gate
+from engine.eureka.pipeline import PipelineConfig, PipelineRun, stage_4_7_oracle_gate
 
 
 def _fake(code: int, out: str = ""):

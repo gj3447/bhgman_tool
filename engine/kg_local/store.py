@@ -22,7 +22,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from schema import validate_node
+from engine.kg_local.schema import validate_node
 
 
 def default_kg_path() -> Path:

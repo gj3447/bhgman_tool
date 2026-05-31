@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import code_scanner
+from engine.longinus_drift_audit import code_scanner
 
 
 def _write_py(p: Path, content: str) -> None:

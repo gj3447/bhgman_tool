@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from ts_extractor import TREE_SITTER_AVAILABLE, extract_python_source
-from kg_writer import to_cypher, write_local, UMBRELLA_LABEL
+from engine.code_to_kg.ts_extractor import TREE_SITTER_AVAILABLE, extract_python_source
+from engine.code_to_kg.kg_writer import to_cypher, write_local, UMBRELLA_LABEL
 
 pytestmark = pytest.mark.skipif(not TREE_SITTER_AVAILABLE, reason="tree-sitter not installed")
 

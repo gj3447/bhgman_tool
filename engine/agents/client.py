@@ -21,7 +21,7 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from agent_models import EFFORT_CAPABLE
+from engine.agents.agent_models import EFFORT_CAPABLE
 
 DEFAULT_MAX_TOKENS = 4096
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}

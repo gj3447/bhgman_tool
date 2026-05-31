@@ -38,7 +38,7 @@ import re
 
 from pydantic import BaseModel, Field, field_validator
 
-from models import CodeSymbol
+from engine.longinus_drift_audit.models import CodeSymbol
 
 
 # ─── SCIP symbol moniker grammar ─────────────────────────────────────────

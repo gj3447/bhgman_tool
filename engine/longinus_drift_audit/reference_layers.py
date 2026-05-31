@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from models import CodeSymbol, KgRefRecord, LayerCoverage, ReferenceSite
+from engine.longinus_drift_audit.models import CodeSymbol, KgRefRecord, LayerCoverage, ReferenceSite
 
 
 def compress_kg_ref(*, sourceId: str, sourcePath: str) -> str:

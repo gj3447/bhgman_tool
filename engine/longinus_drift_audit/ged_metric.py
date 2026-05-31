@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from models import CodeSymbol, GedReport, KgRefRecord
+from engine.longinus_drift_audit.models import CodeSymbol, GedReport, KgRefRecord
 
 
 def compute_ged(

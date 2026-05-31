@@ -3,7 +3,7 @@
 # KG: challenge-occam-pass-bhgman_tool-bakeoff-not-completed-2026-05-27 (3-way bake-off unblock)
 """
 
-from induction_operators.leiden_llm import MAX_NODES, induce_leiden_llm
+from engine.eureka.induction_operators.leiden_llm import MAX_NODES, induce_leiden_llm
 
 
 def _two_cluster_context():

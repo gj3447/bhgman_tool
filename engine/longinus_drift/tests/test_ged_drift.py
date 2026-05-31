@@ -1,6 +1,6 @@
 import pytest
 
-from ged_drift_detector import (
+from engine.longinus_drift.ged_drift_detector import (
     COLD_START_NGED_TAU,
     evaluate_drift,
     quantile,

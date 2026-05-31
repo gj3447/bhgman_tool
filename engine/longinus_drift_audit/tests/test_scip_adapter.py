@@ -10,8 +10,8 @@ import json
 import pytest
 from pydantic import ValidationError
 
-import scip_adapter
-from models import CodeSymbol
+from engine.longinus_drift_audit import scip_adapter
+from engine.longinus_drift_audit.models import CodeSymbol
 
 
 class TestParseScipSymbol:

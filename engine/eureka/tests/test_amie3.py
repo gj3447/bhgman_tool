@@ -31,7 +31,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_amie3_runs_on_synthetic_triples():
-    from induction_operators.amie3 import induce_amie3
+    from engine.eureka.induction_operators.amie3 import induce_amie3
 
     triples = []
     for i in range(120):

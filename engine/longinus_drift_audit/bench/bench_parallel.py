@@ -22,10 +22,10 @@ from pathlib import Path
 # Path bootstrap when invoked as `python bench/bench_parallel.py` from anywhere
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import code_scanner  # noqa: E402
-from audit_runner import LonginusAudit  # noqa: E402
-from kg_client import MockKgClient  # noqa: E402
-from models import KgRefRecord  # noqa: E402
+from engine.longinus_drift_audit import code_scanner  # noqa: E402
+from engine.longinus_drift_audit.audit_runner import LonginusAudit  # noqa: E402
+from engine.longinus_drift_audit.kg_client import MockKgClient  # noqa: E402
+from engine.longinus_drift_audit.models import KgRefRecord  # noqa: E402
 
 
 def _seed_n_files(tmp: Path, n: int, loc_per_file: int = 80) -> None:

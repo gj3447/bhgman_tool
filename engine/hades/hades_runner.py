@@ -13,8 +13,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from hades import realize_kg_abstraction
-from hades_models import RealizeStatus, RealizeVerdict
+from engine.hades.hades import realize_kg_abstraction
+from engine.hades.hades_models import RealizeStatus, RealizeVerdict
 
 CypherRunner = Callable[[str, dict], "list[dict]"]
 

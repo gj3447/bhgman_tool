@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from dynamic_dispatch_probe import (
+from engine.longinus_drift_audit.dynamic_dispatch_probe import (
     DynamicDispatchReport,
     DynamicDispatchSite,
     merge_with_runtime_trace,
@@ -20,7 +20,7 @@ from dynamic_dispatch_probe import (
     scan_static,
     summarize,
 )
-from models import Confidence
+from engine.longinus_drift_audit.models import Confidence
 
 
 def _write(tmp_path: Path, name: str, src: str) -> str:

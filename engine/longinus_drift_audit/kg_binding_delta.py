@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from edit_lens_line_range import LineRange
-from kg_binding_state import KGBindingState, KGMultiBindingState
+from engine.longinus_drift_audit.edit_lens_line_range import LineRange
+from engine.longinus_drift_audit.kg_binding_state import KGBindingState, KGMultiBindingState
 
 
 @dataclass(frozen=True)

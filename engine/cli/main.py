@@ -266,17 +266,16 @@ _BACKEND_HINT = (
 
 
 def _agent_runtime():
-    """engine.agents 로드 → (namespace | None, reason). flat-layout: 개별 모듈 import.
+    """engine.agents 로드 → (namespace | None, reason).
 
     namespace = AgentClient/research/critique/DEFAULT_LENSES. 런타임 불가면 (None, reason).
     """
     import importlib  # noqa: PLC0415
     import types  # noqa: PLC0415
 
-    evict = ("client", "dispatch", "agent_models", "prometheus", "naesengmoon")
-    client_mod = _load_engine_module("agents", "client", evict=evict)
-    prom = importlib.import_module("prometheus")
-    naes = importlib.import_module("naesengmoon")
+    client_mod = importlib.import_module("engine.agents.client")
+    prom = importlib.import_module("engine.agents.prometheus")
+    naes = importlib.import_module("engine.agents.naesengmoon")
     ok, reason = client_mod.runtime_status()
     if not ok:
         return None, reason
@@ -569,16 +568,8 @@ def cmd_status(_args: argparse.Namespace) -> int:
 
 
 def _load_occam_runner():
-    """Lazy-import engine.occam.occam_runner with the occam dir on sys.path.
-
-    occam modules use bare imports (`from occam import ...`); the test conftest
-    injects the path. The CLI mirrors that bridge at call time.
-    KG: ap-bhgman-longinus-import-drift-fix-2026-05-15 (Option A precedent).
-    """
-    occam_dir = _repo_root() / "engine" / "occam"
-    if str(occam_dir) not in sys.path:
-        sys.path.insert(0, str(occam_dir))
-    import occam_runner  # noqa: E402,PLC0415
+    """Lazy-import engine.occam.occam_runner (proper package import)."""
+    from engine.occam import occam_runner  # noqa: PLC0415
 
     return occam_runner
 
@@ -639,7 +630,7 @@ def cmd_occam(args: argparse.Namespace) -> int:
     runners = _resolve_kg_runners(args)
 
     if runners is None:
-        from kg_adapter import fetch_cypher  # noqa: PLC0415
+        from engine.occam.kg_adapter import fetch_cypher  # noqa: PLC0415
 
         cypher, _ = fetch_cypher(args.scope)
         print(
@@ -702,27 +693,16 @@ def cmd_export_prov(args: argparse.Namespace) -> int:
 
 
 def _load_engine_module(subdir: str, module: str, evict: tuple[str, ...] = ()):
-    """Lazy-import a flat-layout engine module with its dir on sys.path[0].
+    """Lazy-import an engine submodule as a proper package: engine.<subdir>.<module>.
 
-    Sibling subsystems share bare module names (e.g. occam + eureka both ship
-    `oracle_lens.py`). `evict` drops stale cached names from sys.modules so the
-    bare import re-resolves to *this* subdir. CLI runtime is one-command-per-process
-    (no collision), but the same-process pytest session needs the eviction.
-    KG: ap-bhgman-longinus-import-drift-fix-2026-05-15 (flat-layout bridge).
+    `evict` is accepted for backward call-compat but no longer used — subpackages
+    are now regular packages with absolute `engine.*` imports, so sibling modules
+    sharing a bare name (e.g. occam + eureka both ship `oracle_lens.py`) no longer
+    collide in sys.modules.
     """
     import importlib  # noqa: PLC0415
 
-    engine_dir = _repo_root() / "engine" / subdir
-    sys.path.insert(0, str(engine_dir))
-    for name in evict:
-        cached = sys.modules.get(name)
-        if (
-            cached is not None
-            and getattr(cached, "__file__", "")
-            and str(engine_dir) not in cached.__file__
-        ):
-            del sys.modules[name]
-    return importlib.import_module(module)
+    return importlib.import_module(f"engine.{subdir}.{module}")
 
 
 def cmd_hades(args: argparse.Namespace) -> int:
@@ -730,7 +710,7 @@ def cmd_hades(args: argparse.Namespace) -> int:
     hades_runner = _load_engine_module("hades", "hades_runner")
     runners = _resolve_kg_runners(args)
     if runners is None:
-        from hades_runner import fetch_accepted_cypher  # noqa: PLC0415
+        from engine.hades.hades_runner import fetch_accepted_cypher  # noqa: PLC0415
 
         cypher, _ = fetch_accepted_cypher(args.concept)
         print(

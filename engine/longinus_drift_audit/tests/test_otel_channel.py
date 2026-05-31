@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from otel_channel import (
+from engine.longinus_drift_audit.otel_channel import (
     BHGMAN_CARDINALITY_MATCH,
     BHGMAN_INTENT_N,
     GEN_AI_AGENT_NAME,

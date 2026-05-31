@@ -19,8 +19,8 @@ for _d in ("occam", "eureka"):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from runner import UnsupportedLocalQuery, make_local_runner  # noqa: E402
-from store import LocalKgStore  # noqa: E402
+from engine.kg_local.runner import UnsupportedLocalQuery, make_local_runner  # noqa: E402
+from engine.kg_local.store import LocalKgStore  # noqa: E402
 
 
 def _runner(tmp_path):
@@ -28,7 +28,7 @@ def _runner(tmp_path):
 
 
 def test_occam_real_fetch_templates_routed(tmp_path):
-    import kg_adapter  # occam의 실제 cypher 빌더
+    from engine.occam import kg_adapter  # occam의 실제 cypher 빌더
 
     run = _runner(tmp_path)
     run(*kg_adapter.fetch_cypher(None))  # _FETCH_ALL — raise 없으면 routing OK
@@ -36,8 +36,8 @@ def test_occam_real_fetch_templates_routed(tmp_path):
 
 
 def test_occam_real_supersede_template_routed(tmp_path):
-    import kg_adapter
-    from occam_models import Confidence, NodeRecord, SupersessionCandidate
+    from engine.occam import kg_adapter
+    from engine.occam.occam_models import Confidence, NodeRecord, SupersessionCandidate
 
     cand = SupersessionCandidate(
         stale=NodeRecord("o", "p", "s1", 1),
@@ -51,7 +51,7 @@ def test_occam_real_supersede_template_routed(tmp_path):
 
 
 def test_eureka_real_extraction_template_routed(tmp_path):
-    from formal_context_builder import FormalContextConfig, build_extraction_cypher
+    from engine.eureka.formal_context_builder import FormalContextConfig, build_extraction_cypher
 
     cy, params = build_extraction_cypher(FormalContextConfig())
     rows = _runner(tmp_path)(cy, params)  # facet read 라우팅

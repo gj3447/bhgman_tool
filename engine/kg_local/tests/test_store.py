@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import pytest
-from store import LocalKgStore
+from engine.kg_local.store import LocalKgStore
 
 
 def test_merge_node_upsert_by_key(tmp_path):

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from models import CodeSymbol
+from engine.longinus_drift_audit.models import CodeSymbol
 
 
 def scan_reverse_orphans(

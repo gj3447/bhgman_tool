@@ -21,7 +21,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from protocols import StageResult
+from engine.eureka.protocols import StageResult
 
 CypherRunner = Callable[[str, dict], "list[dict]"]
 

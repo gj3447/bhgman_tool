@@ -15,7 +15,7 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import Iterable
 
-from models import (
+from engine.longinus_drift_audit.models import (
     KgRefRecord,
     KnowledgeHubRecord,
     ReferenceLayer,

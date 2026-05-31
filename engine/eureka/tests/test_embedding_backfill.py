@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import pytest
-from embedding_backfill import (
+from engine.eureka.embedding_backfill import (
     TEXT_FIELDS,
     backfill,
     fetch_unembedded_cypher,

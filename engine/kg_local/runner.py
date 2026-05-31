@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from store import LocalKgStore
+from engine.kg_local.store import LocalKgStore
 
 CypherRunner = Callable[[str, dict], "list[dict]"]
 

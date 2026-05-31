@@ -25,25 +25,25 @@ References:
 
 from __future__ import annotations
 
-from kg_binding_categories import (
+from engine.longinus_drift_audit.kg_binding_categories import (
     kg_binding_cat,
     kg_multi_binding_cat,
     line_range_cat,
     ranges_cat,
 )
-from kg_binding_delta import (
+from engine.longinus_drift_audit.kg_binding_delta import (
     KGBindingDelta,
     KGMultiBindingDelta,
     LineRangeDelta,
     RangesDelta,
 )
-from kg_binding_lenses import (
+from engine.longinus_drift_audit.kg_binding_lenses import (
     kg_multi_to_ranges_lens,
     kg_to_line_range_lens,
 )
-from kg_binding_state import KGBindingState, KGMultiBindingState
+from engine.longinus_drift_audit.kg_binding_state import KGBindingState, KGMultiBindingState
 
-import kg_binding_registry_install  # noqa: F401  (import for side-effect)
+from engine.longinus_drift_audit import kg_binding_registry_install  # noqa: F401  (import for side-effect)
 
 
 __all__ = [

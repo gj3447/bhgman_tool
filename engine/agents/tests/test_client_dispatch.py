@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 import pytest
-from client import AgentClient, AgentRuntimeUnavailable, runtime_status
-from dispatch import SubagentSpec, dispatch_parallel
+from engine.agents.client import AgentClient, AgentRuntimeUnavailable, runtime_status
+from engine.agents.dispatch import SubagentSpec, dispatch_parallel
 from fake_anthropic import FakeAnthropic
-from agent_models import EFFORT_CAPABLE, HAIKU, OPUS
+from engine.agents.agent_models import EFFORT_CAPABLE, HAIKU, OPUS
 
 
 def test_runtime_status_no_backend(monkeypatch):

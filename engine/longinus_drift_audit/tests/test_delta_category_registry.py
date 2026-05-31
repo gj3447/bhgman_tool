@@ -16,32 +16,32 @@ from __future__ import annotations
 
 import pytest
 
-from delta_category_registry import (
+from engine.longinus_drift_audit.delta_category_registry import (
     DefaultDeltaCategoryRegistry,
     DeltaCategoryRegistryProto,
     default_registry,
 )
-from delta_lens import DeltaCategory, int_delta_cat
+from engine.longinus_drift_audit.delta_lens import DeltaCategory, int_delta_cat
 
 
 def test_default_registry_has_4_wave6c_categories() -> None:
     """default_registry singleton contains the 4 Wave 6c category registrations."""
     expected = {"kg_binding", "line_range", "kg_multi_binding", "ranges"}
     # kg_binding_delta_lens must be imported to trigger registration
-    import kg_binding_delta_lens  # noqa: F401
+    from engine.longinus_drift_audit import kg_binding_delta_lens  # noqa: F401
 
     assert expected.issubset(set(default_registry.names()))
 
 
 def test_default_registry_get_returns_DeltaCategory_instance() -> None:
-    import kg_binding_delta_lens  # noqa: F401
+    from engine.longinus_drift_audit import kg_binding_delta_lens  # noqa: F401
 
     cat = default_registry.get("kg_binding")
     assert isinstance(cat, DeltaCategory)
 
 
 def test_default_registry_has_known_name() -> None:
-    import kg_binding_delta_lens  # noqa: F401
+    from engine.longinus_drift_audit import kg_binding_delta_lens  # noqa: F401
 
     assert default_registry.has("ranges") is True
     assert default_registry.has("nonexistent_cat") is False

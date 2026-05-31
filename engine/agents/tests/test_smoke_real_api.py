@@ -19,7 +19,7 @@ import os
 
 import pytest
 
-from client import runtime_status
+from engine.agents.client import runtime_status
 
 _ready, _reason = runtime_status()
 # 로컬 백엔드면 web_search 서버툴 없음 → prom no-web.
@@ -31,8 +31,8 @@ pytestmark = pytest.mark.skipif(
 
 def test_prom_real_research_web_search():
     """plan→1 web_search 서브에이전트→합성. pause_turn 서버루프 실응답 검증."""
-    from client import AgentClient
-    from prometheus import research
+    from engine.agents.client import AgentClient
+    from engine.agents.prometheus import research
 
     report = research(
         "a single well-known fact about the Eiffel Tower",
@@ -48,8 +48,8 @@ def test_prom_real_research_web_search():
 
 def test_tlb_real_single_lens_critique():
     """1 판단렌즈 실 LLM 비평 → PASS/FAIL/CONDITIONAL 파싱."""
-    from client import AgentClient
-    from naesengmoon import critique
+    from engine.agents.client import AgentClient
+    from engine.agents.naesengmoon import critique
 
     v = critique("smoke-claim", "Claim: 2 + 2 = 4.", AgentClient(), lenses=("mathematical",))
     assert v.verdict in ("PASS", "FAIL", "CONDITIONAL")
@@ -58,9 +58,9 @@ def test_tlb_real_single_lens_critique():
 
 def test_dispatch_real_single_subagent():
     """재배맨 1 서브에이전트 실 출격 → 결과 수확."""
-    from client import AgentClient
-    from dispatch import SubagentSpec, dispatch_parallel
-    from agent_models import HAIKU
+    from engine.agents.client import AgentClient
+    from engine.agents.dispatch import SubagentSpec, dispatch_parallel
+    from engine.agents.agent_models import HAIKU
 
     spec = SubagentSpec(
         name="smoke",

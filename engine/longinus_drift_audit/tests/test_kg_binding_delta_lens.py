@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import pytest
 
-from edit_lens_line_range import LineRange
-from kg_binding_delta_lens import (
+from engine.longinus_drift_audit.edit_lens_line_range import LineRange
+from engine.longinus_drift_audit.kg_binding_delta_lens import (
     KGBindingState,
     KGMultiBindingState,
     LineRangeDelta,
@@ -151,7 +151,7 @@ def test_kg_binding_cat_compose_chains_endpoints() -> None:
     a = _binding("A", 1, 5)
     b = _binding("A", 1, 7)
     c = _binding("A", 1, 9)
-    from kg_binding_delta_lens import KGBindingDelta
+    from engine.longinus_drift_audit.kg_binding_delta_lens import KGBindingDelta
 
     d1 = KGBindingDelta(src=a, tgt=b)
     d2 = KGBindingDelta(src=b, tgt=c)
@@ -163,7 +163,7 @@ def test_kg_binding_cat_compose_rejects_mismatched_endpoints() -> None:
     a = _binding("A", 1, 5)
     b = _binding("A", 1, 7)
     c = _binding("A", 1, 9)
-    from kg_binding_delta_lens import KGBindingDelta
+    from engine.longinus_drift_audit.kg_binding_delta_lens import KGBindingDelta
 
     d1 = KGBindingDelta(src=a, tgt=b)
     d2 = KGBindingDelta(src=c, tgt=a)  # c != b → mismatch

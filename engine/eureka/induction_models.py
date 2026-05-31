@@ -19,7 +19,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from induction_operators.registry import is_automated, is_registered, known_methods
+from engine.eureka.induction_operators.registry import is_automated, is_registered, known_methods
 
 
 class InductionMethod(str, Enum):

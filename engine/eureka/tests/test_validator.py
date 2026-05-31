@@ -2,7 +2,11 @@ import datetime as dt
 
 import pytest
 
-from validator import SchemaViolation, validate_abstract_class, validate_generalizes_edge
+from engine.eureka.validator import (
+    SchemaViolation,
+    validate_abstract_class,
+    validate_generalizes_edge,
+)
 
 
 def _valid_ac() -> dict:

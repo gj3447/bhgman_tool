@@ -12,10 +12,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import code_scanner
-from audit_runner import LonginusAudit
-from kg_client import MockKgClient
-from models import KgRefRecord
+from engine.longinus_drift_audit import code_scanner
+from engine.longinus_drift_audit.audit_runner import LonginusAudit
+from engine.longinus_drift_audit.kg_client import MockKgClient
+from engine.longinus_drift_audit.models import KgRefRecord
 
 
 def _seed_n_files(tmp: Path, n: int) -> None:

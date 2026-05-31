@@ -1,4 +1,4 @@
-from quality_gate import (
+from engine.eureka.quality_gate import (
     FCA_STABILITY_MIN,
     GOODHART_CAP,
     MODULARITY_MIN,

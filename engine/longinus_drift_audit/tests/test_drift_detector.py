@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import drift_detector
-from models import CodeSymbol, DriftType, KgRefRecord
+from engine.longinus_drift_audit import drift_detector
+from engine.longinus_drift_audit.models import CodeSymbol, DriftType, KgRefRecord
 
 
 def _sym(name: str, line: int, *, kg_refs=None, sig="", kind="function") -> CodeSymbol:

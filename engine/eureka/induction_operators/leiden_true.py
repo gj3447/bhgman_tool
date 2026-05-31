@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from induction_operators.fca import FcaResult
-from induction_operators.leiden_llm import (
+from engine.eureka.induction_operators.fca import FcaResult
+from engine.eureka.induction_operators.leiden_llm import (
     MAX_NODES,
     _build_similarity_graph,
     assemble_fca,

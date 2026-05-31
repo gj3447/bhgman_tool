@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from ts_extractor import TREE_SITTER_AVAILABLE, extract_python_file
-from enrich import enrich_calls, JEDI_AVAILABLE
+from engine.code_to_kg.ts_extractor import TREE_SITTER_AVAILABLE, extract_python_file
+from engine.code_to_kg.enrich import enrich_calls, JEDI_AVAILABLE
 
 pytestmark = pytest.mark.skipif(
     not (TREE_SITTER_AVAILABLE and JEDI_AVAILABLE),

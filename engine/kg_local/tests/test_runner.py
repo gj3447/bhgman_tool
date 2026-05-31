@@ -8,8 +8,8 @@
 from __future__ import annotations
 
 import pytest
-from runner import UnsupportedLocalQuery, make_local_runner
-from store import LocalKgStore
+from engine.kg_local.runner import UnsupportedLocalQuery, make_local_runner
+from engine.kg_local.store import LocalKgStore
 
 
 def _store(tmp_path):

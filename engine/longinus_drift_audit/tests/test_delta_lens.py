@@ -9,7 +9,7 @@ over the trivial integer delta category.
 
 from __future__ import annotations
 
-from delta_lens import (
+from engine.longinus_drift_audit.delta_lens import (
     IntDelta,
     identity_delta_lens,
     int_delta_cat,

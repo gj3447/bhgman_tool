@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import reverse_orphan_scan
-from models import CodeSymbol
+from engine.longinus_drift_audit import reverse_orphan_scan
+from engine.longinus_drift_audit.models import CodeSymbol
 
 
 def _sym(name, line, refs, kind="function"):

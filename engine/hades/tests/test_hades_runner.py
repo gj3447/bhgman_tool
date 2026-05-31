@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from hades_models import RealizeStatus
-from hades_runner import fetch_accepted_cypher, run_hades
+from engine.hades.hades_models import RealizeStatus
+from engine.hades.hades_runner import fetch_accepted_cypher, run_hades
 
 
 class _Runner:

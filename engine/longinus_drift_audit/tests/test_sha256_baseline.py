@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-import sha256_baseline
-from kg_client import MockKgClient
-from models import ReferenceLayer, ReferenceSite, Sha256Status
+from engine.longinus_drift_audit import sha256_baseline
+from engine.longinus_drift_audit.kg_client import MockKgClient
+from engine.longinus_drift_audit.models import ReferenceLayer, ReferenceSite, Sha256Status
 
 
 @pytest.fixture

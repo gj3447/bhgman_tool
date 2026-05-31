@@ -15,7 +15,7 @@ import sys
 import time
 from pathlib import Path
 
-from daemon import LonginusDaemon, WatchConfig
+from engine.longinus_drift_audit.daemon import LonginusDaemon, WatchConfig
 
 DEFAULT_CONFIG_DIR = Path.home() / ".bhgman-tool"
 DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "watch.toml"

@@ -22,13 +22,8 @@ from __future__ import annotations
 import datetime as dt
 import os
 import sys
-from pathlib import Path
 
-PACKAGE_ROOT = Path(__file__).resolve().parent
-if str(PACKAGE_ROOT) not in sys.path:
-    sys.path.insert(0, str(PACKAGE_ROOT))
-
-from ged_drift_detector import evaluate_drift  # noqa: E402 (sys.path setup above is intentional for cron-launched script)
+from engine.longinus_drift.ged_drift_detector import evaluate_drift
 
 
 COLD_START_ANCHOR_ENV = "L8_COLD_START_ANCHOR"

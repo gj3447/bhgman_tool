@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar, runtime_checkable
 
-from delta_lens import DeltaCategory
+from engine.longinus_drift_audit.delta_lens import DeltaCategory
 
 S = TypeVar("S")
 DS = TypeVar("DS")

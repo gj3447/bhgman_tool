@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from floating_scan import find_floating_concepts, floating_ratio
+from engine.kg_local.floating_scan import find_floating_concepts, floating_ratio
 
 
 def _kg():

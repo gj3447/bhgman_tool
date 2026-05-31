@@ -8,7 +8,7 @@ Pure / offline — no KG, no network. Encodes the project's own contracts
 
 from __future__ import annotations
 
-from dispatch_eval import (
+from engine.longinus_drift_audit.dispatch_eval import (
     DispatchEvalReport,
     evaluate_dispatch,
     evaluate_finding,

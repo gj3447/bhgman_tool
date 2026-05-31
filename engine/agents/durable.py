@@ -32,7 +32,7 @@ import threading
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from dispatch import SubagentResult, SubagentSpec, dispatch_parallel
+from engine.agents.dispatch import SubagentResult, SubagentSpec, dispatch_parallel
 
 # legion.measurement._sign과 동일 시크릿 — 서명 backbone 통합(Orphan drift 해소).
 _HMAC_SECRET = os.environ.get(

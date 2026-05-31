@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from schema import NODE_SCHEMAS, neo4j_ddl, validate_node
+from engine.kg_local.schema import NODE_SCHEMAS, neo4j_ddl, validate_node
 
 
 def test_sourcecodenode_missing_required_flagged():

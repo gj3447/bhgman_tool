@@ -7,7 +7,7 @@ covenant 핵심: write cypher에 DELETE/DETACH/REMOVE 토큰 부재 (archive-onl
 
 from __future__ import annotations
 
-from kg_adapter import (
+from engine.occam.kg_adapter import (
     FORBIDDEN_TOKENS,
     apply_supersessions,
     build_supersede,
@@ -15,8 +15,8 @@ from kg_adapter import (
     fetch_source_nodes,
     parse_node_records,
 )
-from occam import occam_pass
-from occam_models import NodeRecord
+from engine.occam.occam import occam_pass
+from engine.occam.occam_models import NodeRecord
 
 
 class _RecordingRunner:

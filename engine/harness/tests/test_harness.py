@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from harness import build_diagnosis_cypher, diagnose
-from harness_models import Axis, Confidence, Presence, Tier
+from engine.harness.harness import build_diagnosis_cypher, diagnose
+from engine.harness.harness_models import Axis, Confidence, Presence, Tier
 
 
 def _present(diag, axis):

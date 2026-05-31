@@ -20,8 +20,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-from edit_lens_line_range import LineRange
-from kg_binding_delta_lens import RangesDelta
+from engine.longinus_drift_audit.edit_lens_line_range import LineRange
+from engine.longinus_drift_audit.kg_binding_delta_lens import RangesDelta
 
 
 @dataclass(frozen=True)
@@ -77,10 +77,10 @@ def example_workflow_doc() -> str:
 
         from tree_sitter import Parser, Language
         from tree_sitter_python import language as py_language
-        from tree_sitter_adapter import (
+        from engine.longinus_drift_audit.tree_sitter_adapter import (
             TSChangedRange, ts_range_to_line_range, changed_ranges_to_view_delta,
         )
-        from kg_binding_delta_lens import kg_multi_to_ranges_lens, KGMultiBindingState
+        from engine.longinus_drift_audit.kg_binding_delta_lens import kg_multi_to_ranges_lens, KGMultiBindingState
 
         # 1) Parse old code, record line_ranges per KG node
         # 2) Apply edit (insertion / deletion / modification)

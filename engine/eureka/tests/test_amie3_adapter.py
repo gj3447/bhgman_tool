@@ -9,12 +9,12 @@ apophenia이므로 후속 oracle/fidelity gate가 차단(PROPOSE only).
 
 from __future__ import annotations
 
-from amie3_adapter import (
+from engine.eureka.amie3_adapter import (
     formal_context_to_triples,
     horn_rules_to_concepts,
     induce_via_amie3,
 )
-from induction_operators.amie3 import Amie3Result, HornRule
+from engine.eureka.induction_operators.amie3 import Amie3Result, HornRule
 
 
 def _rule(body, head, pca):

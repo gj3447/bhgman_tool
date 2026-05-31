@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from urdna2015_channel import (
+from engine.longinus_drift_audit.urdna2015_channel import (
     _canonicalize,
     compute_urdna_drift,
 )

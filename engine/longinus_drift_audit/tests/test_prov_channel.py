@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from prov_channel import (
+from engine.longinus_drift_audit.prov_channel import (
     ProvActivity,
     ProvDriftReport,
     _ewma,

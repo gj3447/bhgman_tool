@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Callable, TypeVar
 
-from models import LensVerification
+from engine.longinus_drift_audit.models import LensVerification
 
 S = TypeVar("S")
 V = TypeVar("V")

@@ -23,7 +23,7 @@ from __future__ import annotations
 try:  # package import (engine.code_to_kg) vs bare-import bridge (pytest conftest)
     from .ts_extractor import CodeGraph, SymbolEdge
 except ImportError:  # pragma: no cover
-    from ts_extractor import CodeGraph, SymbolEdge  # type: ignore
+    from engine.code_to_kg.ts_extractor import CodeGraph, SymbolEdge  # type: ignore
 
 UMBRELLA_LABEL = "CodeSymbol"
 # kind → extra specific label

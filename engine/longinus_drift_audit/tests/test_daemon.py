@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from daemon import RepoEntry, WatchConfig, safe_read_hash
+from engine.longinus_drift_audit.daemon import RepoEntry, WatchConfig, safe_read_hash
 
 
 class TestWatchConfigTomlParse:

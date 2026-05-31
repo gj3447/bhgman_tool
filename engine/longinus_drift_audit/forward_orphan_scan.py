@@ -24,8 +24,12 @@ import logging
 from pathlib import Path
 from typing import Iterable, Optional
 
-from kg_client import KgClient
-from models import ForwardOrphanRecord, KnowledgeHubRecord, ReferenceLayer
+from engine.longinus_drift_audit.kg_client import KgClient
+from engine.longinus_drift_audit.models import (
+    ForwardOrphanRecord,
+    KnowledgeHubRecord,
+    ReferenceLayer,
+)
 
 logger = logging.getLogger(__name__)
 

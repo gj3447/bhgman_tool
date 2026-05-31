@@ -26,7 +26,7 @@ from pathlib import Path
 try:
     from .ts_extractor import CodeGraph, SymbolEdge
 except ImportError:  # pragma: no cover - bare-import bridge (pytest conftest)
-    from ts_extractor import CodeGraph, SymbolEdge  # type: ignore
+    from engine.code_to_kg.ts_extractor import CodeGraph, SymbolEdge  # type: ignore
 
 try:
     import jedi

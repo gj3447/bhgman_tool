@@ -10,21 +10,21 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from edit_lens_line_range import LineRange
-from delta_lens import DeltaLens
-from kg_binding_categories import (
+from engine.longinus_drift_audit.edit_lens_line_range import LineRange
+from engine.longinus_drift_audit.delta_lens import DeltaLens
+from engine.longinus_drift_audit.kg_binding_categories import (
     kg_binding_cat,
     kg_multi_binding_cat,
     line_range_cat,
     ranges_cat,
 )
-from kg_binding_delta import (
+from engine.longinus_drift_audit.kg_binding_delta import (
     KGBindingDelta,
     KGMultiBindingDelta,
     LineRangeDelta,
     RangesDelta,
 )
-from kg_binding_state import KGBindingState, KGMultiBindingState
+from engine.longinus_drift_audit.kg_binding_state import KGBindingState, KGMultiBindingState
 
 
 def _kg_get(s: KGBindingState) -> LineRange:

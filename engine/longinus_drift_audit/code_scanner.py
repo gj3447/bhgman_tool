@@ -19,7 +19,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Iterable, Iterator
 
-from models import CodeSymbol
+from engine.longinus_drift_audit.models import CodeSymbol
 
 
 _DEFAULT_PARALLEL_THRESHOLD = int(os.environ.get("LONGINUS_PARALLEL_FILE_THRESHOLD", "5000"))

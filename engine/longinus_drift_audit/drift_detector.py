@@ -9,7 +9,7 @@ import ast
 from collections import Counter
 from typing import Callable, Iterable
 
-from models import (
+from engine.longinus_drift_audit.models import (
     CodeSymbol,
     DriftRecord,
     DriftType,

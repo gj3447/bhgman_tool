@@ -11,7 +11,7 @@ import math
 
 import pytest
 
-from embedding_channel import (
+from engine.longinus_drift_audit.embedding_channel import (
     EmbeddingDriftReport,
     LonginusEmbeddingOptInRequired,
     NodeEmbedding,

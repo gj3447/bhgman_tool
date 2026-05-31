@@ -16,20 +16,34 @@ import datetime as dt
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-import quality_gate as quality_gate_module
-from fidelity_gate import FidelityConfig, run_fidelity_for_members
-from formal_context_builder import CypherRunner, FormalContextConfig, build_formal_context
-from induction_operators import FcaResult, induce_fca
-from induction_models import AbstractClass, AbstractClassStatus, GeneralizesEdge, InductionMethod
-from oracle_lens import (
+from engine.eureka import quality_gate as quality_gate_module
+from engine.eureka.fidelity_gate import FidelityConfig, run_fidelity_for_members
+from engine.eureka.formal_context_builder import (
+    CypherRunner,
+    FormalContextConfig,
+    build_formal_context,
+)
+from engine.eureka.induction_operators import FcaResult, induce_fca
+from engine.eureka.induction_models import (
+    AbstractClass,
+    AbstractClassStatus,
+    GeneralizesEdge,
+    InductionMethod,
+)
+from engine.eureka.oracle_lens import (
     CommandRunner,
     OracleLens,
     kg_oracle_gate,
     run_oracle_gate,
     subprocess_runner,
 )
-from protocols import NotImplementedStage, NotImplementedStageError, Stage, StageResult
-from validator import gate_before_merge
+from engine.eureka.protocols import (
+    NotImplementedStage,
+    NotImplementedStageError,
+    Stage,
+    StageResult,
+)
+from engine.eureka.validator import gate_before_merge
 
 
 @dataclass
@@ -150,7 +164,7 @@ def stage_4_induce(
     동일 처리. amie3는 Java subprocess(amie3_runner 주입식, 어댑터가 Horn rule→concept 변환).
     """
     if config.method == "amie3":
-        from amie3_adapter import induce_via_amie3  # noqa: PLC0415 (Java-optional path)
+        from engine.eureka.amie3_adapter import induce_via_amie3  # noqa: PLC0415 (Java-optional path)
 
         kw = {} if config.amie3_runner is None else {"amie3_fn": config.amie3_runner}
         fca_result = induce_via_amie3(
@@ -161,7 +175,7 @@ def stage_4_induce(
         )
         method = InductionMethod.AMIE3
     elif config.method == "leiden-llm":
-        from induction_operators import induce_leiden_llm  # noqa: PLC0415
+        from engine.eureka.induction_operators import induce_leiden_llm  # noqa: PLC0415
 
         resolution = config.gamma_sweep[0] if config.gamma_sweep else 1.0
         fca_result = induce_leiden_llm(

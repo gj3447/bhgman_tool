@@ -7,8 +7,8 @@ must report as 1 drift, not N.
 
 from __future__ import annotations
 
-from audit_runner import _dedup_drift_events_by_file
-from models import SourceCodeDriftEvent
+from engine.longinus_drift_audit.audit_runner import _dedup_drift_events_by_file
+from engine.longinus_drift_audit.models import SourceCodeDriftEvent
 
 
 def _ev(name: str, ref_site: str, path: str, kind: str = "SHA256_MISMATCH") -> SourceCodeDriftEvent:

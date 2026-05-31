@@ -31,9 +31,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional
 
-from daemon import safe_read_hash
-from kg_client import KgClient
-from models import (
+from engine.longinus_drift_audit.daemon import safe_read_hash
+from engine.longinus_drift_audit.kg_client import KgClient
+from engine.longinus_drift_audit.models import (
     ReferenceLayer,
     ReferenceSite,
     Sha256Status,

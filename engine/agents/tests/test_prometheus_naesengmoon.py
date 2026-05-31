@@ -5,10 +5,10 @@
 
 from __future__ import annotations
 
-from client import AgentClient
+from engine.agents.client import AgentClient
 from fake_anthropic import FakeAnthropic
-from naesengmoon import critique
-from prometheus import research
+from engine.agents.naesengmoon import critique
+from engine.agents.prometheus import research
 
 
 def _prometheus_responder(system: str, user: str, model: str) -> str:

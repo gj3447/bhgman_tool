@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import ast
 
-from extract_superclass import common_methods, extract_superclass
-from hades import realize_code_extract_superclass
-from hades_models import RealizeStatus
+from engine.hades.extract_superclass import common_methods, extract_superclass
+from engine.hades.hades import realize_code_extract_superclass
+from engine.hades.hades_models import RealizeStatus
 
 _A = "class Dog:\n    def speak(self):\n        return 'woof'\n    def legs(self):\n        return 4\n"
 _B = "class Cat:\n    def speak(self):\n        return 'woof'\n    def name(self):\n        return 'c'\n"
@@ -98,7 +98,7 @@ import pytest  # noqa: E402
 
 cst_mod = pytest.importorskip("libcst")  # skip whole section if libcst absent
 
-from extract_superclass import extract_superclass_cst  # noqa: E402
+from engine.hades.extract_superclass import extract_superclass_cst  # noqa: E402
 
 _WithComments = (
     "class Dog:\n    # important: keep this comment\n    def speak(self):\n        return 'woof'\n    def legs(self):\n        return 4\n",
@@ -113,7 +113,7 @@ def test_cst_preserves_comments_unlike_ast():
     # the lifted method's comment survives in the generated superclass
     assert "# important: keep this comment" in cst_patch.base_source
     # ast backend canonicalizes it away — the contrast that justifies libcst
-    from extract_superclass import extract_superclass
+    from engine.hades.extract_superclass import extract_superclass
 
     assert "# important: keep this comment" not in extract_superclass("Animal", srcs).base_source
 
@@ -139,7 +139,7 @@ def test_cst_none_when_no_common():
 
 
 def test_hades_realize_preserve_format_routes_to_cst():
-    from hades import realize_code_extract_superclass
+    from engine.hades.hades import realize_code_extract_superclass
 
     captured = {}
     v = realize_code_extract_superclass(

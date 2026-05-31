@@ -92,7 +92,7 @@ from typing import Iterable, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from models import Confidence
+from engine.longinus_drift_audit.models import Confidence
 
 
 # ─── Pydantic v2 schemas ──────────────────────────────────────────────────

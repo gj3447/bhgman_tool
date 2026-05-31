@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from edit_lens_line_range import LineRange
+from engine.longinus_drift_audit.edit_lens_line_range import LineRange
 
 
 @dataclass(frozen=True)

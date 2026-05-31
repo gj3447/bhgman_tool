@@ -29,8 +29,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from extract_superclass import extract_superclass, extract_superclass_cst
-from hades_models import MaterializationPlan, RealizeStatus, RealizeVerdict
+from engine.hades.extract_superclass import extract_superclass, extract_superclass_cst
+from engine.hades.hades_models import MaterializationPlan, RealizeStatus, RealizeVerdict
 
 CypherRunner = Callable[[str, dict], "list[dict]"]
 CodeWriter = Callable[[str, dict[str, str]], None]

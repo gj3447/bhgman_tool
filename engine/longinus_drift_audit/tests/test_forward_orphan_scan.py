@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-import forward_orphan_scan
-from kg_client import MockKgClient
-from models import KnowledgeHubRecord
+from engine.longinus_drift_audit import forward_orphan_scan
+from engine.longinus_drift_audit.kg_client import MockKgClient
+from engine.longinus_drift_audit.models import KnowledgeHubRecord
 
 
 @pytest.fixture

@@ -11,10 +11,10 @@ flat-layout: 모듈 간 bare import (client/dispatch/models/prometheus/naesengmo
 # KG: bhgman-llm-commander-runtime-2026-05-28
 """
 
-from client import AgentClient, AgentRuntimeUnavailable, Completion, runtime_status
-from dispatch import SubagentResult, SubagentSpec, dispatch_parallel
-from naesengmoon import DEFAULT_LENSES, EnsembleVerdict, LensVerdict, critique
-from prometheus import ResearchReport, plan_axes, research, synthesize
+from engine.agents.client import AgentClient, AgentRuntimeUnavailable, Completion, runtime_status
+from engine.agents.dispatch import SubagentResult, SubagentSpec, dispatch_parallel
+from engine.agents.naesengmoon import DEFAULT_LENSES, EnsembleVerdict, LensVerdict, critique
+from engine.agents.prometheus import ResearchReport, plan_axes, research, synthesize
 
 __all__ = [
     "DEFAULT_LENSES",

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from oracle_lens import OracleLens, run_oracle_gate
+from engine.occam.oracle_lens import OracleLens, run_oracle_gate
 
 
 def _fake(code: int, out: str = ""):

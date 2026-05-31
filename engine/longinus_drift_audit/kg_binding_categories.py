@@ -8,15 +8,15 @@ exposed as DeltaCategory singletons. No lenses, no registry.
 
 from __future__ import annotations
 
-from edit_lens_line_range import LineRange
-from delta_lens import DeltaCategory
-from kg_binding_delta import (
+from engine.longinus_drift_audit.edit_lens_line_range import LineRange
+from engine.longinus_drift_audit.delta_lens import DeltaCategory
+from engine.longinus_drift_audit.kg_binding_delta import (
     KGBindingDelta,
     KGMultiBindingDelta,
     LineRangeDelta,
     RangesDelta,
 )
-from kg_binding_state import KGBindingState, KGMultiBindingState
+from engine.longinus_drift_audit.kg_binding_state import KGBindingState, KGMultiBindingState
 
 
 def _kg_id(s: KGBindingState) -> KGBindingDelta:

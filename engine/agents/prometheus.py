@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from client import AgentClient
-from dispatch import SubagentResult, SubagentSpec, dispatch_parallel
-from agent_models import SUBAGENT_MODEL, SYNTHESIS_MODEL
+from engine.agents.client import AgentClient
+from engine.agents.dispatch import SubagentResult, SubagentSpec, dispatch_parallel
+from engine.agents.agent_models import SUBAGENT_MODEL, SYNTHESIS_MODEL
 
 _PLAN_SYS = (
     "You are Prometheus, a research planner. Decompose the topic into exactly N distinct, "

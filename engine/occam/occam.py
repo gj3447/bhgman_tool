@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from occam_models import Confidence, NodeRecord, OccamReport, SupersessionCandidate
+from engine.occam.occam_models import Confidence, NodeRecord, OccamReport, SupersessionCandidate
 
 _REPO_MARKER = "bhgman_tool/"
 
