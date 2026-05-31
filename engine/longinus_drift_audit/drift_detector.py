@@ -153,37 +153,34 @@ def detect_sig_mismatch(
     out: list[DriftRecord] = []
     for s in symbols:
         for ref in s.kg_refs:
-            if ref not in kg_refs:
+            rec = kg_refs.get(ref)
+            if rec is None:
                 continue  # MISSING 측 처리
-            rec = kg_refs[ref]
-            if rec.expected_signature is not None:
-                if s.signature is not None and not _signatures_match(
-                    rec.expected_signature, s.signature
-                ):
-                    out.append(
-                        DriftRecord(
-                            drift_type=DriftType.SIG_MISMATCH,
-                            sourceId=ref,
-                            sourcePath=s.sourcePath,
-                            expected=rec.expected_signature,
-                            actual=s.signature,
-                            layer_violated=ReferenceLayer.L3_TYPE,
-                            lens_law_violated="PutGet",
-                        )
-                    )
-            elif rec.label and s.signature and rec.label not in s.signature:
-                out.append(
-                    DriftRecord(
-                        drift_type=DriftType.SIG_MISMATCH,
-                        sourceId=ref,
-                        sourcePath=s.sourcePath,
-                        expected=rec.label,
-                        actual=s.signature,
-                        layer_violated=ReferenceLayer.L3_TYPE,
-                        lens_law_violated="PutGet",
-                    )
-                )
+            drift = _sig_drift_record(s, ref, rec)
+            if drift is not None:
+                out.append(drift)
     return out
+
+
+def _sig_drift_record(s: CodeSymbol, ref: str, rec: KgRefRecord) -> DriftRecord | None:
+    """One ref's SigMismatch verdict: structural (expected_signature) or label heuristic."""
+    if rec.expected_signature is not None:
+        if s.signature is None or _signatures_match(rec.expected_signature, s.signature):
+            return None
+        expected = rec.expected_signature
+    elif rec.label and s.signature and rec.label not in s.signature:
+        expected = rec.label
+    else:
+        return None
+    return DriftRecord(
+        drift_type=DriftType.SIG_MISMATCH,
+        sourceId=ref,
+        sourcePath=s.sourcePath,
+        expected=expected,
+        actual=s.signature,
+        layer_violated=ReferenceLayer.L3_TYPE,
+        lens_law_violated="PutGet",
+    )
 
 
 def detect_pattern_div(*, symbols: Iterable[CodeSymbol]) -> list[DriftRecord]:

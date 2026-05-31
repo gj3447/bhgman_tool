@@ -206,7 +206,7 @@ known_first_party = [
   "legion", "legion_models",
   # engine/hades — 7번째 동사 실현(materialize, 유레카 dual), flat-layout bare imports
   # + 실전화 2026-05-27: ACCEPTED 추상 fetch → realize end-to-end runner
-  "hades", "hades_models", "hades_runner",
+  "hades", "hades_models", "hades_runner", "extract_superclass",
   # engine/kg_local — neo4j-free 로컬 KG backend (2026-05-28), flat-layout bare imports
   "schema", "store", "runner", "floating_scan",
   # engine/agents — LLM 군단장 런타임 (재배맨 dispatch / 프로메테우스 / 나생문), flat-layout bare imports

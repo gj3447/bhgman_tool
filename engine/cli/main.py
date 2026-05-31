@@ -682,6 +682,25 @@ def cmd_occam(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_prov(args: argparse.Namespace) -> int:
+    """W3C PROV-O export — ResearchFinding → prov:Entity Turtle (provenance interchange).
+
+    Delegates to engine.provexport.prov_export:main (own argparse: cycle_id, --format,
+    --findings-json, --out). Lets a research cycle's findings leave the KG as a standard
+    nanopub/PROV graph instead of a bespoke dump. KG: prov-o-nanopub-export-2026-05-30.
+    """
+    try:
+        from engine.provexport.prov_export import main as prov_main
+    except ImportError as e:
+        print(
+            f"[bhgman-tool] FAIL: engine.provexport not importable — install provexport extra "
+            f"(`uv pip install -e '.[provexport]'` → prov, rdflib, lxml): {e}",
+            file=sys.stderr,
+        )
+        return 2
+    return prov_main(args.passthrough or [])
+
+
 def _load_engine_module(subdir: str, module: str, evict: tuple[str, ...] = ()):
     """Lazy-import a flat-layout engine module with its dir on sys.path[0].
 
@@ -951,6 +970,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="summary = human view; neo4j = CREATE CONSTRAINT DDL to bootstrap a fresh Neo4j.",
     )
     p_ks.set_defaults(func=cmd_kg_schema)
+
+    p_xp = sub.add_parser(
+        "export-prov",
+        help="W3C PROV-O export — a research cycle's findings → prov:Entity Turtle/nanopub.",
+    )
+    p_xp.add_argument(
+        "passthrough",
+        nargs=argparse.REMAINDER,
+        help="cycle_id [--format turtle|jsonld|trig] [--findings-json PATH] [--out FILE]",
+    )
+    p_xp.set_defaults(func=cmd_export_prov)
 
     # ─── SYMPOSIUM resolver/gate verbs (Wave 7 P3-H, 2026-05-14) ──────────
     p_rs = sub.add_parser(

@@ -75,6 +75,45 @@ def scan_kg_refs(file_path: Path) -> list[tuple[int, list[str]]]:
     return out
 
 
+def _arg_str(arg: ast.arg) -> str:
+    """``name`` or ``name: annotation``."""
+    s = arg.arg
+    if arg.annotation is not None:
+        s += f": {ast.unparse(arg.annotation)}"
+    return s
+
+
+def _positional_parts(a: ast.arguments) -> list[str]:
+    pos = a.posonlyargs + a.args
+    ndef = len(a.defaults)
+    parts: list[str] = []
+    for i, arg in enumerate(pos):
+        s = _arg_str(arg)
+        di = i - (len(pos) - ndef)
+        if di >= 0:
+            s += f" = {ast.unparse(a.defaults[di])}"
+        parts.append(s)
+    if a.posonlyargs:
+        parts.insert(len(a.posonlyargs), "/")
+    return parts
+
+
+def _keyword_parts(a: ast.arguments) -> list[str]:
+    parts: list[str] = []
+    if a.vararg:
+        parts.append("*" + _arg_str(a.vararg))
+    elif a.kwonlyargs:
+        parts.append("*")
+    for i, arg in enumerate(a.kwonlyargs):
+        s = _arg_str(arg)
+        if a.kw_defaults[i] is not None:
+            s += f" = {ast.unparse(a.kw_defaults[i])}"
+        parts.append(s)
+    if a.kwarg:
+        parts.append("**" + _arg_str(a.kwarg))
+    return parts
+
+
 def _format_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     """Canonical signature string from a function's ast args (+ return type).
 
@@ -82,39 +121,7 @@ def _format_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     annotated/defaulted/posonly/kwonly/varargs are all rendered faithfully, e.g.
     ``"a, /, b, *args, c = 1, **kw"`` and ``"x: int = 0 -> bool"``.
     """
-    a = node.args
-    parts: list[str] = []
-    pos = a.posonlyargs + a.args
-    ndef = len(a.defaults)
-    for i, arg in enumerate(pos):
-        s = arg.arg
-        if arg.annotation is not None:
-            s += f": {ast.unparse(arg.annotation)}"
-        di = i - (len(pos) - ndef)
-        if di >= 0:
-            s += f" = {ast.unparse(a.defaults[di])}"
-        parts.append(s)
-    if a.posonlyargs:
-        parts.insert(len(a.posonlyargs), "/")
-    if a.vararg:
-        v = "*" + a.vararg.arg
-        if a.vararg.annotation:
-            v += f": {ast.unparse(a.vararg.annotation)}"
-        parts.append(v)
-    elif a.kwonlyargs:
-        parts.append("*")
-    for i, arg in enumerate(a.kwonlyargs):
-        s = arg.arg
-        if arg.annotation is not None:
-            s += f": {ast.unparse(arg.annotation)}"
-        if a.kw_defaults[i] is not None:
-            s += f" = {ast.unparse(a.kw_defaults[i])}"
-        parts.append(s)
-    if a.kwarg:
-        s = "**" + a.kwarg.arg
-        if a.kwarg.annotation:
-            s += f": {ast.unparse(a.kwarg.annotation)}"
-        parts.append(s)
+    parts = _positional_parts(node.args) + _keyword_parts(node.args)
     sig = ", ".join(parts)
     if node.returns is not None:
         sig += f" -> {ast.unparse(node.returns)}"

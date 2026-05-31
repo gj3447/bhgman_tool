@@ -13,8 +13,8 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest engine](https://img.shields.io/badge/pytest%20engine-298%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-859%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-306%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-891%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -120,7 +120,7 @@ cd bhgman_tool
 
 # 1. engine — verify pytest
 cd engine/longinus_drift_audit
-uv run --with pytest pytest tests/ -q          # expected: 298 passed, 1 skipped in ~2s
+uv run --with pytest pytest tests/ -q          # expected: 306 passed, 1 skipped in ~2s
 
 # 2. Lean 4 — verify formal claims (optional)
 cd ../../lean
@@ -138,7 +138,7 @@ Restart Claude Code, then `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/
 
 ```mermaid
 flowchart LR
-    A([git clone]) --> B[engine pytest<br/>298 PASS]
+    A([git clone]) --> B[engine pytest<br/>306 PASS]
     B --> C{Lean 4?<br/>optional}
     C -- yes --> D[lean verify<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
@@ -170,7 +170,7 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 | Claim | Command | What it checks |
 |---|---|---|
 | `298 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
-| `855 passed, 4 skipped` (full repo; 859 collected) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (4 skips on a keyless clone: 3 real-API smoke + 1 otel no-op) |
+| `887 passed, 4 skipped` (full repo; 891 collected) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (4 skips on a keyless clone: 3 real-API smoke + 1 otel no-op) |
 | `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 standalone (Mathlib-free) files build + count of unfinished proofs (= 0; every `sorry` token in the tree is in a comment) |
 | `87 theorems` (whole `lean/` tree; 71 in the 13 standalone files) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | top-level theorem/lemma declaration count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
@@ -196,7 +196,7 @@ Early-adopter stage. API surface, skill contracts, and badge counts may change w
 
 ## Contributing
 
-Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 859 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
+Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 891 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 

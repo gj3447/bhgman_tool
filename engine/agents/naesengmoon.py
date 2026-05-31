@@ -20,6 +20,8 @@ from client import AgentClient
 from dispatch import SubagentResult, SubagentSpec, dispatch_parallel
 from agent_models import SYNTHESIS_MODEL
 
+from engine.naesengmoon.decorrelation import DEFAULT_RHO, effective_n
+
 # 렌즈별 적대 비평 system prompt (판단 lens-class). 첫 줄 'VERDICT: PASS|FAIL|CONDITIONAL' 강제.
 LENS_PROMPTS: dict[str, str] = {
     "constitutional": (
@@ -69,11 +71,17 @@ class EnsembleVerdict:
     lens_verdicts: tuple[LensVerdict, ...]
     verdict: str  # PASS | FAIL | CONDITIONAL
     aggregation: str = "UNANIMOUS_PASS"
+    n_eff: float = 0.0  # effective independent votes (Kish); same-model judgment lenses → ≪ N
+    n_critics: int = 0
 
     @property
     def summary(self) -> str:
         per = " ".join(f"{v.lens}={v.verdict}" for v in self.lens_verdicts)
-        return f"naesengmoon[{self.target}]: {self.verdict} ({self.aggregation}) — {per}"
+        # Honest confidence: N same-model judgment lenses are correlated → n_eff ≪ N
+        # (consensus-prom8-naesengmoon-decorrelation-2026-05-31). Raise n_eff via oracle lenses
+        # or cross-family critics; never read N agreeing critics as N independent votes.
+        neff = f" | {self.n_critics} judgment critics, n_eff≈{self.n_eff:.2f} (same-model → correlated)"
+        return f"naesengmoon[{self.target}]: {self.verdict} ({self.aggregation}) — {per}{neff}"
 
 
 def _parse_verdict(text: str) -> tuple[str, str]:
@@ -130,10 +138,15 @@ def critique(
         v, findings = _parse_verdict(r.text)
         lens_verdicts.append(LensVerdict(lens, v, findings))
 
+    # All lenses here are same-model JUDGMENT critics → correlated; report honest n_eff.
+    n_critics = len(lens_verdicts)
+    n_eff = effective_n(n_oracle=0, n_judgment=n_critics, rho=DEFAULT_RHO)
     return EnsembleVerdict(
         target=target,
         lens_verdicts=tuple(lens_verdicts),
         verdict=_aggregate(lens_verdicts),
+        n_eff=n_eff,
+        n_critics=n_critics,
     )
 
 
