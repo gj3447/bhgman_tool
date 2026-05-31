@@ -51,8 +51,7 @@ class HadesRunResult:
         refused = sum(1 for v in self.verdicts if v.status is RealizeStatus.REFUSED)
         mode = "DRY-RUN" if self.dry_run else f"APPLIED {self.applied_count}"
         return (
-            f"hades: candidates={len(self.verdicts)} "
-            f"planned={planned} refused={refused} → {mode}"
+            f"hades: candidates={len(self.verdicts)} planned={planned} refused={refused} → {mode}"
         )
 
 

@@ -21,7 +21,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol
+from typing import Any, Protocol
 
 import redis
 
@@ -124,7 +124,7 @@ def build_redis_client() -> redis.Redis:
     """Composition Root: Redis 연결 + ping 검증. REDIS_PASSWORD env optional (k8s pod AUTH)."""
     import os
 
-    kwargs = dict(
+    kwargs: dict[str, Any] = dict(
         host=os.environ.get("REDIS_HOST", "localhost"),
         port=int(os.environ.get("REDIS_PORT", 6379)),
         db=int(os.environ.get("REDIS_DB", 0)),

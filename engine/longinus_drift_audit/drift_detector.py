@@ -108,8 +108,8 @@ def _parse_sig(sig: str) -> tuple[tuple[tuple[str, str | None], ...], str | None
     (caller then falls back to normalized string equality). ``*``/``/`` markers
     are dropped — drift is judged on param identity + annotation + return.
     """
-    body, _, ret = sig.partition("->")
-    ret = ret.strip() or None
+    body, _, ret_raw = sig.partition("->")
+    ret: str | None = ret_raw.strip() or None
     try:
         tree = ast.parse(f"def _({body.strip()}): pass")
     except SyntaxError:

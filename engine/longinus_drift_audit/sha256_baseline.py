@@ -152,7 +152,7 @@ def init_baseline(
         if site.sha256_baseline:
             continue  # already initialized
         resolution = resolve_path(site.sourcePath, base_chain=chain)
-        if resolution.status == "FILE":
+        if resolution.status == "FILE" and resolution.abs_path is not None:
             sha = _compute_sha256(resolution.abs_path)
             updated = site.model_copy(
                 update={
@@ -266,6 +266,7 @@ def verify_baseline(
             )
             continue
 
+        assert resolution.abs_path is not None  # status==FILE ⟹ abs_path set
         current = _compute_sha256(resolution.abs_path)
         if current != site.sha256_baseline:
             result.drift += 1

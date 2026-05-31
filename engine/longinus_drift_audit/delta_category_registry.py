@@ -69,7 +69,7 @@ class DefaultDeltaCategoryRegistry:
     def get(self, name: str) -> DeltaCategory:
         if name not in self._cats:
             raise KeyError(
-                f"DeltaCategory '{name}' not registered. " f"Known: {sorted(self._cats.keys())}"
+                f"DeltaCategory '{name}' not registered. Known: {sorted(self._cats.keys())}"
             )
         return self._cats[name]
 

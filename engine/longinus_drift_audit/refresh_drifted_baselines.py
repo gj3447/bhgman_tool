@@ -53,6 +53,7 @@ def main() -> int:
                 if res.status != "FILE":
                     unresolved.append((path, res.status))
                     continue
+                assert res.abs_path is not None  # status==FILE ⟹ abs_path set
                 sha = sha256_baseline._compute_sha256(res.abs_path)
                 rec = s.run(
                     """

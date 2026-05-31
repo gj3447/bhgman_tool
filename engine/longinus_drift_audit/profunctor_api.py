@@ -23,12 +23,15 @@ References:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Callable, Generic, Protocol, TypeVar, runtime_checkable
 
-S = TypeVar("S")  # source type
-T = TypeVar("T")  # target type (post-update)
-A = TypeVar("A")  # focused-element type
-B = TypeVar("B")  # focused-element after update
+# Variance per profunctor optics: source consumed (contravariant), target produced
+# (covariant), focus read out (covariant), focus written in (contravariant).
+S = TypeVar("S", contravariant=True)  # source type
+T = TypeVar("T", covariant=True)  # target type (post-update)
+A = TypeVar("A", covariant=True)  # focused-element type
+B = TypeVar("B", contravariant=True)  # focused-element after update
 
 
 @runtime_checkable
@@ -56,6 +59,6 @@ class TraversalProto(Protocol, Generic[S, T, A, B]):
 
     def modify_each(self, s: S, f: Callable[[A], B]) -> T: ...
 
-    def to_list(self, s: S) -> list[A]:
+    def to_list(self, s: S) -> Sequence[A]:
         """Collect all foci into a list (1:N flattening)."""
         ...

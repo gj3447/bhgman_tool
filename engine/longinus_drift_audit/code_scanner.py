@@ -106,8 +106,9 @@ def _keyword_parts(a: ast.arguments) -> list[str]:
         parts.append("*")
     for i, arg in enumerate(a.kwonlyargs):
         s = _arg_str(arg)
-        if a.kw_defaults[i] is not None:
-            s += f" = {ast.unparse(a.kw_defaults[i])}"
+        kw_default = a.kw_defaults[i]
+        if kw_default is not None:
+            s += f" = {ast.unparse(kw_default)}"
         parts.append(s)
     if a.kwarg:
         parts.append("**" + _arg_str(a.kwarg))
@@ -138,7 +139,7 @@ def _node_kg_refs(node: ast.AST, kg_per_line: dict[int, list[str]]) -> list[str]
     if decos:
         start = min(start, min(d.lineno for d in decos))
     body = getattr(node, "body", None)
-    end = (body[0].lineno - 1) if body else getattr(node, "end_lineno", node.lineno)
+    end = (body[0].lineno - 1) if body else getattr(node, "end_lineno", getattr(node, "lineno", 0))
     seen: list[str] = []
     for ln in range(start, max(start, end) + 1):
         for ref in kg_per_line.get(ln, []):

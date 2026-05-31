@@ -94,9 +94,10 @@ class AgentClient:
         ok, reason = runtime_status()
         if not ok:
             raise AgentRuntimeUnavailable(reason)
-        if _local_base_url():  # 실 openai-compat (vLLM/DGX)
+        base_url = _local_base_url()
+        if base_url:  # 실 openai-compat (vLLM/DGX)
             self._mode, self._post = "openai", _urllib_post
-            self._base = _local_base_url().rstrip("/")
+            self._base = base_url.rstrip("/")
             self._model = os.environ["BHGMAN_LLM_MODEL"]
             self._key = os.environ.get("BHGMAN_LLM_API_KEY", "EMPTY")
         else:  # 실 anthropic
@@ -157,6 +158,7 @@ class AgentClient:
                 {"role": "user", "content": user},
                 {"role": "assistant", "content": resp.content},
             ]
+        assert resp is not None  # loop body runs at least once (max_cont >= 1)
         text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
         usage = getattr(resp, "usage", None)
         return Completion(

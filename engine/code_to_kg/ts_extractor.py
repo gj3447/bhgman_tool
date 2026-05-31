@@ -31,7 +31,7 @@ try:  # graceful import (Longinus adapter convention, Wave 7a)
     _PY_LANGUAGE = Language(_tsp.language())
     TREE_SITTER_AVAILABLE = True
 except Exception:  # pragma: no cover - exercised only when dep absent
-    _PY_LANGUAGE = None
+    _PY_LANGUAGE = None  # type: ignore[assignment]  # optional-dep degrade path
     Node = object  # type: ignore
     TREE_SITTER_AVAILABLE = False
 
@@ -183,7 +183,7 @@ class _PyWalker:
 
     def _on_call(self, child: "Node", ctx: _Ctx) -> None:
         ref = _callee_ref(child, self.src)
-        if ref is not None:
+        if ref is not None and ctx.enclosing_func is not None:
             name, line, col = ref
             self.graph.edges.append(
                 SymbolEdge(ctx.enclosing_func, "CALLS", name, resolved=False, line=line, col=col)
@@ -270,7 +270,7 @@ def _callee_ref(call_node: "Node", src: bytes) -> Optional[tuple[str, int, int]]
     fn = call_node.child_by_field_name("function")
     if fn is None:
         return None
-    target = fn
+    target: "Node | None" = fn
     if fn.type == "attribute":
         target = fn.child_by_field_name("attribute")
     if target is None or target.type != "identifier":
@@ -289,7 +289,7 @@ def _base_refs(class_node: "Node", src: bytes) -> list[tuple[str, int, int]]:
         return []
     out: list[tuple[str, int, int]] = []
     for base in sup.named_children:
-        target = base
+        target: "Node | None" = base
         if base.type == "attribute":
             target = base.child_by_field_name("attribute")
         if target is None or target.type != "identifier":

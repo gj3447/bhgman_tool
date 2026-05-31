@@ -166,6 +166,8 @@ class HybridRetrievalStage:
         self.name = "6-hybrid-retrieval"
 
     def _vector_channel(self, query_embedding: list[float]) -> list[tuple[str, float]]:
+        if self.run_cypher is None or self.vector_index is None:
+            return []  # vector channel inactive without runner + index
         cypher, params = vector_query_cypher(self.vector_index, self.k)
         params["vec"] = query_embedding
         try:

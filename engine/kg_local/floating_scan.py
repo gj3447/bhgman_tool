@@ -40,9 +40,9 @@ def _bound_indices(edges: list[dict[str, Any]], src_idx: set[int]) -> set[int]:
     bound: set[int] = set()
     for e in edges:
         s, d = e.get("src"), e.get("dst")
-        if d in src_idx:
+        if d in src_idx and s is not None:
             bound.add(s)
-        if s in src_idx:
+        if s in src_idx and d is not None:
             bound.add(d)
     return bound
 

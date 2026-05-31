@@ -60,6 +60,22 @@ repos:
         always_run: true
 
   # ============================================================
+  # Stage 3.5: mypy (static type gate, pre-commit)
+  # Adopted 2026-05-31 — mypy was a declared dev dep but never configured/wired;
+  # the gate was unblocked once flat-layout imports → engine.* and the duplicate
+  # path-injection conftests were removed. Config + scope live in [tool.mypy].
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (static type gate)
+        entry: uvx --with pydantic mypy
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+
+  # ============================================================
   # Stage 4: deptry (unused/missing deps check, pre-commit)
   # audit ratchet #3 — wave11 box check
   # ============================================================
