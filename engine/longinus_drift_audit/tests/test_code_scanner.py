@@ -33,11 +33,7 @@ class TestScanPythonSymbols:
         p = tmp_path / "a.py"
         _write_py(
             p,
-            "class Foo:  # KG: x-y\n"
-            "    pass\n"
-            "\n"
-            "def bar(x, y):  # KG: a-b\n"
-            "    return x + y\n",
+            "class Foo:  # KG: x-y\n    pass\n\ndef bar(x, y):  # KG: a-b\n    return x + y\n",
         )
         syms = code_scanner.scan_python_symbols(p)
         assert len(syms) == 2
