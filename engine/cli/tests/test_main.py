@@ -91,7 +91,7 @@ def test_install_skills_fails_when_source_missing(tmp_path, monkeypatch, capsys)
     fake_root.mkdir()
     (fake_root / "pyproject.toml").write_text("[project]\nname = 'x'\n")
     # skills dir intentionally absent
-    monkeypatch.setattr("engine.cli.main._repo_root", lambda: fake_root)
+    monkeypatch.setattr("engine.cli.commands._repo_root", lambda: fake_root)
     rc = cli(["install-skills", "--target", str(tmp_path / "target")])
     captured = capsys.readouterr()
     assert rc == 2
@@ -143,7 +143,7 @@ _DUP_ROWS = [
 
 def _patch_runners(monkeypatch, read_rows):
     read, write = _FakeRunner(read_rows), _FakeRunner()
-    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, write, lambda: None))
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
     return read, write
 
 
@@ -167,7 +167,7 @@ def test_occam_apply_writes_supersession(monkeypatch, capsys):
 
 
 def test_occam_degrades_when_no_neo4j(monkeypatch, capsys):
-    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: None)
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: None)
     rc = cli(["occam", "--scope", "engine/occam"])
     err = capsys.readouterr().err
     assert rc == 2
@@ -196,7 +196,7 @@ _ACCEPTED_ROWS = [
 
 def test_hades_dry_run_default_does_not_write(monkeypatch, capsys):
     read, write = _FakeRunner(_ACCEPTED_ROWS), _FakeRunner()
-    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, write, lambda: None))
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
     rc = cli(["hades"])
     out = capsys.readouterr().out
     assert rc == 0
@@ -206,7 +206,7 @@ def test_hades_dry_run_default_does_not_write(monkeypatch, capsys):
 
 def test_hades_apply_materializes(monkeypatch, capsys):
     read, write = _FakeRunner(_ACCEPTED_ROWS), _FakeRunner()
-    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, write, lambda: None))
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
     rc = cli(["hades", "--apply"])
     out = capsys.readouterr().out
     assert rc == 0
@@ -224,7 +224,7 @@ def test_parser_has_eureka_subcommand():
 
 
 def test_eureka_degrades_when_no_neo4j(monkeypatch, capsys):
-    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: None)
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: None)
     rc = cli(["eureka"])
     assert rc == 2
     assert "neo4j unavailable" in capsys.readouterr().err
@@ -246,7 +246,7 @@ def test_eureka_runs_pipeline_even_after_occam_oracle_lens_cached(monkeypatch, c
     import oracle_lens as _occ  # noqa: F401  # occam's — lacks kg_oracle_gate
 
     read = _FakeRunner(_EUREKA_ROWS)
-    monkeypatch.setattr("engine.cli.main.make_kg_runners", lambda: (read, read, lambda: None))
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, read, lambda: None))
     rc = cli(["eureka"])  # _load_engine_module이 oracle_lens를 evict해야 동작
     out = capsys.readouterr().out
     assert rc == 0
