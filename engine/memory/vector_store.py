@@ -8,6 +8,7 @@ Backend selection:
 
 The hnswlib path is *optional* — skeleton works without it.
 """
+# KG: bihaenggiman-legioncommanders-2026-05-26
 
 from __future__ import annotations
 

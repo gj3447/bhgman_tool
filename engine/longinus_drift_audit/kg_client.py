@@ -45,7 +45,7 @@ def _coerce_enum(value, enum_cls):
 
 class KgClient(ABC):
     @abstractmethod
-    def list_reference_sites(self) -> list[KgRefRecord]: ...
+    def list_reference_sites(self, repo_tag: str | None = None) -> list[KgRefRecord]: ...
 
     @abstractmethod
     def has_node(self, name: str) -> bool: ...
@@ -56,14 +56,36 @@ class KgClient(ABC):
     # ── Wave 6 (2026-05-14) ───────────────────────────────────────────────
 
     @abstractmethod
-    def list_reference_site_states(self) -> list[ReferenceSite]:
-        """Return full :ReferenceSite nodes (Wave 6 7-tuple shape)."""
+    def list_reference_site_states(self, repo_tag: str | None = None) -> list[ReferenceSite]:
+        """Return full :ReferenceSite nodes (Wave 6 7-tuple shape).
+
+        repo_tag (2026-06-01): when set, return only sites with that repo_tag
+        (shared-KG scope). None = all sites (backward compat).
+        """
         ...
 
     @abstractmethod
     def merge_reference_site_state(self, site: ReferenceSite) -> None:
         """Upsert sha256 / sha256_baseline / sha256_status / kg_anchor / layer / last_validated."""
         ...
+
+    # ── 2026-06-01 forward binding materializer ───────────────────────────
+
+    def merge_forward_binding(self, site: ReferenceSite, *, line_count: int) -> bool:
+        """Materialize a `# KG:` comment into a bound ReferenceSite.
+
+        Upserts the ReferenceSite (``sourceId`` = the cited KG node name) + a
+        :SourceCodeNode for ``sourcePath`` + a ``BINDS_TO``/``REALIZED_BY`` edge
+        pair to the cited KG node — but ONLY when that node already exists
+        (``has_node``). Returns True when bound, False when the cited node is
+        absent (caller treats as an orphan `# KG:` comment; never auto-creates
+        the node). Default impl = merge site + record SourceCodeNode shadow;
+        Neo4j overrides with the real edge writes.
+        """
+        if not self.has_node(site.kg_anchor or site.sourceId):
+            return False
+        self.merge_reference_site_state(site)
+        return True
 
     @abstractmethod
     def emit_drift_event(self, event: SourceCodeDriftEvent) -> None:
@@ -125,8 +147,12 @@ class MockKgClient(KgClient):
         """Return injected fake rows (tests set ``self.run_rows``)."""
         return list(self.run_rows)
 
-    def list_reference_sites(self) -> list[KgRefRecord]:
-        return list(self.refs.values())
+    def list_reference_sites(self, repo_tag: str | None = None) -> list[KgRefRecord]:
+        # KgRefRecord carries no repo_tag; filter via the ReferenceSite shadow.
+        if repo_tag is None:
+            return list(self.refs.values())
+        keep = {sid for sid, s in self.sites.items() if s.repo_tag == repo_tag}
+        return [r for sid, r in self.refs.items() if sid in keep]
 
     def has_node(self, name: str) -> bool:
         return (
@@ -138,8 +164,10 @@ class MockKgClient(KgClient):
 
     # ── Wave 6 ────────────────────────────────────────────────────────────
 
-    def list_reference_site_states(self) -> list[ReferenceSite]:
-        return list(self.sites.values())
+    def list_reference_site_states(self, repo_tag: str | None = None) -> list[ReferenceSite]:
+        if repo_tag is None:
+            return list(self.sites.values())
+        return [s for s in self.sites.values() if s.repo_tag == repo_tag]
 
     def merge_reference_site_state(self, site: ReferenceSite) -> None:
         self.sites[site.sourceId] = site
@@ -187,18 +215,21 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
         with self._driver.session() as s:
             return [dict(r) for r in s.run(cypher, **params)]
 
-    def list_reference_sites(self) -> list[KgRefRecord]:
+    def list_reference_sites(self, repo_tag: str | None = None) -> list[KgRefRecord]:
         # Filter null sourceId/sourcePath in Cypher: such nodes carry no usable
         # drift-comparison key, and KgRefRecord requires both to be str. (Live
         # audit smoke 2026-05-25 surfaced real null-sourcePath ReferenceSites
         # that crashed this previously-uncovered path — Naesengmoon ensemble
         # finding ac-bhgman-5f5a905-goodhart-self-audit-mock-zero-drift.)
+        # repo_tag (2026-06-01): shared-KG scope — $repo_tag IS NULL = all.
         with self._driver.session() as s:
             rows = s.run(
                 "MATCH (n:ReferenceSite) "
                 "WHERE n.sourceId IS NOT NULL AND n.sourcePath IS NOT NULL "
+                "AND ($repo_tag IS NULL OR n.repo_tag = $repo_tag) "
                 "RETURN n.sourceId AS sourceId, n.sourcePath AS sourcePath, "
-                "n.label AS label, n.signature_baseline AS signature_baseline"
+                "n.label AS label, n.signature_baseline AS signature_baseline",
+                repo_tag=repo_tag,
             )
             return [
                 KgRefRecord(
@@ -232,7 +263,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
 
     # ── Wave 6 ────────────────────────────────────────────────────────────
 
-    def list_reference_site_states(self) -> list[ReferenceSite]:
+    def list_reference_site_states(self, repo_tag: str | None = None) -> list[ReferenceSite]:
         # Mirrors list_reference_sites: null-key sites (no sourceId/sourcePath =
         # no usable sha256-verify key) are excluded at the Cypher level rather
         # than swallowed by a bare except, and remaining reconstruction failures
@@ -241,14 +272,18 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
         # sites stay skipped instead of false-flagging FILE_MISSING. Naesengmoon
         # re-validation v2 findings: ...-sibling-list_reference_site_states
         # -goodhart (HIGH) + ...-drops-status-layer (MED).
+        # repo_tag (2026-06-01): shared-KG scope — $repo_tag IS NULL = all.
         with self._driver.session() as s:
             rows = s.run(
                 "MATCH (n:ReferenceSite) "
                 "WHERE n.sourceId IS NOT NULL AND n.sourcePath IS NOT NULL "
+                "AND ($repo_tag IS NULL OR n.repo_tag = $repo_tag) "
                 "RETURN n.sourceId AS sourceId, n.sourcePath AS sourcePath, "
                 "n.sha256 AS sha256, n.sha256_baseline AS sha256_baseline, "
                 "n.sha256_status AS sha256_status, n.kg_anchor AS kg_anchor, "
-                "n.layer AS layer, n.last_validated AS last_validated"
+                "n.layer AS layer, n.last_validated AS last_validated, "
+                "n.repo_tag AS repo_tag",
+                repo_tag=repo_tag,
             )
             out: list[ReferenceSite] = []
             skipped = 0
@@ -260,6 +295,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                     sha256_baseline=r.get("sha256_baseline"),
                     kg_anchor=r.get("kg_anchor"),
                     last_validated=r.get("last_validated"),
+                    repo_tag=r.get("repo_tag"),
                 )
                 # Carry sha256_status/layer ONLY when the stored value is a valid
                 # enum member (so DIRECTORY_SKIP etc. survive the roundtrip), else
@@ -297,7 +333,8 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                     n.last_validated = $last_validated,
                     n.drift_score = $drift_score,
                     n.drift_detected_at = $drift_detected_at,
-                    n.signature_baseline = $signature_baseline
+                    n.signature_baseline = $signature_baseline,
+                    n.repo_tag = coalesce($repo_tag, n.repo_tag)
                 """,
                 sourceId=site.sourceId,
                 sourcePath=site.sourcePath,
@@ -310,7 +347,46 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 drift_score=site.drift_score,
                 drift_detected_at=site.drift_detected_at,
                 signature_baseline=site.signature_baseline,
+                repo_tag=site.repo_tag,
             )
+
+    def merge_forward_binding(self, site: ReferenceSite, *, line_count: int) -> bool:
+        kg_ref = site.kg_anchor or site.sourceId
+        src_name = site.sourcePath.rsplit("/", 1)[-1]
+        with self._driver.session() as s:
+            row = s.run(
+                """
+                OPTIONAL MATCH (kg {name: $kg_ref})
+                WITH kg LIMIT 1
+                WITH kg WHERE kg IS NOT NULL
+                MERGE (rs:ReferenceSite {sourceId: $sourceId, sourcePath: $sourcePath})
+                  SET rs.sha256 = $sha256,
+                      rs.sha256_baseline = $sha256_baseline,
+                      rs.kg_anchor = $kg_ref,
+                      rs.layer = $layer,
+                      rs.repo_tag = $repo_tag,
+                      rs.signature_baseline = $signature_baseline,
+                      rs.last_validated = $last_validated
+                MERGE (scn:SourceCodeNode {sourcePath: $sourcePath})
+                  SET scn.sha256 = $sha256, scn.lineCount = $line_count, scn.name = $src_name
+                MERGE (rs)-[:BINDS_TO]->(kg)
+                MERGE (kg)-[:REALIZED_BY]->(rs)
+                MERGE (rs)-[:LOCATED_IN]->(scn)
+                RETURN count(rs) AS bound
+                """,
+                kg_ref=kg_ref,
+                sourceId=site.sourceId,
+                sourcePath=site.sourcePath,
+                sha256=site.sha256,
+                sha256_baseline=site.sha256_baseline,
+                layer=site.layer.value if site.layer else None,
+                repo_tag=site.repo_tag,
+                signature_baseline=site.signature_baseline,
+                last_validated=site.last_validated,
+                line_count=line_count,
+                src_name=src_name,
+            ).single()
+            return bool(row and row["bound"] > 0)
 
     def emit_drift_event(self, event: SourceCodeDriftEvent) -> None:
         with self._driver.session() as s:

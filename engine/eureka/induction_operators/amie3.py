@@ -9,6 +9,7 @@ Java: /opt/homebrew/opt/openjdk@21/bin/java (brew openjdk@21 keg-only).
 Input format: TSV with 3 columns (subject, predicate, object), no header.
 Output format: parsed table of Horn rules with PCA confidence + head coverage.
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

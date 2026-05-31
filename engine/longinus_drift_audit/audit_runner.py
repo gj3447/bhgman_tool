@@ -55,8 +55,8 @@ def _dedup_drift_events_by_file(events: list) -> list:
     return out
 
 
-def _sha256_phase(kg: KgClient, verify_sha256: bool):
-    sites = kg.list_reference_site_states()
+def _sha256_phase(kg: KgClient, verify_sha256: bool, repo_tag: str | None = None):
+    sites = kg.list_reference_site_states(repo_tag)
     baseline_count = sum(1 for s in sites if s.sha256_baseline)
     events: list = []
     if verify_sha256 and sites:
@@ -73,6 +73,7 @@ class LonginusAudit:
         code_root: Path | str,
         audit_id: str | None = None,
         parallel: bool = False,
+        repo_tag: str | None = None,
     ):
         """parallel default False — empirical bench (2026-05-18) shows L2
         ThreadPool fan-out is parity-or-slower for Mock KG + regex-only scanner.
@@ -84,6 +85,7 @@ class LonginusAudit:
         self.code_root = Path(code_root).resolve()
         self.audit_id = audit_id or self._make_audit_id()
         self.parallel = parallel
+        self.repo_tag = repo_tag
 
     @staticmethod
     def _make_audit_id() -> str:
@@ -106,12 +108,12 @@ class LonginusAudit:
         if self.parallel:
             with ThreadPoolExecutor(max_workers=2) as ex:
                 f_scan = ex.submit(code_scanner.scan_root, self.code_root)
-                f_kg_refs = ex.submit(self.kg.list_reference_sites)
+                f_kg_refs = ex.submit(self.kg.list_reference_sites, self.repo_tag)
                 symbols, _flat_refs = f_scan.result()
                 kg_refs_list = f_kg_refs.result()
         else:
             symbols, _flat_refs = code_scanner.scan_root(self.code_root, parallel=False)
-            kg_refs_list = self.kg.list_reference_sites()
+            kg_refs_list = self.kg.list_reference_sites(self.repo_tag)
         kg_refs = {r.sourceId: r for r in kg_refs_list}
 
         # Barrier 2: 5 independent phases (drift / reverse / forward / sha256 / GED)
@@ -125,7 +127,7 @@ class LonginusAudit:
                 )
                 f_reverse = ex.submit(reverse_orphan_scan.scan_reverse_orphans, symbols=symbols)
                 f_forward = ex.submit(_forward_orphan_phase, self.kg)
-                f_sha = ex.submit(_sha256_phase, self.kg, verify_sha256)
+                f_sha = ex.submit(_sha256_phase, self.kg, verify_sha256, self.repo_tag)
                 f_ged = ex.submit(ged_metric.compute_ged, kg_refs=kg_refs, code_symbols=symbols)
                 drift_records = f_drift.result()
                 orphans = f_reverse.result()
@@ -138,7 +140,9 @@ class LonginusAudit:
             )
             orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=symbols)
             forward_orphans = _forward_orphan_phase(self.kg)
-            sha256_drift_events, sha256_baseline_count = _sha256_phase(self.kg, verify_sha256)
+            sha256_drift_events, sha256_baseline_count = _sha256_phase(
+                self.kg, verify_sha256, self.repo_tag
+            )
             ged_report = ged_metric.compute_ged(kg_refs=kg_refs, code_symbols=symbols)
 
         drift_summary = drift_detector.summarize_drifts(drift_records)
@@ -241,6 +245,21 @@ def main() -> int:
         help="Record current symbol signatures as ReferenceSite baselines (enables "
         "SigMismatch drift on later audits), then exit. Mirrors sha256 baseline init.",
     )
+    parser.add_argument(
+        "--repo-tag",
+        default=None,
+        help="Scope audit/materialize to ReferenceSites carrying this repo_tag (e.g. 'bhgman'). "
+        "The dgx Neo4j is shared across repos; without this, a single code-root audit "
+        "false-flags other repos' sites. None = unscoped (all sites).",
+    )
+    parser.add_argument(
+        "--materialize",
+        action="store_true",
+        help="Forward-binding mode: scan `# KG:` comments in --code-root and MERGE a "
+        "ReferenceSite (+ SourceCodeNode + BINDS_TO) per module/public-API symbol, then exit. "
+        "Tags new sites with --repo-tag. This is the missing forward materializer "
+        "(audit alone never creates bindings).",
+    )
     args = parser.parse_args()
 
     try:
@@ -250,9 +269,11 @@ def main() -> int:
         return 1
 
     try:
+        if args.materialize:
+            return _materialize_mode(kg, args.code_root, args.repo_tag)
         if args.record_signatures:
-            return _record_signatures_mode(kg, args.code_root)
-        audit = LonginusAudit(kg=kg, code_root=args.code_root)
+            return _record_signatures_mode(kg, args.code_root, args.repo_tag)
+        audit = LonginusAudit(kg=kg, code_root=args.code_root, repo_tag=args.repo_tag)
         report = audit.run_full()
     finally:
         close = getattr(kg, "close", None)
@@ -262,13 +283,34 @@ def main() -> int:
     return 0 if report.is_clean else 2
 
 
-def _record_signatures_mode(kg: KgClient, code_root: str) -> int:
+def _record_signatures_mode(kg: KgClient, code_root: str, repo_tag: str | None = None) -> int:
     """Scan code-root and freeze symbol signatures onto ReferenceSite baselines."""
     from engine.longinus_drift_audit.signature_baseline import record_signature_baselines
 
     symbols, _ = code_scanner.scan_root(Path(code_root))
-    n = record_signature_baselines(kg, symbols)
+    n = record_signature_baselines(kg, symbols, repo_tag=repo_tag)
     print(f"[longinus] recorded signature baselines on {n} ReferenceSite(s) from {code_root}")
+    return 0
+
+
+def _materialize_mode(kg: KgClient, code_root: str, repo_tag: str | None) -> int:
+    """Forward-binding: scan `# KG:` comments → MERGE ReferenceSite per module/public symbol."""
+    from engine.longinus_drift_audit import forward_binding_materialize as fbm
+
+    result = fbm.materialize(kg, Path(code_root), repo_tag=repo_tag or "bhgman")
+    print(
+        f"[longinus] materialized {result.bound} ReferenceSite(s) "
+        f"({result.modules} module + {result.public_api} public-API) "
+        f"from {code_root} [repo_tag={repo_tag or 'bhgman'}]"
+    )
+    if result.orphan_refs:
+        print(
+            f"[longinus] WARNING {len(result.orphan_refs)} `# KG:` comment(s) cite a "
+            f"KG node that does not exist (skipped, not created):",
+            file=sys.stderr,
+        )
+        for ref, where in result.orphan_refs[:20]:
+            print(f"  - {ref}  ({where})", file=sys.stderr)
     return 0
 
 

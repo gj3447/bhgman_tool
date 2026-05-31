@@ -4,6 +4,7 @@ Why application-side: APOC trigger t_abstractclass_required_fields BLOCKED on Co
 without admin role (seed-hookinstall-t_abstractclass_required_fields-2026-05-20).
 This validator runs BEFORE any MERGE/CREATE Cypher and rejects malformed nodes/edges.
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

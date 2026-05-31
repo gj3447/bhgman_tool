@@ -7,6 +7,7 @@ Thresholds per consensus seed-prom16lag-cons-quality-gate-silhouette-modularity-
 - AMI ≥ 0.50 (Vinh-Epps-Bailey 2010) for supervised re-runs
 - Goodhart cap P ≤ 0.90 (Zaveri 2016) — reject > 0.95 as artifact
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

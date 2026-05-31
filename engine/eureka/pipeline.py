@@ -9,6 +9,7 @@ P2 refactor (Naesengmoon SOLID HIGH-3, 2026-05-20): Stage + InductionOperator +
 QualityGate protocols. stage_2/3/6/7 are NotImplementedStage instances that raise
 explicitly; callers configure replacements via PipelineConfig injection.
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

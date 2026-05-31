@@ -14,6 +14,7 @@ Spec per config-ged-drift-tau-propose-2026-05-20 (CANONICAL_DELEGATED):
     distribution).
 - Goodhart cap: re-induction frequency ≤ 1/week enforced regardless.
 """
+# KG: ATOM_Skill_longinus
 
 from __future__ import annotations
 

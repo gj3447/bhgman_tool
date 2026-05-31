@@ -7,6 +7,7 @@ require modifying models.py.
 Default registered set mirrors the previous enum:
 - fca, amie3, leiden-llm, manual, unknown
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

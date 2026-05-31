@@ -13,6 +13,7 @@ v2 (2026-05-30 P1 mitigations per PROM 16 A4S4):
 - DispatchEvent HMAC-SHA256 signing (W3C PROV)
 - threading.Lock critical section (Eswaran 1976 2PL)
 """
+# KG: bihaenggiman-legioncommanders-2026-05-26
 
 from __future__ import annotations
 

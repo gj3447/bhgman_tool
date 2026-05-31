@@ -10,6 +10,7 @@ Modes (bhgman --local convention):
 
 <path> may be a single .py file or a directory (recursed for *.py, .venv skipped).
 """
+# KG: ATOM_Skill_longinus
 
 from __future__ import annotations
 

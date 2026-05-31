@@ -9,6 +9,7 @@ Per Naesengmoon SOLID lens HIGH-3 (pipeline.py stage_2/3/6/7 stub stability para
 - half-finished: stub stages now explicitly raise NotImplementedStageError on call,
   not silently return placeholder dicts.
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

@@ -172,6 +172,15 @@ class ReferenceSite(BaseModel):
         "None = never recorded (detector falls back to the label heuristic).",
     )
 
+    # ── 2026-06-01 — repo scope tag (shared dgx KG: bhgman/SYMPOSIUM/SERVER co-resident) ──
+    repo_tag: Optional[str] = Field(
+        default=None,
+        description="Repository this site belongs to (e.g. 'bhgman'). The dgx Neo4j is shared "
+        "across repos; audit/materialize scope to one repo_tag so a single code-root audit "
+        "does not false-flag another repo's ReferenceSites as Orphan/sha256-drift. "
+        "None = unscoped (backward compat: matches all).",
+    )
+
     @field_validator("sourceId")
     @classmethod
     def _check_id(cls, v: str) -> str:

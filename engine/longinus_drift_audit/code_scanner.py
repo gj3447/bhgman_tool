@@ -45,7 +45,7 @@ _PY_CLASS = re.compile(r"^class\s+([A-Z][a-zA-Z0-9_]*)")
 
 def iter_files(root: Path, *, suffixes: Iterable[str] = (".py",)) -> Iterator[Path]:
     """root 아래 surface files (build/cache 디렉토리 제외)."""
-    skip_parts = {".pytest_cache", "__pycache__", ".lake", ".venv", "node_modules"}
+    skip_parts = {".pytest_cache", "__pycache__", ".lake", ".venv", "node_modules", "GIT"}
     for p in root.rglob("*"):
         if not p.is_file():
             continue

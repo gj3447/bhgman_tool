@@ -5,6 +5,7 @@
 - AMIE 3 (Lajus-Galárraga-Suchanek 2020) — typed Horn rule mining with PCA confidence
 - Leiden-LLM (Edge 2024 GraphRAG) — hierarchical Leiden + per-community LLM summary
 """
+# KG: eureka-canonical-2026-05-26
 
 from engine.eureka.induction_operators.fca import FcaResult, induce_fca
 from engine.eureka.induction_operators.leiden_llm import induce_leiden_llm

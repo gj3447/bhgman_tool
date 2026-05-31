@@ -36,16 +36,22 @@ def signatures_by_ref(symbols: list[CodeSymbol]) -> dict[str, str]:
     return out
 
 
-def record_signature_baselines(kg: KgClient, symbols: list[CodeSymbol]) -> int:
+def record_signature_baselines(
+    kg: KgClient, symbols: list[CodeSymbol], repo_tag: str | None = None
+) -> int:
     """Freeze each bound symbol's current signature onto its ReferenceSite.
 
     Returns the number of sites whose baseline was (re)written. Idempotent — a
     baseline already equal to the live signature is left untouched, so re-running
     on unchanged code writes nothing.
+
+    repo_tag (2026-06-01): scope to one repo's sites (shared dgx KG). Matching is
+    by ``site.sourceId`` == a `# KG:` ref name (signatures_by_ref is keyed by ref),
+    so sites must be materialized with ``sourceId = kg_ref`` for this to fire.
     """
     live = signatures_by_ref(symbols)
     updated = 0
-    for site in kg.list_reference_site_states():
+    for site in kg.list_reference_site_states(repo_tag):
         sig = live.get(site.sourceId)
         if sig is not None and site.signature_baseline != sig:
             kg.merge_reference_site_state(site.model_copy(update={"signature_baseline": sig}))

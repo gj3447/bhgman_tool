@@ -21,6 +21,7 @@ Each child WatcherProcess:
 Skeleton — production hardening (signal handlers, log rotation, structured logging,
 metrics export, graceful shutdown semantics) deferred to future sprint.
 """
+# KG: ATOM_Skill_longinus
 
 from __future__ import annotations
 

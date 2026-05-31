@@ -2,6 +2,7 @@
 
 See engine/naesengmoon/decorrelation.py and consensus-prom8-naesengmoon-decorrelation-2026-05-31.
 """
+# KG: naesengmoon-canonical-2026-05-19
 
 from .decorrelation import (
     CriticKind,

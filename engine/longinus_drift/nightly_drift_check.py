@@ -16,6 +16,7 @@ silhouette) cannot be computed from Cypher. In that case this script records a
 :DriftCheck with status='BLOCKED_GDS_NOT_INSTALLED' and exits 0 (passive baseline
 collection only, no false-positive fires).
 """
+# KG: ATOM_Skill_longinus
 
 from __future__ import annotations
 

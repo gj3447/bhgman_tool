@@ -14,7 +14,7 @@ B. SYMPOSIUM-absorbed (Wave 7 P2-A 2026-05-14, KG rs-cli-symposium-absorb-2026-0
     bhgman-tool tpa <path>                    — TPA reverse cycle (TCW → ST → SP → TA)
     bhgman-tool prom <N> <topic>              — Prometheus N-subagent research
     bhgman-tool tlb <target> [--lens NAME]    — Taliban adversarial verification
-    bhgman-tool longinus <op>                 — Longinus reference binding (sha256/ged/reverse-scan)
+    bhgman-tool longinus <op>                 — Longinus reference binding (bind/sha256/ged/reverse-scan)
     bhgman-tool harness <action>              — Harness 3-tier scaffolding diagnose
     bhgman-tool status                        — KG audit (ssh dgx → cypher-shell)
 
@@ -383,6 +383,25 @@ def cmd_longinus(args: argparse.Namespace) -> int:
     op = args.op[0]
     rest = args.op[1:]
     root = _repo_root()
+    # `bind` = forward materializer: # KG: comments → ReferenceSite (the missing
+    # creation step; sha256/ged/reverse-scan only AUDIT). Reuses audit_runner's
+    # tested --materialize path against live neo4j (NEO4J_* env). repo_tag default
+    # 'bhgman'; override with `longinus bind <repo_tag>`.
+    if op == "bind":
+        repo_tag = rest[0] if rest else "bhgman"
+        cmd = [
+            sys.executable,
+            "-m",
+            "engine.longinus_drift_audit.audit_runner",
+            "--code-root",
+            str(root),
+            "--kg",
+            "neo4j",
+            "--materialize",
+            "--repo-tag",
+            repo_tag,
+        ]
+        return subprocess.call(cmd)
     # Native python scripts: prefer SYMPOSIUM/bin/ if SYMPOSIUM_ROOT is set.
     sym = os.environ.get("SYMPOSIUM_ROOT")
     bin_dirs = [Path(sym).expanduser() / "bin" for sym in [sym] if sym]
@@ -1009,7 +1028,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_tlb.set_defaults(func=cmd_tlb)
 
     p_long = sub.add_parser(
-        "longinus", help="Longinus reference binding (sha256/ged/reverse-scan)."
+        "longinus", help="Longinus reference binding (bind/sha256/ged/reverse-scan)."
     )
     p_long.add_argument(
         "op", nargs="+", help="Operation: sha256 / ged / reverse-scan / <freeform>."

@@ -7,6 +7,7 @@ Constraint per seed-prom16lag-conflict-fca-dense-avoid-vs-sparse-rec-2026-05-20:
 - Bound |concepts| via iceberg-lattice (Roth-Obiedkov-Kourie 2008) or stability pruning
 - Batch size ≤ 500 nodes. Above threshold → fall back to AMIE+ or Leiden.
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

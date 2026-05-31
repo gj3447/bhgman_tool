@@ -11,6 +11,7 @@ hash-spread vector. Useful for tests + scenarios where the user hasn't
 installed sentence-transformers yet. Marketing-honest: this is *not* RAG;
 it's a placeholder so the API works.
 """
+# KG: bihaenggiman-legioncommanders-2026-05-26
 
 from __future__ import annotations
 

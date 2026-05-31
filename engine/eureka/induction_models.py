@@ -10,6 +10,7 @@ The InductionMethod enum is preserved as a convenience for the 5 default names.
 P4 (Naesengmoon SOLID MEDIUM): @model_validator enforces induced→{extent, intent,
 stabilityScore} required when inductionMethod is an automated inducer.
 """
+# KG: eureka-canonical-2026-05-26
 
 from __future__ import annotations
 

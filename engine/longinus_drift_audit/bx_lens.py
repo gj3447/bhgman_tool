@@ -10,6 +10,7 @@ Put : Code → KG  (갱신)
 
 SKILL.md §"BX Lens Laws" 1:1.
 """
+# KG: ATOM_Skill_longinus
 
 from __future__ import annotations
 
