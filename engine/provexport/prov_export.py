@@ -77,7 +77,9 @@ def _attach_agent(doc, ent_id: str, aid: Any, seen: set[str]) -> None:
     if agent_id not in seen:
         from prov.model import PROV
 
-        doc.agent(agent_id, {"prov:type": PROV["SoftwareAgent"], "bhgman:kind": "prov-agent:AIAgent"})
+        doc.agent(
+            agent_id, {"prov:type": PROV["SoftwareAgent"], "bhgman:kind": "prov-agent:AIAgent"}
+        )
         seen.add(agent_id)
     doc.wasAttributedTo(ent_id, agent_id)
 
