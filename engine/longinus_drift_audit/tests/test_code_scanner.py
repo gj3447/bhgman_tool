@@ -67,3 +67,40 @@ class TestScanRoot:
         assert names == {"a", "b"}
         kgs = {ref[2] for ref in refs}
         assert kgs == {"x-1", "y-2"}
+
+
+class TestAstSignatureUpgrade:
+    """Real ast extraction: multi-line sigs, annotations, return, async, bases."""
+
+    def test_multiline_signature_and_return(self, tmp_path):
+        p = tmp_path / "m.py"
+        p.write_text(
+            "def f(\n    a: int,\n    b: str = 'x',\n) -> bool:  # KG: ref-1\n    return True\n",
+            encoding="utf-8",
+        )
+        syms = code_scanner.scan_python_symbols(p)
+        f = next(s for s in syms if s.name == "f")
+        assert f.signature == "a: int, b: str = 'x' -> bool"
+        assert "ref-1" in f.kg_refs  # ref on the `-> bool:` header line, multi-line span
+
+    def test_async_and_varargs(self, tmp_path):
+        p = tmp_path / "a.py"
+        p.write_text("async def g(a, /, *args, k=1, **kw):\n    pass\n", encoding="utf-8")
+        syms = code_scanner.scan_python_symbols(p)
+        g = next(s for s in syms if s.name == "g")
+        assert g.kind == "async_function"
+        assert g.signature == "a, /, *args, k = 1, **kw"
+
+    def test_class_bases_captured(self, tmp_path):
+        p = tmp_path / "c.py"
+        p.write_text("class Child(Base, Mixin):\n    pass\n", encoding="utf-8")
+        syms = code_scanner.scan_python_symbols(p)
+        c = next(s for s in syms if s.name == "Child")
+        assert c.signature == "Base, Mixin"
+
+    def test_syntax_error_falls_back_to_regex(self, tmp_path):
+        p = tmp_path / "broken.py"
+        # invalid (unclosed) — ast.parse raises; regex still finds the def line
+        p.write_text("def still_found(x, y):  # KG: r\n    return (\n", encoding="utf-8")
+        syms = code_scanner.scan_python_symbols(p)
+        assert any(s.name == "still_found" and "x, y" in (s.signature or "") for s in syms)

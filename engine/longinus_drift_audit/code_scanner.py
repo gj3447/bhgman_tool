@@ -1,12 +1,18 @@
-"""grep-based code scanner — extract source symbols + `# KG: xxx` references.
+"""Code scanner — extract source symbols + `# KG: xxx` references.
 
-LSP fallback. Real production may swap for tree-sitter / py-LSP / rust-analyzer.
+Python symbols are extracted with the stdlib ``ast`` module (real structured
+signatures: annotations, return types, ``/`` positional-only, ``*`` keyword-only,
+``*args``/``**kwargs``, multi-line signatures, async, class bases). On a
+``SyntaxError`` the scanner falls back to the original line-regex so a single
+un-parseable file never blanks the whole scan. Other languages still go through
+the regex/LSP path.
 
 # KG: longinus-parallel-scan-2026-05-18 (L1 parallel scan PRELIMINARY)
 """
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 from concurrent.futures import ProcessPoolExecutor
@@ -69,34 +75,145 @@ def scan_kg_refs(file_path: Path) -> list[tuple[int, list[str]]]:
     return out
 
 
-def scan_python_symbols(file_path: Path) -> list[CodeSymbol]:
-    """Top-level def/class symbols. signature 는 raw parameter string."""
+def _format_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
+    """Canonical signature string from a function's ast args (+ return type).
+
+    ``def bar(x, y)`` → ``"x, y"`` (back-compat: callers grep for bare names);
+    annotated/defaulted/posonly/kwonly/varargs are all rendered faithfully, e.g.
+    ``"a, /, b, *args, c = 1, **kw"`` and ``"x: int = 0 -> bool"``.
+    """
+    a = node.args
+    parts: list[str] = []
+    pos = a.posonlyargs + a.args
+    ndef = len(a.defaults)
+    for i, arg in enumerate(pos):
+        s = arg.arg
+        if arg.annotation is not None:
+            s += f": {ast.unparse(arg.annotation)}"
+        di = i - (len(pos) - ndef)
+        if di >= 0:
+            s += f" = {ast.unparse(a.defaults[di])}"
+        parts.append(s)
+    if a.posonlyargs:
+        parts.insert(len(a.posonlyargs), "/")
+    if a.vararg:
+        v = "*" + a.vararg.arg
+        if a.vararg.annotation:
+            v += f": {ast.unparse(a.vararg.annotation)}"
+        parts.append(v)
+    elif a.kwonlyargs:
+        parts.append("*")
+    for i, arg in enumerate(a.kwonlyargs):
+        s = arg.arg
+        if arg.annotation is not None:
+            s += f": {ast.unparse(arg.annotation)}"
+        if a.kw_defaults[i] is not None:
+            s += f" = {ast.unparse(a.kw_defaults[i])}"
+        parts.append(s)
+    if a.kwarg:
+        s = "**" + a.kwarg.arg
+        if a.kwarg.annotation:
+            s += f": {ast.unparse(a.kwarg.annotation)}"
+        parts.append(s)
+    sig = ", ".join(parts)
+    if node.returns is not None:
+        sig += f" -> {ast.unparse(node.returns)}"
+    return sig
+
+
+def _node_kg_refs(node: ast.AST, kg_per_line: dict[int, list[str]]) -> list[str]:
+    """Union `# KG:` refs across a node's header span (decorators + multi-line
+    signature), so an inline ref on any header line is attached to the symbol."""
+    start = getattr(node, "lineno", None)
+    if start is None:
+        return []
+    decos = getattr(node, "decorator_list", []) or []
+    if decos:
+        start = min(start, min(d.lineno for d in decos))
+    body = getattr(node, "body", None)
+    end = (body[0].lineno - 1) if body else getattr(node, "end_lineno", node.lineno)
+    seen: list[str] = []
+    for ln in range(start, max(start, end) + 1):
+        for ref in kg_per_line.get(ln, []):
+            if ref not in seen:
+                seen.append(ref)
+    return seen
+
+
+def _symbols_via_ast(
+    content: str, rel: str, kg_per_line: dict[int, list[str]]
+) -> list[CodeSymbol] | None:
+    """Top-level def/class via stdlib ast. Returns None on SyntaxError (→ regex)."""
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return None
     out: list[CodeSymbol] = []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            out.append(
+                CodeSymbol(
+                    sourcePath=f"{rel}:{node.lineno}",
+                    name=node.name,
+                    kind="async_function" if isinstance(node, ast.AsyncFunctionDef) else "function",
+                    signature=_format_signature(node),
+                    kg_refs=_node_kg_refs(node, kg_per_line),
+                )
+            )
+        elif isinstance(node, ast.ClassDef):
+            bases = ", ".join(ast.unparse(b) for b in node.bases) or None
+            out.append(
+                CodeSymbol(
+                    sourcePath=f"{rel}:{node.lineno}",
+                    name=node.name,
+                    kind="class",
+                    signature=bases,
+                    kg_refs=_node_kg_refs(node, kg_per_line),
+                )
+            )
+    return out
+
+
+def _symbols_via_regex(
+    content: str, rel: str, kg_per_line: dict[int, list[str]]
+) -> list[CodeSymbol]:
+    """Line-regex fallback for files ast cannot parse (syntax error / partial)."""
+    out: list[CodeSymbol] = []
+    for i, line in enumerate(content.splitlines(), start=1):
+        if mf := _PY_FUNC.match(line):
+            out.append(
+                CodeSymbol(
+                    sourcePath=f"{rel}:{i}",
+                    name=mf.group(1),
+                    kind="function",
+                    signature=mf.group(2).strip(),
+                    kg_refs=kg_per_line.get(i, []),
+                )
+            )
+        elif mc := _PY_CLASS.match(line):
+            out.append(
+                CodeSymbol(
+                    sourcePath=f"{rel}:{i}",
+                    name=mc.group(1),
+                    kind="class",
+                    kg_refs=kg_per_line.get(i, []),
+                )
+            )
+    return out
+
+
+def scan_python_symbols(file_path: Path) -> list[CodeSymbol]:
+    """Top-level def/class symbols with real AST signatures (regex fallback)."""
     try:
         content = file_path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
-        return out
+        return []
     kg_per_line = dict(scan_kg_refs(file_path))
     rel = str(file_path)
-    for i, line in enumerate(content.splitlines(), start=1):
-        if mf := _PY_FUNC.match(line):
-            sym = CodeSymbol(
-                sourcePath=f"{rel}:{i}",
-                name=mf.group(1),
-                kind="function",
-                signature=mf.group(2).strip(),
-                kg_refs=kg_per_line.get(i, []),
-            )
-            out.append(sym)
-        elif mc := _PY_CLASS.match(line):
-            sym = CodeSymbol(
-                sourcePath=f"{rel}:{i}",
-                name=mc.group(1),
-                kind="class",
-                kg_refs=kg_per_line.get(i, []),
-            )
-            out.append(sym)
-    return out
+    syms = _symbols_via_ast(content, rel, kg_per_line)
+    if syms is None:
+        syms = _symbols_via_regex(content, rel, kg_per_line)
+    return syms
 
 
 def _scan_one_file(f: Path) -> tuple[list[CodeSymbol], list[tuple[Path, int, str]]]:

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import ast
 from collections import Counter
 from typing import Callable, Iterable
 
@@ -99,15 +100,55 @@ def detect_orphan(
     return out
 
 
+def _parse_sig(sig: str) -> tuple[tuple[tuple[str, str | None], ...], str | None] | None:
+    """Structured form of a signature string: (params, return).
+
+    params = ((name, annotation_or_None), ...); return = annotation_or_None.
+    Returns None if the string cannot be parsed as a Python parameter list
+    (caller then falls back to normalized string equality). ``*``/``/`` markers
+    are dropped — drift is judged on param identity + annotation + return.
+    """
+    body, _, ret = sig.partition("->")
+    ret = ret.strip() or None
+    try:
+        tree = ast.parse(f"def _({body.strip()}): pass")
+    except SyntaxError:
+        return None
+    fn = tree.body[0]
+    assert isinstance(fn, ast.FunctionDef)
+    a = fn.args
+    params: list[tuple[str, str | None]] = []
+    for arg in a.posonlyargs + a.args + a.kwonlyargs:
+        params.append((arg.arg, ast.unparse(arg.annotation) if arg.annotation else None))
+    if a.vararg:
+        params.append(("*" + a.vararg.arg, None))
+    if a.kwarg:
+        params.append(("**" + a.kwarg.arg, None))
+    return tuple(params), ret
+
+
+def _signatures_match(expected: str, actual: str) -> bool:
+    """True iff two signatures are structurally equal (param names + annotations +
+    return). Falls back to whitespace-normalized string equality if either side
+    is not parseable."""
+    pe, pa = _parse_sig(expected), _parse_sig(actual)
+    if pe is None or pa is None:
+        return " ".join(expected.split()) == " ".join(actual.split())
+    return pe == pa
+
+
 def detect_sig_mismatch(
     *,
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
-    """PutGet violation (signature 변): KG ref 와 코드 시그니처 비일치.
+    """PutGet violation (signature drift): KG ref vs live code signature.
 
-    Mock check — KG ref 의 label 이 symbol.signature 와 substring 일치 여부.
-    실 production 은 AST semantic diff (GumTree) 위임.
+    Two modes per ref:
+      * ``expected_signature`` set on the KG ref → **structural ast comparison**
+        (real param/annotation/return diff; the production path).
+      * else → label-substring heuristic (legacy fallback, kept for refs that
+        only carry a label and no recorded baseline signature).
     """
     out: list[DriftRecord] = []
     for s in symbols:
@@ -115,7 +156,22 @@ def detect_sig_mismatch(
             if ref not in kg_refs:
                 continue  # MISSING 측 처리
             rec = kg_refs[ref]
-            if rec.label and s.signature and rec.label not in s.signature:
+            if rec.expected_signature is not None:
+                if s.signature is not None and not _signatures_match(
+                    rec.expected_signature, s.signature
+                ):
+                    out.append(
+                        DriftRecord(
+                            drift_type=DriftType.SIG_MISMATCH,
+                            sourceId=ref,
+                            sourcePath=s.sourcePath,
+                            expected=rec.expected_signature,
+                            actual=s.signature,
+                            layer_violated=ReferenceLayer.L3_TYPE,
+                            lens_law_violated="PutGet",
+                        )
+                    )
+            elif rec.label and s.signature and rec.label not in s.signature:
                 out.append(
                     DriftRecord(
                         drift_type=DriftType.SIG_MISMATCH,

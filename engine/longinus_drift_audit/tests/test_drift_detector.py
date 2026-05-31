@@ -145,3 +145,31 @@ class TestDetectAll:
         summary = drift_detector.summarize_drifts(out)
         assert summary.get("Missing", 0) >= 1
         assert summary.get("Orphan", 0) >= 1
+
+
+class TestSigMismatchStructural:
+    """expected_signature → structural ast comparison (real PutGet drift)."""
+
+    def test_added_param_is_drift(self):
+        syms = [_sym("f", 1, kg_refs=["r"], sig="a, b")]
+        kgs = {"r": KgRefRecord(sourceId="r", sourcePath="p", expected_signature="a")}
+        out = drift_detector.detect_sig_mismatch(symbols=syms, kg_refs=kgs)
+        assert len(out) == 1 and out[0].drift_type == DriftType.SIG_MISMATCH
+
+    def test_annotation_change_is_drift(self):
+        syms = [_sym("f", 1, kg_refs=["r"], sig="a: int")]
+        kgs = {"r": KgRefRecord(sourceId="r", sourcePath="p", expected_signature="a: str")}
+        out = drift_detector.detect_sig_mismatch(symbols=syms, kg_refs=kgs)
+        assert len(out) == 1
+
+    def test_whitespace_only_difference_is_not_drift(self):
+        syms = [_sym("f", 1, kg_refs=["r"], sig="a:int ,  b")]
+        kgs = {"r": KgRefRecord(sourceId="r", sourcePath="p", expected_signature="a: int, b")}
+        out = drift_detector.detect_sig_mismatch(symbols=syms, kg_refs=kgs)
+        assert out == []  # structurally identical
+
+    def test_return_type_change_is_drift(self):
+        syms = [_sym("f", 1, kg_refs=["r"], sig="a -> bool")]
+        kgs = {"r": KgRefRecord(sourceId="r", sourcePath="p", expected_signature="a -> int")}
+        out = drift_detector.detect_sig_mismatch(symbols=syms, kg_refs=kgs)
+        assert len(out) == 1

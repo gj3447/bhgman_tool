@@ -244,6 +244,10 @@ class KgRefRecord(BaseModel):
     sourcePath: str
     label: Optional[str] = None
     kg_node_kind: str = "ReferenceSite"
+    expected_signature: Optional[str] = None
+    """Baseline signature recorded in the KG. When set, detect_sig_mismatch does a
+    structural ast comparison against the live signature (real PutGet drift);
+    when None it falls back to the label-substring heuristic."""
 
 
 # ─── KnowledgeHub (Forward Orphan target) ────────────────────────────────
