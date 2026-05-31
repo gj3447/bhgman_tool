@@ -61,8 +61,9 @@ jobs:
       - name: Install deps — engine/cli
         if: matrix.suite == 'cli'
         run: |
-          # cli imports from engine.* package layout — install repo root in editable mode
-          pip install -e . || pip install pyyaml python-frontmatter httpx
+          # cli imports from engine.* package layout — install repo root in editable mode.
+          # hades-cst (libcst) pulled in for the hades_apply characterization-gate tests.
+          pip install -e ".[hades-cst]" || pip install -e . || pip install pyyaml python-frontmatter httpx
 
       - name: Run engine/cli tests
         if: matrix.suite == 'cli'
@@ -87,12 +88,11 @@ jobs:
       # ── suite: engine/longinus_drift_audit
       - name: Install deps — engine/longinus_drift_audit
         if: matrix.suite == 'longinus_drift_audit'
-        working-directory: engine/longinus_drift_audit
+        # #1: tests now import the unified `engine` package — install + run from root.
         run: |
-          pip install -e ".[dev]" || pip install -e .
+          pip install -e ".[all,provexport,dev]" || pip install -e .
 
       - name: Run engine/longinus_drift_audit tests
         if: matrix.suite == 'longinus_drift_audit'
-        working-directory: engine/longinus_drift_audit
         run: |
-          pytest tests/ --tb=short -v
+          pytest engine/longinus_drift_audit/tests/ --tb=short -v
