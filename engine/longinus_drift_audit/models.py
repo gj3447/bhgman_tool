@@ -164,6 +164,14 @@ class ReferenceSite(BaseModel):
         description="Hermeticity spectrum tag. pure/sandboxed/trust_host. None = unspecified (backward compat).",
     )
 
+    # ── 2026-05-31 — signature baseline (SigMismatch counterpart of sha256_baseline) ──
+    signature_baseline: Optional[str] = Field(
+        default=None,
+        description="Frozen canonical signature of the bound symbol, captured at record time "
+        "(ast scanner). On re-audit, a differing live signature → SigMismatch (PutGet). "
+        "None = never recorded (detector falls back to the label heuristic).",
+    )
+
     @field_validator("sourceId")
     @classmethod
     def _check_id(cls, v: str) -> str:

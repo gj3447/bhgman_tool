@@ -734,13 +734,41 @@ def _extract_superclass_candidates(root: Path) -> list[tuple[str, str, list[str]
     return out
 
 
+def _cmd_hades_apply(args: argparse.Namespace) -> int:
+    """Gated apply: rewrite the first same-file candidate iff --test-cmd still passes."""
+    import shlex  # noqa: PLC0415
+
+    from engine.hades.hades_apply import apply_extract_superclass_gated  # noqa: PLC0415
+
+    root = Path(args.extract_superclass)
+    if not root.is_file():
+        print("[hades] --apply needs --extract-superclass to be a single file", file=sys.stderr)
+        return 2
+    if not args.test_cmd:
+        print("[hades] --apply needs --test-cmd (the characterization gate)", file=sys.stderr)
+        return 2
+    candidates = _extract_superclass_candidates(root)
+    if not candidates:
+        print(f"[hades] no Extract-Superclass candidate in {root}")
+        return 0
+    a, b, shared, _ = candidates[0]
+    res = apply_extract_superclass_gated(
+        root, f"{a}{b}Base", [a, b], test_cmd=shlex.split(args.test_cmd)
+    )
+    print(f"[hades] apply {a}~{b} (lift {shared}) → {res.status}: {res.reason}")
+    return 1 if res.status == "REVERTED" else 0
+
+
 def cmd_hades_extract_superclass(args: argparse.Namespace) -> int:
     """하데스 코드 실현 — 디렉터리에서 구조-동일 공통 메서드 클래스 찾아 Extract-Superclass
-    패치 생성. PLAN만(covenant: apply 전 characterization test 필수). neo4j 불필요."""
+    패치 생성. PLAN 기본. --apply + --test-cmd 시 characterization-gate apply. neo4j 불필요."""
     from engine.hades.extract_superclass import (  # noqa: PLC0415
         extract_superclass,
         extract_superclass_cst,
     )
+
+    if args.apply:
+        return _cmd_hades_apply(args)
 
     root = Path(args.extract_superclass)
     if not root.exists():
@@ -1000,6 +1028,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--show-patch",
         action="store_true",
         help="Print the full generated unified diff for each candidate.",
+    )
+    p_hd.add_argument(
+        "--test-cmd",
+        metavar="CMD",
+        help="With --apply: the characterization-test command (e.g. 'pytest engine/x'). "
+        "The refactor is kept only if it still passes, else reverted byte-for-byte.",
     )
     p_hd.set_defaults(func=cmd_hades)
 

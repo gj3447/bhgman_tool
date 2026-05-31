@@ -197,6 +197,10 @@ def build_kg(args: argparse.Namespace) -> KgClient:
     """
     if args.kg == "mock":
         return MockKgClient()
+    if args.kg == "local":
+        from engine.longinus_drift_audit.kg_client import JsonFileKgClient
+
+        return JsonFileKgClient(args.kg_path)
     if not args.uri or not args.password:
         raise ValueError("--kg neo4j requires --uri/--password (or NEO4J_URI / NEO4J_PASSWORD env)")
     return Neo4jKgClient(args.uri, (args.user, args.password))
@@ -207,10 +211,16 @@ def main() -> int:
     parser.add_argument("--code-root", required=True)
     parser.add_argument(
         "--kg",
-        choices=["mock", "neo4j"],
+        choices=["mock", "neo4j", "local"],
         default="mock",
         help="mock = empty-ref self-test fixture (verifies nothing); "
-        "neo4j = live audit against ground truth.",
+        "neo4j = live audit against ground truth; "
+        "local = neo4j-free JSON backend (~/.bhgman/longinus_kg.json or --kg-path).",
+    )
+    parser.add_argument(
+        "--kg-path",
+        default=None,
+        help="JSON file for --kg local (default: ~/.bhgman/longinus_kg.json).",
     )
     parser.add_argument(
         "--uri", default=os.environ.get("NEO4J_URI"), help="Neo4j bolt URI (or NEO4J_URI env)."
@@ -225,6 +235,12 @@ def main() -> int:
         default=os.environ.get("NEO4J_PASSWORD"),
         help="Neo4j password (or NEO4J_PASSWORD env).",
     )
+    parser.add_argument(
+        "--record-signatures",
+        action="store_true",
+        help="Record current symbol signatures as ReferenceSite baselines (enables "
+        "SigMismatch drift on later audits), then exit. Mirrors sha256 baseline init.",
+    )
     args = parser.parse_args()
 
     try:
@@ -234,6 +250,8 @@ def main() -> int:
         return 1
 
     try:
+        if args.record_signatures:
+            return _record_signatures_mode(kg, args.code_root)
         audit = LonginusAudit(kg=kg, code_root=args.code_root)
         report = audit.run_full()
     finally:
@@ -242,6 +260,16 @@ def main() -> int:
             close()
     print(json.dumps(report.model_dump(), indent=2, default=str))
     return 0 if report.is_clean else 2
+
+
+def _record_signatures_mode(kg: KgClient, code_root: str) -> int:
+    """Scan code-root and freeze symbol signatures onto ReferenceSite baselines."""
+    from engine.longinus_drift_audit.signature_baseline import record_signature_baselines
+
+    symbols, _ = code_scanner.scan_root(Path(code_root))
+    n = record_signature_baselines(kg, symbols)
+    print(f"[longinus] recorded signature baselines on {n} ReferenceSite(s) from {code_root}")
+    return 0
 
 
 if __name__ == "__main__":

@@ -11,8 +11,10 @@ Wave 6 (2026-05-14) extensions:
 
 from __future__ import annotations
 
+import json
 import warnings
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Iterable
 
 from engine.longinus_drift_audit.models import (
@@ -145,6 +147,7 @@ class MockKgClient(KgClient):
         self.refs[site.sourceId] = KgRefRecord(
             sourceId=site.sourceId,
             sourcePath=site.sourcePath,
+            expected_signature=site.signature_baseline,
         )
 
     def emit_drift_event(self, event: SourceCodeDriftEvent) -> None:
@@ -195,13 +198,14 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 "MATCH (n:ReferenceSite) "
                 "WHERE n.sourceId IS NOT NULL AND n.sourcePath IS NOT NULL "
                 "RETURN n.sourceId AS sourceId, n.sourcePath AS sourcePath, "
-                "n.label AS label"
+                "n.label AS label, n.signature_baseline AS signature_baseline"
             )
             return [
                 KgRefRecord(
                     sourceId=r["sourceId"],
                     sourcePath=r["sourcePath"],
                     label=r.get("label"),
+                    expected_signature=r.get("signature_baseline"),
                 )
                 for r in rows
             ]
@@ -292,7 +296,8 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                     n.layer = $layer,
                     n.last_validated = $last_validated,
                     n.drift_score = $drift_score,
-                    n.drift_detected_at = $drift_detected_at
+                    n.drift_detected_at = $drift_detected_at,
+                    n.signature_baseline = $signature_baseline
                 """,
                 sourceId=site.sourceId,
                 sourcePath=site.sourcePath,
@@ -304,6 +309,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 last_validated=site.last_validated,
                 drift_score=site.drift_score,
                 drift_detected_at=site.drift_detected_at,
+                signature_baseline=site.signature_baseline,
             )
 
     def emit_drift_event(self, event: SourceCodeDriftEvent) -> None:
@@ -376,6 +382,57 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 source_file=source_file,
                 ruflo_grade=ruflo_grade,
             )
+
+
+class JsonFileKgClient(MockKgClient):
+    """Neo4j-free local backend — MockKgClient persisted to a JSON file.
+
+    Lets `longinus-audit --kg local` record + audit signature/drift baselines
+    offline (the SigMismatch counterpart of occam/hades ``--local``). Reuses
+    every MockKgClient method; only adds load-on-init + save-after-mutate.
+    Default path ``~/.bhgman/longinus_kg.json``.
+    """
+
+    DEFAULT_PATH = "~/.bhgman/longinus_kg.json"
+
+    def __init__(self, path: str | Path | None = None) -> None:
+        super().__init__()
+        self.path = Path(path or self.DEFAULT_PATH).expanduser()
+        self._load()
+
+    def _load(self) -> None:
+        if not self.path.is_file():
+            return
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        for r in data.get("refs", []):
+            self.refs[r["sourceId"]] = KgRefRecord(**r)
+        for s in data.get("sites", []):
+            self.sites[s["sourceId"]] = ReferenceSite(**s)
+        for h in data.get("hubs", []):
+            self.hubs[h["name"]] = KnowledgeHubRecord(**h)
+        self.other_nodes = set(data.get("other_nodes", []))
+
+    def _save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "refs": [r.model_dump(mode="json") for r in self.refs.values()],
+            "sites": [s.model_dump(mode="json") for s in self.sites.values()],
+            "hubs": [h.model_dump(mode="json") for h in self.hubs.values()],
+            "other_nodes": sorted(self.other_nodes),
+        }
+        self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    def merge_reference_site(self, record: KgRefRecord) -> None:
+        super().merge_reference_site(record)
+        self._save()
+
+    def merge_reference_site_state(self, site: ReferenceSite) -> None:
+        super().merge_reference_site_state(site)
+        self._save()
+
+    def set_knowledge_hub_path(self, **kwargs: Any) -> None:
+        super().set_knowledge_hub_path(**kwargs)
+        self._save()
 
 
 # KG: lesson-longinus-wave6-full-symposium-binding-2026-05-14
