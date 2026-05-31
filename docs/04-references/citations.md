@@ -64,7 +64,7 @@ KG ↔ code reference 측 추가 정전:
 |---|---|---|
 | **BX Lens Laws** | Foster-Pierce-Walker 2007 (POPL) "Combinators for Bidirectional Tree Transformations" | GetPut / PutGet / PutPut — Longinus 측 5 drift 의 surjective 매핑 |
 | **Frege Sense vs Reference** | Frege 1892 "Über Sinn und Bedeutung" | sourceId(Sinn) ↔ sourcePath(Bedeutung) — Longinus 측 2-field structure 형이상학 근거 |
-| **GED (Graph Edit Distance)** | Sanfeliu-Fu 1983 + Riesen-Bunke 2009 | drift 정량화 (bipartite Hungarian algorithm) |
+| **GED (Graph Edit Distance)** | Sanfeliu-Fu 1983 + Riesen-Bunke 2009 | drift 정량화. ⚠️ 정직: in-house `ged_metric.py` 는 *간단한 label-based prototype* (full graph isomorphism / Riesen-Bunke bipartite Hungarian 아님) — 풀 GED 는 networkx `graph_edit_distance` 위임 권장. 인용은 *설계 근거*지 in-house 구현이 그 알고리즘이라는 뜻 아님 |
 | **Tree-sitter parsing** | Brunsfeld + GitHub 2018-2025 | code AST 측 grounding |
 | **Leiden community detection** | Traag-Waltman-van Eck 2019 "From Louvain to Leiden" | KG cluster detection |
 | **graphify confidence schema** | safishamsi/graphify 2026 ARCHITECTURE.md (industry instance) | EXTRACTED/INFERRED/AMBIGUOUS 3-tier 흡수 |
