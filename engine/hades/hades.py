@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from extract_superclass import extract_superclass
+from extract_superclass import extract_superclass, extract_superclass_cst
 from hades_models import MaterializationPlan, RealizeStatus, RealizeVerdict
 
 CypherRunner = Callable[[str, dict], "list[dict]"]
@@ -130,12 +130,15 @@ def realize_code_extract_superclass(
     max_sites: int = 5,
     dry_run: bool = True,
     writer: CodeWriter | None = None,
+    preserve_format: bool = False,
 ) -> RealizeVerdict:
     """진짜 Extract-Superclass 실현 — ast로 실 코드 생성 (문자열 plan 아님).
 
     가드 (하데스 covenant): ACCEPTED 후보만 / ≤max_sites 점진 rollout / dry-run 기본 /
     reversibility-first(undo) / apply는 명시적 ``writer`` 주입 + dry_run=False 시에만.
     공통 메서드(구조 동일)가 없으면 REFUSED.
+
+    preserve_format=True → libcst 백엔드(주석·레이아웃 보존, optional [hades-cst] dep).
     """
     if verdict_status != "ACCEPTED":
         return RealizeVerdict(
@@ -148,7 +151,8 @@ def realize_code_extract_superclass(
             None,
             f"{len(class_sources)} sites > max {max_sites} — ≤{max_sites} 점진 rollout 초과.",
         )
-    patch = extract_superclass(base_name, class_sources)
+    engine = extract_superclass_cst if preserve_format else extract_superclass
+    patch = engine(base_name, class_sources)
     if patch is None:
         return RealizeVerdict(
             base_name, RealizeStatus.REFUSED, None, "추출할 구조-동일 공통 메서드 없음(lift 불가)."

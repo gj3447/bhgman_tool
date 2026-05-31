@@ -52,3 +52,4 @@ engine/eureka/vendor/*.jar
 engine/eureka/vendor/*.tar.gz
 engine/eureka/vendor/*.zip
 .pytest_apt_invariant_results.tsv
+GIT/

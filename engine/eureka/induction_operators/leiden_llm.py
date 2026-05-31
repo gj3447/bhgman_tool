@@ -188,7 +188,24 @@ def induce_leiden_llm(
 
     objs, adj = _build_similarity_graph(context)
     communities = _greedy_modularity(objs, adj, resolution)
+    return assemble_fca(
+        communities, context, adj, min_extent=min_extent, min_stability=min_stability
+    )
 
+
+def assemble_fca(
+    communities: list[frozenset[str]],
+    context: Mapping[str, frozenset[str]],
+    adj: dict[str, dict[str, int]],
+    *,
+    min_extent: int,
+    min_stability: float,
+) -> FcaResult:
+    """communities → FcaResult(FormalConcept), pruning + deterministic sort.
+
+    Shared by the CNM (induce_leiden_llm) and true-Leiden (induce_leiden_true)
+    operators so both produce byte-identical output shape from the same clusters.
+    """
     survivors: list[FormalConcept] = []
     pruned = 0
     for community in communities:
@@ -197,9 +214,8 @@ def induce_leiden_llm(
             pruned += 1
             continue
         survivors.append(concept)
-
     survivors.sort(key=lambda c: (-c.stability, -len(c.extent), tuple(sorted(c.extent))))
     return FcaResult(concepts=tuple(survivors), pruned=pruned, fallback_reason=None)
 
 
-__all__ = ["MAX_NODES", "induce_leiden_llm"]
+__all__ = ["MAX_NODES", "assemble_fca", "induce_leiden_llm"]

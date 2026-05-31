@@ -91,3 +91,63 @@ def test_hades_apply_writes_via_injected_writer():
     assert v.status is RealizeStatus.APPLIED and v.applied is True
     assert "class Animal" in captured["base"]
     assert set(captured["modified"]) == {"Dog", "Cat"}
+
+
+# ── libcst format-preserving backend ([hades-cst] optional extra) ────────────
+import pytest  # noqa: E402
+
+cst_mod = pytest.importorskip("libcst")  # skip whole section if libcst absent
+
+from extract_superclass import extract_superclass_cst  # noqa: E402
+
+_WithComments = (
+    "class Dog:\n    # important: keep this comment\n    def speak(self):\n        return 'woof'\n    def legs(self):\n        return 4\n",
+    "class Cat:\n    # important: keep this comment\n    def speak(self):\n        return 'woof'\n    def meow(self):\n        return 'm'\n",
+)
+
+
+def test_cst_preserves_comments_unlike_ast():
+    srcs = {"Dog": _WithComments[0], "Cat": _WithComments[1]}
+    cst_patch = extract_superclass_cst("Animal", srcs)
+    assert cst_patch is not None and cst_patch.common_methods == ("speak",)
+    # the lifted method's comment survives in the generated superclass
+    assert "# important: keep this comment" in cst_patch.base_source
+    # ast backend canonicalizes it away — the contrast that justifies libcst
+    from extract_superclass import extract_superclass
+
+    assert "# important: keep this comment" not in extract_superclass("Animal", srcs).base_source
+
+
+def test_cst_rewrite_inherits_and_drops_lifted():
+    cst_patch = extract_superclass_cst("Animal", {"Dog": _WithComments[0], "Cat": _WithComments[1]})
+    dog = cst_patch.modified["Dog"]
+    assert "Dog(Animal)" in dog
+    assert "def speak" not in dog and "def legs" in dog
+
+
+def test_cst_none_when_no_common():
+    assert (
+        extract_superclass_cst(
+            "X",
+            {
+                "A": "class A:\n    def f(self): return 1\n",
+                "B": "class B:\n    def g(self): return 2\n",
+            },
+        )
+        is None
+    )
+
+
+def test_hades_realize_preserve_format_routes_to_cst():
+    from hades import realize_code_extract_superclass
+
+    captured = {}
+    v = realize_code_extract_superclass(
+        "Animal",
+        {"Dog": _WithComments[0], "Cat": _WithComments[1]},
+        dry_run=False,
+        writer=lambda base, mod: captured.update(base=base),
+        preserve_format=True,
+    )
+    assert v.applied is True
+    assert "# important: keep this comment" in captured["base"]

@@ -62,6 +62,17 @@ provexport = [
     "rdflib>=7.0",
     "lxml>=5.0",  # prov serializer registry eager-loads provxml
 ]
+# hades — format-preserving Extract-Superclass (libcst CST roundtrip keeps comments/
+# layout; engine falls back to the stdlib-ast canonical path if libcst is absent)
+hades-cst = [
+    "libcst>=1.4",
+]
+# eureka — true-Leiden offline community detection (Traag-Waltman-vanEck 2019);
+# the offline CNM/greedy operator stays the no-dep default, this is the opt-in upgrade
+eureka-leiden = [
+    "leidenalg>=0.10",
+    "python-igraph>=0.11",
+]
 # APT v27 A7 fail-closed gate endpoint (engine/gate, Wave 7 P3-H 2026-05-14)
 gate = [
     "fastapi>=0.115.0",
@@ -158,6 +169,8 @@ exclude = [
   # symposium-skills is a separate git submodule with its own dependency context
   # (numpy/scipy in its bin/ scripts) — bhgman_tool's deptry must not audit it.
   "symposium-skills",
+  # GIT/ — external OSS clone nest (falsifier / TPA absorption targets), gitignored.
+  "GIT",
 ]
 
 [tool.uv]
@@ -234,6 +247,8 @@ DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
           "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
           "anthropic",     # 2026-05-28 — optional [agents] dep, lazy import in engine/agents/client.py
           "prov", "rdflib", "lxml",  # 2026-05-30 — optional [provexport] extra, lazy import in engine/provexport
+          "libcst",  # 2026-05-31 — optional [hades-cst] extra, lazy import in extract_superclass_cst
+          "leidenalg", "igraph",  # 2026-05-31 — optional [eureka-leiden] extra, lazy import in leiden_true operator
          ]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
@@ -249,6 +264,9 @@ DEP002 = [
   "opentelemetry-sdk",          # wave12 [otel] — importorskip in test_otel_channel.py
   "opentelemetry-exporter-otlp",# wave12 [otel] — runtime OTLP export, host-configured (no direct import)
   "lxml",             # 2026-05-30 [provexport] — prov serializer registry eager-loads provxml, no direct import
+  "libcst",           # 2026-05-31 [hades-cst] — lazy import inside extract_superclass_cst (importorskip in tests)
+  "leidenalg",        # 2026-05-31 [eureka-leiden] — lazy import inside induce_leiden_true (importorskip in tests)
+  "python-igraph",    # 2026-05-31 [eureka-leiden] — igraph, lazy import inside induce_leiden_true
 ]
 
 [tool.pytest.ini_options]

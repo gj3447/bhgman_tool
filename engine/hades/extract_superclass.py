@@ -99,44 +99,126 @@ def _find_classdef(src: str, name: str) -> ast.ClassDef | None:
     return any_cls[0] if len(any_cls) == 1 else None
 
 
-def extract_superclass(
-    base_name: str, class_sources: dict[str, str]
-) -> ExtractSuperclassPatch | None:
-    """Generate a real Extract-Superclass patch, or None if nothing to lift.
-
-    None when: a source does not parse / its class is not found, fewer than 2
-    classes, or the classes share no structurally-identical method.
-    """
+def _lifted(class_sources: dict[str, str]) -> tuple[dict[str, ast.ClassDef], list[str]] | None:
+    """Parse every class + compute the lifted method names. None if nothing to lift."""
     parsed: dict[str, ast.ClassDef] = {}
     for name, src in class_sources.items():
         cd = _find_classdef(src, name)
         if cd is None:
             return None
         parsed[name] = cd
-    classdefs = list(parsed.values())
-    names = common_methods(classdefs)
-    if not names:
-        return None
-    base_source = _build_superclass(base_name, classdefs[0], names)
-    modified = {n: _rewrite_subclass(cd, base_name, names) for n, cd in parsed.items()}
-    diff_parts: list[str] = [f"# new superclass {base_name}\n{base_source}\n"]
+    names = common_methods(list(parsed.values()))
+    return (parsed, names) if names else None
+
+
+def _build_diff(
+    base_name: str, base_source: str, class_sources: dict[str, str], modified: dict[str, str]
+) -> str:
+    parts = [f"# new superclass {base_name}\n{base_source}\n"]
     for name, src in class_sources.items():
         before = src.splitlines(keepends=True)
         after = (modified[name] + "\n").splitlines(keepends=True)
-        diff_parts.append(
+        parts.append(
             "".join(
                 difflib.unified_diff(
                     before, after, fromfile=f"{name} (before)", tofile=f"{name} (after)"
                 )
             )
         )
+    return "".join(parts)
+
+
+def extract_superclass(
+    base_name: str, class_sources: dict[str, str]
+) -> ExtractSuperclassPatch | None:
+    """Generate a real Extract-Superclass patch, or None if nothing to lift.
+
+    Uses ast.unparse → canonical (formatting/comments not preserved). For a
+    format-preserving patch use extract_superclass_cst (needs libcst).
+    None when a source doesn't parse / class not found / <2 classes / no shared
+    structurally-identical method.
+    """
+    lifted = _lifted(class_sources)
+    if lifted is None:
+        return None
+    parsed, names = lifted
+    base_source = _build_superclass(base_name, list(parsed.values())[0], names)
+    modified = {n: _rewrite_subclass(cd, base_name, names) for n, cd in parsed.items()}
     return ExtractSuperclassPatch(
         base_name=base_name,
         base_source=base_source,
         common_methods=tuple(names),
         modified=modified,
-        unified_diff="".join(diff_parts),
+        unified_diff=_build_diff(base_name, base_source, class_sources, modified),
     )
 
 
-__all__ = ["ExtractSuperclassPatch", "common_methods", "extract_superclass"]
+def extract_superclass_cst(
+    base_name: str, class_sources: dict[str, str]
+) -> ExtractSuperclassPatch | None:
+    """Format-preserving Extract-Superclass via libcst — comments, blank lines and
+    quoting survive the roundtrip (unlike ast.unparse). Same contract as
+    extract_superclass(). Lifted-method selection reuses the ast structural LGG.
+
+    Requires the optional ``libcst`` dep (``pip install bhgman_tool[hades-cst]``).
+    """
+    try:
+        import libcst as cst
+    except ImportError as e:  # pragma: no cover - optional dep
+        raise RuntimeError(
+            "extract_superclass_cst needs libcst — pip install bhgman_tool[hades-cst]"
+        ) from e
+
+    lifted = _lifted(class_sources)
+    if lifted is None:
+        return None
+    names = lifted[1]
+    nameset = set(names)
+
+    class _RemoveAndInherit(cst.CSTTransformer):
+        def __init__(self, class_name: str) -> None:
+            self.class_name = class_name
+
+        def leave_ClassDef(self, original: object, updated):  # noqa: ANN001,N802
+            if updated.name.value != self.class_name:
+                return updated
+            kept = [
+                s
+                for s in updated.body.body
+                if not (isinstance(s, cst.FunctionDef) and s.name.value in nameset)
+            ]
+            if not kept:
+                kept = [cst.SimpleStatementLine([cst.Pass()])]
+            bases = [*updated.bases, cst.Arg(value=cst.Name(base_name))]
+            return updated.with_changes(body=updated.body.with_changes(body=kept), bases=bases)
+
+    first = next(iter(class_sources))
+    first_cls = next(
+        s
+        for s in cst.parse_module(class_sources[first]).body
+        if isinstance(s, cst.ClassDef) and s.name.value == first
+    )
+    methods = [
+        s for s in first_cls.body.body if isinstance(s, cst.FunctionDef) and s.name.value in nameset
+    ]
+    base_node = cst.ClassDef(name=cst.Name(base_name), body=cst.IndentedBlock(body=methods))
+    base_source = cst.Module(body=[base_node]).code.strip()
+    modified = {
+        name: cst.parse_module(src).visit(_RemoveAndInherit(name)).code
+        for name, src in class_sources.items()
+    }
+    return ExtractSuperclassPatch(
+        base_name=base_name,
+        base_source=base_source,
+        common_methods=tuple(names),
+        modified=modified,
+        unified_diff=_build_diff(base_name, base_source, class_sources, modified),
+    )
+
+
+__all__ = [
+    "ExtractSuperclassPatch",
+    "common_methods",
+    "extract_superclass",
+    "extract_superclass_cst",
+]
