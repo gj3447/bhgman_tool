@@ -705,8 +705,67 @@ def _load_engine_module(subdir: str, module: str, evict: tuple[str, ...] = ()):
     return importlib.import_module(f"engine.{subdir}.{module}")
 
 
+def _extract_superclass_candidates(root: Path) -> list[tuple[str, str, list[str], dict[str, str]]]:
+    """Scan a dir/file for class pairs sharing a structurally-identical non-dunder
+    method (Extract-Superclass candidates). Returns (a, b, shared_methods, {name: src})."""
+    import ast  # noqa: PLC0415
+    from itertools import combinations  # noqa: PLC0415
+
+    from engine.hades.extract_superclass import common_methods  # noqa: PLC0415
+
+    files = sorted(root.rglob("*.py")) if root.is_dir() else [root]
+    classes: dict[str, tuple] = {}
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8")
+            tree = ast.parse(text)
+        except (OSError, SyntaxError):
+            continue
+        for n in tree.body:
+            if isinstance(n, ast.ClassDef):
+                classes[n.name] = (n, ast.get_source_segment(text, n) or "")
+    out: list[tuple[str, str, list[str], dict[str, str]]] = []
+    for a, b in combinations(sorted(classes), 2):
+        shared = [
+            m for m in common_methods([classes[a][0], classes[b][0]]) if not m.startswith("__")
+        ]
+        if shared:
+            out.append((a, b, shared, {a: classes[a][1], b: classes[b][1]}))
+    return out
+
+
+def cmd_hades_extract_superclass(args: argparse.Namespace) -> int:
+    """하데스 코드 실현 — 디렉터리에서 구조-동일 공통 메서드 클래스 찾아 Extract-Superclass
+    패치 생성. PLAN만(covenant: apply 전 characterization test 필수). neo4j 불필요."""
+    from engine.hades.extract_superclass import (  # noqa: PLC0415
+        extract_superclass,
+        extract_superclass_cst,
+    )
+
+    root = Path(args.extract_superclass)
+    if not root.exists():
+        print(f"[hades] path not found: {root}", file=sys.stderr)
+        return 2
+    engine_fn = extract_superclass_cst if args.preserve_format else extract_superclass
+    candidates = _extract_superclass_candidates(root)
+    print(f"[hades] extract-superclass scan under {root}: {len(candidates)} candidate(s)")
+    for a, b, shared, sources in candidates:
+        patch = engine_fn(f"{a}{b}Base", sources)
+        if patch is None:
+            continue
+        print(f"  • {a} ~ {b}: lift {list(patch.common_methods)} → new shared base")
+        if args.show_patch:
+            print("\n".join(f"      {ln}" for ln in patch.unified_diff.splitlines()))
+    if not candidates:
+        print("  (none — no two classes share a structurally-identical non-dunder method)")
+    print("  (PLAN only — covenant: apply 전 characterization test 필수)")
+    return 0
+
+
 def cmd_hades(args: argparse.Namespace) -> int:
     """하데스 — ACCEPTED 추상을 KG에 실현(CANONICAL+INSTANCE_OF). dry-run 기본, --apply로 write."""
+    if getattr(args, "extract_superclass", None):
+        return cmd_hades_extract_superclass(args)
     hades_runner = _load_engine_module("hades", "hades_runner")
     runners = _resolve_kg_runners(args)
     if runners is None:
@@ -925,6 +984,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--local",
         action="store_true",
         help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
+    )
+    p_hd.add_argument(
+        "--extract-superclass",
+        metavar="PATH",
+        help="Code mode (no neo4j): scan a dir/file for classes sharing an identical "
+        "method and generate an Extract-Superclass patch (PLAN only).",
+    )
+    p_hd.add_argument(
+        "--preserve-format",
+        action="store_true",
+        help="Use the libcst backend ([hades-cst]) so comments/layout survive in the patch.",
+    )
+    p_hd.add_argument(
+        "--show-patch",
+        action="store_true",
+        help="Print the full generated unified diff for each candidate.",
     )
     p_hd.set_defaults(func=cmd_hades)
 

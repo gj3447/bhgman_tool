@@ -252,3 +252,34 @@ def test_eureka_runs_pipeline_even_after_occam_oracle_lens_cached(monkeypatch, c
     assert rc == 0
     assert "PROPOSE only" in out
     assert "kg-extract" in out.lower() or "induce" in out.lower()
+
+
+def test_hades_extract_superclass_finds_duplicate(tmp_path, capsys):
+    """hades --extract-superclass scans code (no neo4j) and reports a real candidate."""
+    (tmp_path / "dup.py").write_text(
+        "class Dog:\n    def speak(self):\n        return 'woof'\n    def legs(self):\n        return 4\n"
+        "class Cat:\n    def speak(self):\n        return 'woof'\n    def meow(self):\n        return 'm'\n",
+        encoding="utf-8",
+    )
+    rc = cli(["hades", "--extract-superclass", str(tmp_path)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "1 candidate" in out
+    assert "Dog" in out and "Cat" in out and "speak" in out  # pair printed sorted (Cat ~ Dog)
+    assert "PLAN only" in out  # covenant: dry-run, no in-place rewrite
+
+
+def test_hades_extract_superclass_none_when_no_dup(tmp_path, capsys):
+    (tmp_path / "x.py").write_text(
+        "class A:\n    def f(self): return 1\nclass B:\n    def g(self): return 2\n",
+        encoding="utf-8",
+    )
+    rc = cli(["hades", "--extract-superclass", str(tmp_path)])
+    assert rc == 0
+    assert "0 candidate" in capsys.readouterr().out
+
+
+def test_hades_extract_superclass_missing_path(capsys):
+    rc = cli(["hades", "--extract-superclass", "/no/such/path/zzz"])
+    assert rc == 2
+    assert "not found" in capsys.readouterr().err
