@@ -55,7 +55,18 @@ python_files = "test_*.py"
 # If aspirational deps remain unused after 5 sprints, the honest action
 # is to REMOVE them from pyproject [project.dependencies] / extras
 # (downgrade to actual imports), NOT to keep silencing deptry.
+[tool.deptry]
+# #1 (flat bare import → 절대 engine.*): eureka가 형제 모듈을 통합 `engine.eureka.*`
+# 경로로 import하므로 `engine`은 first-party (DEP001 missing-dep 아님).
+known_first_party = ["engine"]
+
 [tool.deptry.per_rule_ignores]
+DEP001 = [
+  # optional true-Leiden 백엔드(eureka-leiden) — induction_operators/leiden_true.py에서
+  # ImportError fallback과 함께 조건부 import. 미설치 환경에선 미사용 경로.
+  "igraph",
+  "leidenalg",
+]
 DEP002 = [
   "pytest",       # test runner; never imported by package code (genuinely unused-in-code)
   # TODO(future-phase) — aspirational, not yet imported:
