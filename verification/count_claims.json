@@ -8,8 +8,8 @@
   },
   "pytest": {
     "_note": "Collected counts grow as tests are added. SOFT-banded: the guard fails only on OVER-claim (a doc number greater than reality, i.e. a lie) and warns on stale-low. Refresh with --update when convenient.",
-    "engine_subset_collected": 313,
-    "full_repo_collected": 908
+    "engine_subset_collected": 315,
+    "full_repo_collected": 910
   },
   "doc_presence": {
     "_note": "Each value must appear literally in the named file, so the human-facing prose cannot silently diverge from this manifest.",
