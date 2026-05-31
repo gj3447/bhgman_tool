@@ -197,6 +197,10 @@ def build_kg(args: argparse.Namespace) -> KgClient:
     """
     if args.kg == "mock":
         return MockKgClient()
+    if args.kg == "local":
+        from engine.longinus_drift_audit.kg_client import JsonFileKgClient
+
+        return JsonFileKgClient(args.kg_path)
     if not args.uri or not args.password:
         raise ValueError("--kg neo4j requires --uri/--password (or NEO4J_URI / NEO4J_PASSWORD env)")
     return Neo4jKgClient(args.uri, (args.user, args.password))
@@ -207,10 +211,16 @@ def main() -> int:
     parser.add_argument("--code-root", required=True)
     parser.add_argument(
         "--kg",
-        choices=["mock", "neo4j"],
+        choices=["mock", "neo4j", "local"],
         default="mock",
         help="mock = empty-ref self-test fixture (verifies nothing); "
-        "neo4j = live audit against ground truth.",
+        "neo4j = live audit against ground truth; "
+        "local = neo4j-free JSON backend (~/.bhgman/longinus_kg.json or --kg-path).",
+    )
+    parser.add_argument(
+        "--kg-path",
+        default=None,
+        help="JSON file for --kg local (default: ~/.bhgman/longinus_kg.json).",
     )
     parser.add_argument(
         "--uri", default=os.environ.get("NEO4J_URI"), help="Neo4j bolt URI (or NEO4J_URI env)."

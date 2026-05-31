@@ -30,9 +30,10 @@ jobs:
       - name: Install uv
         run: pip install uv
       - name: Run pytest (engine/longinus_drift_audit)
-        working-directory: engine/longinus_drift_audit
+        # #1 unified the flat-layout subpackages into the `engine` package, so the
+        # tests import `engine.longinus_drift_audit.*` and must run from repo root.
         run: |
-          uv run --extra dev pytest tests/ -q --tb=short
+          uv run --all-extras pytest engine/longinus_drift_audit/tests/ -q --tb=short
 
   lint:
     name: ruff

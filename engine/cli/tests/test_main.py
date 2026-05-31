@@ -283,3 +283,51 @@ def test_hades_extract_superclass_missing_path(capsys):
     rc = cli(["hades", "--extract-superclass", "/no/such/path/zzz"])
     assert rc == 2
     assert "not found" in capsys.readouterr().err
+
+
+def test_hades_apply_gate_pass_applies(tmp_path, capsys):
+    """hades --extract-superclass FILE --apply: keep refactor when test-cmd passes."""
+    f = tmp_path / "m.py"
+    f.write_text(
+        "class Dog:\n    def speak(self):\n        return 'woof'\n    def legs(self):\n        return 4\n"
+        "class Cat:\n    def speak(self):\n        return 'woof'\n    def meow(self):\n        return 'm'\n",
+        encoding="utf-8",
+    )
+    check = (
+        f'{sys.executable} -c "import sys; sys.path.insert(0,{str(tmp_path)!r}); '
+        "import m; assert m.Dog().speak()=='woof'\""
+    )
+    rc = cli(["hades", "--extract-superclass", str(f), "--apply", "--test-cmd", check])
+    out = capsys.readouterr().out
+    assert rc == 0 and "APPLIED" in out
+    assert "Base" in f.read_text(encoding="utf-8")  # base class inserted, file changed
+
+
+def test_hades_apply_gate_fail_reverts(tmp_path, capsys):
+    f = tmp_path / "m.py"
+    original = (
+        "class Dog:\n    def speak(self):\n        return 'woof'\n"
+        "class Cat:\n    def speak(self):\n        return 'woof'\n"
+    )
+    f.write_text(original, encoding="utf-8")
+    rc = cli(
+        [
+            "hades",
+            "--extract-superclass",
+            str(f),
+            "--apply",
+            "--test-cmd",
+            f'{sys.executable} -c "import sys; sys.exit(1)"',
+        ]
+    )
+    out = capsys.readouterr().out
+    assert rc == 1 and "REVERTED" in out
+    assert f.read_text(encoding="utf-8") == original  # reverted byte-for-byte
+
+
+def test_hades_apply_requires_test_cmd(tmp_path, capsys):
+    f = tmp_path / "m.py"
+    f.write_text("class A:\n    def f(self): return 1\n", encoding="utf-8")
+    rc = cli(["hades", "--extract-superclass", str(f), "--apply"])
+    assert rc == 2
+    assert "test-cmd" in capsys.readouterr().err

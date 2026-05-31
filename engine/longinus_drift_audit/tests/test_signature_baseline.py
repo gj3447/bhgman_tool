@@ -73,3 +73,36 @@ def test_record_signatures_mode_scans_and_records(tmp_path, capsys):
     assert rc == 0
     assert kg.sites["foo-ref"].signature_baseline == "a, b"
     assert "1 ReferenceSite" in capsys.readouterr().out
+
+
+# ── --local backend: JsonFileKgClient persistence (no neo4j) ─────────────────
+
+
+def test_local_json_backend_persists_and_reloads(tmp_path):
+    """record → JSON save → fresh client reload → baseline survives → audit fires."""
+    from engine.longinus_drift_audit.kg_client import JsonFileKgClient
+
+    kg_path = tmp_path / "kg.json"
+    kg = JsonFileKgClient(kg_path)
+    kg.merge_reference_site_state(ReferenceSite(sourceId="foo-ref", sourcePath="m.py:1"))
+    assert record_signature_baselines(kg, [_sym("a, b")]) == 1
+    assert kg_path.is_file()  # persisted to disk
+
+    kg2 = JsonFileKgClient(kg_path)  # fresh process: reload from JSON
+    assert kg2.sites["foo-ref"].signature_baseline == "a, b"
+    assert kg2.refs["foo-ref"].expected_signature == "a, b"
+    out = drift_detector.detect_sig_mismatch(symbols=[_sym("a, b, c")], kg_refs=kg2.refs)
+    assert len(out) == 1 and out[0].drift_type == DriftType.SIG_MISMATCH
+
+
+def test_local_backend_via_build_kg(tmp_path):
+    """audit_runner --kg local routes to JsonFileKgClient."""
+    import argparse
+
+    from engine.longinus_drift_audit.audit_runner import build_kg
+    from engine.longinus_drift_audit.kg_client import JsonFileKgClient
+
+    args = argparse.Namespace(
+        kg="local", kg_path=str(tmp_path / "kg.json"), uri=None, password=None, user="neo4j"
+    )
+    assert isinstance(build_kg(args), JsonFileKgClient)
