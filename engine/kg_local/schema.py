@@ -90,6 +90,7 @@ EDGE_TYPES: frozenset[str] = frozenset(
         "USES_ABSTRACT_DOMAIN",
         "HAS_SEED",
         "DECOMPOSES_TO",
+        "HAS_METHOD",
     }
 )
 

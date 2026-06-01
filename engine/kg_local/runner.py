@@ -237,6 +237,29 @@ def _jaebaeman_decomposes_to(store: LocalKgStore, params: dict) -> list[dict]:
     return [{"child": params["child"]}]
 
 
+def _jaebaeman_methods(store: LocalKgStore, params: dict) -> list[dict]:
+    # HTN: task의 HAS_METHOD → DecomposeMethod, 각 method의 DECOMPOSES_TO → subgoals. ord 순.
+    task = store.find_one("name", params.get("task"))
+    if task is None:
+        return []
+    methods = []
+    for rel, m in store.out_edges(task):
+        if rel != "HAS_METHOD" or "DecomposeMethod" not in m["labels"]:
+            continue
+        subs = [
+            {
+                "name": s["props"].get("name"),
+                "objective": s["props"].get("objective") or s["props"].get("name"),
+            }
+            for r2, s in store.out_edges(m)
+            if r2 == "DECOMPOSES_TO" and s["props"].get("name")
+        ]
+        methods.append(
+            {"method": m["props"].get("name"), "ord": m["props"].get("ord", 0), "subgoals": subs}
+        )
+    return sorted(methods, key=lambda x: x["ord"])
+
+
 def _jaebaeman_orphan_anchor(store: LocalKgStore, params: dict) -> list[dict]:
     # E1 게이트: 주어진 anchor name 중 KG에 노드가 없는 것만 collect (read-only).
     anchors = params.get("anchors") or []
@@ -283,6 +306,7 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
         False,
     ),
     (lambda c: "RETURN collect(a) AS missing" in c, _jaebaeman_orphan_anchor, False),
+    (lambda c: "-[:HAS_METHOD]->(m:DecomposeMethod)" in c, _jaebaeman_methods, False),
     (lambda c: "MERGE (h:HarnessDiagnosis" in c, _harness_persist, True),
     (lambda c: "MERGE (s:SourceCodeNode" in c, _merge_source_node, True),
     (
