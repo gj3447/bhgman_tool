@@ -672,6 +672,44 @@ def cmd_hades(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_acquire(args: argparse.Namespace) -> int:
+    """프로메테우스 결정론 엔진 — 경계축 ingest (gap→query→fetch→parse→ingest).
+
+    LLM 불필요 (그건 `prom`). fetcher 미주입 CLI에선 gap+query surface + PROPOSE cypher.
+    실제 fetch ingest는 fetcher 주입(legion --llm 대체 / 프로그램적) 시. dry-run 기본.
+    # KG: project-legion-unification-kg-engine-2026-06-01
+    """
+    from engine.prometheus import run_acquire  # noqa: PLC0415
+
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[acquire] neo4j unavailable (set NEO4J_*, --local, or run via parent Claude MCP). "
+            "엔진은 KG에서 gap(OpenQuestion/VerdictPending)을 읽어 쿼리를 도출한다.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, write_cypher, close = runners
+    try:
+        report = run_acquire(
+            run_cypher,
+            write_cypher=write_cypher,
+            cycle_id=getattr(args, "cycle_id", None) or "acquire-cli",
+            apply=getattr(args, "apply", False),
+            gap_limit=getattr(args, "gap_limit", 50),
+        )
+    finally:
+        close()
+    print(report.summary)
+    for q in report.queries[:20]:
+        print(f"  gap={q.gap_id} → query: {q.text}")
+    if report.dry_run and report.planned_cyphers:
+        print(
+            f"  (PROPOSE: {len(report.planned_cyphers)} planned MERGE — pass --apply + fetcher to write)"
+        )
+    return 0
+
+
 def cmd_legion(args: argparse.Namespace) -> int:
     """레기온 — 6 군단장 통일 닫힌 루프 (획득→연결→창조→정리→검증→실현) 1회 실행.
 

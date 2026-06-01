@@ -66,11 +66,16 @@ def test_loop_blocks_when_run_cypher_missing():
 # ── 결정론 코어 (LLM 없이) ──────────────────────────────────────────────────
 def test_acquire_deterministic_core_reads_gap_nodes_without_llm():
     def rc(_c: str, _p: dict) -> list[dict]:
-        return [{"n": 3}]
+        return [
+            {"id": "q1", "question": "what is X", "kind": "OpenQuestion"},
+            {"id": "q2", "question": "what is Y", "kind": "OpenQuestion"},
+            {"id": "q3", "question": "what is Z", "kind": "OpenQuestion"},
+        ]
 
-    out = _run_acquire({"run_cypher": rc})  # client 없음
+    out = _run_acquire({"run_cypher": rc})  # client 없음, fetcher 없음 → gap+query only
     assert out["acquired"]["mode"] == "kg-deterministic"
     assert out["acquired"]["gap_nodes"] == 3
+    assert out["acquired"]["dry_run"] is True
 
 
 def test_verify_oracle_pass_when_upstream_clean():

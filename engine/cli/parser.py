@@ -273,4 +273,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_lg.set_defaults(func=commands.cmd_legion)
 
+    p_acq = sub.add_parser(
+        "acquire",
+        help="프로메테우스 결정론 엔진 — 경계축 ingest (gap→query→fetch→parse→ingest). LLM 불필요(=prom).",
+    )
+    p_acq.add_argument("--local", action="store_true", help="Use the bundled neo4j-free local KG.")
+    p_acq.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write :ResearchFinding (needs fetcher). Omit = PROPOSE/dry-run.",
+    )
+    p_acq.add_argument(
+        "--gap-limit", type=int, default=50, help="Max gap nodes to scan (default 50)."
+    )
+    p_acq.add_argument("--cycle-id", help="cycleId for provenance (default: acquire-cli).")
+    p_acq.set_defaults(func=commands.cmd_acquire)
+
     return p

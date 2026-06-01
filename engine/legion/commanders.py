@@ -61,22 +61,29 @@ def _run_acquire(ctx: dict) -> dict:
             }
         except Exception as e:  # noqa: BLE001 — graceful degrade (engine covenant)
             return _degraded("acquired", f"llm research failed: {e}")
-    # 결정론 코어: KG의 빈 곳(OpenQuestion / VerdictPending) 실측. LLM 불필요.
+    # 결정론 코어: 경계축 ingest 엔진 (gap→query→fetch→parse→ingest). LLM 불필요.
     try:
-        rows = rc(
-            "MATCH (q) WHERE q:OpenQuestion OR q:VerdictPending " "RETURN count(q) AS n",
-            {},
+        from engine.prometheus import run_acquire  # noqa: PLC0415
+
+        report = run_acquire(
+            rc,
+            fetcher=ctx.get("fetcher"),
+            write_cypher=ctx.get("write_cypher"),
+            cycle_id=str(ctx.get("cycle_id", "legion-run")),
+            apply=bool(ctx.get("apply", False)),
         )
-        n = rows[0]["n"] if rows else 0
         return {
             "acquired": {
                 "mode": "kg-deterministic",
-                "gap_nodes": n,
-                "summary": f"prometheus[kg]: {n} open/pending knowledge gaps (no LLM)",
+                "gap_nodes": len(report.gaps),
+                "findings": len(report.findings),
+                "ingested": report.ingested,
+                "dry_run": report.dry_run,
+                "summary": report.summary,
             }
         }
     except Exception as e:  # noqa: BLE001
-        return _degraded("acquired", f"gap scan failed: {e}")
+        return _degraded("acquired", f"acquire pipeline failed: {e}")
 
 
 # ── 연결 (롱기누스) ─────────────────────────────────────────────────────────
