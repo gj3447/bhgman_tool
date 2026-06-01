@@ -247,4 +247,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_gt.set_defaults(func=commands.cmd_gate)
 
+    p_lg = sub.add_parser(
+        "legion",
+        help="레기온 — 6 군단장 통일 닫힌 루프 (획득→연결→창조→정리→검증→실현). 결정론 floor + --llm enrich.",
+    )
+    p_lg.add_argument("--local", action="store_true", help="Use the bundled neo4j-free local KG.")
+    p_lg.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write (occam supersede + hades realize). Omit = dry-run.",
+    )
+    p_lg.add_argument("--scope", help="occam scope filter (sourcePath CONTAINS).")
+    p_lg.add_argument("--concept", help="hades: realize only this AbstractClass name.")
+    p_lg.add_argument("--topic", nargs="*", help="prometheus 획득 topic (LLM mode only).")
+    p_lg.add_argument(
+        "--no-disk-scan", action="store_true", help="occam KG-only (skip disk sha scan)."
+    )
+    p_lg.add_argument(
+        "--llm",
+        action="store_true",
+        help="Optional LLM enrichment (획득/검증). Default = deterministic core only.",
+    )
+    p_lg.add_argument(
+        "--no-ground", action="store_true", help="Skip KG grounding for LLM enrichment."
+    )
+    p_lg.set_defaults(func=commands.cmd_legion)
+
     return p

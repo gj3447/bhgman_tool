@@ -672,6 +672,67 @@ def cmd_hades(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_legion(args: argparse.Namespace) -> int:
+    """레기온 — 6 군단장 통일 닫힌 루프 (획득→연결→창조→정리→검증→실현) 1회 실행.
+
+    결정론 코어가 floor (neo4j/local KG만으로 동작) + LLM은 선택적 enrichment(--llm).
+    각 군단장이 동일 CommanderStage 인터페이스로 Contract-bound handoff. dry-run 기본.
+    # KG: adr-seven-commander-legion-architecture-2026-05-27, bihaenggiman-legioncommanders-2026-05-26
+    """
+    from engine.legion.commanders import build_default_legion  # noqa: PLC0415
+
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[legion] neo4j unavailable (set NEO4J_*, or --local for the bundled KG, "
+            "or run via parent Claude MCP). The closed loop reads KG per stage.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, write_cypher, close = runners
+
+    ctx: dict = {
+        "run_cypher": run_cypher,
+        "write_cypher": write_cypher,
+        "apply": getattr(args, "apply", False),
+        "scope": getattr(args, "scope", None),
+        "concept": getattr(args, "concept", None),
+        "topic": " ".join(args.topic) if getattr(args, "topic", None) else None,
+        "repo_root": None if getattr(args, "no_disk_scan", False) else str(_repo_root()),
+    }
+    close_g = lambda: None  # noqa: E731
+    if getattr(args, "llm", False):
+        agents, reason = _agent_runtime()
+        if agents is None:
+            print(
+                f"[legion] --llm 요청했으나 LLM runtime 불가 ({reason}) → 결정론 코어로 진행.",
+                file=sys.stderr,
+            )
+        else:
+            source, close_g = _grounding_source(args)
+            ctx.update(agents=agents, client=agents.AgentClient(), grounding=source)
+
+    try:
+        run = build_default_legion().run(context=ctx)
+    finally:
+        close()
+        close_g()
+
+    if run.contract_violation:
+        print(f"[legion] CONTRACT VIOLATION: {run.contract_violation}", file=sys.stderr)
+        return 1
+    if run.gate_failure:
+        print(f"[legion] ORACLE GATE FAIL: {run.gate_failure}", file=sys.stderr)
+    for oc in run.outcomes:
+        mark = "ok" if oc.ok else "FAIL"
+        print(f"  [{mark}] {oc.verb} ({oc.stage}): {oc.detail}")
+    print(
+        f"[legion] {'completed' if run.completed else 'halted'} — {run.ran}/6 stages, "
+        f"keys={list(run.final_context_keys)}"
+    )
+    return 0 if run.completed else 1
+
+
 def cmd_eureka(args: argparse.Namespace) -> int:
     """유레카 — KG 패턴→추상 개념 induce (PROPOSE only). covenant: auto-commit 금지, 실현은 하데스."""
     import datetime as _dt  # noqa: PLC0415
