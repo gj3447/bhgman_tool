@@ -29,6 +29,7 @@ from typing import Any
 
 from engine.legion.legion import CANONICAL_ORDER, Legion
 from engine.legion.legion_models import CommanderStage
+from engine.naesengmoon.decorrelation import CriticKind, CriticVerdict, aggregate
 
 
 def _degraded(key: str, reason: str) -> dict:
@@ -181,12 +182,22 @@ def _run_hygiene(ctx: dict) -> dict:
 
 # ── 검증 (나생문) ───────────────────────────────────────────────────────────
 def _run_verify(ctx: dict) -> dict:
-    """oracle 렌즈(결정론 floor): 앞 4 산출이 non-degraded인지 hard gate. client 있으면 판단렌즈 enrich."""
+    """나생문 검증 = oracle floor + 판단렌즈를 *하나의 honest verdict* 로 합성.
+
+    생성-검증 비대칭(naesengmoon-generate-verify-asymmetry-2026-06-01): 렌즈는 무수히 적층할
+    수 있지만 같은-family LLM critic 은 ρ 상관으로 n_eff 가 붕괴한다. 그래서 oracle
+    (substrate-disjoint, 완전성 floor) + 판단렌즈를 decorrelation.aggregate 로 한 번에 합쳐
+    Kish n_eff 를 정직하게 carry 한다. (이전엔 oracle floor 와 판단렌즈가 합산 없이 따로
+    놀고, aggregate() 는 production 호출부 0 의 orphan 이었다 — 비대칭 원리의 핵심 합성 미배선.)
+    """
     upstream = ("acquired", "bindings", "abstractions", "hygiene")
     degraded = [
         k for k in upstream if isinstance(ctx.get(k), dict) and ctx[k].get("mode") == "degraded"
     ]
     oracle_pass = not degraded
+    critics: list[CriticVerdict] = [
+        CriticVerdict(lens="upstream-completeness", kind=CriticKind.ORACLE, passed=oracle_pass)
+    ]
     out: dict[str, Any] = {
         "oracle": "PASS" if oracle_pass else "FAIL",
         "degraded_upstream": degraded,
@@ -206,10 +217,24 @@ def _run_verify(ctx: dict) -> dict:
             )
             out["judgment"] = verdict.verdict
             out["mode"] = "oracle+judgment"
+            critics.extend(
+                CriticVerdict(
+                    lens=lv.lens,
+                    kind=CriticKind.JUDGMENT,
+                    passed=(lv.verdict == "PASS"),
+                    model_family="anthropic",
+                )
+                for lv in verdict.lens_verdicts
+            )
         except Exception as e:  # noqa: BLE001
             out["judgment_error"] = str(e)
-    out["summary"] = f"naesengmoon: oracle={out['oracle']}" + (
-        f" judgment={out['judgment']}" if "judgment" in out else " (no LLM)"
+    # 합성: oracle + 판단렌즈 → 하나의 honest EnsembleResult (n_eff carry). orphan 배선 closure.
+    ens = aggregate(critics)
+    out["ensemble"] = ens.verdict
+    out["n_eff"] = round(ens.n_eff, 2)
+    out["rho"] = ens.rho
+    out["summary"] = (
+        f"naesengmoon: oracle={out['oracle']} ensemble={ens.verdict} n_eff≈{ens.n_eff:.2f}"
     )
     return {"verdict": out}
 
