@@ -1,73 +1,27 @@
-"""나생문 oracle 렌즈 — 결정론 실행 critic (컴파일러나생문 family).
+"""나생문 oracle 렌즈 — occam 측 재export (정본은 engine/naesengmoon/oracle_lens.py).
 
-LLM 판단이 아니라 *실제 도구 실행* 결과로 검증(verify). TDD의 테스트가 바로 이것:
-RED = OracleVerdict.passed=False, GREEN = passed=True. 나생문=GAN의 D, 코드=G.
-**HARD GATE**: FAIL이면 토론 없이 즉시 reject. 컴파일 안 되면 의미검증 무의미하므로 선(先) gate.
-**경계**: checkable(문법·빌드·타입·테스트·수치)만. semantic 의도는 판단 렌즈(LLM) 몫.
+primitive(OracleLens/OracleVerdict/run_oracle_gate)는 occam·eureka 2 commander 에 중복돼
+있었고 정본 나생문 패키지로 추출됨 (오캄 dedup 2026-06-01,
+wqi-extract-shared-naesengmoon-oracle-primitive-2026-05-27). 본 모듈은 기존 import 경로
+(`engine.occam.oracle_lens`) back-compat 용 thin re-export — 정의 없음, drift 불가.
 
-# KG: naesengmoon-wired-ensemble-upgrade-2026-05-27 (oracle lens-class),
-#     naesengmoon-compiler-family-2026-05-27, naesengmoon-tdd-connection-2026-05-27,
-#     naesengmoon-cerberus-variant-pre-emit-gate-2026-05-20 (test-first = pre-emit timing)
+# KG: naesengmoon-compiler-family-2026-05-27, naesengmoon-tdd-connection-2026-05-27
 """
 
 from __future__ import annotations
 
-import subprocess
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from engine.naesengmoon.oracle_lens import (
+    CommandRunner,
+    OracleLens,
+    OracleVerdict,
+    run_oracle_gate,
+    subprocess_runner,
+)
 
-# runner: command argv -> (returncode, combined_output). 주입식 (테스트=fake, 실전=subprocess).
-CommandRunner = Callable[[Sequence[str]], "tuple[int, str]"]
-
-
-def subprocess_runner(cmd: Sequence[str]) -> tuple[int, str]:
-    """기본 runner — 실제 subprocess. cwd/env는 호출자 책임."""
-    proc = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # noqa: S603
-    return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
-
-
-@dataclass(frozen=True)
-class OracleVerdict:
-    """결정론 검증 결과. hard_gate=True면 FAIL이 전체 reject."""
-
-    lens: str
-    kind: str  # compiler | test | typecheck | recount
-    passed: bool
-    detail: str
-    hard_gate: bool = True
-
-    @property
-    def is_red(self) -> bool:
-        """TDD RED 상태 (테스트 실패 = 나생문 FAIL)."""
-        return not self.passed
-
-
-@dataclass(frozen=True)
-class OracleLens:
-    """컴파일러나생문 한 개. C=gcc/clang, Python=ruff/mypy/pytest, Lean=lake build."""
-
-    name: str
-    kind: str
-    command: tuple[str, ...]
-
-    def verify(self, runner: CommandRunner = subprocess_runner) -> OracleVerdict:
-        code, out = runner(self.command)
-        passed = code == 0
-        detail = "PASS" if passed else f"exit={code}: {out.strip()[:300]}"
-        return OracleVerdict(lens=self.name, kind=self.kind, passed=passed, detail=detail)
-
-
-def run_oracle_gate(
-    lenses: Sequence[OracleLens], runner: CommandRunner = subprocess_runner
-) -> tuple[bool, list[OracleVerdict]]:
-    """oracle 렌즈들을 순서대로 hard-gate 실행. 첫 FAIL에서 short-circuit.
-
-    반환: (gate_passed, verdicts). gate_passed=False면 판단 렌즈(LLM) 진입 차단.
-    """
-    verdicts: list[OracleVerdict] = []
-    for lens in lenses:
-        verdict = lens.verify(runner)
-        verdicts.append(verdict)
-        if not verdict.passed:
-            return False, verdicts  # hard gate: 첫 FAIL에서 멈춤
-    return True, verdicts
+__all__ = [
+    "CommandRunner",
+    "OracleLens",
+    "OracleVerdict",
+    "run_oracle_gate",
+    "subprocess_runner",
+]
