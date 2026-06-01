@@ -127,6 +127,38 @@ def take_n(it: Iterator[PlanNode], n: int) -> tuple[PlanNode, ...]:
     return tuple(islice(it, n))
 
 
+def plan_lazy_pairs(
+    goal: Goal,
+    decompose: DecomposeFn,
+    *,
+    fuel: int | None = None,
+    max_depth: int = MAX_DEPTH,
+) -> list[tuple[PlanNode, "PlanNode | None"]]:
+    """lazy BFS unfold, (node, parent) 쌍을 fuel개까지. coinductive 심기용(parent=DECOMPOSES_TO).
+
+    plan_lazy와 같은 ν 전개지만 parent 링크를 보존 → to_seeds_pairs로 씨앗화 가능.
+    fuel=None이면 max_depth까지 전부(= eager plan()과 노드집합 동일).
+    """
+    queue: deque[tuple[Goal, int, GerminationMethod, PlanNode | None]] = deque(
+        [(goal, 0, GerminationMethod.SINGLETON, None)]
+    )
+    out: list[tuple[PlanNode, PlanNode | None]] = []
+    while queue:
+        if fuel is not None and len(out) >= fuel:
+            break
+        g, depth, method, parent = queue.popleft()
+        if depth < 0 or depth > max_depth:
+            raise DepthInvariantViolation(
+                f"depth={depth} out of [0,{max_depth}] for '{g.name}' (lazy pairs)."
+            )
+        node = _node_from_goal(g, depth, method)
+        out.append((node, parent))
+        if depth < max_depth:
+            for sg in decompose(node):
+                queue.append((sg, depth + 1, GerminationMethod.DECOMPOSE, node))
+    return out
+
+
 def walk(node: PlanNode):
     """계획 트리 pre-order 순회 — (node, parent) 튜플 yield. 루트의 parent=None."""
 
@@ -157,25 +189,33 @@ def to_seeds(root: PlanNode, skill: str, *, expected_outcome: str = "") -> list[
     sourceId(FK) = anchor가 있으면 anchor, 없으면 자기 name(self-anchored root). 1:1 invariant는
     adapter/실 KG 측 trigger가 강제 — 여기선 트리 위치를 그대로 보존.
     """
-    out: list[SeedRecord] = []
-    for n, parent in walk(root):
-        sname = seed_name(n, skill)
-        out.append(
-            SeedRecord(
-                name=sname,
-                skill=skill,
-                # 외부 anchor 있으면 그게 FK, 없으면 self-anchored → 자기 seed name(=guard가 HAS_SEED 생략)
-                source_id=n.anchor or sname,
-                display_name=n.objective[:120] or n.name,
-                task_type=n.task_type,
-                target_domain=n.target_domain,
-                expected_outcome=expected_outcome or f"{n.task_type} artifact for {n.name}",
-                germination_method=n.germination_method.value,
-                depth=n.depth,
-                parent=seed_name(parent, skill) if parent is not None else None,
-            )
-        )
-    return out
+    return to_seeds_pairs(list(walk(root)), skill, expected_outcome=expected_outcome)
+
+
+def _seed_from_pair(
+    n: PlanNode, parent: PlanNode | None, skill: str, expected_outcome: str
+) -> SeedRecord:
+    sname = seed_name(n, skill)
+    return SeedRecord(
+        name=sname,
+        skill=skill,
+        # 외부 anchor 있으면 그게 FK, 없으면 self-anchored → 자기 seed name(=guard가 HAS_SEED 생략)
+        source_id=n.anchor or sname,
+        display_name=n.objective[:120] or n.name,
+        task_type=n.task_type,
+        target_domain=n.target_domain,
+        expected_outcome=expected_outcome or f"{n.task_type} artifact for {n.name}",
+        germination_method=n.germination_method.value,
+        depth=n.depth,
+        parent=seed_name(parent, skill) if parent is not None else None,
+    )
+
+
+def to_seeds_pairs(
+    pairs: list[tuple[PlanNode, "PlanNode | None"]], skill: str, *, expected_outcome: str = ""
+) -> list[SeedRecord]:
+    """(node, parent) 쌍 리스트 → SeedRecord 리스트. eager walk() / lazy plan_lazy_pairs 공용."""
+    return [_seed_from_pair(n, p, skill, expected_outcome) for n, p in pairs]
 
 
 def static_decompose(tree: dict[str, list[Goal]]) -> DecomposeFn:
@@ -197,9 +237,11 @@ __all__ = [
     "leaf_count",
     "plan",
     "plan_lazy",
+    "plan_lazy_pairs",
     "seed_name",
     "static_decompose",
     "take_n",
     "to_seeds",
+    "to_seeds_pairs",
     "walk",
 ]

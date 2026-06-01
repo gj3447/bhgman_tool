@@ -226,6 +226,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--depth", type=int, default=3, help="최대 분해 세대 [0,3] (SKILL v2.4 fractal hard limit)."
     )
     p_jb.add_argument(
+        "--coinductive",
+        action="store_true",
+        help="ν 모드 — lazy BFS unfold를 --fuel 개 노드까지만 심는다 (depth cap도 함께 작동, P3 병존).",
+    )
+    p_jb.add_argument(
+        "--fuel",
+        type=int,
+        default=None,
+        help="--coinductive와 함께: productive 전개할 최대 노드 수 (observation budget). 생략=depth까지 전부.",
+    )
+    p_jb.add_argument(
         "--apply",
         action="store_true",
         help="씨앗 MERGE write (멱등/reversible). 생략 = dry-run (planned only).",

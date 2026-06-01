@@ -20,7 +20,9 @@ from engine.jaebaeman.planner import (
     depth_max,
     leaf_count,
     plan,
+    plan_lazy_pairs,
     to_seeds,
+    to_seeds_pairs,
 )
 
 
@@ -41,12 +43,15 @@ def run_jaebaeman(
     decompose: DecomposeFn | None = None,
     expected_outcome: str = "",
     validate: bool = True,
+    coinductive: bool = False,
+    fuel: int | None = None,
 ) -> PlanResult:
     """목표를 계획 트리로 unfold하고 씨앗으로 심는다. apply=False(기본) → planned만, write 없음.
 
     decompose 명시 주입(static_decompose 등) > anchor+run_cypher 기반 kg_decompose > singleton.
-    validate=True(기본): plant 전 불변식 게이트(P1). 위반 + apply 시 *fail-closed* — write 차단,
-    PlanResult.violations로 보고 (dry-run 강등). 위반 없으면 정상 진행.
+    validate=True(기본): plant 전 불변식 게이트(P1). 위반 + apply 시 *fail-closed* — write 차단.
+    coinductive=True: ν 모드 — eager 트리 빌드 대신 lazy BFS unfold를 fuel개 노드까지만 심는다
+    (P3 병존, depth cap도 함께 작동). fuel=None이면 max_depth까지 전부(=eager 노드집합).
     """
     if decompose is None:
         if goal.anchor is not None and run_cypher is not None:
@@ -54,8 +59,18 @@ def run_jaebaeman(
         else:
             decompose = _singleton_decompose
 
-    tree = plan(goal, decompose, max_depth=max_depth)
-    seeds = to_seeds(tree, skill, expected_outcome=expected_outcome)
+    if coinductive:
+        pairs = plan_lazy_pairs(goal, decompose, fuel=fuel, max_depth=max_depth)
+        seeds = to_seeds_pairs(pairs, skill, expected_outcome=expected_outcome)
+        tree = pairs[0][0] if pairs else plan(goal, _singleton_decompose, max_depth=0)
+        has_child = {id(p) for _, p in pairs if p is not None}
+        depth_max_v = max((n.depth for n, _ in pairs), default=0)
+        leaf_count_v = sum(1 for n, _ in pairs if id(n) not in has_child)
+    else:
+        tree = plan(goal, decompose, max_depth=max_depth)
+        seeds = to_seeds(tree, skill, expected_outcome=expected_outcome)
+        depth_max_v = depth_max(tree)
+        leaf_count_v = leaf_count(tree)
 
     violations = (
         validate_seed_invariants(seeds, run_cypher=run_cypher, max_depth=max_depth)
@@ -83,8 +98,8 @@ def run_jaebaeman(
         plan=tree,
         seeds=tuple(seeds),
         apply_result=apply_result,
-        depth_max=depth_max(tree),
-        leaf_count=leaf_count(tree),
+        depth_max=depth_max_v,
+        leaf_count=leaf_count_v,
         violations=tuple(violations),
     )
 

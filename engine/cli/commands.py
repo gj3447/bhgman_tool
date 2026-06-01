@@ -916,6 +916,8 @@ def cmd_jaebaeman(args: argparse.Namespace) -> int:
             cycle_id=getattr(args, "cycle_id", None) or "jaebaeman-cli",
             apply=getattr(args, "apply", False),
             max_depth=getattr(args, "depth", 3),
+            coinductive=getattr(args, "coinductive", False),
+            fuel=getattr(args, "fuel", None),
         )
     finally:
         close()

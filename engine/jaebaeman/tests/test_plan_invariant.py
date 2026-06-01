@@ -124,3 +124,41 @@ class TestPlantOrderInvariant:
         forward = plan_set(seeds)
         reverse = plan_set(list(reversed(seeds)))
         assert forward == reverse  # 같은 KG 상태로 수렴 (materialization 순서 독립)
+
+
+# ── coinductive 모드 (P3 병존) : fuel-bounded 심기 ────────────────────────────
+class TestCoinductiveRunner:
+    def test_fuel_bounds_seed_count(self):
+        from engine.jaebaeman.jaebaeman_runner import run_jaebaeman
+
+        tree = _branching_tree(3, 3)  # 큰 트리
+        res = run_jaebaeman(
+            Goal(name="g", objective="r"),
+            decompose=static_decompose(tree),
+            coinductive=True,
+            fuel=5,
+        )
+        assert len(res.seeds) == 5  # fuel 정확히 5개만 심음 (productive)
+
+    def test_coinductive_full_equals_eager_seedset(self):
+        from engine.jaebaeman.jaebaeman_runner import run_jaebaeman
+
+        tree = _branching_tree(2, 3)
+        dec = static_decompose(tree)
+        eager = run_jaebaeman(Goal(name="g", objective="r"), decompose=dec, max_depth=3)
+        lazy = run_jaebaeman(
+            Goal(name="g", objective="r"), decompose=dec, coinductive=True, fuel=None, max_depth=3
+        )
+        assert {s.name for s in eager.seeds} == {s.name for s in lazy.seeds}  # fuel=None ≡ eager
+
+    def test_coinductive_preserves_decomposes_to_parent(self):
+        from engine.jaebaeman.jaebaeman_runner import run_jaebaeman
+
+        tree = {"g": [Goal(name="a", objective="A")], "a": [Goal(name="b", objective="B")]}
+        res = run_jaebaeman(
+            Goal(name="g", objective="r"), decompose=static_decompose(tree), coinductive=True
+        )
+        by_name = {s.name: s for s in res.seeds}
+        # parent 링크(DECOMPOSES_TO) 보존: a→g, b→a
+        assert by_name["seed-jaebaeman-a"].parent == "seed-jaebaeman-g"
+        assert by_name["seed-jaebaeman-b"].parent == "seed-jaebaeman-a"
