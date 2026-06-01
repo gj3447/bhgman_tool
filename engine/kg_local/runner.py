@@ -237,6 +237,13 @@ def _jaebaeman_decomposes_to(store: LocalKgStore, params: dict) -> list[dict]:
     return [{"child": params["child"]}]
 
 
+def _jaebaeman_orphan_anchor(store: LocalKgStore, params: dict) -> list[dict]:
+    # E1 게이트: 주어진 anchor name 중 KG에 노드가 없는 것만 collect (read-only).
+    anchors = params.get("anchors") or []
+    present = {n["props"].get("name") for n in store.nodes}
+    return [{"missing": [a for a in anchors if a not in present]}]
+
+
 def _jaebaeman_children(store: LocalKgStore, params: dict) -> list[dict]:
     # 분해 anchor의 자식 read. 로컬엔 보통 Span 구조가 없으니 빈 결과(→ singleton 루트)면 정상.
     anchor = store.find_one("name", params.get("anchor"))
@@ -275,6 +282,7 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
         _jaebaeman_children,
         False,
     ),
+    (lambda c: "RETURN collect(a) AS missing" in c, _jaebaeman_orphan_anchor, False),
     (lambda c: "MERGE (h:HarnessDiagnosis" in c, _harness_persist, True),
     (lambda c: "MERGE (s:SourceCodeNode" in c, _merge_source_node, True),
     (

@@ -924,6 +924,11 @@ def cmd_jaebaeman(args: argparse.Namespace) -> int:
     for s in res.seeds:
         indent = "  " * (s.depth + 1)
         print(f"{indent}[d{s.depth}] {s.name}  ({s.germination_method}) ← {s.source_id}")
+    if res.violations:
+        print(f"  ⚠ invariant gate BLOCKED ({len(res.violations)}) — write 차단 (fail-closed):")
+        for v in res.violations:
+            print(f"    [{v.code.value}] {v.seed_id}: {v.detail}")
+        return 1
     if res.apply_result.dry_run and res.seeds:
         print("  (dry-run — pass --apply to plant seeds; MERGE-only, reversible/idempotent)")
     return 0

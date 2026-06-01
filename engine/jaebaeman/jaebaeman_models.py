@@ -77,6 +77,27 @@ class SeedRecord:
     parent: str | None = None  # 상위 PlanNode name (DECOMPOSES_TO 엣지 source)
 
 
+class ViolationCode(str, Enum):
+    """씨앗 불변식 위반 코드. E1/E3/E4 = SKILL.md v2.2/v2.4 error variants 거울."""
+
+    E1_ORPHAN_ANCHOR = "E1_ORPHAN_ANCHOR"  # 외부 anchor(source_id)가 KG에 없음 (FK orphan)
+    E3_MULTIPLE_SEED_PER_ANCHOR = (
+        "E3_MULTIPLE_SEED_PER_ANCHOR"  # 한 anchor에 활성 씨앗 2+ (1:1 위반)
+    )
+    E4_DEPTH_RANGE = "E4_DEPTH_RANGE"  # depth ∉ [0, MAX_DEPTH] (NULL 포함)
+    DUP_SEED_NAME = "DUP_SEED_NAME"  # 배치 내 씨앗 name 중복 (PK 충돌)
+    DANGLING_PARENT = "DANGLING_PARENT"  # DECOMPOSES_TO parent가 배치에 없음 (트리 끊김)
+
+
+@dataclass(frozen=True)
+class SeedViolation:
+    """불변식 위반 1건. fail-closed 게이트가 모아서 raise/report."""
+
+    code: ViolationCode
+    seed_id: str
+    detail: str
+
+
 @dataclass(frozen=True)
 class SeedApplyResult:
     """씨앗 심기 결과. dry_run=True면 planned만, write 없음 (covenant: MERGE-only)."""
@@ -98,14 +119,16 @@ class PlanResult:
     apply_result: SeedApplyResult
     depth_max: int = 0
     leaf_count: int = 0
+    violations: tuple[SeedViolation, ...] = ()
 
     @property
     def summary(self) -> str:
         a = self.apply_result
         mode = "DRY-RUN (no write)" if a.dry_run else f"APPLIED {a.applied_count}"
+        viol = f" BLOCKED({len(self.violations)} violation)" if self.violations else ""
         return (
             f"jaebaeman[{self.goal}]: planned_seeds={len(self.seeds)} "
-            f"depth_max={self.depth_max} leaves={self.leaf_count} → {mode}"
+            f"depth_max={self.depth_max} leaves={self.leaf_count} → {mode}{viol}"
         )
 
 
@@ -118,4 +141,6 @@ __all__ = [
     "SeedApplyResult",
     "SeedRecord",
     "SeedStatus",
+    "SeedViolation",
+    "ViolationCode",
 ]

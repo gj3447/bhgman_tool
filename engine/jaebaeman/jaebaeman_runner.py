@@ -12,7 +12,8 @@ decompose 규칙은 두 경로:
 
 from __future__ import annotations
 
-from engine.jaebaeman.jaebaeman_models import MAX_DEPTH, Goal, PlanResult
+from engine.jaebaeman.invariants import validate_seed_invariants
+from engine.jaebaeman.jaebaeman_models import MAX_DEPTH, Goal, PlanResult, SeedApplyResult
 from engine.jaebaeman.kg_adapter import CypherRunner, kg_decompose, plant_seeds
 from engine.jaebaeman.planner import (
     DecomposeFn,
@@ -39,10 +40,13 @@ def run_jaebaeman(
     max_depth: int = MAX_DEPTH,
     decompose: DecomposeFn | None = None,
     expected_outcome: str = "",
+    validate: bool = True,
 ) -> PlanResult:
     """목표를 계획 트리로 unfold하고 씨앗으로 심는다. apply=False(기본) → planned만, write 없음.
 
     decompose 명시 주입(static_decompose 등) > anchor+run_cypher 기반 kg_decompose > singleton.
+    validate=True(기본): plant 전 불변식 게이트(P1). 위반 + apply 시 *fail-closed* — write 차단,
+    PlanResult.violations로 보고 (dry-run 강등). 위반 없으면 정상 진행.
     """
     if decompose is None:
         if goal.anchor is not None and run_cypher is not None:
@@ -52,9 +56,28 @@ def run_jaebaeman(
 
     tree = plan(goal, decompose, max_depth=max_depth)
     seeds = to_seeds(tree, skill, expected_outcome=expected_outcome)
-    apply_result = plant_seeds(
-        seeds, write_cypher=write_cypher, cycle_id=cycle_id, dry_run=not apply
+
+    violations = (
+        validate_seed_invariants(seeds, run_cypher=run_cypher, max_depth=max_depth)
+        if validate
+        else []
     )
+    # fail-closed: 위반 있으면 apply여도 write 금지 (dry-run으로 강등, 위반 surface)
+    blocked = bool(violations)
+    if blocked:
+        apply_result = SeedApplyResult(
+            seeded=tuple(s.name for s in seeds),
+            planned_cyphers=(),
+            dry_run=True,
+            applied_count=0,
+            notes=(
+                f"BLOCKED by {len(violations)} invariant violation(s) — write 차단 (fail-closed)",
+            ),
+        )
+    else:
+        apply_result = plant_seeds(
+            seeds, write_cypher=write_cypher, cycle_id=cycle_id, dry_run=not apply
+        )
     return PlanResult(
         goal=goal.name,
         plan=tree,
@@ -62,6 +85,7 @@ def run_jaebaeman(
         apply_result=apply_result,
         depth_max=depth_max(tree),
         leaf_count=leaf_count(tree),
+        violations=tuple(violations),
     )
 
 
