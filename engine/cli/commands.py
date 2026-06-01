@@ -485,8 +485,78 @@ def cmd_status(_args: argparse.Namespace) -> int:
         return 2
 
 
+# 의미론 dedup 대상 라벨 → (key prop, 텍스트 필드들). cypher 라벨 주입 차단 allowlist.
+_SEMANTIC_TARGETS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "ResearchFinding": ("findingId", ("oneLineSummary", "name", "finding")),
+    "Lesson": ("name", ("name", "description", "wrongAssumption", "truth")),
+}
+
+
+def cmd_occam_semantic(args: argparse.Namespace) -> int:
+    """오캄 의미론 near-dup — 텍스트 노드 임베딩 cosine ≥ θ 쌍을 supersede 후보로 surface.
+
+    sha256-blind 자리(패러프레이즈 중복)를 임베딩으로 메움. dry-run 기본, --apply로 write.
+    θ는 모델 의존 — 번들 all-MiniLM은 paraphrase ≈ 0.6-0.75 (near-identical만 보려면 ↑).
+    # KG: rf-semdist-occam-2026-06-01
+    """
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[occam-semantic] neo4j unavailable (set NEO4J_*, --local, or parent Claude MCP). "
+            "의미론 dedup은 텍스트 노드를 KG에서 읽어 임베딩한다.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, write_cypher, close = runners
+    label = getattr(args, "label", None) or "ResearchFinding"
+    if label not in _SEMANTIC_TARGETS:
+        print(f"[occam-semantic] label must be one of {list(_SEMANTIC_TARGETS)}", file=sys.stderr)
+        close()
+        return 2
+    key, fields = _SEMANTIC_TARGETS[label]
+    coalesce = "coalesce(" + ", ".join(f"n.{f}" for f in fields) + ", '')"
+    cypher = (
+        f"MATCH (n:{label}) WHERE (n.status IS NULL OR n.status <> 'SUPERSEDED') "
+        f"AND {coalesce} <> '' "
+        f"RETURN n.{key} AS id, {coalesce} AS text ORDER BY id LIMIT $limit"
+    )
+    try:
+        try:
+            rows = run_cypher(cypher, {"limit": getattr(args, "limit", 200)})
+        except Exception as e:  # noqa: BLE001 — local backend는 임의 MATCH 미지원 → 정직 degrade
+            print(
+                f"[occam-semantic] backend가 텍스트-노드 스캔 쿼리를 미지원 ({type(e).__name__}). "
+                "의미론 dedup은 neo4j(또는 parent Claude MCP)가 필요하다 — local KG는 고정 템플릿만 처리.",
+                file=sys.stderr,
+            )
+            return 2
+        items = [(str(r["id"]), str(r["text"])) for r in rows if r.get("id")]
+        from engine.memory.embedder import Embedder  # noqa: PLC0415
+        from engine.occam.semantic_dedup import run_semantic_dedup  # noqa: PLC0415
+
+        emb = Embedder()
+        report = run_semantic_dedup(
+            items,
+            embed_fn=lambda texts: [emb.encode(t) for t in texts],
+            threshold=getattr(args, "threshold", 0.75),
+            key=key,
+            write_cypher=write_cypher,
+            apply=getattr(args, "apply", False),
+        )
+    finally:
+        close()
+    print(report.summary)
+    for p in report.pairs[:40]:
+        print(f"  {p.similarity:.3f}  keep={p.keep_id}  drop={p.drop_id}")
+    if report.dry_run and report.pairs:
+        print("  (dry-run — pass --apply to supersede; reversible via status+SUPERSEDED_BY edge)")
+    return 0
+
+
 def cmd_occam(args: argparse.Namespace) -> int:
     """오캄 — KG SourceCodeNode dedup pass. dry-run 기본, --apply로 SUPERSEDED write (reversible)."""
+    if getattr(args, "semantic", False):
+        return cmd_occam_semantic(args)
     occam_runner = _load_occam_runner()
     runners = _resolve_kg_runners(args)
 

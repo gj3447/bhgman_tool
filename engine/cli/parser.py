@@ -147,6 +147,23 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
     )
+    p_oc.add_argument(
+        "--semantic",
+        action="store_true",
+        help="의미론 near-dup mode: embed text nodes, flag cosine≥θ pairs (sha256-blind paraphrase dups).",
+    )
+    p_oc.add_argument(
+        "--threshold",
+        type=float,
+        default=0.75,
+        help="Semantic cosine threshold (model-dependent; all-MiniLM paraphrase ≈ 0.6-0.75).",
+    )
+    p_oc.add_argument(
+        "--label",
+        default="ResearchFinding",
+        help="Semantic mode target label: ResearchFinding | Lesson.",
+    )
+    p_oc.add_argument("--limit", type=int, default=200, help="Semantic mode: max nodes to scan.")
     p_oc.set_defaults(func=commands.cmd_occam)
 
     p_hd = sub.add_parser(
