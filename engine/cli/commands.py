@@ -817,8 +817,6 @@ def cmd_legion(args: argparse.Namespace) -> int:
     각 군단장이 동일 CommanderStage 인터페이스로 Contract-bound handoff. dry-run 기본.
     # KG: adr-seven-commander-legion-architecture-2026-05-27, bihaenggiman-legioncommanders-2026-05-26
     """
-    from engine.legion.commanders import build_default_legion  # noqa: PLC0415
-
     runners = _resolve_kg_runners(args)
     if runners is None:
         print(
@@ -850,11 +848,20 @@ def cmd_legion(args: argparse.Namespace) -> int:
             source, close_g = _grounding_source(args)
             ctx.update(agents=agents, client=agents.AgentClient(), grounding=source)
 
+    # 재배맨 substrate 경유 (정전: 재배맨=출격=Legion.run 루프). planner+lifecycle+telemetry load-bearing.
+    import datetime as _dt  # noqa: PLC0415
+
+    from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
+
+    run_id = "legion-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
     try:
-        run = build_default_legion().run(context=ctx)
+        result = run_legion_via_jaebaeman(
+            ctx, run_id=run_id, write_cypher=write_cypher, apply=getattr(args, "apply", False)
+        )
     finally:
         close()
         close_g()
+    run, lc, rec = result["legion_run"], result["lifecycle"], result["run_record"]
 
     if run.contract_violation:
         print(f"[legion] CONTRACT VIOLATION: {run.contract_violation}", file=sys.stderr)
@@ -867,6 +874,10 @@ def cmd_legion(args: argparse.Namespace) -> int:
     print(
         f"[legion] {'completed' if run.completed else 'halted'} — {run.ran}/6 stages, "
         f"keys={list(run.final_context_keys)}"
+    )
+    print(
+        f"[재배맨 substrate] {rec.run_id}: dispatched={len(lc.outcomes)} "
+        f"collected={lc.collected} failed={lc.failed} (planner→lifecycle→record)"
     )
     return 0 if run.completed else 1
 
