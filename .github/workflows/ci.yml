@@ -29,11 +29,13 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install uv
         run: pip install uv
-      - name: Run pytest (engine/longinus_drift_audit)
+      - name: Run pytest (full engine suite)
         # #1 unified the flat-layout subpackages into the `engine` package, so the
-        # tests import `engine.longinus_drift_audit.*` and must run from repo root.
+        # whole suite imports `engine.*` and runs from repo root. Previously this
+        # only ran engine/longinus_drift_audit/tests/ — a blind spot that let new
+        # engines (prometheus/legion/kg_local) go untested in CI. Now full repo.
         run: |
-          uv run --all-extras pytest engine/longinus_drift_audit/tests/ -q --tb=short
+          uv run --all-extras pytest -q --tb=short
 
   lint:
     name: ruff
