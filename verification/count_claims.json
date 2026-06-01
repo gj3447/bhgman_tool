@@ -9,13 +9,13 @@
   "pytest": {
     "_note": "Collected counts grow as tests are added. SOFT-banded: the guard fails only on OVER-claim (a doc number greater than reality, i.e. a lie) and warns on stale-low. Refresh with --update when convenient.",
     "engine_subset_collected": 320,
-    "full_repo_collected": 1110
+    "full_repo_collected": 1153
   },
   "doc_presence": {
     "_note": "Each value must appear literally in the named file, so the human-facing prose cannot silently diverge from this manifest.",
     "docs/04-references/lean-theorems.md": [
-      87,
-      71
+      105,
+      89
     ]
   }
 }

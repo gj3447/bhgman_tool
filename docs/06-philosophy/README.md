@@ -23,7 +23,7 @@ flowchart TB
         direction TB
         t1["Harness packaged for practitioner use"]
         t2["Lean 4 formal verification (141+ theorems)"]
-        t3["Python runtime (Pydantic v2, 298 pytest PASS)"]
+        t3["Python runtime (Pydantic v2, 1149 pytest PASS)"]
         t4["Claude Code skills (5 weapons + APT/TPA)"]
         t5["same layer as ruflo / LangGraph / CrewAI"]
     end

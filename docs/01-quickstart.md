@@ -20,7 +20,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool/engine/longinus_drift_audit
 
-# 298 pytest PASS 검증 (longinus_drift_audit engine subset)
+# 319 pytest PASS 검증 (longinus_drift_audit engine subset)
 uv run --with pytest pytest tests/ -q
 # 기대 출력: 77 passed in 0.41s
 ```
@@ -83,7 +83,7 @@ lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean
 # exit 0 = 7 theorem PASS, 0 sorry
 ```
 
-13 standalone Lean 4 파일, 총 71 theorem (Harness 24 + Longinus 21 + Measurement 26, Mathlib-free, Lean 4.29+ 검증; +16 Mathlib-sister → 트리 87).
+14 standalone Lean 4 파일, 총 89 theorem (Harness 24 + Longinus 21 + Measurement 26 + Occam 10 + Seed 8, Mathlib-free, Lean 4.29+ 검증; +16 Mathlib-sister → 트리 105).
 
 ---
 

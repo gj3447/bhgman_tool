@@ -103,6 +103,6 @@ bhgman 도구 측 흡수 case study:
 
 ## Lean 4 verified theorem reference
 
-총 71 theorem (Harness 24 + Longinus 21 + Measurement 26) = 13 standalone Mathlib-free 파일 in this repo. +16 Mathlib-sister(`apt_functor_with_mathlib/`) → `lean/` 트리 합계 87. (전체 SYMPOSIUM 생태계 141+ 중 본 repo export 분.)
+총 89 theorem (Harness 24 + Longinus 21 + Measurement 26 + Occam 10 + Seed 8) = 14 standalone Mathlib-free 파일 in this repo. +16 Mathlib-sister(`apt_functor_with_mathlib/`) → `lean/` 트리 합계 105. (전체 SYMPOSIUM 생태계 141+ 중 본 repo export 분.)
 
 자세히는 [lean-theorems.md](lean-theorems.md).

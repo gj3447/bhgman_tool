@@ -1,6 +1,6 @@
 # bhgman_tool — Lean 4 formalizations
 
-> Two layers of formal verification: **Mathlib-free standalone** (5 files, 50 theorem) + **Mathlib sister project** (12 theorem, 0 sorry, `lake build` PASS).
+> Two layers of formal verification: **Mathlib-free standalone** (14 files, 89 theorem) + **Mathlib sister project** (16 theorem, 0 sorry, `lake build` PASS).
 
 ## Layout
 
@@ -13,22 +13,26 @@ lean/
 ├── Harness_LawvereFixedPoint.lean         ← standalone
 ├── Longinus_ConfidenceSchema_GraphifyAbsorbed.lean  ← standalone
 ├── Longinus_HierarchicalMirror.lean       ← standalone
+├── Longinus_RefinementSoundness.lean      ← standalone (Pierce soundness)
+├── Measurement_*.lean  (6 files)          ← standalone (Stevens 1946 measurement theory)
+├── Occam_SupersessionScore.lean           ← standalone (σ supersession score, Pearl 1988)
+├── SeedLifecycle.lean                     ← standalone (재배맨 seed lifecycle)
 │
 └── apt_functor_with_mathlib/              ← Mathlib sister project (Wave 7 P3-D absorbed 2026-05-14)
     ├── lakefile.toml                      ← Mathlib v4.30.0-rc2 dep
     ├── lean-toolchain                     ← leanprover/lean4:v4.30.0-rc2
-    ├── APTFunctorFactorization.lean       ← 393 LOC, 12 theorem, 0 sorry, lake build PASS
+    ├── APTFunctorFactorization.lean       ← 393 LOC, 16 theorem, 0 sorry, lake build PASS
     └── README.md                          ← project-specific build instructions
 ```
 
 ## Two layers
 
-### Layer 1: Mathlib-free standalone (5 files, ~50 theorem)
+### Layer 1: Mathlib-free standalone (14 files, 89 theorem)
 
 - **Build**: `lean <file.lean>` per file, no toolchain manager needed beyond `elan`.
 - **CI**: built by `.github/workflows/ci.yml` `lean` job (matrix per file).
 - **Purpose**: lightweight verification of core Harness + Longinus invariants without Mathlib dependency.
-- **Theorems**: Lawvere fixed-point + self-reference (HarnessSelfReference, 9 theorem), ACI mirror (Harness_ACI_Mirror, 10 theorem), Lawvere FP (Harness_LawvereFixedPoint, 5 theorem), Longinus hierarchical mirror, confidence schema.
+- **Theorems**: Lawvere fixed-point + self-reference (HarnessSelfReference, 9 theorem), ACI mirror (Harness_ACI_Mirror, 10 theorem), Lawvere FP (Harness_LawvereFixedPoint, 5 theorem), Longinus hierarchical mirror + refinement soundness (21), Measurement-theory invariants (Stevens 1946, 26), Occam supersession score σ (Pearl 1988, 10), Seed lifecycle (재배맨, 8). Full index: [../docs/04-references/lean-theorems.md](../docs/04-references/lean-theorems.md).
 - **Origin**: SYMPOSIUM `MIND/lean_formalization/*.lean` Mathlib-free files (absorbed Wave 6).
 
 ### Layer 2: Mathlib sister (`apt_functor_with_mathlib/`)
@@ -47,7 +51,7 @@ lean/
 
 ## Verification reproduction
 
-### Standalone (any of 5 files)
+### Standalone (any of 14 files)
 
 ```bash
 cd bhgman_tool/lean

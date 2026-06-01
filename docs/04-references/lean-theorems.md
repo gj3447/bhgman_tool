@@ -1,13 +1,13 @@
 # Lean 4 Verified Theorems — Index
 
-> **71 theorems** in the 13 standalone Mathlib-free files (Harness 24 / Longinus 21 / Measurement 26), **0 proof-position `sorry`**, Lean 4. A separate Mathlib-sister proof (`apt_functor_with_mathlib/`, 16 theorems, needs `lake` + Mathlib) brings the `lean/` tree total to **87**. The broader SYMPOSIUM ecosystem holds **141+** (see [Total verified count](#total-verified-count)).
+> **89 theorems** in the 14 standalone Mathlib-free files (Harness 24 / Longinus 21 / Measurement 26 / Occam 10 / Seed 8), **0 proof-position `sorry`**, Lean 4. A separate Mathlib-sister proof (`apt_functor_with_mathlib/`, 16 theorems, needs `lake` + Mathlib) brings the `lean/` tree total to **105**. The broader SYMPOSIUM ecosystem holds **141+** (see [Total verified count](#total-verified-count)).
 
 Reproduce the headline counts on a fresh clone:
 
 ```bash
-# top-level theorem/lemma declarations across the whole lean/ tree → 87
+# top-level theorem/lemma declarations across the whole lean/ tree → 105
 grep -rcE '^(theorem|lemma) ' lean/ | awk -F: '{s+=$2} END{print s}'
-# the 13 standalone (Mathlib-free) files only → 71
+# the 14 standalone (Mathlib-free) files only → 89
 grep -cE '^(theorem|lemma) ' lean/*.lean | awk -F: '{s+=$2} END{print s}'
 # proof-position sorry → 0 (every `sorry` token in the tree is in a comment/docstring)
 grep -rEn '(:=|by) +sorry' lean/*.lean | wc -l
@@ -21,7 +21,7 @@ grep -rEn '(:=|by) +sorry' lean/*.lean | wc -l
 # Prerequisite: Lean 4 (4.29+) via elan
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 
-# Build all 13 standalone files (Mathlib-free, fast, no lake)
+# Build all 14 standalone files (Mathlib-free, fast, no lake)
 cd bhgman_tool/lean
 for f in *.lean; do
   echo "=== $f ==="
@@ -132,7 +132,7 @@ External canon: **Pierce TAPL 2002 §8/§15** (type soundness = Progress + Prese
 
 ## Measurement side — 26 theorems
 
-Stevens 1946 measurement-theory formalization of the legion's commander metrics, composition safety, and threshold-derivation invariants. (`Measurement_Phase5_DerivationSoundness.lean` carries decision *examples* via `decide`/`native_decide` rather than `theorem`/`lemma`, so it contributes 0 to the count.)
+Stevens 1946 measurement-theory formalization of the legion's commander metrics, composition safety, and threshold-derivation invariants.
 
 ### `Measurement_MetricScale.lean` (8 theorems)
 
@@ -198,6 +198,46 @@ External canon: **Shannon 1948** (information content)
 
 ---
 
+## Occam side — 10 theorems
+
+`Occam_SupersessionScore.lean` formalizes the quantitative supersession score σ = candidacy · guard / SCALE used by `engine/occam/scoring.py`. σ ∈ [0,1] mapped to 1000 basis-point integers (Mathlib-free `Nat` arithmetic).
+
+External canon: **Pearl 1988** (noisy-OR candidacy) + `occam-kam-canonical` (SYMPOSIUM canon)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `scale_pos` | The basis-point SCALE is positive |
+| 2 | `guard_le_scale` | The truth-guard never exceeds SCALE |
+| 3 | `guard_zero_at_full_entrench` | Canonical tier (e=SCALE) ⇒ guard = 0 (never archive) |
+| 4 | `guard_zero_no_twin` | No successor twin ⇒ guard = 0 |
+| 5 | `protected_score_zero` | entrenchment=SCALE ⇒ σ = 0 (canonical/lesson/contract/verdict protected) |
+| 6 | `no_successor_zero` | machloket: no twin ⇒ σ = 0 (flag-only, supersede forbidden) |
+| 7 | `score_le_candidacy` | σ never exceeds the raw candidacy mass |
+| 8 | `score_le_scale` | candidacy ≤ SCALE ⇒ σ ≤ SCALE (stays in [0,1]) |
+| 9 | `score_antitone_entrench` | σ is monotone *non-increasing* in entrenchment |
+| 10 | `candidacy_le_scale` | noisy-OR candidacy never exceeds SCALE |
+
+---
+
+## Jaebaeman / Seed side — 8 theorems
+
+`SeedLifecycle.lean` formalizes the planner's `μX.(CHUPiece + List X)` initial algebra (PlanNode tree) and the SubagentTaskSpec seed-status lifecycle (READY→DISPATCHED→COLLECTED/FAILED).
+
+External canon: jaebaeman SKILL v2.4 depth invariant (E4) + initial-algebra catamorphism (PROM 64 C1)
+
+| # | Theorem | Statement (informal) |
+|---|---|---|
+| 1 | `size_pos` | Every plan has ≥1 node (root always exists; no empty seed batch) |
+| 2 | `depth_branch` | `depth (branch cs) = 1 + depthList cs` (catamorphism unfold) |
+| 3 | `leaf_depth_zero` | A leaf has depth 0 (primitive = bottom) |
+| 4 | `leaf_welldepthed` | A leaf is well-depthed under any cap ≥ 0 |
+| 5 | `no_step_from_failed` | FAILED is an absorbing terminal state (no outgoing transition) |
+| 6 | `no_step_from_archived` | ARCHIVED is absorbing terminal |
+| 7 | `ready_step_unique` | READY transitions only to DISPATCHED (deterministic entry) |
+| 8 | `dispatched_step_branches` | DISPATCHED transitions only to COLLECTED or FAILED |
+
+---
+
 ## Total verified count
 
 | Source | Theorems | sorry |
@@ -214,9 +254,11 @@ External canon: **Shannon 1948** (information content)
 | Measurement_Contract_MonoidIdentity | 3 | 0 |
 | Measurement_Prometheus_ShannonRatify | 3 | 0 |
 | Measurement_Phase4_EmpiricalValidation | 2 | 0 |
-| **Standalone subtotal (13 files, Mathlib-free)** | **71** | **0** |
+| Occam_SupersessionScore | 10 | 0 |
+| SeedLifecycle | 8 | 0 |
+| **Standalone subtotal (14 files, Mathlib-free)** | **89** | **0** |
 | apt_functor_with_mathlib/APTFunctorFactorization (Mathlib-sister, needs `lake`) | 16 | 0 |
-| **`lean/` tree total** | **87** | **0** |
+| **`lean/` tree total** | **105** | **0** |
 
 The broader SYMPOSIUM ecosystem holds **141+ Lean theorems** across APT/TPA cycles, sociological axiom formalization, and family-pattern verification. This repo contains *only the Harness + Longinus + Measurement subset* relevant to the Airplane Man's tool layer — the 141+ figure is the **ecosystem** count, not this repo's.
 
@@ -224,7 +266,7 @@ The broader SYMPOSIUM ecosystem holds **141+ Lean theorems** across APT/TPA cycl
 
 ## Why Mathlib-free?
 
-Choice rationale (applies to the 13 standalone files; the sister proof opts into Mathlib deliberately):
+Choice rationale (applies to the 14 standalone files; the sister proof opts into Mathlib deliberately):
 
 1. **Reproducibility** — anyone with `lean` + `elan` can build, no Mathlib download (~1GB)
 2. **Independence** — no dependency on Mathlib's evolving API
@@ -250,6 +292,8 @@ Trade-off accepted:
 | Longinus_HierarchicalMirror | Longinus 7-Layer model + Sanfeliu-Fu 1983 + family-expansion-pattern |
 | Longinus_RefinementSoundness | Pierce TAPL 2002 §8/§15/§22 |
 | Measurement_* | Stevens 1946 (+ Shannon 1948 for ShannonRatify; contract-dual canon for MonoidIdentity) |
+| Occam_SupersessionScore | Pearl 1988 (noisy-OR) + occam-kam-canonical |
+| SeedLifecycle | jaebaeman SKILL v2.4 + initial-algebra catamorphism (PROM 64 C1) |
 
 See [citations.md](citations.md) for full bibliographic detail.
 

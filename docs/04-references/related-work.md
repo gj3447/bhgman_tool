@@ -70,11 +70,11 @@ Honest limitations section + token budget discipline (≤5 tool calls, ≤800 to
 |---|---|---|
 | **layer 분리 명시** | 없음 (단일 layer 자칭) | 사도(존재) ⊥ 도구(이 repo) ⊥ 본질(별도) **3 layer 분리** |
 | **외부 정전 인용** | 0 | **17 axes** ([citations.md](citations.md)) |
-| **Formal verification** | `ruflo verify` signed witness (code integrity only) | **71 Lean 4 theorem** (이 repo, Mathlib-free, 0 sorry; +16 Mathlib-sister → 트리 87. 생태계 141+) |
+| **Formal verification** | `ruflo verify` signed witness (code integrity only) | **89 Lean 4 theorem** (이 repo, Mathlib-free, 0 sorry; +16 Mathlib-sister → 트리 105. 생태계 141+) |
 | **Self-reference 안전 장치** | "84.8% SWE-Bench / 32% token reduction" Goodhart 자체 위반 | Lawvere FPT + Lakatos quarterly audit + Naesengmoon adversarial **3 layer 안전 장치** |
 | **Family 구조** | flat enumeration 32 plugin / 100 agent / 314 tool (CCP/CRP 위반) | 3-tier sibling family + responsibility_split sub-type (Mirror STRONG) |
 | **Confidence schema** | edge confidence float (under-specified) | 3-tier enum (EXTRACTED/INFERRED/AMBIGUOUS) + AMBIGUOUS = unique human-verdict gate (Lean T1) |
-| **Industry reach** | 즉시 100+ agents (federation + Goal UI + SONA) ★ | engine 298 pytest + Lean 71 theorem + 21 skill (academic ★) |
+| **Industry reach** | 즉시 100+ agents (federation + Goal UI + SONA) ★ | engine 1149 pytest + Lean 89 theorem + 21 skill (academic ★) |
 | **사용자 entry** | `npx ruflo init` 한 줄 | `git clone + cp -R skills + pytest` 단계 명시 |
 
 → ruflo 가 *industry reach* 측 강함. bhgman_tool 이 *academic grounding* 측 강함. **다른 가치 축**.
