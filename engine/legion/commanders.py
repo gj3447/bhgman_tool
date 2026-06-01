@@ -29,7 +29,7 @@ from typing import Any
 
 from engine.legion.legion import CANONICAL_ORDER, Legion
 from engine.legion.legion_models import CommanderStage
-from engine.naesengmoon.decorrelation import CriticKind, CriticVerdict, aggregate
+from engine.naesengmoon.decorrelation import CriticKind, CriticVerdict, aggregate, flag_echo
 
 
 def _degraded(key: str, reason: str) -> dict:
@@ -205,12 +205,15 @@ def _run_verify(ctx: dict) -> dict:
     }
     client = ctx.get("client")
     agents = ctx.get("agents")
+    echo_hint = ""
+    reasonings: dict[str, str] = {}
     if client is not None and agents is not None:
         try:
             target = ctx.get("topic") or "legion run"
+            echo_hint = str(ctx.get("claim") or target)
             verdict = agents.critique(
                 target,
-                ctx.get("claim") or target,
+                echo_hint,
                 client,
                 lenses=ctx.get("lenses") or agents.DEFAULT_LENSES,
                 grounding=ctx.get("grounding"),
@@ -226,15 +229,22 @@ def _run_verify(ctx: dict) -> dict:
                 )
                 for lv in verdict.lens_verdicts
             )
+            reasonings = {lv.lens: lv.findings for lv in verdict.lens_verdicts}
         except Exception as e:  # noqa: BLE001
             out["judgment_error"] = str(e)
+    # prompt-echo 배제: executor framing 을 그대로 받아쓴 판단렌즈는 독립표 아님 → n_eff 에서 제외.
+    # (flag_echo 도 production 호출부 0 orphan 이었음 — aggregate 의 echo-배제 분기 dead.)
+    if reasonings:
+        flag_echo(critics, echo_hint, reasonings)
     # 합성: oracle + 판단렌즈 → 하나의 honest EnsembleResult (n_eff carry). orphan 배선 closure.
     ens = aggregate(critics)
     out["ensemble"] = ens.verdict
     out["n_eff"] = round(ens.n_eff, 2)
     out["rho"] = ens.rho
+    out["n_echo_excluded"] = ens.n_echo_excluded
     out["summary"] = (
         f"naesengmoon: oracle={out['oracle']} ensemble={ens.verdict} n_eff≈{ens.n_eff:.2f}"
+        + (f" echo_excluded={ens.n_echo_excluded}" if ens.n_echo_excluded else "")
     )
     return {"verdict": out}
 
