@@ -22,8 +22,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from engine.jaebaeman.ab_compare import compare_decompose  # noqa: E402
 from engine.jaebaeman.jaebaeman_models import Goal  # noqa: E402
-from engine.jaebaeman.llm_decompose import llm_decompose  # noqa: E402
+from engine.jaebaeman.llm_decompose import from_agent_client, llm_decompose  # noqa: E402
 from engine.jaebaeman.planner import DecomposeFn, static_decompose  # noqa: E402
+
+
+def _naive_baseline_arm(root: str) -> DecomposeFn:
+    """결정론 dumb baseline — 어떤 목표든 design/implement/verify 3단계 고정 (LLM 없는 대조군)."""
+
+    def dec(node):
+        if node.name != root:
+            return []
+        return [
+            Goal(name=f"{root}::design", objective="design"),
+            Goal(name=f"{root}::implement", objective="implement"),
+            Goal(name=f"{root}::verify", objective="verify"),
+        ]
+
+    return dec
+
+
+def _real_llm_arm(model: str) -> DecomposeFn:
+    """실 LLM arm — AgentClient(openai-compat/anthropic). web off(공정 예산). runtime 불가 시 raise."""
+    from engine.agents.client import AgentClient  # noqa: PLC0415
+
+    return llm_decompose(from_agent_client(AgentClient(), model=model))
 
 
 def _fake_llm_arm() -> DecomposeFn:
@@ -49,22 +71,38 @@ def _baseline_arm() -> DecomposeFn:
 
 
 def main() -> int:
+    import os  # noqa: PLC0415
+
     parser = argparse.ArgumentParser(prog="bench_decompose_ab")
     parser.add_argument("--goal", default="ship-feature", help="비교할 goal name.")
     parser.add_argument("--depth", type=int, default=3, help="max_depth (양 arm 공통).")
+    parser.add_argument(
+        "--llm", action="store_true", help="arm_a를 실 LLM로 (AgentClient). 없으면 fake-llm 데모."
+    )
     args = parser.parse_args()
 
+    if args.llm:
+        model = os.environ.get("BHGMAN_LLM_MODEL", "claude-haiku-4-5-20251001")
+        arm_a, arm_a_kind, arm_b = (
+            _real_llm_arm(model),
+            f"real-llm:{model}",
+            _naive_baseline_arm(args.goal),
+        )
+        arm_b_kind = "naive-3phase-baseline"
+    else:
+        arm_a, arm_a_kind, arm_b, arm_b_kind = (
+            _fake_llm_arm(),
+            "fake-llm",
+            _baseline_arm(),
+            "static-baseline",
+        )
+
     result = compare_decompose(
-        Goal(name=args.goal, objective="(A/B falsifier demo)"),
-        _fake_llm_arm(),
-        _baseline_arm(),
-        max_depth=args.depth,
+        Goal(name=args.goal, objective="(A/B falsifier)"), arm_a, arm_b, max_depth=args.depth
     )
+    print(json.dumps({"arm_a_kind": arm_a_kind, "arm_b_kind": arm_b_kind, **result}, indent=2))
     print(
-        json.dumps({"arm_a_kind": "fake-llm", "arm_b_kind": "static-baseline", **result}, indent=2)
-    )
-    print(
-        "\n# 실 falsification: arm_a=from_agent_client(실 client, 도구예산 통제) + 외부 oracle 채점.",
+        "\n# C6: raw 발산만. '나음'은 외부 oracle 판단 (가독성≠정확성 Goodhart 가드).",
         file=sys.stderr,
     )
     return 0

@@ -7,9 +7,11 @@ from __future__ import annotations
 
 from engine.jaebaeman.htn import (
     DecomposeMethod,
+    applicable_methods,
     first_applicable,
     kg_method_decompose,
     method_decompose,
+    min_cost,
     static_method,
 )
 from engine.jaebaeman.jaebaeman_models import Goal
@@ -112,3 +114,70 @@ def test_kg_method_decompose_picks_first_nonempty_by_ord():
 def test_kg_method_decompose_no_methods_is_leaf():
     tree = plan(Goal(name="g", objective="r", anchor="g"), kg_method_decompose(lambda _c, _p: []))
     assert tree.is_leaf
+
+
+# ── 충돌 정렬 고도화 (min_cost selector) ──────────────────────────────────────
+def test_min_cost_resolves_conflict():
+    # 두 method 다 applicable(precondition None) → 충돌. min_cost가 cheap 선택 (등록순 아님)
+    reg = {
+        "g": [
+            static_method("expensive", [Goal(name="x", objective="X")], cost=5.0),
+            static_method("cheap", [Goal(name="y", objective="Y")], cost=1.0),
+        ]
+    }
+    tree = plan(Goal(name="g", objective="r"), method_decompose(reg, selector=min_cost))
+    assert _names(tree) == ["g", "y"]  # cheap(cost 1) 선택 — first_applicable였으면 x
+
+
+def test_first_applicable_vs_min_cost_differ_on_order():
+    reg = {
+        "g": [
+            static_method("expensive", [Goal(name="x", objective="X")], cost=5.0),
+            static_method("cheap", [Goal(name="y", objective="Y")], cost=1.0),
+        ]
+    }
+    fa = plan(Goal(name="g", objective="r"), method_decompose(reg, selector=first_applicable))
+    mc = plan(Goal(name="g", objective="r"), method_decompose(reg, selector=min_cost))
+    assert _names(fa) == ["g", "x"]  # 등록순 첫째
+    assert _names(mc) == ["g", "y"]  # 최소 cost
+
+
+def test_min_cost_tie_break_by_name():
+    reg = {
+        "g": [
+            static_method("zeta", [Goal(name="z", objective="Z")], cost=2.0),
+            static_method("alpha", [Goal(name="a", objective="A")], cost=2.0),
+        ]
+    }
+    tree = plan(Goal(name="g", objective="r"), method_decompose(reg, selector=min_cost))
+    assert _names(tree) == ["g", "a"]  # cost 동률 → name 사전순 'alpha'
+
+
+def test_applicable_methods_counts_conflict():
+    class _N:
+        depth = 0
+
+    methods = [
+        static_method("m1", [], precondition=lambda _n: True),
+        static_method("m2", [], precondition=lambda _n: False),
+        static_method("m3", [], precondition=lambda _n: True),
+    ]
+    applicable = applicable_methods(_N(), methods)
+    assert len(applicable) == 2  # m1, m3 applicable (m2 precondition False) → 충돌 2
+
+
+def test_min_cost_respects_precondition():
+    # 최저 cost지만 precondition False → 제외, 다음 applicable 선택
+    reg = {
+        "g": [
+            static_method(
+                "cheap-blocked",
+                [Goal(name="x", objective="X")],
+                cost=0.1,
+                precondition=lambda _n: False,
+            ),
+            static_method("ok", [Goal(name="y", objective="Y")], cost=3.0),
+        ]
+    }
+    tree = plan(Goal(name="g", objective="r"), method_decompose(reg, selector=min_cost))
+    assert _names(tree) == ["g", "y"]  # cheap는 precondition fail → ok 선택

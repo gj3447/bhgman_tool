@@ -31,11 +31,15 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 
 @dataclass(frozen=True)
 class DecomposeMethod:
-    """한 compound task를 분해하는 한 가지 방법. precondition으로 guard (GTPyhop method)."""
+    """한 compound task를 분해하는 한 가지 방법. precondition으로 guard (GTPyhop method).
+
+    cost = 충돌(다중 applicable) 시 정렬 키 (낮을수록 우선, SHOP3 method ordering). 동률은 name.
+    """
 
     name: str
     expand: ExpandFn
     precondition: PreconditionFn | None = None  # None = 항상 적용
+    cost: float = 1.0
 
     def applicable(self, node: PlanNode) -> bool:
         return self.precondition is None or self.precondition(node)
@@ -47,17 +51,33 @@ MethodSelector = Callable[[PlanNode, "list[DecomposeMethod]"], "DecomposeMethod 
 KeyOf = Callable[[PlanNode], str]
 
 
+def applicable_methods(node: PlanNode, methods: list[DecomposeMethod]) -> list[DecomposeMethod]:
+    """precondition 통과한 method들 (충돌 = len>1). selector가 이 중 하나를 고른다."""
+    return [m for m in methods if m.applicable(node)]
+
+
 def first_applicable(node: PlanNode, methods: list[DecomposeMethod]) -> DecomposeMethod | None:
-    """precondition 통과하는 첫 method (등록 순서 = 우선순위). HTN 기본 selection."""
-    return next((m for m in methods if m.applicable(node)), None)
+    """precondition 통과하는 첫 method (등록 순서 = 우선순위). HTN 기본 selection (naive)."""
+    return next(iter(applicable_methods(node, methods)), None)
+
+
+def min_cost(node: PlanNode, methods: list[DecomposeMethod]) -> DecomposeMethod | None:
+    """충돌 해소 고도화 — applicable 중 최소 cost (동률은 name 사전순). 결정론 tie-break."""
+    applicable = applicable_methods(node, methods)
+    return min(applicable, key=lambda m: (m.cost, m.name)) if applicable else None
 
 
 def static_method(
-    name: str, subgoals: list[Goal], precondition: PreconditionFn | None = None
+    name: str,
+    subgoals: list[Goal],
+    precondition: PreconditionFn | None = None,
+    cost: float = 1.0,
 ) -> DecomposeMethod:
     """정적 subgoal 리스트를 method로 — expand가 항상 같은 subgoals 반환 (간편 생성자)."""
     frozen = tuple(subgoals)
-    return DecomposeMethod(name=name, expand=lambda _n: list(frozen), precondition=precondition)
+    return DecomposeMethod(
+        name=name, expand=lambda _n: list(frozen), precondition=precondition, cost=cost
+    )
 
 
 def method_decompose(
@@ -130,9 +150,11 @@ __all__ = [
     "MethodRegistry",
     "MethodSelector",
     "PreconditionFn",
+    "applicable_methods",
     "first_applicable",
     "kg_method_decompose",
     "method_decompose",
     "methods_cypher",
+    "min_cost",
     "static_method",
 ]
