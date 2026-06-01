@@ -260,6 +260,13 @@ def _jaebaeman_methods(store: LocalKgStore, params: dict) -> list[dict]:
     return sorted(methods, key=lambda x: x["ord"])
 
 
+def _jaebaeman_run_record(store: LocalKgStore, params: dict) -> list[dict]:
+    # production 표면: :JaebaemanRun 감사 노드 upsert (run_id 키).
+    props = {k: v for k, v in params.items() if k != "run_id"}
+    store.merge_node("JaebaemanRun", "name", params["run_id"], {"name": params["run_id"], **props})
+    return [{"recorded": params["run_id"]}]
+
+
 def _jaebaeman_status_set(store: LocalKgStore, params: dict) -> list[dict]:
     # lifecycle status 전이: SubagentTaskSpec.status SET (covenant SET-only).
     node = store.find_one("name", params["name"], "SubagentTaskSpec")
@@ -314,6 +321,7 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
         _jaebaeman_status_set,
         True,
     ),
+    (lambda c: "MERGE (r:JaebaemanRun {name: $run_id})" in c, _jaebaeman_run_record, True),
     (
         lambda c: "-[:DECOMPOSES_TO|HAS_CHILD|DEPENDS_ON]->(c)" in c,
         _jaebaeman_children,

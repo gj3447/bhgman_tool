@@ -242,6 +242,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="씨앗 MERGE write (멱등/reversible). 생략 = dry-run (planned only).",
     )
     p_jb.add_argument("--local", action="store_true", help="Use the bundled neo4j-free local KG.")
+    p_jb.add_argument(
+        "--record",
+        action="store_true",
+        help="production 표면: 실행을 :JaebaemanRun KG 감사노드 + OTel attrs + PROV-O로 기록.",
+    )
     p_jb.set_defaults(func=commands.cmd_jaebaeman)
 
     p_eu = sub.add_parser(

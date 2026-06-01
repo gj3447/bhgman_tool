@@ -931,9 +931,37 @@ def cmd_jaebaeman(args: argparse.Namespace) -> int:
         for v in res.violations:
             print(f"    [{v.code.value}] {v.seed_id}: {v.detail}")
         return 1
+    if getattr(args, "record", False):
+        _emit_run_record(res, runners=_resolve_kg_runners(args))
     if res.apply_result.dry_run and res.seeds:
         print("  (dry-run — pass --apply to plant seeds; MERGE-only, reversible/idempotent)")
     return 0
+
+
+def _emit_run_record(res, runners) -> None:
+    """production 표면 — 실행을 :JaebaemanRun(KG) + OTel attrs + PROV-O로 기록/출력."""
+    import datetime as _dt  # noqa: PLC0415
+
+    from engine.jaebaeman.telemetry import (  # noqa: PLC0415
+        from_results,
+        record_to_kg,
+        to_otel_attributes,
+        to_prov,
+    )
+
+    now = _dt.datetime.now(_dt.timezone.utc)
+    run_id = "jbmrun-" + now.strftime("%Y%m%dT%H%M%S")
+    rec = from_results(run_id, res, created_at=now.isoformat())
+    print(f"  [record] run={run_id} otel={to_otel_attributes(rec)}")
+    if runners is not None:
+        _run, write, close = runners
+        try:
+            record_to_kg(rec, write)
+            print(f"  [record] :JaebaemanRun persisted ({run_id})")
+        finally:
+            close()
+    prov = to_prov(rec)
+    print(f"  [record] PROV-O: {'turtle emitted' if prov else 'prov extra 미설치 (graceful skip)'}")
 
 
 def cmd_eureka(args: argparse.Namespace) -> int:
