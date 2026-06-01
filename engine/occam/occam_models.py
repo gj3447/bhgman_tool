@@ -34,6 +34,9 @@ class SupersessionCandidate:
     reason: str
     confidence: Confidence
     action: str = "SUPERSEDED_BY"  # 고정 — 오캄은 archive만, delete 표현 부재
+    # 정량 scoring (scoring.score_node). score_meta 미주입 시 None (기존 동작 불변).
+    score: float | None = None  # σ ∈ [0,1] — 아카이브 안전도
+    verdict: str | None = None  # SUPERSEDE / VERIFY / KEEP / PROTECTED / FLAG_ONLY
 
 
 @dataclass(frozen=True)

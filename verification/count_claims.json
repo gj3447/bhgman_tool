@@ -2,14 +2,14 @@
   "_comment": "Single source of truth for the count-claims that appear in README*.md and docs/. CI / pre-push runs verification/check_count_claims.py, which re-measures these from the actual repo and fails on drift. Update with `python verification/check_count_claims.py --update` (then refresh the doc prose it points at). See ADRs/count-claim-drift-guard-2026-05-31.md.",
   "lean": {
     "_note": "Deterministic (grep over lean/). HARD-gated: a mismatch fails the guard. This is the drift that actually happened (docs said 50 when reality was 71).",
-    "theorems_tree": 95,
-    "theorems_standalone": 79,
+    "theorems_tree": 105,
+    "theorems_standalone": 89,
     "proof_position_sorry": 0
   },
   "pytest": {
     "_note": "Collected counts grow as tests are added. SOFT-banded: the guard fails only on OVER-claim (a doc number greater than reality, i.e. a lie) and warns on stale-low. Refresh with --update when convenient.",
     "engine_subset_collected": 320,
-    "full_repo_collected": 1041
+    "full_repo_collected": 1110
   },
   "doc_presence": {
     "_note": "Each value must appear literally in the named file, so the human-facing prose cannot silently diverge from this manifest.",

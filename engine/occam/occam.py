@@ -22,9 +22,11 @@ disk_paths=None이면 1번만 (기존 동작 불변).
 
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 
 from engine.occam.occam_models import Confidence, NodeRecord, OccamReport, SupersessionCandidate
+from engine.occam.scoring import NodeScoreMeta, ScoringConfig, score_node
 
 _REPO_MARKER = "bhgman_tool/"
 
@@ -125,15 +127,56 @@ def _detect_disk_orphans(
     return orphans
 
 
+def _redundancy(stale: NodeRecord, current: NodeRecord) -> float:
+    """MDL redundancy proxy ∈ [0,1]: 동일 sha=완전중복(1.0), 아니면 line_count 겹침 비율.
+
+    Kolmogorov 직관: current가 주어졌을 때 stale의 추가 description-length가 작을수록 redundant."""
+    if stale.sha256 == current.sha256:
+        return 1.0
+    lo, hi = sorted((max(stale.line_count, 0), max(current.line_count, 0)))
+    if hi == 0:
+        return 0.0
+    return lo / hi
+
+
+def _score_candidates(
+    candidates: list[SupersessionCandidate],
+    score_meta: dict[str, NodeScoreMeta],
+    cfg: ScoringConfig,
+) -> list[SupersessionCandidate]:
+    """후보별 σ 부착. redundancy는 occam dedup이 권위(meta 값 override), 나머지는 caller meta.
+
+    candidate는 정의상 current(후속자)가 있으므로 has_successor=True 강제."""
+    out: list[SupersessionCandidate] = []
+    for c in candidates:
+        meta = score_meta.get(c.stale.name)
+        if meta is None:
+            out.append(c)
+            continue
+        merged = dataclasses.replace(
+            meta,
+            redundancy=_redundancy(c.stale, c.current),
+            has_successor=True,
+        )
+        sc = score_node(merged, cfg)
+        out.append(dataclasses.replace(c, score=sc.sigma, verdict=sc.verdict.value))
+    return out
+
+
 def occam_pass(
     nodes: list[NodeRecord],
     disk_truth: dict[str, str] | None = None,
     disk_paths: frozenset[str] | None = None,
+    score_meta: dict[str, NodeScoreMeta] | None = None,
+    scoring_config: ScoringConfig | None = None,
 ) -> OccamReport:
     """하계 node-dedup pass. covenant: supersede 후보만 반환, 삭제 없음.
 
     disk_paths(정규화된 디스크 실존 경로 집합) 주면 sha-이동(mode-2)+disk-orphan(mode-3) 추가 탐지.
     None이면 same-path 중복(mode-1)만 — 기존 호출자 동작 불변.
+
+    score_meta(노드이름→NodeScoreMeta) 주면 각 후보에 연속 σ + verdict 부착 (scoring.py).
+    None이면 score=verdict=None (기존 호출자 동작 불변).
     """
     disk_truth = disk_truth or {}
     groups: dict[str, list[NodeRecord]] = defaultdict(list)
@@ -169,6 +212,9 @@ def occam_pass(
         moved = len(move_candidates)
         candidates.extend(move_candidates)
         orphans = _detect_disk_orphans(nodes, disk_paths, superseded_ids)
+
+    if score_meta is not None:
+        candidates = _score_candidates(candidates, score_meta, scoring_config or ScoringConfig())
 
     notes = (
         "covenant: archive-only; no delete. PRIMARY=KG node-dedup.",

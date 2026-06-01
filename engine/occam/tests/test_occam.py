@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from engine.occam.occam import normalize_path, occam_pass
 from engine.occam.occam_models import Confidence, NodeRecord
+from engine.occam.scoring import EntrenchmentTier, NodeScoreMeta
 
 
 def test_normalize_unifies_abs_and_rel_lineage():
@@ -180,3 +181,54 @@ def test_orphan_survivor_after_samepath_dedup_still_flagged():
     assert report.candidates[0].stale.name == "l8ind-tests-conftest.py"
     assert report.orphan_count == 1  # 18L survivor는 orphan
     assert report.orphans[0].name == "conftest.py"
+
+
+# ─── scoring 통합: score_meta 주입 시 후보에 σ + verdict 부착 ───
+
+
+def test_score_meta_absent_leaves_score_none():
+    # 기존 동작 불변: score_meta 없으면 score/verdict = None
+    stub = NodeRecord("old.py", "bhgman_tool/x.py", "o", 10)
+    new = NodeRecord("new.py", "bhgman_tool/x.py", "n", 99)
+    report = occam_pass([stub, new])
+    assert report.superseded_count == 1
+    assert report.candidates[0].score is None
+    assert report.candidates[0].verdict is None
+
+
+def test_exact_dup_old_unused_scores_supersede():
+    # 완전중복(같은 sha) + 오래됨 + 미사용 → redundancy=1.0 occam이 권위 → σ≈1 SUPERSEDE
+    a = NodeRecord("dup.py", "/Users/x/bhgman_tool/dup.py", "same", 50)
+    b = NodeRecord("dup.py", "/Users/x/bhgman_tool/dup.py", "same", 50)
+    meta = {
+        "dup.py": NodeScoreMeta(
+            redundancy=0.0,  # occam이 _redundancy로 1.0 override
+            age_days=3650,
+            invocation_count=0,
+            tier=EntrenchmentTier.PLAIN,
+        )
+    }
+    report = occam_pass([a, b], score_meta=meta)
+    assert report.superseded_count == 1
+    cand = report.candidates[0]
+    assert cand.score is not None and cand.score >= 0.7
+    assert cand.verdict == "SUPERSEDE"
+
+
+def test_score_meta_redundancy_overridden_by_occam_dedup():
+    # stub(10L) vs impl(100L) 다른 sha → occam redundancy = 10/100 = 0.1 (caller 값 무시)
+    stub = NodeRecord("s.py", "bhgman_tool/m.py", "s", 10)
+    impl = NodeRecord("i.py", "bhgman_tool/m.py", "i", 100)
+    meta = {
+        "s.py": NodeScoreMeta(
+            redundancy=0.99,
+            age_days=1.0,
+            invocation_count=100,
+            tier=EntrenchmentTier.PLAIN,
+        )
+    }
+    report = occam_pass([stub, impl], score_meta=meta)
+    cand = report.candidates[0]
+    # 신선+많이쓰임+낮은redundancy → σ 낮음 → KEEP (caller의 0.99가 반영됐다면 높았을 것)
+    assert cand.score is not None and cand.score < 0.3
+    assert cand.verdict == "KEEP"
