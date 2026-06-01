@@ -26,6 +26,7 @@ from engine.prometheus.models import (
 )
 from engine.prometheus.fetcher import CallableFetcher, Fetcher, StaticFetcher
 from engine.prometheus.pipeline import run_acquire
+from engine.prometheus.web import WebSearchFetcher
 
 __all__ = [
     "AcquireReport",
@@ -36,5 +37,6 @@ __all__ = [
     "Gap",
     "Query",
     "StaticFetcher",
+    "WebSearchFetcher",
     "run_acquire",
 ]

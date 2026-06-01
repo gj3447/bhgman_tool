@@ -52,6 +52,24 @@ NODE_SCHEMAS: dict[str, NodeSchema] = {
         unique=("name",),
         key="name",
     ),
+    "ResearchFinding": NodeSchema(
+        label="ResearchFinding",
+        required=("findingId", "oneLineSummary"),
+        unique=("findingId",),
+        key="findingId",
+    ),
+    "OpenQuestion": NodeSchema(
+        label="OpenQuestion",
+        required=("name",),
+        unique=("name",),
+        key="name",
+    ),
+    "VerdictPending": NodeSchema(
+        label="VerdictPending",
+        required=("name",),
+        unique=("name",),
+        key="name",
+    ),
 }
 
 # 엔진들이 실제로 쓰는 엣지 타입 (occam supersede / hades materialize / eureka facet read).

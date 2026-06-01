@@ -10,6 +10,7 @@ whitespace에 견고(정확 문자열 매칭 아님). 미지 쿼리는 조용히
   - hades: AbstractClass(ACCEPTED) fetch / materialize MERGE / INSTANCE_OF link
   - eureka: facet formal-context read
   - longinus/binding: SourceCodeNode merge + sha256 rebind(UNWIND)
+  - prometheus: gap-scan(OpenQuestion/VerdictPending) read + :ResearchFinding ingest write
 
 # KG: bhgman-local-kg-backend-2026-05-28
 """
@@ -136,6 +137,49 @@ def _harness_persist(store: LocalKgStore, params: dict) -> list[dict]:
     return [{"diagnosed": params["subject"]}]
 
 
+def _gap_scan(store: LocalKgStore, params: dict) -> list[dict]:
+    # 프로메테우스 gap-detect: OpenQuestion / VerdictPending 노드 → id/question/kind.
+    limit = params.get("limit", 50)
+    rows: list[dict] = []
+    for n in store.nodes:
+        kind = next((lbl for lbl in n["labels"] if lbl in ("OpenQuestion", "VerdictPending")), None)
+        if kind is None:
+            continue
+        p = n["props"]
+        gid = p.get("name") or p.get("id")
+        if not gid:
+            continue
+        rows.append(
+            {
+                "id": gid,
+                "question": p.get("question") or p.get("description") or p.get("name") or "",
+                "kind": kind,
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def _research_finding_merge(store: LocalKgStore, params: dict) -> list[dict]:
+    # 프로메테우스 ingest: :ResearchFinding upsert (findingId 키). cypher params → 정전 props.
+    store.merge_node(
+        "ResearchFinding",
+        "findingId",
+        params["findingId"],
+        {
+            "findingId": params["findingId"],
+            "oneLineSummary": params.get("claim", ""),
+            "citation_url": params.get("citation_url", ""),
+            "contentSha256": params.get("sha", ""),
+            "cycleId": params.get("cycle_id", ""),
+            "sourceKgBinding": params.get("gap_id", ""),
+            "researchedAt": params.get("researched_at", ""),
+        },
+    )
+    return [{"ingested": params["findingId"]}]
+
+
 def _rebind_sha(store: LocalKgStore, params: dict) -> list[dict]:
     # Longinus UNWIND $rows: [{path, sha, lines}]
     n = 0
@@ -158,6 +202,12 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     (lambda c: "UNWIND $rows" in c and "s.sha256" in c, _rebind_sha, True),
     (lambda c: "MERGE (h:HarnessDiagnosis" in c, _harness_persist, True),
     (lambda c: "MERGE (s:SourceCodeNode" in c, _merge_source_node, True),
+    (
+        lambda c: "MERGE (f:ResearchFinding {findingId:$findingId})" in c,
+        _research_finding_merge,
+        True,
+    ),
+    (lambda c: "q:OpenQuestion OR q:VerdictPending" in c, _gap_scan, False),
     (lambda c: "$facet_rels" in c, _eureka_facets, False),
     (lambda c: "(a:AbstractClass)" in c and "verdictStatus" in c, _hades_fetch_accepted, False),
     (
