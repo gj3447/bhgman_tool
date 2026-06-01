@@ -13,7 +13,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest engine](https://img.shields.io/badge/pytest%20engine-306%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-319%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
 [![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-891%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
@@ -118,16 +118,14 @@ git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool
 # (already cloned without it? → git submodule update --init --recursive)
 
-# 1. engine — verify pytest
-cd engine/longinus_drift_audit
-uv run --with pytest pytest tests/ -q          # expected: 306 passed, 1 skipped in ~2s
+# 1. engine — verify pytest (run from repo ROOT; tests use absolute `engine.longinus_drift_audit.*`
+#    imports, and --all-extras pulls suite deps like python-frontmatter)
+uv run --all-extras pytest engine/longinus_drift_audit/tests -q   # expected: 319 passed, 1 skipped in ~2s
 
 # 2. Lean 4 — verify formal claims (optional)
-cd ../../lean
-lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean   # exit 0, sorry=0
+( cd lean && lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean )   # exit 0, sorry=0
 
 # 3. Install Claude Code skills
-cd ../..
 uv run bhgman-tool install-skills              # default: ~/.claude/skills
 
 # 4. (Contributors only) pre-commit ratchet
@@ -138,7 +136,7 @@ Restart Claude Code, then `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/
 
 ```mermaid
 flowchart LR
-    A([git clone]) --> B[engine pytest<br/>306 PASS]
+    A([git clone]) --> B[engine pytest<br/>319 PASS]
     B --> C{Lean 4?<br/>optional}
     C -- yes --> D[lean verify<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
@@ -169,8 +167,8 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 
 | Claim | Command | What it checks |
 |---|---|---|
-| `298 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
-| `964 passed, 4 skipped` (full repo; 968 collected) | `uv run pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (4 skips on a keyless clone: 3 real-API smoke + 1 otel no-op). NOTE: bare `pytest`/`python3 -m pytest` from a non-activated shell fails on `import frontmatter` — use `uv run` or activate `.venv`. |
+| `319 passed, 1 skipped` (engine subset) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (from repo root) | engine subset pass count + runtime |
+| `964 passed, 4 skipped` (full repo; 968 collected) | `uv run --all-extras pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (skips on a keyless clone: real-API smoke + otel no-op). NOTE: `--all-extras` is required — plain `uv run pytest` (or bare `pytest`) fails at collection on `import frontmatter`, because python-frontmatter lives in the `resolver`/`all` extra, not the default deps. |
 | `Lean 4: proof-position sorry=0` | `cd lean && export LEAN_PATH=$PWD && for f in Measurement_MetricScale Measurement_CommanderMetrics Measurement_CompositionSafety Measurement_Phase4_EmpiricalValidation; do lean --o=$f.olean $f.lean \|\| exit 1; done && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 Mathlib-free files build (9 standalone + a 4-file `Measurement_*` sibling-import chain, dependency-ordered via LEAN_PATH) + count of unfinished proofs (= 0; every `sorry` token in the tree is in a comment) |
 | `87 theorems` (whole `lean/` tree; 71 in the 13 Mathlib-free files) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | top-level theorem/lemma declaration count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
