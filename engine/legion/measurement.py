@@ -623,13 +623,19 @@ STEVENS_SCALE: Final[dict[tuple[str, str], str]] = {
 }
 
 
+# Stevens nesting = upward-closed: an op valid at a weaker scale stays valid at all
+# stronger scales (count/mode/entropy are nominal-level stats, computable at every
+# scale ≥ nominal). entropy was previously dropped from ordinal+ — a non-monotone
+# omission that contradicted the Lean monotonicity proof (Measurement_MetricScale.lean
+# nominal_subset_ordinal). Fixed 2026-06-01 in lockstep with Lean.
 _VALID_OPS: Final[dict[str, set[str]]] = {
     "nominal": {"count", "mode", "entropy"},
-    "ordinal": {"count", "mode", "median", "percentile", "min", "max"},
-    "interval": {"count", "mode", "median", "percentile", "min", "max", "mean", "sd"},
+    "ordinal": {"count", "mode", "entropy", "median", "percentile", "min", "max"},
+    "interval": {"count", "mode", "entropy", "median", "percentile", "min", "max", "mean", "sd"},
     "ratio": {
         "count",
         "mode",
+        "entropy",
         "median",
         "percentile",
         "min",

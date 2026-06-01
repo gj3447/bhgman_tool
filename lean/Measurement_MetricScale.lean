@@ -48,12 +48,14 @@ def validOp : Scale → Op → Prop
   | Scale.nominal,  Op.entropy   => True
   | Scale.ordinal,  Op.count     => True
   | Scale.ordinal,  Op.mode      => True
+  | Scale.ordinal,  Op.entropy   => True
   | Scale.ordinal,  Op.median    => True
   | Scale.ordinal,  Op.percentile => True
   | Scale.ordinal,  Op.minOp     => True
   | Scale.ordinal,  Op.maxOp     => True
   | Scale.interval, Op.count     => True
   | Scale.interval, Op.mode      => True
+  | Scale.interval, Op.entropy   => True
   | Scale.interval, Op.median    => True
   | Scale.interval, Op.percentile => True
   | Scale.interval, Op.minOp     => True
@@ -62,6 +64,7 @@ def validOp : Scale → Op → Prop
   | Scale.interval, Op.sd        => True
   | Scale.ratio,    Op.count     => True
   | Scale.ratio,    Op.mode      => True
+  | Scale.ratio,    Op.entropy   => True
   | Scale.ratio,    Op.median    => True
   | Scale.ratio,    Op.percentile => True
   | Scale.ratio,    Op.minOp     => True

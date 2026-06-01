@@ -70,9 +70,8 @@ jobs:
         run: mypy --ignore-missing-imports --no-strict-optional . || true
 
   lean:
-    name: lean build (optional)
+    name: lean build
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Install elan
@@ -80,13 +79,35 @@ jobs:
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o elan.sh
           bash elan.sh -y --default-toolchain leanprover/lean4:4.29.1
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
-      - name: Build all .lean files standalone
+      - name: Build all .lean files (dependency-ordered)
+        # Some files import siblings (Measurement_MetricScale ← CommanderMetrics ←
+        # CompositionSafety ← Phase4), so `lean file.lean` standalone fails on the
+        # importers — the imported module's .olean must exist on LEAN_PATH first.
+        # Fixpoint: compile to .olean with LEAN_PATH=., retrying files blocked only
+        # by a missing import; any real error fails the job. Generalises to future
+        # import additions without a hand-maintained order.
         run: |
           cd lean
-          for f in *.lean; do
-            echo "=== $f ==="
-            lean "$f" || { echo "FAILED: $f"; exit 1; }
+          export LEAN_PATH="$PWD"
+          remaining=$(ls *.lean)
+          for pass in 1 2 3 4 5 6; do
+            still=""; progress=0
+            for f in $remaining; do
+              mod="${f%.lean}"
+              if lean --o="$mod.olean" "$f" > "/tmp/le_$mod.txt" 2>&1; then
+                cat "/tmp/le_$mod.txt"; echo "=== built $f"; progress=1
+              elif grep -q "unknown module prefix" "/tmp/le_$mod.txt"; then
+                still="$still $f"   # import not ready yet — retry next pass
+              else
+                echo "=== FAILED $f ==="; cat "/tmp/le_$mod.txt"; exit 1
+              fi
+            done
+            remaining="$still"
+            [ -z "$remaining" ] && break
+            [ "$progress" = 0 ] && { echo "UNRESOLVABLE IMPORTS:$remaining"; exit 1; }
           done
+          [ -z "$remaining" ] || { echo "UNBUILT:$remaining"; exit 1; }
+          echo "all lean files built ✓"
 
   json-schema:
     name: plugin.json + marketplace.json schema check

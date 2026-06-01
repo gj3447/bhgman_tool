@@ -80,7 +80,7 @@ example : AuditEvent.isValid
   unfold AuditEvent.isValid
   exact supersession_confidence_pct_allowed
 
-/--
+/-
   Audit-script contract (informal):
   Python script reads `SYMPOSIUM/THEORY/**/_findings/*.json`,
   extracts (commander, metric, op) tuples, and emits a JSON report.

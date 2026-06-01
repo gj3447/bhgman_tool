@@ -61,7 +61,7 @@ theorem lens_count_mean_chain_blocked (rest : List DispatchStep) :
   apply invalid_step_kills_chain
   exact lens_count_mean_blocked
 
-/-- Phase 4 (deferred): empirical validation on real PROM cycles. -/
+-- Phase 4 (deferred): empirical validation on real PROM cycles.
 -- TODO Phase 4: integrate with bhgman_tool/engine/legion/measurement.py
 --               via Lean ↔ Python FFI (lake export) or batch JSON test runner.
 
