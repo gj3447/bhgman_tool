@@ -6,9 +6,11 @@ Standalone: no dependency on commands/parser/main. Split out of main.py 2026-06-
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 
@@ -121,14 +123,72 @@ def _load_occam_runner():
     return occam_runner
 
 
-def make_kg_runners():
-    """Build (run_cypher, write_cypher, close) backed by the neo4j driver, or None.
+def _mcp_cypher_call(url: str, tool: str, cypher: str, params: dict) -> list[dict]:
+    """POST a single cypher to a streamable-HTTP mcp-neo4j-cypher gateway (stateless).
 
-    Env: NEO4J_URI (default bolt://localhost:7687), NEO4J_USER (neo4j), NEO4J_PASSWORD.
-    Returns None when the driver or credentials are unavailable — the caller then
-    degrades to printing the fetch cypher for the parent Claude harness (MCP) to run.
+    Routes the engine's KG access through the same MCP endpoint the parent Claude
+    harness uses (e.g. http://100.64.0.10:55013/mcp/ — airobotics-1 airo KG), so the
+    bolt port need not be exposed over Tailscale. Parses the SSE `data:` frame and
+    unwraps result.content[0].text (a JSON array of rows). KG: bhgman-engine-mcp-kg-backend.
+    """
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": tool, "arguments": {"query": cypher, "params": params or {}}},
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310 — fixed scheme, op env
+        body = resp.read().decode()
+    # streamable HTTP returns SSE frames: keep the last `data:` line (the JSON-RPC reply)
+    data = body
+    for line in body.splitlines():
+        if line.startswith("data:"):
+            data = line[5:].strip()
+    obj = json.loads(data)
+    if "error" in obj:
+        raise RuntimeError(f"MCP error: {obj['error']}")
+    result = obj["result"]
+    if result.get("isError"):
+        raise RuntimeError(f"cypher error: {result['content'][0]['text']}")
+    text = result["content"][0]["text"] if result.get("content") else ""
+    parsed = json.loads(text) if text else []
+    return parsed if isinstance(parsed, list) else [parsed]  # write tool returns a dict
+
+
+def _make_mcp_runners(url: str):
+    """KG backend over the mcp-neo4j-cypher HTTP gateway → (run, write, close)."""
+
+    def run_cypher(cypher: str, params: dict) -> list[dict]:
+        return _mcp_cypher_call(url, "read_neo4j_cypher", cypher, params)
+
+    def write_cypher(cypher: str, params: dict) -> list[dict]:
+        return _mcp_cypher_call(url, "write_neo4j_cypher", cypher, params)
+
+    return run_cypher, write_cypher, (lambda: None)
+
+
+def make_kg_runners():
+    """Build (run_cypher, write_cypher, close) backed by neo4j, or None.
+
+    Backend precedence:
+      1. BHGMAN_KG_MCP_URL set → route cypher through the mcp-neo4j-cypher HTTP gateway
+         (read_neo4j_cypher / write_neo4j_cypher). Lets the engine reach a bolt-firewalled
+         KG (e.g. airobotics-1 via Tailscale, bolt closed but MCP open on :55013).
+      2. else → neo4j bolt driver. Env: NEO4J_URI (default bolt://localhost:7687),
+         NEO4J_USER (neo4j), NEO4J_PASSWORD. Returns None when driver/creds unavailable.
     Monkeypatched in tests to inject fakes.
     """
+    mcp_url = os.environ.get("BHGMAN_KG_MCP_URL")
+    if mcp_url:
+        return _make_mcp_runners(mcp_url)
     try:
         from neo4j import GraphDatabase  # noqa: PLC0415
     except ImportError:
