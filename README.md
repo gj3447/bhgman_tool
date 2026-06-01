@@ -170,7 +170,7 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 | Claim | Command | What it checks |
 |---|---|---|
 | `298 pytest PASS` (engine subset) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine subset pass count + runtime |
-| `887 passed, 4 skipped` (full repo; 891 collected) | `pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (4 skips on a keyless clone: 3 real-API smoke + 1 otel no-op) |
+| `927 passed, 4 skipped` (full repo; 931 collected) | `uv run pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (4 skips on a keyless clone: 3 real-API smoke + 1 otel no-op). NOTE: bare `pytest`/`python3 -m pytest` from a non-activated shell fails on `import frontmatter` — use `uv run` or activate `.venv`. |
 | `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 13 standalone (Mathlib-free) files build + count of unfinished proofs (= 0; every `sorry` token in the tree is in a comment) |
 | `87 theorems` (whole `lean/` tree; 71 in the 13 standalone files) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | top-level theorem/lemma declaration count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
@@ -196,7 +196,7 @@ Early-adopter stage. API surface, skill contracts, and badge counts may change w
 
 ## Contributing
 
-Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 891 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
+Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 931 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 
