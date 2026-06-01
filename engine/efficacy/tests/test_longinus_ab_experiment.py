@@ -75,3 +75,12 @@ def test_run_experiment_detection_recall_similar():
     # 탐지 recall(non-CLEAN 잡기)은 둘 다 높음 — lift는 분류에 있지 탐지에 있지 않음
     res = run_experiment(n_seeds=10)
     assert res.on_detection_recall == res.off_detection_recall  # 둘 다 모든 손상 flag
+
+
+def test_serialize_task_contains_rules_and_nodes():
+    from engine.efficacy.longinus_ab_experiment import serialize_task
+    sb = build_sandbox(n_clean=2, n_edit=1, n_move=1, n_delete=0, n_move_edit=0, seed=1)
+    txt = serialize_task(sb)
+    assert "MOVED" in txt and "ORPHAN" in txt and "DRIFT" in txt
+    assert "RECORDED nodes:" in txt and "CURRENT disk" in txt
+    assert all(n.name in txt for n in sb.nodes)  # 모든 노드 포함

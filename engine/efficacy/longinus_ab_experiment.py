@@ -150,6 +150,29 @@ def score_arm(detected: dict[str, Verdict], ledger: dict[str, TrueKind]) -> ArmS
     )
 
 
+def serialize_task(sandbox: Sandbox) -> str:
+    """OFF-base-LLM arm용 task 텍스트. longinus와 *동일한* sha 데이터만 제공(budget-matched).
+
+    LLM은 도구 없이 추론으로 각 노드를 CLEAN/DRIFT/MOVED/ORPHAN 분류해야 한다.
+    move 판별 = recorded sha가 disk의 *다른 경로*에 살아있는지 sha 매칭 (longinus가 하는 일)."""
+    recorded = "\n".join(f"  {n.name}: path={n.path} sha={n.recorded_sha}" for n in sandbox.nodes)
+    disk = "\n".join(f"  {p} sha={s}" for p, s in sorted(sandbox.disk.items()))
+    return (
+        "You are auditing KG↔disk drift. For EACH recorded node decide its status by "
+        "comparing the recorded (path,sha) against the CURRENT disk state.\n\n"
+        "Rules:\n"
+        "- CLEAN: node.path exists on disk AND disk sha == recorded sha.\n"
+        "- DRIFT: node.path exists on disk BUT disk sha != recorded sha (content changed).\n"
+        "- MOVED: node.path is NOT on disk, BUT the node's recorded sha appears at a DIFFERENT "
+        "disk path (same content relocated — do NOT treat as deleted).\n"
+        "- ORPHAN: node.path is NOT on disk AND its recorded sha does not appear anywhere on disk.\n\n"
+        f"RECORDED nodes:\n{recorded}\n\n"
+        f"CURRENT disk (path sha):\n{disk}\n\n"
+        "Return ONLY a JSON object mapping each node name to its verdict, e.g. "
+        '{"n0":"CLEAN","n1":"MOVED",...}. No prose.'
+    )
+
+
 @dataclass(frozen=True)
 class ABResult:
     n_seeds: int
