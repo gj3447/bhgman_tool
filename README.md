@@ -91,6 +91,8 @@ Falsifiable A/B tests, scored by an **external oracle** (planted ground truth / 
 
 **Bottom line: bhgman_tool is a governance / audit layer (reproducibility, provenance, contract enforcement, drift detection) — not a capability multiplier. Treat it as *discipline*, not *intelligence*.** Reproduce any of the above from `/tmp/bhgman_ab/`-style harnesses; numbers are deliberately un-flattering where the measurement said so.
 
+> **Third-party reproductions** (independent clean-clone runs by a *different* agent, kept whole — their unresolved framing critiques included, e.g. the self-granted `axiom CHU` foundation) live in [`REVIEWS/`](REVIEWS/). Every in-repo validation lane here is the same author's machinery checking the same author's work; outside reproduction is the one layer this project structurally cannot self-generate, so it is collected, not curated.
+
 ```bash
 pip install 'bhgman_tool[agents]'; export ANTHROPIC_API_KEY=sk-...
 bhgman-tool prom 4 "your research topic"     # plan → N web-search subagents → synthesis
