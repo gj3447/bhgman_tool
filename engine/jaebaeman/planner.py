@@ -101,30 +101,49 @@ def plan_lazy(
 
     불변식: ``fuel`` 충분(≥ eager 노드 수) + 동일 ``max_depth``면 산출 노드 *집합* = walk(plan(...)).
     무한 decompose라도 fuel/observation budget이 productive 종료 보장(C3 안전가드).
+
+    (Occam 2026-06-01: BFS unfold는 _unfold_pairs 단일 정전. 여기는 그 lazy core의 node-projection
+     — *generator 유지* (eager plan_lazy_pairs에 위임하면 productivity 깨짐, 실측 회귀로 학습).)
     """
-    queue: deque[tuple[Goal, int, GerminationMethod]] = deque(
-        [(goal, 0, GerminationMethod.SINGLETON)]
-    )
-    produced = 0
-    while queue:
-        if fuel is not None and produced >= fuel:
-            return
-        g, depth, method = queue.popleft()
-        if depth < 0 or depth > max_depth:
-            raise DepthInvariantViolation(
-                f"depth={depth} out of [0,{max_depth}] for '{g.name}' (lazy unfold)."
-            )
-        node = _node_from_goal(g, depth, method)  # frontier: children=()
+    for node, _parent in _unfold_pairs(goal, decompose, fuel=fuel, max_depth=max_depth):
         yield node
-        produced += 1
-        if depth < max_depth:
-            for sg in decompose(node):
-                queue.append((sg, depth + 1, GerminationMethod.DECOMPOSE))
 
 
 def take_n(it: Iterator[PlanNode], n: int) -> tuple[PlanNode, ...]:
     """lazy generator의 유한 prefix n개만 관찰(observation budget). islice 래퍼."""
     return tuple(islice(it, n))
+
+
+def _unfold_pairs(
+    goal: Goal,
+    decompose: DecomposeFn,
+    *,
+    fuel: int | None = None,
+    max_depth: int = MAX_DEPTH,
+) -> Iterator[tuple[PlanNode, "PlanNode | None"]]:
+    """공유 lazy BFS unfold core — (node, parent) 쌍을 *하나씩 yield* (productive).
+
+    generator라서 plan_lazy(node-projection)는 take_n로 prefix만 소비해도 productive 종료한다
+    (무한 decompose + fuel/take 조합에서도 안전). plan_lazy_pairs는 이걸 list()로 즉시 materialize.
+    """
+    queue: deque[tuple[Goal, int, GerminationMethod, PlanNode | None]] = deque(
+        [(goal, 0, GerminationMethod.SINGLETON, None)]
+    )
+    produced = 0
+    while queue:
+        if fuel is not None and produced >= fuel:
+            return
+        g, depth, method, parent = queue.popleft()
+        if depth < 0 or depth > max_depth:
+            raise DepthInvariantViolation(
+                f"depth={depth} out of [0,{max_depth}] for '{g.name}' (lazy unfold)."
+            )
+        node = _node_from_goal(g, depth, method)
+        yield node, parent
+        produced += 1
+        if depth < max_depth:
+            for sg in decompose(node):
+                queue.append((sg, depth + 1, GerminationMethod.DECOMPOSE, node))
 
 
 def plan_lazy_pairs(
@@ -134,29 +153,13 @@ def plan_lazy_pairs(
     fuel: int | None = None,
     max_depth: int = MAX_DEPTH,
 ) -> list[tuple[PlanNode, "PlanNode | None"]]:
-    """lazy BFS unfold, (node, parent) 쌍을 fuel개까지. coinductive 심기용(parent=DECOMPOSES_TO).
+    """_unfold_pairs를 즉시 materialize (eager list). coinductive 심기용(parent=DECOMPOSES_TO).
 
-    plan_lazy와 같은 ν 전개지만 parent 링크를 보존 → to_seeds_pairs로 씨앗화 가능.
+    ⚠ eager — fuel=None + 무한 decompose면 폭주. 호출자가 fuel 또는 bounded max_depth 보장
+    (runner는 fuel / max_depth≤3). lazy prefix 소비는 plan_lazy(generator)를 쓸 것.
     fuel=None이면 max_depth까지 전부(= eager plan()과 노드집합 동일).
     """
-    queue: deque[tuple[Goal, int, GerminationMethod, PlanNode | None]] = deque(
-        [(goal, 0, GerminationMethod.SINGLETON, None)]
-    )
-    out: list[tuple[PlanNode, PlanNode | None]] = []
-    while queue:
-        if fuel is not None and len(out) >= fuel:
-            break
-        g, depth, method, parent = queue.popleft()
-        if depth < 0 or depth > max_depth:
-            raise DepthInvariantViolation(
-                f"depth={depth} out of [0,{max_depth}] for '{g.name}' (lazy pairs)."
-            )
-        node = _node_from_goal(g, depth, method)
-        out.append((node, parent))
-        if depth < max_depth:
-            for sg in decompose(node):
-                queue.append((sg, depth + 1, GerminationMethod.DECOMPOSE, node))
-    return out
+    return list(_unfold_pairs(goal, decompose, fuel=fuel, max_depth=max_depth))
 
 
 def walk(node: PlanNode):

@@ -260,6 +260,15 @@ def _jaebaeman_methods(store: LocalKgStore, params: dict) -> list[dict]:
     return sorted(methods, key=lambda x: x["ord"])
 
 
+def _jaebaeman_status_set(store: LocalKgStore, params: dict) -> list[dict]:
+    # lifecycle status 전이: SubagentTaskSpec.status SET (covenant SET-only).
+    node = store.find_one("name", params["name"], "SubagentTaskSpec")
+    if node is None:
+        return []
+    node["props"]["status"] = params["status"]
+    return [{"updated": params["name"]}]
+
+
 def _jaebaeman_orphan_anchor(store: LocalKgStore, params: dict) -> list[dict]:
     # E1 게이트: 주어진 anchor name 중 KG에 노드가 없는 것만 collect (read-only).
     anchors = params.get("anchors") or []
@@ -300,6 +309,11 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     (lambda c: "MERGE (s:SubagentTaskSpec {name: $name})" in c, _jaebaeman_seed_merge, True),
     (lambda c: "[r:HAS_SEED]->(s)" in c, _jaebaeman_has_seed, True),
     (lambda c: "MERGE (p)-[:DECOMPOSES_TO]->(c)" in c, _jaebaeman_decomposes_to, True),
+    (
+        lambda c: "SET s.status = $status, s.lifecycleUpdatedAt" in c,
+        _jaebaeman_status_set,
+        True,
+    ),
     (
         lambda c: "-[:DECOMPOSES_TO|HAS_CHILD|DEPENDS_ON]->(c)" in c,
         _jaebaeman_children,
