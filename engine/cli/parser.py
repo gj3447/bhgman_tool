@@ -207,6 +207,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_hd.set_defaults(func=commands.cmd_hades)
 
+    p_jb = sub.add_parser(
+        "jaebaeman",
+        help="재배맨 — 계획→씨앗 결정화. 목표를 계획 트리로 unfold + SubagentTaskSpec 씨앗 MERGE "
+        "(dry-run default, --apply to plant). 씨앗 심기 = 계획 짜기.",
+    )
+    p_jb.add_argument("goal", nargs="+", help="목표 텍스트 (계획의 루트).")
+    p_jb.add_argument("--name", help="목표 노드 name(PK). 생략 시 goal 텍스트 앞 60자.")
+    p_jb.add_argument(
+        "--anchor",
+        help="KG 발아 원천 노드 name. 주면 그 밑 분해 구조를 연쇄 unfold (없으면 단일 루트).",
+    )
+    p_jb.add_argument("--skill", help="씨앗 소속 스킬 (default: jaebaeman).")
+    p_jb.add_argument("--domain", help="targetDomain.")
+    p_jb.add_argument("--task-type", dest="task_type", help="taskType (research/validation/...).")
+    p_jb.add_argument("--cycle-id", dest="cycle_id", help="provenance cycleId.")
+    p_jb.add_argument(
+        "--depth", type=int, default=3, help="최대 분해 세대 [0,3] (SKILL v2.4 fractal hard limit)."
+    )
+    p_jb.add_argument(
+        "--apply",
+        action="store_true",
+        help="씨앗 MERGE write (멱등/reversible). 생략 = dry-run (planned only).",
+    )
+    p_jb.add_argument("--local", action="store_true", help="Use the bundled neo4j-free local KG.")
+    p_jb.set_defaults(func=commands.cmd_jaebaeman)
+
     p_eu = sub.add_parser(
         "eureka",
         help="유레카 — KG 패턴→추상 개념 induce (PROPOSE only, no write; materialize via hades).",
@@ -289,6 +315,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-ground", action="store_true", help="Skip KG grounding for LLM enrichment."
     )
     p_lg.set_defaults(func=commands.cmd_legion)
+
+    p_na = sub.add_parser(
+        "naesengmoon-audit",
+        help="나생문 truth-렌즈 (결정론): axiom-audit(일관성 vs 참 간극) + falsifiability routing.",
+    )
+    p_na.add_argument("--lean", help="Lean dir to audit (default: <repo>/lean).")
+    p_na.add_argument(
+        "--claimed", type=int, help="Check a 'N theorems rest on the axiom' claim vs actual."
+    )
+    p_na.add_argument("--classify", help="Route a claim string: truth-apt? which external oracle?")
+    p_na.set_defaults(func=commands.cmd_naesengmoon_audit)
 
     p_acq = sub.add_parser(
         "acquire",

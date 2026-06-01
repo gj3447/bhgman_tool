@@ -492,6 +492,36 @@ _SEMANTIC_TARGETS: dict[str, tuple[str, tuple[str, ...]]] = {
 }
 
 
+def cmd_naesengmoon_audit(args: argparse.Namespace) -> int:
+    """나생문 truth-렌즈 (결정론) — axiom-audit + falsifiability routing.
+
+    "일관성"과 "참"의 간극을 드러낸다: Lean 정리는 *선언된 공리 위 일관성*을 증명하지 공리가
+    참임을 증명하지 않는다(공리는 선택). LLM 아님 — grep/import-graph 위상만.
+    # KG: 외부 리뷰 tension #1 + #4
+    """
+    from engine.naesengmoon.axiom_audit import audit_lean_dir, check_claim  # noqa: PLC0415
+    from engine.naesengmoon.falsifiability import classify  # noqa: PLC0415
+
+    lean_dir = getattr(args, "lean", None) or str(_repo_root() / "lean")
+    report = audit_lean_dir(lean_dir)
+    print(report.summary)
+    for p in report.profiles:
+        if p.axioms or p.sorry_in_proof:
+            tag = "AXIOM-RESTING" if p.stem in report.tainted else "free"
+            print(f"  {p.stem}: axioms={list(p.axioms)} theorems={p.theorems} [{tag}]")
+    claimed = getattr(args, "claimed", None)
+    if claimed is not None:
+        print(f"  claim-check: {check_claim(report, claimed)}")
+    claim = getattr(args, "classify", None)
+    if claim:
+        c = classify(claim)
+        print(f"\nfalsifiability routing for: {c.claim!r}")
+        print(f"  class={c.claim_class}  truth_apt={c.truth_apt}")
+        print(f"  oracle (NOT the author's LLM): {c.oracle}")
+        print(f"  cheapest falsifier: {c.cheapest_falsifier}")
+    return 0
+
+
 def cmd_occam_semantic(args: argparse.Namespace) -> int:
     """오캄 의미론 near-dup — 텍스트 노드 임베딩 cosine ≥ θ 쌍을 supersede 후보로 surface.
 
@@ -839,6 +869,64 @@ def cmd_legion(args: argparse.Namespace) -> int:
         f"keys={list(run.final_context_keys)}"
     )
     return 0 if run.completed else 1
+
+
+def cmd_jaebaeman(args: argparse.Namespace) -> int:
+    """재배맨 — 계획→씨앗 결정화. 목표를 계획 트리로 unfold하고 SubagentTaskSpec 씨앗으로 심는다.
+
+    "씨앗 심기 = 계획 짜기"(사용자 정전 2026-06-01). dry-run 기본(planned만), --apply로 MERGE write.
+    --anchor 주면 KG 구조에서 하위 계획을 연쇄 unfold, 없으면 단일 루트 씨앗. neo4j/--local 둘 다.
+    # KG: jaebaeman-planfirst-essence-reframe-2026-05-27, 재배맨-v2-subagent-runtime-protocol
+    """
+    if not args.goal:
+        print("usage: bhgman-tool jaebaeman <goal> [--anchor NAME] [--apply]", file=sys.stderr)
+        return 2
+    from engine.jaebaeman.jaebaeman_models import Goal  # noqa: PLC0415
+    from engine.jaebaeman.jaebaeman_runner import run_jaebaeman  # noqa: PLC0415
+
+    goal_text = " ".join(args.goal)
+    goal_name = getattr(args, "name", None) or goal_text[:60]
+    goal = Goal(
+        name=goal_name,
+        objective=goal_text,
+        task_type=getattr(args, "task_type", None) or "research",
+        target_domain=getattr(args, "domain", None) or "",
+        anchor=getattr(args, "anchor", None),
+    )
+
+    run_cypher = write_cypher = None
+    close = lambda: None  # noqa: E731
+    runners = _resolve_kg_runners(args)
+    if runners is not None:
+        run_cypher, write_cypher, close = runners
+    elif getattr(args, "apply", False) or getattr(args, "anchor", None):
+        print(
+            "[jaebaeman] neo4j unavailable (set NEO4J_*, --local, or run via parent Claude MCP). "
+            "--apply/--anchor는 KG가 필요하다. 무KG 단일-루트 dry-run은 인자 없이.",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        res = run_jaebaeman(
+            goal,
+            run_cypher=run_cypher,
+            write_cypher=write_cypher,
+            skill=getattr(args, "skill", None) or "jaebaeman",
+            cycle_id=getattr(args, "cycle_id", None) or "jaebaeman-cli",
+            apply=getattr(args, "apply", False),
+            max_depth=getattr(args, "depth", 3),
+        )
+    finally:
+        close()
+
+    print(res.summary)
+    for s in res.seeds:
+        indent = "  " * (s.depth + 1)
+        print(f"{indent}[d{s.depth}] {s.name}  ({s.germination_method}) ← {s.source_id}")
+    if res.apply_result.dry_run and res.seeds:
+        print("  (dry-run — pass --apply to plant seeds; MERGE-only, reversible/idempotent)")
+    return 0
 
 
 def cmd_eureka(args: argparse.Namespace) -> int:

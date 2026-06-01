@@ -11,6 +11,7 @@ whitespace에 견고(정확 문자열 매칭 아님). 미지 쿼리는 조용히
   - eureka: facet formal-context read
   - longinus/binding: SourceCodeNode merge + sha256 rebind(UNWIND)
   - prometheus: gap-scan(OpenQuestion/VerdictPending) read + :ResearchFinding ingest write
+  - jaebaeman: 분해 anchor 자식 read + SubagentTaskSpec 씨앗 MERGE + HAS_SEED/DECOMPOSES_TO 엣지
 
 # KG: bhgman-local-kg-backend-2026-05-28
 """
@@ -193,6 +194,71 @@ def _rebind_sha(store: LocalKgStore, params: dict) -> list[dict]:
     return [{"updated": n}]
 
 
+def _jaebaeman_seed_merge(store: LocalKgStore, params: dict) -> list[dict]:
+    # 재배맨 씨앗 심기 — SubagentTaskSpec upsert. depth coalesce(.,0) (NOT NULL invariant).
+    store.merge_node(
+        "SubagentTaskSpec",
+        "name",
+        params["name"],
+        {
+            "skill": params["skill"],
+            "sourceId": params.get("sourceId", params["name"]),
+            "displayName": params.get("displayName", ""),
+            "taskType": params.get("taskType", ""),
+            "targetDomain": params.get("targetDomain", ""),
+            "expectedOutcome": params.get("expectedOutcome", ""),
+            "germinationMethod": params.get("germinationMethod", "singleton"),
+            "depth": params.get("depth") if params.get("depth") is not None else 0,
+            "status": "READY",
+        },
+    )
+    return [{"seeded": params["name"]}]
+
+
+def _jaebaeman_has_seed(store: LocalKgStore, params: dict) -> list[dict]:
+    # anchor↔씨앗 발아 엣지. anchor 노드 없으면 만들어 둔다(임의 라벨 Node, 스키마 자유).
+    seed = store.find_one("name", params["seed"], "SubagentTaskSpec")
+    if seed is None:
+        return []
+    anchor = store.find_one("name", params["anchor"]) or store.merge_node(
+        "Node", "name", params["anchor"], {}
+    )
+    store.add_edge(anchor, "HAS_SEED", seed)
+    return [{"linked": params["seed"]}]
+
+
+def _jaebaeman_decomposes_to(store: LocalKgStore, params: dict) -> list[dict]:
+    # 계획 트리 엣지: parent_seed → child_seed (계획에 대한 계획).
+    parent = store.find_one("name", params["parent"], "SubagentTaskSpec")
+    child = store.find_one("name", params["child"], "SubagentTaskSpec")
+    if parent is None or child is None:
+        return []
+    store.add_edge(parent, "DECOMPOSES_TO", child)
+    return [{"child": params["child"]}]
+
+
+def _jaebaeman_children(store: LocalKgStore, params: dict) -> list[dict]:
+    # 분해 anchor의 자식 read. 로컬엔 보통 Span 구조가 없으니 빈 결과(→ singleton 루트)면 정상.
+    anchor = store.find_one("name", params.get("anchor"))
+    if anchor is None:
+        return []
+    out: list[dict] = []
+    for rel, dst in store.out_edges(anchor):
+        if rel not in ("DECOMPOSES_TO", "HAS_CHILD", "DEPENDS_ON"):
+            continue
+        p = dst["props"]
+        if not p.get("name"):
+            continue
+        out.append(
+            {
+                "child": p["name"],
+                "objective": p.get("objective") or p["name"],
+                "target_domain": p.get("targetDomain", ""),
+            }
+        )
+    return out
+
+
 # dispatch 테이블: (cypher 매칭 predicate, handler, is_write). 위→아래 첫 매치.
 # elif 체인 대신 루프 = 낮은 cognitive complexity + 라우트 추가 용이.
 _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
@@ -200,6 +266,15 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     (lambda c: "MERGE (a:AbstractClass {name:$concept})" in c, _hades_merge_concept, True),
     (lambda c: "INSTANCE_OF" in c and "$members" in c, _hades_link_members, True),
     (lambda c: "UNWIND $rows" in c and "s.sha256" in c, _rebind_sha, True),
+    # 재배맨 씨앗/계획-엣지 (write) + 분해 anchor 자식 (read).
+    (lambda c: "MERGE (s:SubagentTaskSpec {name: $name})" in c, _jaebaeman_seed_merge, True),
+    (lambda c: "[r:HAS_SEED]->(s)" in c, _jaebaeman_has_seed, True),
+    (lambda c: "MERGE (p)-[:DECOMPOSES_TO]->(c)" in c, _jaebaeman_decomposes_to, True),
+    (
+        lambda c: "-[:DECOMPOSES_TO|HAS_CHILD|DEPENDS_ON]->(c)" in c,
+        _jaebaeman_children,
+        False,
+    ),
     (lambda c: "MERGE (h:HarnessDiagnosis" in c, _harness_persist, True),
     (lambda c: "MERGE (s:SourceCodeNode" in c, _merge_source_node, True),
     (

@@ -70,11 +70,27 @@ NODE_SCHEMAS: dict[str, NodeSchema] = {
         unique=("name",),
         key="name",
     ),
+    # 재배맨 씨앗. depth NOT NULL (SKILL v2.4 §p3 t_depth_not_null trigger 미러 — 로컬도 강제).
+    # depth=0 (int)은 required 통과 (validate_node가 0을 NULL/'' 로 보지 않음).
+    "SubagentTaskSpec": NodeSchema(
+        label="SubagentTaskSpec",
+        required=("name", "skill", "depth", "status"),
+        unique=("name",),
+        key="name",
+    ),
 }
 
-# 엔진들이 실제로 쓰는 엣지 타입 (occam supersede / hades materialize / eureka facet read).
+# 엔진들이 실제로 쓰는 엣지 타입 (occam supersede / hades materialize / eureka facet read /
+# 재배맨 씨앗 발아(HAS_SEED) + 계획 트리(DECOMPOSES_TO)).
 EDGE_TYPES: frozenset[str] = frozenset(
-    {"SUPERSEDED_BY", "INSTANCE_OF", "ALIGNS_WITH_AXIS", "USES_ABSTRACT_DOMAIN"}
+    {
+        "SUPERSEDED_BY",
+        "INSTANCE_OF",
+        "ALIGNS_WITH_AXIS",
+        "USES_ABSTRACT_DOMAIN",
+        "HAS_SEED",
+        "DECOMPOSES_TO",
+    }
 )
 
 
