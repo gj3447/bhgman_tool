@@ -17,8 +17,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Iterator
 from dataclasses import replace
+from itertools import islice
 
 from engine.jaebaeman.jaebaeman_models import (
     MAX_DEPTH,
@@ -84,6 +86,47 @@ def plan(
     return replace(node, children=children)
 
 
+def plan_lazy(
+    goal: Goal,
+    decompose: DecomposeFn,
+    *,
+    fuel: int | None = None,
+    max_depth: int = MAX_DEPTH,
+) -> Iterator[PlanNode]:
+    """ν(coinductive) 모드 — productive corecursive unfold. 소비한 만큼만 전개(lazy).
+
+    eager ``plan()``이 트리 전체를 즉시 build하는 μ 모드라면, 이건 frontier를 BFS로 yield하며
+    ``fuel``(최대 노드 수) 또는 ``max_depth``까지만 productive 전개. 각 yield 노드는 frontier라
+    children=() (다음 노드는 다음 next()에서). PROM 64 D3 ν쌍, B4 권고(eager 유지·flag 분리).
+
+    불변식: ``fuel`` 충분(≥ eager 노드 수) + 동일 ``max_depth``면 산출 노드 *집합* = walk(plan(...)).
+    무한 decompose라도 fuel/observation budget이 productive 종료 보장(C3 안전가드).
+    """
+    queue: deque[tuple[Goal, int, GerminationMethod]] = deque(
+        [(goal, 0, GerminationMethod.SINGLETON)]
+    )
+    produced = 0
+    while queue:
+        if fuel is not None and produced >= fuel:
+            return
+        g, depth, method = queue.popleft()
+        if depth < 0 or depth > max_depth:
+            raise DepthInvariantViolation(
+                f"depth={depth} out of [0,{max_depth}] for '{g.name}' (lazy unfold)."
+            )
+        node = _node_from_goal(g, depth, method)  # frontier: children=()
+        yield node
+        produced += 1
+        if depth < max_depth:
+            for sg in decompose(node):
+                queue.append((sg, depth + 1, GerminationMethod.DECOMPOSE))
+
+
+def take_n(it: Iterator[PlanNode], n: int) -> tuple[PlanNode, ...]:
+    """lazy generator의 유한 prefix n개만 관찰(observation budget). islice 래퍼."""
+    return tuple(islice(it, n))
+
+
 def walk(node: PlanNode):
     """계획 트리 pre-order 순회 — (node, parent) 튜플 yield. 루트의 parent=None."""
 
@@ -116,11 +159,13 @@ def to_seeds(root: PlanNode, skill: str, *, expected_outcome: str = "") -> list[
     """
     out: list[SeedRecord] = []
     for n, parent in walk(root):
+        sname = seed_name(n, skill)
         out.append(
             SeedRecord(
-                name=seed_name(n, skill),
+                name=sname,
                 skill=skill,
-                source_id=n.anchor or n.name,
+                # 외부 anchor 있으면 그게 FK, 없으면 self-anchored → 자기 seed name(=guard가 HAS_SEED 생략)
+                source_id=n.anchor or sname,
                 display_name=n.objective[:120] or n.name,
                 task_type=n.task_type,
                 target_domain=n.target_domain,
@@ -151,8 +196,10 @@ __all__ = [
     "depth_max",
     "leaf_count",
     "plan",
+    "plan_lazy",
     "seed_name",
     "static_decompose",
+    "take_n",
     "to_seeds",
     "walk",
 ]
