@@ -253,14 +253,19 @@ def cmd_longinus(args: argparse.Namespace) -> int:
     # 'bhgman'; override with `longinus bind <repo_tag>`.
     if op == "bind":
         repo_tag = rest[0] if rest else "bhgman"
+        # code-root override: `longinus bind <repo_tag> <code-root>` to materialize
+        # another repo's `# KG:` comments (default = this bhgman repo).
+        code_root = rest[1] if len(rest) > 1 else str(root)
+        # Prefer the MCP gateway when configured (bolt-firewalled KG); else bolt.
+        kg = "mcp" if os.environ.get("BHGMAN_KG_MCP_URL") else "neo4j"
         cmd = [
             sys.executable,
             "-m",
             "engine.longinus_drift_audit.audit_runner",
             "--code-root",
-            str(root),
+            code_root,
             "--kg",
-            "neo4j",
+            kg,
             "--materialize",
             "--repo-tag",
             repo_tag,

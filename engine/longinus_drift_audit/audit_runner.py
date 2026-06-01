@@ -205,6 +205,13 @@ def build_kg(args: argparse.Namespace) -> KgClient:
         from engine.longinus_drift_audit.kg_client import JsonFileKgClient
 
         return JsonFileKgClient(args.kg_path)
+    if args.kg == "mcp":
+        from engine.longinus_drift_audit.kg_client import McpKgClient
+
+        url = args.mcp_url or os.environ.get("BHGMAN_KG_MCP_URL")
+        if not url:
+            raise ValueError("--kg mcp requires --mcp-url (or BHGMAN_KG_MCP_URL env)")
+        return McpKgClient(url)
     if not args.uri or not args.password:
         raise ValueError("--kg neo4j requires --uri/--password (or NEO4J_URI / NEO4J_PASSWORD env)")
     return Neo4jKgClient(args.uri, (args.user, args.password))
@@ -215,16 +222,22 @@ def main() -> int:
     parser.add_argument("--code-root", required=True)
     parser.add_argument(
         "--kg",
-        choices=["mock", "neo4j", "local"],
+        choices=["mock", "neo4j", "local", "mcp"],
         default="mock",
         help="mock = empty-ref self-test fixture (verifies nothing); "
-        "neo4j = live audit against ground truth; "
-        "local = neo4j-free JSON backend (~/.bhgman/longinus_kg.json or --kg-path).",
+        "neo4j = live audit against ground truth (bolt); "
+        "local = neo4j-free JSON backend (~/.bhgman/longinus_kg.json or --kg-path); "
+        "mcp = live audit via mcp-neo4j-cypher HTTP gateway (bolt-firewalled KG; --mcp-url/BHGMAN_KG_MCP_URL).",
     )
     parser.add_argument(
         "--kg-path",
         default=None,
         help="JSON file for --kg local (default: ~/.bhgman/longinus_kg.json).",
+    )
+    parser.add_argument(
+        "--mcp-url",
+        default=os.environ.get("BHGMAN_KG_MCP_URL"),
+        help="mcp-neo4j-cypher gateway URL for --kg mcp (or BHGMAN_KG_MCP_URL env).",
     )
     parser.add_argument(
         "--uri", default=os.environ.get("NEO4J_URI"), help="Neo4j bolt URI (or NEO4J_URI env)."
