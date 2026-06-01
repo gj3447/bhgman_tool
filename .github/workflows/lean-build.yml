@@ -25,7 +25,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'lean/**'
+      # Only the Mathlib sister project(s) — NOT every lean/*.lean edit. Standalone
+      # Mathlib-free files are built by the ci.yml 'lean' job, which is fast; this
+      # heavy Mathlib workflow should fire only when a lake project actually changes.
+      - 'lean/**/lakefile.*'
+      - 'lean/**/lake-manifest.json'
+      - 'lean/apt_functor_with_mathlib/**'
       - '.github/workflows/lean-build.yml'
 
 permissions:
@@ -49,17 +54,26 @@ jobs:
           #   1. lean/lakefile.{toml,lean}        (top-level — unused at present)
           #   2. lean/<project>/lakefile.{toml,lean}  (nested sister project — P3-D pattern)
           # First hit wins. Multi-sister support is future work (matrix expansion).
+          # A lake project is buildable ONLY if it has a committed lake-manifest.json
+          # (lake build fails without it). A lakefile without a manifest = a project
+          # not yet wired (needs `lake update`) → honest SKIP, not a hard CI failure.
+          pick() {
+            local dir="$1"
+            if [ -f "$dir/lake-manifest.json" ]; then
+              echo "path=$dir" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Lake project (with manifest) found at $dir"
+            else
+              echo "::warning::lakefile at $dir but no lake-manifest.json — Mathlib build SKIPPED (run 'lake update' in $dir to wire). Standalone .lean files are covered by the ci.yml 'lean' job."
+              echo "found=false" >> "$GITHUB_OUTPUT"
+            fi
+          }
           if [ -f "lean/lakefile.toml" ] || [ -f "lean/lakefile.lean" ]; then
-            echo "path=lean" >> "$GITHUB_OUTPUT"
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "Lake project found at lean/"
+            pick lean
           else
             nested=$(find lean -mindepth 2 -maxdepth 2 \( -name 'lakefile.toml' -o -name 'lakefile.lean' \) -print -quit 2>/dev/null || true)
             if [ -n "$nested" ]; then
-              project_dir=$(dirname "$nested")
-              echo "path=$project_dir" >> "$GITHUB_OUTPUT"
-              echo "found=true" >> "$GITHUB_OUTPUT"
-              echo "Lake project found at $project_dir"
+              pick "$(dirname "$nested")"
             else
               echo "::warning::no lakefile.{toml,lean} present under lean/ — Mathlib build skipped. Standalone .lean files covered by ci.yml 'lean' job."
               echo "found=false" >> "$GITHUB_OUTPUT"
