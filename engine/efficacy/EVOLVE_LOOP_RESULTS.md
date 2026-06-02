@@ -165,10 +165,36 @@ HARM(arm<bon): flywheel_old=2/5   dispatch_new=0/5
 ```
 
 **확증**: 구 pure-feedback FLYWHEEL은 2/5에서 BON을 *해침*(rle_decode 1.00→0.33, mean Δ-0.143).
-신 `oracle_gated_dispatch`는 **harm 0/5, Δ+0.000으로 BON과 동일** — 구조적으로 BON 밑돌 수 없음을
-실 LLM서 확인. 게다가 **evals ~1-1.5**(1-shot 풀리면 early-exit) vs BON 6 = **~4-6배 싸다**.
-within-competence라 positive lift는 여전히 0(헤드룸 band 필요, 미해결) — 단 본 측정의 목표였던
-*harm 제거*는 확정. 측정 결함(rle_decode Δ-0.33)이 dispatch 정책으로 실제 사라짐을 실 LLM 입증.
+신 `oracle_gated_dispatch`는 **harm 0/5, Δ+0.000으로 BON과 동일** (1-shot solve→early-exit). 게다가
+**evals ~1-1.5** vs BON 6 = **~4-6배 싸다**. 단 7B는 within-competence(전부 1-shot solve)라 이 0-harm은
+*early-exit 덕*이지 dominance가 아님 — 헤드룸에선 다르다(아래).
+
+### 헤드룸 regime 측정 — 약모델 1.5B (첫 LLM lift 신호 + 정정)
+
+7B는 다 1-shot이라 헤드룸이 없었다. **약모델 qwen 1.5B**(PROM의 genuine-lift 4조건 중 "약모델")로
+진짜 헤드룸 확보 후 BON(blind 6) vs DISPATCH(gated, explore_prob 0.4) 측정(n=1, noisy):
+
+```
+[atoi_clamp]      BON=0.90  DISPATCH=0.70  Δ=-0.20
+[brackets_angle]  BON=0.50  DISPATCH=0.88  Δ=+0.38   ← LIFT
+[rle_decode]      BON=0.17  DISPATCH=0.33  Δ=+0.17   ← LIFT
+[compare_version] BON=0.83  DISPATCH=0.67  Δ=-0.17
+[simplify_path]   BON=1.00  DISPATCH=0.67  Δ=-0.33
+MEAN: BON=0.680  DISPATCH=0.648  Δ=-0.032   LIFT 2/5  HARM 3/5
+```
+
+**두 가지 정직한 발견**:
+1. **LLM 플라이휠 lift가 처음으로 관측됨** — brackets_angle +0.38, rle_decode +0.17. 약모델이 best-K
+   피드백으로 실패 케이스를 실제로 고쳐 blind보다 나아짐. 메커니즘이 LLM에서 *작동*한다(결정론 실험
+   Δ+3.43이 LLM에서도 재현 가능함을 처음 확인).
+2. **그러나 net wash(Δ-0.032), 3/5 harm** — 그리고 이게 앞선 "dispatch는 구조적으로 BON 못 밑돈다"
+   주장을 **반증**한다(정정함). 원인: equal budget에서 escalation이 explore_prob=0.4로 blind 예산을
+   feedback과 trade → 모델이 feedback 활용 못 하는 문제(atoi/compare/simplify)에선 blind가 적어져 손해.
+
+**종합 — positive lift band의 정확한 조건**: lift는 (task headroom ∧ 모델이 feedback 활용 가능) 둘 다
+성립할 때만. 7B=feedback 활용 가능하나 헤드룸 없음(1-shot). 1.5B=헤드룸 있으나 feedback 활용이 들쭉날쭉
+(2/5만 성공). band가 좁다. 정책 보정 방향(데이터 기반, 미적용): explore_prob 상향(blind 예산 보존) 또는
+escalation을 "BON 위에 feedback 추가"형으로(blind를 줄이지 않게) + n 증가로 노이즈 축소. n=1 noisy 경고.
 
 # KG: prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-collective-intelligence-design-2026-06-02,
 #     jaebaeman-planfirst-essence-reframe-2026-05-27, 7cmd-measurement-driven-conditional-dispatch-2026-05-30

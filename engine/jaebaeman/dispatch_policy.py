@@ -9,8 +9,13 @@ RESULTS.md)이 두 결함을 드러냈다:
 threshold 초과 시 escalate):
   1. CHEAP 1-shot(blind) 먼저. oracle PASS면 즉시 종착 — escalate 안 함(anchoring harm 0, 최저 비용).
   2. headroom(1-shot miss)일 때만 escalate. escalate는 blind 탐색(explore_prob)을 섞은 feedback
-     루프 + oracle-solve early-exit → mode-lock 방지하며 flywheel lift 포착. blind를 *대체*가
-     아니라 *증강*하므로 순수-BON 대비 절대 더 나쁘지 않다(rle_decode harm 회피).
+     루프 + oracle-solve early-exit → mode-lock 완화하며 flywheel lift 포착.
+
+실측 정정 (qwen 7B/1.5B): "순수-BON을 절대 밑돌 수 없다"는 *과장*이었다. 참인 건 1-shot solve 시
+early-exit로 BON과 동일(7B 0/5 harm, 4-6배 cheap)뿐. headroom escalation에선 explore_prob에 따라
+blind 예산을 feedback과 *trade*하므로, 모델이 feedback을 활용 못 하면 blind가 적어져 BON을 밑돌 수
+있다(1.5B 3/5 harm). 활용 가능하면 진짜 lift(1.5B brackets +0.38, rle +0.17). net 효과는 (모델의
+feedback 활용력 ∧ task headroom)에 의존 — 정책 보장은 harm-제한이지 dominance가 아니다.
 
 순수 정책 함수 — run_evolve primitive 위 조합. 결정론(주입 rng/oracle/generator).
 
