@@ -15,8 +15,8 @@ are reproduced by the commands shown; no value is hand-authored.
 | **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.600** (6/10; escapes 4 boundary/sign mutants) | injected code mutants on `engine/occam/scoring.py`. ✅ |
 | **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
+| **prometheus** | 획득 | **MEASURED** | groundedness: sourcing **0.077** (946/12356), verifiability **0.931** (881/946 external), self-cite **0.001** (1/946) | `urlparse` URL-structure classification — not prometheus's judgment. ✅ non-circular. verifiability/precision-floor, NOT novelty. |
 | occam (registry) | 정리 | UNMEASURABLE | AUC 0.476 | KG `status` label is **73% occam-authored** → circular + inverted. |
-| prometheus | 획득 | UNMEASURABLE | n/a | no held-out external fact-set; self-citation risk. |
 | eureka | 발견·창조 | UNMEASURABLE | n/a | no reuse-timeseries corpus. |
 
 Reproduce:
@@ -31,6 +31,7 @@ uv run python -m engine.efficacy.mutation_oracle          # naesengmoon catch 0.
 uv run python -m engine.efficacy.dispatch_telemetry       # jaebaeman fidelity 1.000
 uv run python -m engine.efficacy.scale_curve              # operational scale to 100k
 uv run python -m engine.efficacy.hades_oracle             # hades realization 0.839 + unrealized list
+uv run python -m engine.efficacy.prometheus_oracle        # prometheus groundedness (sourcing/verifiability/self-cite)
 ```
 
 ## What moved (vs the prior open items)
@@ -46,9 +47,10 @@ holes. Both are partly closed:
    *zero*; it is *modest-but-real* for occam and *operational* for longinus at scale.
 
 2. **"only ~1.3 of 7 commanders tested."**
-   Now **5 of 7** carry a number from an oracle the commander did **not** author:
+   Now **6 of 7** carry a number from an oracle the commander did **not** author:
    occam (disk), longinus (injected mutation), naesengmoon (code mutants), jaebaeman
-   (dispatch telemetry), **hades (test-reachability + pytest GREEN)**.
+   (dispatch telemetry), hades (test-reachability + pytest GREEN), **prometheus
+   (URL-structure groundedness)**.
 
 3. **hades oracle built (2026-06-02).** `hades_oracle.py` — the 168 git-tracked source
    modules are the "specs to realize"; a module is *realized* when a test reaches it
@@ -60,13 +62,26 @@ holes. Both are partly closed:
    win — there is no hades-built-vs-naive-built counterfactual, because code generation is
    inherently LLM (no cheap deterministic baseline like longinus's sha-compare).
 
+4. **prometheus oracle built (2026-06-02).** `prometheus_oracle.py` classifies every
+   `ResearchFinding.citation_url` by URL *structure* (`urlparse`, not prometheus's
+   judgment → circularity 0): external / self / text / empty. It sharpens the old
+   "grounding 0.006" into two honest layers and **partly refutes the self-citation
+   critique**: the real limit is **no-source (92.3%, 11410/12356)**, *not* self-citation
+   (1/946 ≈ 0.1%); and of findings that *do* cite, **93.1% are real external URLs**
+   (881 arxiv/doi/wiki/other). *Caveat:* this is groundedness/verifiability (a precision
+   floor), **not novelty** — and liveness (HTTP 200) is not checked, so it is an *upper
+   bound*. Real cognitive novelty (a fact a base-LLM can't recall) still needs a base-LLM
+   recall-delta on the dgx-local model — that remains OPEN.
+
 ## What is still honestly open
 
-- **2 commanders (prometheus / eureka) remain UNMEASURABLE** — not because they fail, but
-  because **no held-out oracle has been built**. UNMEASURABLE ≠ ineffective; it means "not
-  yet falsifiable." prometheus needs an external held-out fact-set (current grounding-proxy
-  0.006 measures citation density, not accuracy); eureka needs an abstraction→reuse
-  timeseries. Those two are the next real work.
+- **1 commander (eureka) remains UNMEASURABLE** — no abstraction→reuse timeseries corpus.
+  An eureka-extracted abstraction's *fan-in over time* (how many sites later reuse it) is
+  the natural oracle, but the reuse edges/timestamps are not collected. That is the last
+  real measurement debt.
+- **prometheus novelty is still open even though groundedness is now measured** — the
+  built oracle proves findings are *externally sourced*, not that they are *non-obvious*.
+  base-LLM recall-delta (dgx-local) is the missing counterfactual.
 - **The positive longinus Δ is vs a *naive no-tracking* baseline**, on *injected* mutations.
   It is **not** a cognitive win over a base-LLM given equal tool budget — that controlled
   test (`project_bhgman_ab_falsifier_2026_05_30`) still reads ~0; longinus's value there is
