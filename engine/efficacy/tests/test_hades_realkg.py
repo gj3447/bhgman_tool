@@ -46,3 +46,22 @@ def test_pass_at_1():
     rs = [TaskResult(t, True, "ok"), TaskResult(t, False, "x"), TaskResult(t, True, "ok")]
     assert abs(pass_at_1(rs) - 2 / 3) < 1e-9
     assert pass_at_1([]) == 0.0
+
+
+def test_parse_pytest_counts():
+    from engine.efficacy.hades_realkg import parse_pytest_counts
+
+    assert parse_pytest_counts("1 failed, 2 passed in 0.08s") == (2, 3)
+    assert parse_pytest_counts("5 passed in 0.1s") == (5, 5)
+    assert parse_pytest_counts("3 passed, 1 skipped in 0.2s") == (3, 3)  # skipped 제외
+    assert parse_pytest_counts("2 failed, 1 error, 4 passed") == (4, 7)
+    assert parse_pytest_counts("collected 0 items") == (0, 0)
+
+
+def test_mean_test_pass_rate():
+    from engine.efficacy.hades_realkg import HadesTask, TaskResult, mean_test_pass_rate
+
+    t = HadesTask("c", "engine/a.py", "engine/tests/test_a.py")
+    rs = [TaskResult(t, False, "x", 2, 3), TaskResult(t, False, "y", 4, 5)]
+    assert abs(mean_test_pass_rate(rs) - (2 / 3 + 4 / 5) / 2) < 1e-9
+    assert mean_test_pass_rate([]) == 0.0

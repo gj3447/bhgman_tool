@@ -42,8 +42,14 @@ class HadesTask:
 @dataclass(frozen=True)
 class TaskResult:
     task: HadesTask
-    passed: bool
+    passed: bool  # 전체 GREEN (엄격 pass@1, SWE-bench 관례)
     detail: str  # pytest 요약 또는 에러
+    tests_passed: int = 0  # 부분 통과 granularity
+    tests_total: int = 0
+
+    @property
+    def test_pass_rate(self) -> float:
+        return self.tests_passed / self.tests_total if self.tests_total else 0.0
 
 
 def pick_tasks(
@@ -72,8 +78,26 @@ def strip_code_fence(text: str) -> str:
 
 
 def pass_at_1(results: Sequence[TaskResult]) -> float:
-    """통과 task 비율 (순수). 빈 입력이면 0.0."""
+    """전체 GREEN task 비율 = 엄격 pass@1 (순수). 빈 입력이면 0.0."""
     return sum(1 for r in results if r.passed) / len(results) if results else 0.0
+
+
+def parse_pytest_counts(text: str) -> tuple[int, int]:
+    """pytest 요약 → (passed, total). total = passed+failed+error (skipped 제외). 순수."""
+    import re  # noqa: PLC0415
+
+    def _n(word: str) -> int:
+        m = re.search(rf"(\d+) {word}", text)
+        return int(m.group(1)) if m else 0
+
+    passed = _n("passed")
+    return passed, passed + _n("failed") + _n("error")
+
+
+def mean_test_pass_rate(results: Sequence[TaskResult]) -> float:
+    """task별 테스트 통과율의 평균 (순수). 엄격 pass@1보다 granular."""
+    rated = [r for r in results if r.tests_total]
+    return sum(r.test_pass_rate for r in rated) / len(rated) if rated else 0.0
 
 
 # ── IO (git worktree + subprocess) ──
@@ -137,7 +161,8 @@ def run_task(
                 cwd=wt, capture_output=True, text=True, check=False,
             )
             tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else proc.stderr[:150]
-            return TaskResult(task, proc.returncode == 0, tail)
+            passed_n, total_n = parse_pytest_counts(proc.stdout)
+            return TaskResult(task, proc.returncode == 0, tail, passed_n, total_n)
         finally:
             _git(repo_abs, ["worktree", "remove", "--force", wt])
 
@@ -163,8 +188,12 @@ def main() -> int:  # pragma: no cover — IO 진입점
         results = [run_task(repo, t, client) for t in tasks]
         for r in results:
             mark = "PASS" if r.passed else "FAIL"
-            print(f"  [{mark}] {r.task.commit[:8]} {r.task.impl_path}: {r.detail}")
-        print(f"hades realization pass@1 = {pass_at_1(results):.3f} (n={len(results)}, LLM=regenerate)")
+            frac = f"{r.tests_passed}/{r.tests_total}" if r.tests_total else "n/a"
+            print(f"  [{mark}] {r.task.commit[:8]} {r.task.impl_path}: {frac} tests — {r.detail}")
+        print(
+            f"hades realization: strict pass@1={pass_at_1(results):.3f}  "
+            f"mean test-pass-rate={mean_test_pass_rate(results):.3f}  (n={len(results)}, LLM=regenerate)"
+        )
         print("  ※ 비순환: human-written hidden test oracle. residual: AI-authored 커밋 다수.")
         return 0
     print(f"unknown mode {mode} (use --list / --run)", file=sys.stderr)
@@ -175,6 +204,8 @@ __all__ = [
     "HadesTask",
     "TaskResult",
     "build_tasks",
+    "mean_test_pass_rate",
+    "parse_pytest_counts",
     "pass_at_1",
     "pick_tasks",
     "run_task",
