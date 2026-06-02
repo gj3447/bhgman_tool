@@ -83,6 +83,22 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   not the agentic loop, is the defensible value. Reviving requires a frontier-scale experiment
   that would only re-confirm this negative. (A skeptic pass also voided one proposed "fix" as
   patching a non-existent bug — the read-back is already capped at best-K=2.)
+  **CORRECTION 2026-06-02 (postmortem, 4 adversarial critics, conf 0.82–0.84): the loop-closure
+  above was PREMATURE.** Splitting the two claims honestly: (i) *operational-substrate within
+  competence* — VALID, robust (two independent lines). (ii) *"6/6 UNREALIZED → loop CLOSED for
+  bhgman"* — PARTLY_ARTIFACT. The honest denominator is **2 underpowered nulls (hard/0.5b, hard/1.5b,
+  n=4) + 4 non-measurements** (medium/1.5b, 7b+F4, 32b+F4 all saturate to all-arms=1.00 → paired
+  delta=0, CI=(0,0), realized=False *by arithmetic*, not by measurement). Power and headroom are
+  mutually exclusive across the whole sweep, so the design *structurally cannot* return "realized."
+  Worse, the oracle is a 2-test pass-count (fitness ∈ {0,1,2}, no gradient for read-back to climb),
+  ARM2 and ARM3 share that oracle (so "loop ≤ oracle-gate" is half a design tautology), and F3
+  (island/diversity — the load-bearing FunSearch ingredient) was never implemented. And the CLOSE
+  was committed (813da6f @21:21) *before* the confirming best-shot run (8768b9f @22:59) = confirmation
+  toward closure. **Corrected status: operational-substrate (within-competence) STANDS;
+  LOOP-HYPOTHESIS = OPEN — the one fair test (model above floor × unsaturated leak-resistant task e.g.
+  Lean sorry=0 × real F3 island × graded oracle) was never run.** The measured negative is true for
+  *this regime* (independent toy functions + binary oracle, where best-of-N is provably optimal) and
+  says almost nothing about the loop hypothesis. See `SWEEP_RESULTS.md` §"Composition 4th gate".
 - **External impact — UNMEASURED.** Every number here is internal/self-referential. Whether
   anyone *outside* this project uses or benefits from the tool is the genuinely untested
   axis (`project_bhgman_self_critique_2026_05_28`).

@@ -208,9 +208,23 @@ to differentiate. This is the **C1↔C2 squeeze** the PROM predicted, now empiri
 (0.5/1.5b) violate C1 (loop is *worse* than best-of-N), strong models (7b/32b) violate C2
 (saturation). **The local code-task set has no band where both C1 and C2 hold.** The headroom regime
 needs tasks a strong model cannot one-shot but can improve toward (Lean proof-search / competition-hard)
-= net-new + frontier-scale = the HARD CEILING. **Total: 6/6 UNREALIZED across model strengths and
-feedback on/off.** CLOSE-AS-OPERATIONAL confirmed empirically — the deterministic oracle gate, not
-the loop, is the value.
+= net-new + frontier-scale = the HARD CEILING.
+
+> **CORRECTION 2026-06-02 (postmortem, 4 adversarial critics, conf 0.82–0.84): "6/6 UNREALIZED" was
+> an inflated denominator and the loop-CLOSE was premature.** Code-verified honest tally: **2
+> underpowered nulls** (hard/0.5b, hard/1.5b — n=4, CI too wide to detect a realistic partial win) +
+> **4 non-measurements** (medium/1.5b, 7b+F4, 32b+F4 saturate to all-arms=1.00 → paired delta=0,
+> bootstrap CI=(0,0), realized=False *by arithmetic*). Power (n=7) and headroom (non-saturated) are
+> **mutually exclusive across the entire sweep**, so the gate *structurally cannot* return "realized"
+> — that is the instrument's blind spot, not the loop's failure. Compounding: the oracle is a 2-test
+> pass-count (fitness ∈ {0,1,2}, no gradient to climb); ARM2/ARM3 share that oracle (so "loop ≤
+> oracle-gate" is half a design tautology); and **F3 island/diversity — the load-bearing FunSearch
+> ingredient — was never implemented** (best_k is greedy top-2), so we tested a strawman of the
+> concept. **Corrected: operational-substrate (within-competence) STANDS; LOOP-HYPOTHESIS = OPEN.**
+> The one fair test (model above the self-improvement floor × unsaturated leak-resistant task e.g.
+> Lean `lake build sorry=0` × real F3 island × graded oracle) was *never run*. What these 6 runs
+> actually show: on independent toy functions + a binary oracle, best-of-N is provably optimal —
+> true, and nearly silent on the loop hypothesis.
 
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
