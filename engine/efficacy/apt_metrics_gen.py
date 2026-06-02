@@ -203,6 +203,13 @@ def main() -> int:
     ap.add_argument(
         "--print", dest="do_print", action="store_true", help="print aggregate, no write"
     )
+    ap.add_argument(
+        "--max-drift",
+        type=int,
+        default=-1,
+        help="ratchet: with --check, exit 1 only if drift COUNT exceeds this baseline "
+        "(grandfathers existing drift, blocks net-new). -1 (default) = strict (any drift fails).",
+    )
     args = ap.parse_args()
 
     data = compute(args.lean_root)
@@ -210,9 +217,13 @@ def main() -> int:
 
     if args.check:
         findings = check_docs(args.docs_root, agg)
-        if findings:
+        limit = args.max_drift
+        over = len(findings) if limit < 0 else max(0, len(findings) - limit)
+        if findings and over > 0:
+            kind = "exceed strict 0" if limit < 0 else f"exceed ratchet baseline {limit}"
             print(
-                f"[apt-metrics --check] {len(findings)} hand-typed Lean count(s) disagree with disk:",
+                f"[apt-metrics --check] {len(findings)} hand-typed Lean count(s) disagree with disk "
+                f"({over} {kind}):",
                 file=sys.stderr,
             )
             for f in findings[:40]:
@@ -222,7 +233,13 @@ def main() -> int:
                 )
             print(f"\n  Disk truth: {json.dumps(agg, ensure_ascii=False)}", file=sys.stderr)
             return 1
-        print("[apt-metrics --check] no drifting hand-typed Lean counts found.")
+        msg = (
+            "no drifting hand-typed Lean counts found."
+            if not findings
+            else f"{len(findings)} drift(s) within ratchet baseline {limit} (grandfathered; "
+            f"migrate to {{{{metric:...}}}} tokens to ratchet down)."
+        )
+        print(f"[apt-metrics --check] {msg}")
         return 0
 
     if args.do_print:
