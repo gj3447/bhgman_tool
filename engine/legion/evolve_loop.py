@@ -235,20 +235,29 @@ def run_evolve(
     rng: random.Random,
     k: int = 4,
     feedback: bool = True,
+    solve_threshold: float | None = None,
+    explore_prob: float = 0.0,
 ) -> EvolveRun:
-    """검증 지식 플라이휠 1세션. 정확히 budget oracle-eval 소비(equal-compute).
+    """검증 지식 플라이휠 1세션. 최대 budget oracle-eval (equal-compute).
 
     feedback=True: 누적 best-K(이번 세션 + 이전 세션)에서 steer. False: blind(ablation, BoN).
+    solve_threshold: best.score가 이 값 이상이면 즉시 중단(oracle-solve early-exit) — 포화 task서
+      낭비 compute + best-K anchoring harm 제거 (rle_decode Δ-0.33 측정 결함 fix). None=무중단.
+    explore_prob: 각 시도가 이 확률로 feedback 무시 blind 제안(ε-exploration) — best-K만 먹여
+      부분해에 갇히는 mode-lock 방지(blind 탐색 유지). 0.0=순수 feedback(기존). >0만 rng 소비.
     """
     seeded = list(corpus.read_best(task, k))  # cross-session 자산 (이전 세션 검증분)
     accumulated: list[ScoredCandidate] = list(seeded)
     best: ScoredCandidate | None = seeded[0] if seeded else None
     trace: list[float] = []
     recorded = 0
+    used = 0
     for _ in range(budget):
-        context = _top_k(accumulated, k) if feedback else ()
+        explore = explore_prob > 0.0 and rng.random() < explore_prob
+        context = _top_k(accumulated, k) if (feedback and not explore) else ()
         cand = generator.propose(task, context, rng)
         scored = oracle.score(task, cand)
+        used += 1
         if scored.passed:
             corpus.record(task, scored)  # oracle-gated 영속 누적
             accumulated.append(scored)
@@ -256,10 +265,12 @@ def run_evolve(
         if best is None or scored.score > best.score:
             best = scored
         trace.append(best.score if best is not None else float("-inf"))
+        if solve_threshold is not None and best is not None and best.score >= solve_threshold:
+            break  # oracle-solve early-exit
     return EvolveRun(
         task=task,
         best=best,
-        evals=budget,
+        evals=used,
         recorded=recorded,
         read_back=len(seeded),
         trace=tuple(trace),
