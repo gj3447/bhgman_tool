@@ -141,28 +141,31 @@ def run_task(
         if add.returncode != 0:
             return TaskResult(task, False, f"worktree add 실패: {add.stderr[:200]}")
         try:
-            test_src = (open(os.path.join(wt, task.test_path), encoding="utf-8").read())  # noqa: SIM115,PTH123
-            # impl을 parent로 revert (기능 제거). parent에 없으면 빈 파일(from-scratch).
-            rev = _git(wt, ["checkout", task.parent, "--", task.impl_path])
-            if rev.returncode != 0:
+            try:
+                test_src = (open(os.path.join(wt, task.test_path), encoding="utf-8").read())  # noqa: SIM115,PTH123
+                # impl을 parent로 revert (기능 제거). parent에 없으면 빈 파일(from-scratch).
+                rev = _git(wt, ["checkout", task.parent, "--", task.impl_path])
+                if rev.returncode != 0:
+                    with open(os.path.join(wt, task.impl_path), "w", encoding="utf-8") as fh:  # noqa: PTH123
+                        fh.write("")
+                # LLM 재생성 (timeout/네트워크 오류는 그 task FAIL로 — batch 중단 금지)
+                comp = client.complete(
+                    system="You are an expert Python engineer. Output only code.",
+                    user=_regenerate_prompt(test_src, task.impl_path),
+                    model=model,
+                    max_tokens=8192,
+                )
                 with open(os.path.join(wt, task.impl_path), "w", encoding="utf-8") as fh:  # noqa: PTH123
-                    fh.write("")
-            # LLM 재생성
-            comp = client.complete(
-                system="You are an expert Python engineer. Output only code.",
-                user=_regenerate_prompt(test_src, task.impl_path),
-                model=model,
-                max_tokens=8192,
-            )
-            with open(os.path.join(wt, task.impl_path), "w", encoding="utf-8") as fh:  # noqa: PTH123
-                fh.write(strip_code_fence(comp.text))
-            proc = subprocess.run(  # noqa: S603
-                [py, "-m", "pytest", task.test_path, "-q", "-x", "-p", "no:cacheprovider"],
-                cwd=wt, capture_output=True, text=True, check=False,
-            )
-            tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else proc.stderr[:150]
-            passed_n, total_n = parse_pytest_counts(proc.stdout)
-            return TaskResult(task, proc.returncode == 0, tail, passed_n, total_n)
+                    fh.write(strip_code_fence(comp.text))
+                proc = subprocess.run(  # noqa: S603
+                    [py, "-m", "pytest", task.test_path, "-q", "-x", "-p", "no:cacheprovider"],
+                    cwd=wt, capture_output=True, text=True, check=False,
+                )
+                tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else proc.stderr[:150]
+                passed_n, total_n = parse_pytest_counts(proc.stdout)
+                return TaskResult(task, proc.returncode == 0, tail, passed_n, total_n)
+            except Exception as exc:  # noqa: BLE001 — 한 task 실패가 batch를 죽이면 안 됨
+                return TaskResult(task, False, f"{type(exc).__name__}: {str(exc)[:120]}")
         finally:
             _git(repo_abs, ["worktree", "remove", "--force", wt])
 
