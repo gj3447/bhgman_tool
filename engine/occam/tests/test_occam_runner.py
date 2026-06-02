@@ -44,6 +44,30 @@ def test_run_occam_apply_writes_supersession():
     assert len(write.calls) == 1
 
 
+# name은 schema상 required 아님(sourcePath/sha256/lineCount만 필수). name=None 노드도
+# supersede 식별·표시가 깨지면 안 된다 (regression: 옛 name-키 → None join CLI crash +
+# {name:null} MATCH 무발견 silent persistence miss).
+# # KG: challenge-occam-supersede-name-key-not-required-nullable-2026-06-02
+_NONAME_DUP_ROWS = [
+    {"name": None, "source_path": "/abs/bhgman_tool/x.py", "sha256": "z", "line_count": 10},
+    {"name": None, "source_path": "bhgman_tool/x.py", "sha256": "z", "line_count": 10},
+]
+
+
+def test_run_occam_apply_nameless_nodes_no_crash_path_fallback():
+    read = _Runner(_NONAME_DUP_ROWS)
+    write = _Runner()
+    res = run_occam(read, write_cypher=write, apply=True)
+    assert res.apply_result.applied_count == 1
+    # 표시 식별자가 None이 아니라 sourcePath로 폴백 (CLI join crash 차단)
+    assert all(s is not None for s in res.apply_result.superseded)
+    assert res.apply_result.superseded[0].endswith("x.py")
+    # 매칭 키 = 복합 (sourcePath, sha256) — write params에 둘 다 존재
+    _cy, params = write.calls[0]
+    assert params["stale_path"] and params["stale_sha"]
+    assert params["current_path"] and params["current_sha"]
+
+
 def test_run_occam_clean_kg_no_candidates_no_write_even_with_apply():
     read = _Runner(_CLEAN_ROWS)
     write = _Runner()

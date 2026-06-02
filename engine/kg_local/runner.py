@@ -51,20 +51,33 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
 
 
 def _occam_supersede(store: LocalKgStore, params: dict) -> list[dict]:
-    stale = store.find_one("name", params["stale_name"], "SourceCodeNode")
-    current = store.find_one("name", params["current_name"], "SourceCodeNode")
+    # 복합키 (sourcePath, sha256) 매칭 — name은 schema상 nullable이라 키로 못 씀.
+    # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약)
+    def _by(path: str, sha: str) -> dict | None:
+        return next(
+            iter(
+                store.find_nodes(
+                    "SourceCodeNode",
+                    lambda p: p.get("sourcePath") == path and p.get("sha256") == sha,
+                )
+            ),
+            None,
+        )
+
+    stale = _by(params["stale_path"], params["stale_sha"])
+    current = _by(params["current_path"], params["current_sha"])
     if stale is None or current is None or stale is current:
         return []
     stale["props"].update(
         {
             "status": "SUPERSEDED",
-            "supersededBy": params["current_name"],
+            "supersededBy": params["current_path"],
             "supersededReason": params.get("reason", ""),
             "occamPass": "occam",
         }
     )
     store.add_edge(stale, "SUPERSEDED_BY", current)
-    return [{"superseded": params["stale_name"], "current": params["current_name"]}]
+    return [{"superseded": params["stale_path"], "current": params["current_path"]}]
 
 
 def _hades_fetch_accepted(store: LocalKgStore, params: dict) -> list[dict]:
