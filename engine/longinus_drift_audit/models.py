@@ -186,7 +186,11 @@ class ReferenceSite(BaseModel):
     def _check_id(cls, v: str) -> str:
         if not _SOURCE_ID_PATTERN.match(v):
             # 너무 엄격하지 않게 — KG-style names accepted via dash-form.
-            if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_\-./]*$", v):
+            # KG canonical names legitimately start with a digit (`7cmd-…`, `88-…`,
+            # `333q-…`) or a unicode letter (`재배맨-v2`, `나생문-canonical`); `\w`
+            # (re.UNICODE-by-default for str) covers all three. Leading-letter-only
+            # was the bug that crashed `longinus bind` on `7cmd-…` (2026-06-02).
+            if not re.match(r"^\w[\w\-./]*$", v):
                 raise ValueError(f"invalid sourceId: {v}")
         return v
 

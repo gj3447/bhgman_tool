@@ -47,6 +47,20 @@ class TestReferenceSite:
         rs = ReferenceSite(sourceId="Prometheus.cycle_runner", sourcePath="x.py:1")
         assert rs.sourceId.startswith("Prometheus")
 
+    def test_digit_leading_kg_name_accepted(self):
+        # KG canonical names legitimately start with a digit — `longinus bind`
+        # crashed on these before the validator was relaxed (2026-06-02).
+        for sid in (
+            "7cmd-measurement-driven-conditional-dispatch-2026-05-30",
+            "88-taliban-mathematical-lens",
+            "333q-demo-ghz",
+        ):
+            assert ReferenceSite(sourceId=sid, sourcePath="x.py:1").sourceId == sid
+
+    def test_unicode_korean_kg_name_accepted(self):
+        for sid in ("재배맨-v2-subagent-runtime-protocol", "나생문-canonical-2026-05-19"):
+            assert ReferenceSite(sourceId=sid, sourcePath="x.py:1").sourceId == sid
+
 
 class TestDriftRecord:
     def test_minimal(self):
