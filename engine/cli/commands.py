@@ -129,11 +129,57 @@ def cmd_daemon(args: argparse.Namespace) -> int:
 
 
 def cmd_apt(args: argparse.Namespace) -> int:
-    """APT cycle dispatch (SA → SP → ST → SCW). Routes to skills/apt/SKILL.md."""
+    """APT cycle dispatch (SA → SP → ST → SCW). --gated = verified legion runtime; else skill route."""
+    if getattr(args, "gated", False):
+        return _cmd_apt_gated(args)
     if not args.task:
-        print("usage: bhgman-tool apt <task>", file=sys.stderr)
+        print(
+            "usage: bhgman-tool apt <task>  |  bhgman-tool apt --gated [--local] [--ground-truth CMD]",
+            file=sys.stderr,
+        )
         return 2
     return _route_skill("apt", args.task)
+
+
+def _cmd_apt_gated(args: argparse.Namespace) -> int:
+    """`apt run` runtime — closed legion loop + G1/G2/G3 verify-by-default, fail-closed.
+
+    Operational verdict (reproducible / audited / oracle-correct), NOT a cognitive claim (~0).
+    # KG: project-apt-ultracode-roadmap-2026-06-02 (item ⑤)
+    """
+    from engine.legion.commanders import build_default_legion  # noqa: PLC0415
+    from engine.legion.gated_run import run_gated  # noqa: PLC0415
+
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[apt --gated] neo4j unavailable — use --local for the bundled KG, set NEO4J_*, "
+            "or run via parent Claude MCP.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, write_cypher, close = runners
+    ctx = {"run_cypher": run_cypher, "write_cypher": write_cypher, "apply": False}
+    try:
+        result = run_gated(
+            build_default_legion(), ctx, ground_truth_cmd=getattr(args, "ground_truth", None)
+        )
+    finally:
+        close()
+
+    run = result.legion_run
+    print(f"[apt --gated] legion completed={run.completed} ran={run.ran}/6 stages")
+    marks = {"PASS": "✓", "FAIL": "✗", "SKIPPED": "–"}
+    for g in result.gates:
+        print(f"  {marks.get(g.status, '?')} {g.name}: {g.status} — {g.detail}")
+    print(f"  artifact sha256: {result.artifact_sha256[:16]}…")
+    if result.verified:
+        print("  VERIFIED ✓ (G1∧G2∧G3 all PASS) — reproducible + audited + oracle-green artifact.")
+    else:
+        print(
+            "  NOT VERIFIED (fail-closed: not all gates PASS) — operational gate, not a quality claim."
+        )
+    return 0 if result.verified else 1
 
 
 def cmd_tpa(args: argparse.Namespace) -> int:

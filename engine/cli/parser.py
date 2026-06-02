@@ -52,8 +52,26 @@ def build_parser() -> argparse.ArgumentParser:
     p_d.set_defaults(func=commands.cmd_daemon)
 
     # ─── SYMPOSIUM-absorbed verbs (Wave 7 P2-A, 2026-05-14) ────────────────
-    p_apt = sub.add_parser("apt", help="APT cycle dispatch (SA → SP → ST → SCW).")
-    p_apt.add_argument("task", nargs="+", help="Task description forwarded to /apt.")
+    p_apt = sub.add_parser(
+        "apt",
+        help="APT cycle dispatch (SA → SP → ST → SCW). --gated = run the verified legion runtime (G1/G2/G3).",
+    )
+    p_apt.add_argument("task", nargs="*", help="Task description forwarded to /apt (skill route).")
+    p_apt.add_argument(
+        "--gated",
+        action="store_true",
+        help="Run the gated legion runtime: closed loop + G1 ARTIFACT_EXISTS / G2 ADVERSARY_RAN / "
+        "G3 GROUND_TRUTH_GREEN. Fail-closed (verified iff all 3 PASS).",
+    )
+    p_apt.add_argument(
+        "--local", action="store_true", help="(--gated) use the bundled neo4j-free local KG."
+    )
+    p_apt.add_argument(
+        "--ground-truth",
+        dest="ground_truth",
+        help="(--gated) external oracle command for G3, e.g. 'uv run pytest -q'. "
+        "Omit => G3 SKIPPED => not verified.",
+    )
     p_apt.set_defaults(func=commands.cmd_apt)
 
     p_tpa = sub.add_parser("tpa", help="TPA reverse cycle (TCW → ST → SP → TA).")
