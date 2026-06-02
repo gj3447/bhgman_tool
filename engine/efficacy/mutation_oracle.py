@@ -13,8 +13,10 @@ naesengmoon 판정과 무관) + 정량.
 
 from __future__ import annotations
 
+import statistics
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 # (찾을 패턴, 바꿀 값, 설명) — 첫 출현 1곳만 변이 (mutant 1개 = 1 주입버그).
@@ -52,6 +54,40 @@ class MutationResult:
         return self.caught / self.total if self.total else 0.0
 
 
+@dataclass(frozen=True)
+class RepeatedMutationResult:
+    """N회 반복(서로 다른 hypothesis seed) catch_rate 분포.
+
+    oracle 테스트가 hypothesis property-test면 catch_rate가 seed마다 흔들린다
+    (boundary 변이는 hypothesis가 경계 예시를 뽑을 때만 잡힘). 단일값은
+    비재현 — mean±std + min/max + 고정 seed-set이 정직한 측정.
+    """
+
+    rates: tuple[float, ...]
+    mean: float
+    std: float
+    minimum: float
+    maximum: float
+
+    @property
+    def n_runs(self) -> int:
+        return len(self.rates)
+
+
+def aggregate_catch_rates(rates: Sequence[float]) -> RepeatedMutationResult:
+    """catch_rate 리스트 → mean/std(모표준편차)/min/max. 빈 입력이면 전부 0.0."""
+    if not rates:
+        return RepeatedMutationResult((), 0.0, 0.0, 0.0, 0.0)
+    rs = tuple(float(r) for r in rates)
+    return RepeatedMutationResult(
+        rates=rs,
+        mean=statistics.fmean(rs),
+        std=statistics.pstdev(rs) if len(rs) > 1 else 0.0,
+        minimum=min(rs),
+        maximum=max(rs),
+    )
+
+
 def generate_mutants(source: str, mutations=_MUTATIONS) -> list[Mutant]:
     """소스에서 적용 가능한 변이 1곳씩 적용한 변이본 리스트 (패턴당 첫 출현)."""
     out: list[Mutant] = []
@@ -85,25 +121,54 @@ def run_mutation_test(
     finally:
         path.write_text(original, encoding="utf-8")  # 원본 복원 (필수)
     return MutationResult(
-        total=len(mutants), caught=caught, escaped=len(escaped),
+        total=len(mutants),
+        caught=caught,
+        escaped=len(escaped),
         escaped_descriptions=tuple(escaped),
     )
+
+
+def run_mutation_test_repeated(
+    target_file: str, test_path: str, n_runs: int = 10, mutations=_MUTATIONS
+) -> RepeatedMutationResult:  # pragma: no cover — subprocess/IO
+    """seed 0..n_runs-1로 N회 반복 → catch_rate 분포.
+
+    각 run은 `--hypothesis-seed=<i>` 고정이라 seed-set {0..N-1} 전체가 재현 가능.
+    oracle 테스트가 property-based라 단일 run은 비결정 — 분포로 보고하는 게 정직."""
+    rates: list[float] = []
+    for seed in range(n_runs):
+        cmd = ["uv", "run", "pytest", test_path, "-q", "-x", f"--hypothesis-seed={seed}"]
+        rates.append(run_mutation_test(target_file, cmd, mutations).catch_rate)
+    return aggregate_catch_rates(rates)
 
 
 def main() -> int:  # pragma: no cover — IO 진입점
     # 기본 타겟: scoring.py (잘 테스트된 순수 모듈) + 그 테스트.
     target = sys.argv[1] if len(sys.argv) > 1 else "engine/occam/scoring.py"
     test_path = sys.argv[2] if len(sys.argv) > 2 else "engine/occam/tests/test_scoring.py"
-    cmd = ["uv", "run", "pytest", test_path, "-q", "-x"]
-    res = run_mutation_test(target, cmd)
+    n_runs = int(sys.argv[3]) if len(sys.argv) > 3 else 10
+    agg = run_mutation_test_repeated(target, test_path, n_runs)
     print(
-        f"naesengmoon mutation oracle [{target}]: caught={res.caught}/{res.total} "
-        f"catch_rate={res.catch_rate:.3f} escaped={list(res.escaped_descriptions)}"
+        f"naesengmoon mutation oracle [{target}] (n={agg.n_runs} runs, seed 0..{agg.n_runs - 1}): "
+        f"catch_rate mean={agg.mean:.3f} std={agg.std:.3f} "
+        f"min={agg.minimum:.3f} max={agg.maximum:.3f}"
+    )
+    print(f"  per-run: {[round(r, 3) for r in agg.rates]}")
+    print(
+        "  ※ oracle = hypothesis property-test → 단일 run 비결정. mean±std + 고정 seed-set로 재현."
     )
     return 0
 
 
-__all__ = ["Mutant", "MutationResult", "generate_mutants", "run_mutation_test"]
+__all__ = [
+    "Mutant",
+    "MutationResult",
+    "RepeatedMutationResult",
+    "aggregate_catch_rates",
+    "generate_mutants",
+    "run_mutation_test",
+    "run_mutation_test_repeated",
+]
 
 
 if __name__ == "__main__":  # pragma: no cover

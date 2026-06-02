@@ -12,7 +12,7 @@ are reproduced by the commands shown; no value is hand-authored.
 |---|---|---|---|---|
 | **occam** | 정리 | **MEASURED** | AUC **0.602** (pos 77 / neg 242) | `disk_present` — filesystem, not occam's label. ✅ non-circular |
 | **longinus** | 연결 | **MEASURED** | ON **0.932** vs naive OFF 0.705, **Δ+0.227, perm p<1e-4**; false-kill 1.000→0.333 | injected disk mutations (20 seeds) + 101 independent drift events. ✅ |
-| **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.600** (6/10; escapes 4 boundary/sign mutants) | injected code mutants on `engine/occam/scoring.py`. ✅ |
+| **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.52 ± 0.10** (n=10 runs, seed 0..9; range [0.30, 0.60]) — *non-deterministic per-run* (oracle = hypothesis property-test); single 0.600 was the high tail, not reproducible | injected code mutants on `engine/occam/scoring.py`. ✅ |
 | **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
 | **prometheus** | 획득 | **MEASURED** | groundedness: sourcing **0.077** (946/12356), verifiability **0.931** (881/946 external), self-cite **0.001** (1/946) | `urlparse` URL-structure classification — not prometheus's judgment. ✅ non-circular. verifiability/precision-floor, NOT novelty. |
@@ -28,7 +28,7 @@ uv run python -m engine.efficacy.run_all_commanders      # AUC-gate table (occam
 uv run python -m engine.efficacy.run_kg_efficacy          # occam disk-oracle, AUC 0.602
 uv run python -m engine.efficacy.longinus_ab_experiment   # longinus ON/OFF Δ+0.227
 uv run python -m engine.efficacy.drift_oracle             # 101 independent drift events
-uv run python -m engine.efficacy.mutation_oracle          # naesengmoon catch 0.600
+uv run python -m engine.efficacy.mutation_oracle engine/occam/scoring.py engine/occam/tests/test_scoring.py 10   # naesengmoon catch 0.52±0.10 (n=10, seed 0..9; non-deterministic)
 uv run python -m engine.efficacy.dispatch_telemetry       # jaebaeman fidelity 1.000
 uv run python -m engine.efficacy.scale_curve              # operational scale to 100k
 uv run python -m engine.efficacy.hades_oracle             # hades realization 0.839 + unrealized list
