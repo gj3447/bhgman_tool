@@ -161,6 +161,94 @@ PROBLEMS: tuple[CodingProblem, ...] = (
 )
 
 
+# ── HARD 셋: 헤드룸 보장 (edge-case 다수 + anti-memorization 트위스트 → 1-shot 부분실패) ──
+HARD_PROBLEMS: tuple[CodingProblem, ...] = (
+    CodingProblem(
+        name="atoi_clamp",
+        prompt="Write `atoi_clamp(s: str) -> int`: skip leading spaces, optional +/- sign, read "
+        "digits until a non-digit, ignore the rest. Empty/no-digits -> 0. CLAMP result to "
+        "[-1000, 1000].",
+        entrypoint="atoi_clamp",
+        test_source=(
+            "from solution import atoi_clamp as f\n"
+            "def test_plain(): assert f('42') == 42\n"
+            "def test_ws_neg(): assert f('   -42') == -42\n"
+            "def test_trail(): assert f('4193 with words') == 1000\n"
+            "def test_leadword(): assert f('words and 987') == 0\n"
+            "def test_clampneg(): assert f('-91283') == -1000\n"
+            "def test_plus(): assert f('+1') == 1\n"
+            "def test_empty(): assert f('') == 0\n"
+            "def test_dot(): assert f('3.14') == 3\n"
+            "def test_zeros(): assert f('  -000123') == -123\n"
+            "def test_spacebetween(): assert f('  +0 123') == 0\n"
+        ),
+    ),
+    CodingProblem(
+        name="brackets_angle",
+        prompt="Write `match_brackets(s: str) -> bool`: True iff brackets ()[]{} AND ANGLE <> are "
+        "correctly matched and nested. Non-bracket chars are ignored. Empty -> True.",
+        entrypoint="match_brackets",
+        test_source=(
+            "from solution import match_brackets as f\n"
+            "def test_all(): assert f('()[]{}<>') is True\n"
+            "def test_nest(): assert f('([{<>}])') is True\n"
+            "def test_bad(): assert f('(]') is False\n"
+            "def test_angle_bad(): assert f('<(>)') is False\n"
+            "def test_empty(): assert f('') is True\n"
+            "def test_angle_nest(): assert f('<<>>') is True\n"
+            "def test_cross(): assert f('([)]') is False\n"
+            "def test_ignore(): assert f('a(b)c<d>') is True\n"
+        ),
+    ),
+    CodingProblem(
+        name="rle_decode",
+        prompt="Write `rle_decode(s: str) -> str`: inverse run-length. A letter optionally followed "
+        "by a (possibly multi-digit) count; missing count means 1. 'a3b2c1'->'aaabbc', "
+        "'a12'->12 a's, 'abc'->'abc'. Empty -> ''.",
+        entrypoint="rle_decode",
+        test_source=(
+            "from solution import rle_decode as f\n"
+            "def test_basic(): assert f('a3b2c1') == 'aaabbc'\n"
+            "def test_multidigit(): assert f('a12') == 'a'*12\n"
+            "def test_nocount(): assert f('abc') == 'abc'\n"
+            "def test_empty(): assert f('') == ''\n"
+            "def test_one(): assert f('x5') == 'xxxxx'\n"
+            "def test_mix(): assert f('a2b') == 'aab'\n"
+        ),
+    ),
+    CodingProblem(
+        name="compare_version",
+        prompt="Write `compare_version(v1: str, v2: str) -> int`: split on '.', compare each part "
+        "NUMERICALLY (so '01'=='1'), missing parts count as 0. Return -1/0/1.",
+        entrypoint="compare_version",
+        test_source=(
+            "from solution import compare_version as f\n"
+            "def test_leadzero(): assert f('1.01','1.001') == 0\n"
+            "def test_trail(): assert f('1.0','1.0.0') == 0\n"
+            "def test_lt(): assert f('0.1','1.1') == -1\n"
+            "def test_gt(): assert f('1.0.1','1') == 1\n"
+            "def test_deep(): assert f('7.5.2.4','7.5.3') == -1\n"
+            "def test_numeric(): assert f('1.2','1.10') == -1\n"
+        ),
+    ),
+    CodingProblem(
+        name="simplify_path",
+        prompt="Write `simplify_path(p: str) -> str`: simplify a Unix absolute path. Collapse '.', "
+        "'..' (parent, no-op at root), and multiple '/'. Result has no trailing '/' (except root '/').",
+        entrypoint="simplify_path",
+        test_source=(
+            "from solution import simplify_path as f\n"
+            "def test_basic(): assert f('/a/./b/../../c/') == '/c'\n"
+            "def test_root_up(): assert f('/../') == '/'\n"
+            "def test_doubleslash(): assert f('/home//foo/') == '/home/foo'\n"
+            "def test_complex(): assert f('/a/../../b/../c//.//') == '/c'\n"
+            "def test_root(): assert f('/') == '/'\n"
+            "def test_dotdir(): assert f('/.../a') == '/.../a'\n"
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True)
 class CodingABResult:
     problem: str
@@ -198,27 +286,58 @@ def main() -> int:  # pragma: no cover — 실 LLM 런 (백엔드 필요)
             render=coding_render,
         )
 
+    hard = os.environ.get("BHGMAN_AB_PROBLEMS", "easy") == "hard"
+    problems = HARD_PROBLEMS if hard else PROBLEMS
+    budget = int(os.environ.get("BHGMAN_AB_BUDGET", "8" if hard else "6"))
+    trials = int(os.environ.get("BHGMAN_AB_TRIALS", "1"))  # LLM stochastic — 시도 평균
+    fly_sessions = 2
+    fly_budget = budget // fly_sessions
+
     results: list[CodingABResult] = []
     root = Path(tempfile.mkdtemp(prefix="coding_ab_"))
-    for prob in PROBLEMS:
+    for prob in problems:
         task = f"PROBLEM ({prob.name}): {prob.prompt}"
-        oracle = CodingOracle(prob, root / prob.name)
-        bon = run_evolve(
-            task, 6, mk(), oracle, InMemoryCorpus(), rng=random.Random(1), feedback=False
-        )
-        fly = run_sessions(task, 3, 2, mk(), oracle, InMemoryCorpus(), base_seed=40, feedback=True)
-        last = fly[-1]
+        bon_scores, fly_scores, read_backs = [], [], []
+        for t in range(trials):
+            oracle = CodingOracle(prob, root / f"{prob.name}_t{t}")
+            bon = run_evolve(
+                task,
+                budget,
+                mk(),
+                oracle,
+                InMemoryCorpus(),
+                rng=random.Random(1 + t),
+                feedback=False,
+            )
+            fly = run_sessions(
+                task,
+                fly_budget,
+                fly_sessions,
+                mk(),
+                oracle,
+                InMemoryCorpus(),
+                base_seed=40 + t * 10,
+                feedback=True,
+            )
+            bon_scores.append(bon.best_score)
+            fly_scores.append(fly[-1].best_score)
+            read_backs.append(fly[-1].read_back)
+        bb = sum(bon_scores) / len(bon_scores)
+        fb = sum(fly_scores) / len(fly_scores)
         results.append(
             CodingABResult(
                 problem=prob.name,
-                bon_best=bon.best_score,
-                flywheel_best=last.best_score,
-                bon_solved=bon.best_score >= 1.0,
-                flywheel_solved=last.best_score >= 1.0,
-                read_back=last.read_back,
+                bon_best=bb,
+                flywheel_best=fb,
+                bon_solved=bb >= 1.0,
+                flywheel_solved=fb >= 1.0,
+                read_back=max(read_backs),
             )
         )
-    print(f"=== Coding flywheel A/B (model={model}, equal 6 calls/arm) ===")
+    label = "HARD" if hard else "easy"
+    print(
+        f"=== Coding flywheel A/B [{label}] (model={model}, {budget} calls/arm, {trials} trial) ==="
+    )
     for r in results:
         print(
             f"  [{r.problem:14}] BON={r.bon_best:.2f}{'✓' if r.bon_solved else ' '} "
