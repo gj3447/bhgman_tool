@@ -2,6 +2,16 @@
 
 Ganter-Wille 1999 fundamental theorem. Extent/intent Galois closure. Idempotent.
 
+Theory↔code bridge (colimit): the academic grounding (THEORY/유레카/PROM_16_EUREKA_
+ACADEMIC_REPORT.md §C4) states "ILP predicate-invention ⇔ FCA concept-lattice ⇔
+category-theory colimit" — the *same construction in three languages*. Eureka's
+Phase-2 synthesis is characterized categorically as a colimit, but is *realized in
+code by this Galois closure* (concept-lattice join), NOT by a literal `colimit`
+symbol. Per user verdict 2026-05-29 the colimit framing was downgraded to a
+Phase-2 sub-step (colimit ⊊ eureka); the operational form is FCA here +
+community-merge in stages.py + anti_unify (Plotkin LGG) on the code-template path.
+# KG: eureka-canonical-2026-05-26 (colimit_subsumption_2026_05_29), consensus-eureka-academic-grounding-2026-05-26
+
 Constraint per seed-prom16lag-conflict-fca-dense-avoid-vs-sparse-rec-2026-05-20:
 - Use only when formal context is binary or conceptually-scaled
 - Bound |concepts| via iceberg-lattice (Roth-Obiedkov-Kourie 2008) or stability pruning

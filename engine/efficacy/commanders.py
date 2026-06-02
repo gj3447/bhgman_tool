@@ -76,6 +76,12 @@ COMMANDERS: tuple[CommanderEfficacySpec, ...] = (
         label_cypher=None,
         known_falsifier="self-citation loop (project_bhgman_self_critique). 외부 held-out 필요",
     ),
+    # NOTE: label_cypher=None ⇒ UNMEASURABLE in this real-KG AUC sweep (no diachronic
+    # reuse oracle yet). This is NOT contradicted by engine/efficacy/eureka_oracle.py,
+    # which is a *separate, synthetic* capability oracle (planted-concept recovery,
+    # self-labeled "부채") — it does NOT run the 3-falsifier run_preflight gate because
+    # planted data has no real labelset to test circularity/signal on. The two measure
+    # different things; both are honest. Real reuse oracle = open work.
     CommanderEfficacySpec(
         commander="eureka",
         verb="발견·창조",

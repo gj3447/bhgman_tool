@@ -4,8 +4,8 @@ Replaces hardcoded `InductionMethod(str, Enum)` dispatch with a runtime-extensib
 registry. New operators self-register on import, so adding a 6th operator does not
 require modifying models.py.
 
-Default registered set mirrors the previous enum:
-- fca, amie3, leiden-llm, manual, unknown
+Default registered set mirrors the InductionMethod enum:
+- fca, amie3, leiden-llm, leiden-true, manual, unknown
 """
 # KG: eureka-canonical-2026-05-26
 
@@ -14,9 +14,9 @@ from __future__ import annotations
 import threading
 
 
-_REGISTERED: set[str] = {"fca", "amie3", "leiden-llm", "manual", "unknown"}
+_REGISTERED: set[str] = {"fca", "amie3", "leiden-llm", "leiden-true", "manual", "unknown"}
 _LOCK = threading.Lock()
-_INDUCED_AUTOMATED = {"fca", "amie3", "leiden-llm"}
+_INDUCED_AUTOMATED = {"fca", "amie3", "leiden-llm", "leiden-true"}
 
 
 def register_method(name: str, *, automated: bool = False) -> None:

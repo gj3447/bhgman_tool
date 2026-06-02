@@ -54,7 +54,8 @@ class PipelineConfig:
     fca_min_extent: int = 2
     fca_min_stability: float = 0.5
 
-    # induction operator 선택 (bake-off): 'fca'(default) | 'amie3'. amie3는 Java subprocess.
+    # induction operator 선택 (4-way bake-off): 'fca'(default) | 'amie3'(Java subprocess)
+    # | 'leiden-llm'(offline CNM) | 'leiden-true'(genuine Leiden, needs leidenalg+igraph).
     method: str = "fca"
     # amie3 주입점 (테스트=fake, 실전=induce_amie3 default). amie3 전용 threshold도 재사용.
     amie3_runner: Optional[Any] = None
@@ -159,10 +160,11 @@ def stage_4_induce(
     cycle_id: str,
     config: PipelineConfig,
 ) -> tuple[list[AbstractClass], list[GeneralizesEdge], FcaResult]:
-    """induction operator dispatch (config.method): 'fca'(default) | 'amie3'.
+    """induction operator dispatch (config.method): 'fca'(default) | 'amie3' | 'leiden-llm' | 'leiden-true'.
 
-    두 operator 모두 FcaResult(FormalConcept) shape로 정규화 → 후단(quality/oracle/fidelity/gate)
-    동일 처리. amie3는 Java subprocess(amie3_runner 주입식, 어댑터가 Horn rule→concept 변환).
+    모든 operator 가 FcaResult(FormalConcept) shape로 정규화 → 후단(quality/oracle/fidelity/gate)
+    동일 처리. amie3는 Java subprocess(amie3_runner 주입식, 어댑터가 Horn rule→concept 변환);
+    leiden-true는 genuine Leiden(leidenalg+igraph opt-in dep, 없으면 RuntimeError).
     """
     if config.method == "amie3":
         from engine.eureka.amie3_adapter import induce_via_amie3  # noqa: PLC0415 (Java-optional path)
@@ -186,6 +188,21 @@ def stage_4_induce(
             min_stability=config.fca_min_stability,
         )
         method = InductionMethod.LEIDEN_LLM
+    elif config.method == "leiden-true":
+        # Genuine Leiden (Traag-Waltman-vanEck 2019) — opt-in upgrade over the
+        # offline CNM operator; needs leidenalg+igraph (raises a clear error if
+        # absent). Same I/O as leiden-llm, so the bake-off compares algorithm
+        # quality on identical formal contexts.
+        from engine.eureka.induction_operators import induce_leiden_true  # noqa: PLC0415
+
+        resolution = config.gamma_sweep[0] if config.gamma_sweep else 1.0
+        fca_result = induce_leiden_true(
+            formal_context,
+            resolution=resolution,
+            min_extent=config.fca_min_extent,
+            min_stability=config.fca_min_stability,
+        )
+        method = InductionMethod.LEIDEN_TRUE
     else:
         fca_result = induce_fca(
             formal_context,

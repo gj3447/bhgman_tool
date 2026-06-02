@@ -131,3 +131,30 @@ def test_pipeline_leiden_llm_method_dispatches_to_operator():
     assert all(ac.name.startswith("ac_leiden-llm_") for ac in acs)
     # induced inducer → extent/intent/stability 필수 (induction_models 검증) — 비어있지 않음.
     assert all(ac.extent and ac.intent is not None and ac.stabilityScore is not None for ac in acs)
+
+
+# ── leiden-true operator dispatch (genuine Leiden, opt-in dep, 2026-06-02) ────
+
+
+def test_pipeline_leiden_true_method_dispatches_to_operator():
+    """config.method='leiden-true' → induce_leiden_true 경유. leidenalg/igraph 없으면 skip."""
+    import pytest  # noqa: PLC0415
+
+    pytest.importorskip("leidenalg")
+    pytest.importorskip("igraph")
+    from engine.eureka.pipeline import PipelineConfig, stage_4_induce  # noqa: PLC0415
+
+    context = {
+        "a": frozenset({"X", "Y"}),
+        "b": frozenset({"X", "Y"}),
+        "c": frozenset({"X", "Y"}),
+        "d": frozenset({"P", "Q"}),
+        "e": frozenset({"P", "Q"}),
+        "f": frozenset({"P", "Q"}),
+    }
+    cfg = PipelineConfig(cycle_id="leiden-true-test", method="leiden-true", fca_min_stability=0.0)
+    acs, _edges, fca_result = stage_4_induce(context, cfg.cycle_id, cfg)
+    assert fca_result.fallback_reason is None
+    assert all(ac.inductionMethod == "leiden-true" for ac in acs)
+    assert all(ac.name.startswith("ac_leiden-true_") for ac in acs)
+    assert all(ac.extent and ac.intent is not None and ac.stabilityScore is not None for ac in acs)

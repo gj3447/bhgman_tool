@@ -7,6 +7,12 @@ N개 코드 조각의 *최소 일반화*(least general generalization): 같은 �
 = 하데스 + materialize(engine-impl c6 "가장 위험"). 여기선 dry-run 템플릿만.
 가드: hole_ratio>0.5 = over-generalization → reject (engine-spec guard "홀>50% reject").
 
+**WIRING STATUS (2026-06-02)**: implemented + tested (tests/test_anti_unify.py) but NOT
+yet wired to a CLI/pipeline entry — `pipeline.run` is the *KG-induction* path (FCA/AMIE3/
+Leiden over a formal context); this is the disjoint *code-template* path (over code
+fragments). It is a real capability awaiting a code-scanner front-end (`eureka --code`),
+NOT dead code — do not Occam-archive. Follow-up: wire a code-fragment → anti_unify entry.
+
 # KG: consensus-eureka-academic-grounding-2026-05-26 (C5 anti-unification),
 #     eureka-canonical-2026-05-26 (PROPOSE만, auto-commit 금지), eureka-engine-spec-2026-05-26
 """

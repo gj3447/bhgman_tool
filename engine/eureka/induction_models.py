@@ -27,6 +27,7 @@ class InductionMethod(str, Enum):
     FCA = "fca"
     AMIE3 = "amie3"
     LEIDEN_LLM = "leiden-llm"
+    LEIDEN_TRUE = "leiden-true"
     MANUAL = "manual"
     UNKNOWN = "unknown"
 
