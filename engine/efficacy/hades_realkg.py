@@ -240,7 +240,8 @@ def select_pass_at_n(cands: Sequence[Candidate]) -> bool:
 
 
 def run_bestofn_task(
-    repo: str, task: HadesTask, client, n: int = 5, model: str = "local"
+    repo: str, task: HadesTask, client, n: int = 5, model: str = "local",
+    temperature: float | None = 1.0,
 ) -> list[Candidate]:  # pragma: no cover — IO (worktree + N×LLM + N×pytest)
     """한 task에서 N개 후보 생성·각각 테스트. 같은 worktree 재사용, 매 후보 impl revert→생성→pytest.
 
@@ -253,16 +254,24 @@ def run_bestofn_task(
             return []
         try:
             test_src = open(os.path.join(wt, task.test_path), encoding="utf-8").read()  # noqa: SIM115,PTH123
-            for _ in range(n):
+            # 후보별 접근 변주 — outcome 다양성 유도(temperature 노브 부재 우회). pass@k headroom 전제.
+            variants = [
+                "", "Take a minimal, direct approach.", "Take a defensive, edge-case-first approach.",
+                "Prefer standard-library idioms and explicit types.", "Optimize for readability over cleverness.",
+                "Consider an alternative data structure or control flow.",
+            ]
+            for i in range(n):
                 try:
                     rev = _git(wt, ["checkout", task.parent, "--", task.impl_path])
                     if rev.returncode != 0:
                         open(os.path.join(wt, task.impl_path), "w").close()  # noqa: SIM115,PTH123
+                    hint = variants[i % len(variants)]
                     comp = client.complete(
                         system="You are an expert Python engineer. Output only code.",
-                        user=_regenerate_prompt(test_src, task.impl_path),
+                        user=_regenerate_prompt(test_src, task.impl_path) + (f"\n\n[Variant {i}] {hint}" if hint else ""),
                         model=model,
                         max_tokens=8192,
+                        temperature=temperature,
                     )
                     code = strip_code_fence(comp.text)
                     with open(os.path.join(wt, task.impl_path), "w", encoding="utf-8") as fh:  # noqa: PTH123
@@ -333,19 +342,26 @@ def main() -> int:  # pragma: no cover — IO 진입점
         from engine.agents.client import AgentClient  # noqa: PLC0415
 
         n_cand = int(sys.argv[5]) if len(sys.argv) > 5 else 5
+        temp = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
         client = AgentClient()
-        per_task = [run_bestofn_task(repo, t, client, n_cand) for t in tasks]
+        per_task = [run_bestofn_task(repo, t, client, n_cand, temperature=temp) for t in tasks]
         per_task = [c for c in per_task if c]  # 빈(worktree 실패) task 제외
         nt = len(per_task)
         p1 = sum(select_pass_at_1(c) for c in per_task) / nt if nt else 0.0
         maj = sum(select_majority_at_n(c) for c in per_task) / nt if nt else 0.0
         pn = sum(select_pass_at_n(c) for c in per_task) / nt if nt else 0.0
-        print(f"hades best-of-N (동일 생성예산 N={n_cand}, oracle=토큰0) [{repo}] tasks={nt}:")
-        print(f"  pass@1 (블라인드 첫샘플):        {p1:.3f}")
-        print(f"  majority@N (텍스트 self-consist): {maj:.3f}   ← oracle 미사용 baseline")
-        print(f"  oracle-rerank@N (= pass@N, bhgman): {pn:.3f}   ← 완벽 oracle selector")
-        print(f"  ▶ cognitive lift = oracle−majority = {pn - maj:+.3f}   (headroom pass@N−pass@1 = {pn - p1:+.3f})")
-        print("  ※ 동일 N 생성예산; lift>0 = oracle이 블라인드 self-consistency를 이김(=bhgman 고유 자산)")
+        # medium-band = 한 task 안에서 일부만 통과(0<통과<N) = best-of-N이 고를 다양성 존재.
+        band = [c for c in per_task if 0 < sum(x.passed for x in c) < len(c)]
+        nb = len(band)
+        maj_b = sum(select_majority_at_n(c) for c in band) / nb if nb else 0.0
+        pn_b = sum(select_pass_at_n(c) for c in band) / nb if nb else 0.0
+        dist = sorted(sum(x.passed for x in c) for c in per_task)  # task별 통과 후보 수
+        print(f"hades best-of-N (N={n_cand}, temp={temp}, oracle=토큰0) [{repo}] tasks={nt}:")
+        print(f"  pass@1={p1:.3f}  majority@N={maj:.3f}  oracle-rerank@N={pn:.3f}")
+        print(f"  ▶ 전체 cognitive lift = oracle−majority = {pn - maj:+.3f}  (headroom pass@N−pass@1 = {pn - p1:+.3f})")
+        print(f"  task별 통과후보수 분포(0~{n_cand}): {dist}")
+        print(f"  medium-band(0<통과<N) tasks = {nb}/{nt}  → 이 band lift = oracle−majority = {pn_b - maj_b:+.3f} (maj {maj_b:.3f} vs oracle {pn_b:.3f})")
+        print("  ※ medium-band가 0이면 다양성/난이도 문제(=selector 무관). >0인데 lift>0이면 oracle이 진짜 이김.")
         return 0
     print(f"unknown mode {mode} (use --list / --run / --ab / --bestofn)", file=sys.stderr)
     return 2

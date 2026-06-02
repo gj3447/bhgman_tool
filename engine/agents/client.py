@@ -114,18 +114,27 @@ class AgentClient:
         max_tokens: int = DEFAULT_MAX_TOKENS,
         effort: str | None = None,
         web_search: bool = False,
+        temperature: float | None = None,
     ) -> Completion:
-        """1회 호출. openai-compat면 로컬 모델로(web_search/effort 무시), anthropic이면 full."""
-        if self._mode == "openai":
-            return self._complete_openai(system, user, max_tokens)
-        return self._complete_anthropic(system, user, model, max_tokens, effort, web_search)
+        """1회 호출. openai-compat면 로컬 모델로(web_search/effort 무시), anthropic이면 full.
 
-    def _complete_openai(self, system: str, user: str, max_tokens: int) -> Completion:
+        temperature: best-of-N sampling diversity용 (None=백엔드 기본). 양 백엔드 plumb."""
+        if self._mode == "openai":
+            return self._complete_openai(system, user, max_tokens, temperature)
+        return self._complete_anthropic(
+            system, user, model, max_tokens, effort, web_search, temperature
+        )
+
+    def _complete_openai(
+        self, system: str, user: str, max_tokens: int, temperature: float | None = None
+    ) -> Completion:
         payload = {
             "model": self._model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
             "max_tokens": max_tokens,
         }
+        if temperature is not None:
+            payload["temperature"] = temperature
         headers = {"Authorization": f"Bearer {self._key}"}
         resp = self._post(f"{self._base}/chat/completions", payload, headers, 120.0)
         choice = (resp.get("choices") or [{}])[0]
@@ -140,10 +149,12 @@ class AgentClient:
         )
 
     def _complete_anthropic(
-        self, system, user, model, max_tokens, effort, web_search
+        self, system, user, model, max_tokens, effort, web_search, temperature=None
     ) -> Completion:
         system_blocks = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
         kwargs: dict = {"model": model, "max_tokens": max_tokens, "system": system_blocks}
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         if effort and model in EFFORT_CAPABLE:
             kwargs["output_config"] = {"effort": effort}
         if web_search:
