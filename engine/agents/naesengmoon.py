@@ -8,7 +8,7 @@
 N중 = N 독립 lens (default 1:1, lesson-naesengmoon-cardinality-direct-1to1-not-orthogonal).
 executor != reviewer (D20) — 호출자가 빌더면 이 엔진은 별도 critic. graceful degrade.
 
-# KG: naesengmoon-canonical-2026-05-19, naesengmoon-two-lens-class-2026-05-27,
+# KG: naesengmoon-canonical-2026-05-19, naesengmoon-wired-ensemble-upgrade-2026-05-27,
 #     bhgman-llm-commander-runtime-2026-05-28
 """
 

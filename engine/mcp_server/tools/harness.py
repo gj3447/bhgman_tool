@@ -15,7 +15,7 @@ from typing import Any
 
 
 # Known framework registry — extend as new instances are absorbed.
-# KG: lesson-harness-3tier-family-2026-04-30 (canon in SYMPOSIUM)
+# KG: hub-harness-3tier (canon in SYMPOSIUM — Harness 3-tier family hub)
 KNOWN_INSTANCES: dict[str, dict[str, Any]] = {
     "cursor": {"tier": "L_IDE", "kind": "IDE-host coding harness"},
     "claude code": {"tier": "L_IDE", "kind": "IDE-host coding harness"},
