@@ -73,6 +73,16 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   frontier-model / many-iteration scale (FunSearch's regime) stays open, but bhgman's
   current-reach answer is operational-only — consistent with this verdict, not an exception
   to it. See `SWEEP_RESULTS.md` §"Composition 4th gate".
+  **PROM 16 revival audit 2026-06-02 → CLOSE-AS-OPERATIONAL.** A 16-cell literature PROM
+  (`prom16-evolve-loop-revival-2026-06-02`) found the loop beats best-of-N at equal compute
+  ONLY under 4 co-conditions — strong model (above the self-improvement floor), unsaturated
+  headroom, island/diversity (not greedy top-K), and textual-feedback oracle (not scalar).
+  Two are **HARD CEILING** for bhgman's reach: frontier-class models (FunSearch/AlphaEvolve
+  win with Gemini-Pro/GPT-4, not 7B) and ~10⁶-sample eval budgets. So the loop is framed as
+  *bounded oracle-guided repair*, never *discovery*; the deterministic oracle GATE (ARM3),
+  not the agentic loop, is the defensible value. Reviving requires a frontier-scale experiment
+  that would only re-confirm this negative. (A skeptic pass also voided one proposed "fix" as
+  patching a non-existent bug — the read-back is already capped at best-K=2.)
 - **External impact — UNMEASURED.** Every number here is internal/self-referential. Whether
   anyone *outside* this project uses or benefits from the tool is the genuinely untested
   axis (`project_bhgman_self_critique_2026_05_28`).
