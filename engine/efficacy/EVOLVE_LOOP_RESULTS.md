@@ -78,9 +78,24 @@ uv run pytest engine/efficacy/tests/test_evolve_loop_min_experiment.py \
 best **단조 비감소 + 최종 > 첫 세션**(복리) / feedback(steering) OFF면 훨씬 못 도달(load-bearing) /
 passed=False는 누적 거부(oracle-gating) / 새 store 재로드 시 이전 세션 검증분 복원(영속).
 
-**남은 것** (별도 작업): 실 생성기 배선(eureka/LLM `propose`) + 실 oracle 배선(`build_command`로
-Lean `lake build`/pytest 실행) + 3-arm equal-token A/B(LLM 실호출)로 본 시뮬레이션이 실제
-생성기에서도 재현되는지. + (천장 돌파) 누적 검증 corpus를 fine-tune/RL 학습셋으로 환류.
-자격 task: Lean 증명 / 테스트 동반 refactor / KG drift 수복 / occam supersession.
+### 실 컴포넌트 배선 (BUILT — `evolve_adapters.py` / `evolve_ab.py`)
+
+- **실 oracle scalar 파서** ✅ `pytest_pass_ratio`(passed/(passed+failed)), `lean_cleanliness`
+  (1/(1+errors+sorry)) + factory `pytest_oracle`/`lean_oracle`(`build_command`으로 후보를 실제
+  `pytest -q`/`lake build` 실행). fake runner로 테스트(green), 실 subprocess는 런타임.
+- **실 생성기(LLM)** ✅ `LlmGenerator`: `AgentClient`(dual-backend: local vLLM/Ollama 또는
+  anthropic) 래퍼. best-K read-back을 프롬프트에 주입(`default_llm_render`) + 토큰 회계
+  (`output_tokens`). 주입 transport로 테스트(green, 백엔드 불요), 실 백엔드는 런타임.
+- **3-arm equal-budget A/B** ✅ `run_3arm`: BON(blind best-of-B×S) / LOOP_NOMEM(세션내 steering,
+  기억 없음) / FLYWHEEL(영속 corpus 복리), 동일 총 oracle-eval. 결정론 demo 실측:
+  **BON=16.0 < LOOP_NOMEM=19.0 < FLYWHEEL=20.0, Δ(fly−bon)=+4.0 → REAL_WIN, memory_adds=True.**
+  평평(구조 없는) oracle은 NO_SIGNAL. generic이라 LlmGenerator + 실 Lean/pytest oracle에 그대로 꽂힘.
+- **학습 환류 다리(천장 돌파)** ✅ `export_training_set`/`write_training_jsonl`: 검증 통과 corpus →
+  (task, verified-solution, score) JSONL = inference-time→learning-time. 이 검증셋으로 fine-tune/RL.
+
+**남은 것(외부 인프라 필요, seam만 배선됨)**: 실 LLM 백엔드(dgx vLLM/Ollama 또는 API 키) 띄워
+`LlmGenerator`로 본 demo 결과가 *실 생성기*에서도 재현되는지 — 코드는 준비됨, 백엔드 기동만 필요.
+fine-tune/RL 실행은 GPU 학습 인프라(별 프로젝트); export가 그 입력 artifact를 생산. 자격 task:
+Lean 증명 / 테스트 동반 refactor / KG drift 수복 / occam supersession (결정론 verifier 보유분만).
 
 # KG: prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-collective-intelligence-design-2026-06-02
