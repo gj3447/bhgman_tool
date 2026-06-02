@@ -156,5 +156,41 @@ holes. Both are partly closed:
 - **occam AUC 0.602 is modest** — real signal, but a long way from a clean separator. The
   twin-redundancy signal is weak; age/invocation carry most of it.
 
+## Composition 4th gate — the §5 falsifier: read-back loop is UNREALIZED (2026-06-02)
+
+`prom16-bhgman-ci-design §5` asked the one question that turns the FunSearch hypothesis from
+opinion into measurement: does the read-back evolve loop beat BOTH blind best-of-N AND
+oracle-only-gating at **equal generation-token budget**? (ARM2 must beat ARM1 *and* ARM3,
+else "just more compute" / "the oracle did it, the loop is decoration".) `composition_ab.py`,
+3 arms, code tasks (`p1_tasks`), qwen2.5 on dgx ollama, 3000 gen-tokens/arm (token parity
+within 1.4%), hidden-test eval / public-test signal (non-circular split).
+
+| config | ARM1 best-of-N | ARM2 evolve-loop | ARM3 oracle-gate | realized |
+|---|---|---|---|---|
+| medium / 0.5b (n=7) | 0.857 | 0.714 | 0.857 | **False** |
+| hard / 0.5b (n=4)   | 0.50  | 0.25  | 0.75  | **False** |
+| hard / 1.5b (n=4)   | 0.50  | 0.50  | 0.75  | **False** |
+| medium / 1.5b (n=7) | 1.00  | 1.00  | 1.00  | **False** (saturated) |
+
+**Verdict: 4/4 UNREALIZED.** The read-back loop never won; on the weak model it was *worse*
+than best-of-N (the read-back prompt carries prior attempts → longer prompts → fewer
+candidates per token; a 0.5b model can't exploit the refinement signal). The robust *positive*
+hidden here: **ARM3 oracle-gate is the strongest arm in every non-saturated config** (hard:
+0.75 vs 0.50) — deterministic oracle *filtering* helps; agentic *iteration* on top does not.
+Canonical ARM2≤ARM3 failure mode ("the oracle did it, the loop is decoration").
+
+Honest scope: small n per band (4–7, wide CIs), only qwen-0.5b/1.5b (weak vs FunSearch's
+frontier models + thousands of iterations), 3000-token budget (modest), single task family
+(code). So this does **not** refute the theory at frontier scale — that stays OPEN. But for
+bhgman's current reach it is a robust negative, fully consistent with
+`project_bhgman_ab_falsifier` (~0) and the operational-substrate VERDICT: the value is the
+external oracle gate, not the agentic loop. The `evolve_loop` primitive stays an
+operational/audit feature, not a cognitive-lift claim.
+
+The gate logic is falsifiable offline: `test_composition_ab.py` proves it fires BOTH ways
+(planted read-back-helps → realized; read-back-useless → unrealized) — so UNREALIZED here is a
+real negative, not a dead instrument.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
-#     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30
+#     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
+#     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02

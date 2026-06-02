@@ -66,6 +66,13 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   (too large for context, needing persistent memory / audit / cross-session state) is being
   hunted (concurrent HARD-set line). If a headroom task shows real lift, this reframe earns
   a *cognitive exception there* — but the within-competence conclusion stands regardless.
+  **Update 2026-06-02:** the first composition 4th-gate run (read-back evolve loop, the
+  `prom16-bhgman-ci-design §5` falsifier) came back **4/4 UNREALIZED** on code tasks with
+  qwen-0.5b/1.5b at token parity — the loop adds no equal-token win and on weak models is
+  *worse* than best-of-N; oracle-gating alone is the strongest arm. Headroom at
+  frontier-model / many-iteration scale (FunSearch's regime) stays open, but bhgman's
+  current-reach answer is operational-only — consistent with this verdict, not an exception
+  to it. See `SWEEP_RESULTS.md` §"Composition 4th gate".
 - **External impact — UNMEASURED.** Every number here is internal/self-referential. Whether
   anyone *outside* this project uses or benefits from the tool is the genuinely untested
   axis (`project_bhgman_self_critique_2026_05_28`).
