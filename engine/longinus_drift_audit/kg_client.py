@@ -460,6 +460,147 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
             )
 
 
+class _McpResult:
+    """neo4j-Result-like wrapper over a list[dict] returned by the MCP gateway."""
+
+    def __init__(self, rows: list[dict[str, Any]]):
+        self._rows = rows
+
+    def __iter__(self):
+        return iter(self._rows)
+
+    def single(self):
+        return self._rows[0] if self._rows else None
+
+    def data(self):
+        return self._rows
+
+
+_MCP_WRITE_TOKENS = ("MERGE", "CREATE", "SET ", "DELETE", "REMOVE", "DETACH", "DROP", " SET\n")
+
+
+def _mcp_exec(url: str, cypher: str, params: dict) -> list[dict]:
+    """POST one cypher to a streamable-HTTP mcp-neo4j-cypher gateway (stateless).
+
+    Classifies read vs write by keyword (the gateway exposes separate
+    read_neo4j_cypher / write_neo4j_cypher tools), parses the SSE `data:` frame,
+    and unwraps result.content[0].text (a JSON array of rows).
+    KG: bhgman-engine-mcp-kg-backend.
+    """
+    import json as _json
+    import urllib.request as _ur
+
+    up = cypher.upper()
+    tool = "write_neo4j_cypher" if any(t in up for t in _MCP_WRITE_TOKENS) else "read_neo4j_cypher"
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": tool, "arguments": {"query": cypher, "params": params or {}}},
+    }
+    req = _ur.Request(
+        url,
+        data=_json.dumps(payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        },
+    )
+    with _ur.urlopen(req, timeout=120) as resp:  # noqa: S310 — fixed scheme, op env
+        body = resp.read().decode()
+    data = body
+    for line in body.splitlines():
+        if line.startswith("data:"):
+            data = line[5:].strip()
+    obj = _json.loads(data)
+    if "error" in obj:
+        raise RuntimeError(f"MCP error: {obj['error']}")
+    result = obj["result"]
+    if result.get("isError"):
+        raise RuntimeError(f"cypher error: {result['content'][0]['text']}")
+    text = result["content"][0]["text"] if result.get("content") else ""
+    parsed = _json.loads(text) if text else []
+    return parsed if isinstance(parsed, list) else [parsed]
+
+
+class _McpSession:
+    def __init__(self, url: str):
+        self._url = url
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def run(self, cypher: str, **params: Any) -> _McpResult:
+        return _McpResult(_mcp_exec(self._url, cypher, params))
+
+    def close(self) -> None:
+        pass
+
+
+class _McpDriver:
+    def __init__(self, url: str):
+        self._url = url
+
+    def session(self) -> _McpSession:
+        return _McpSession(self._url)
+
+    def close(self) -> None:
+        pass
+
+
+class McpKgClient(Neo4jKgClient):  # pragma: no cover
+    """KgClient over the mcp-neo4j-cypher HTTP gateway (bolt-firewalled KG).
+
+    Reuses every Neo4jKgClient method verbatim by swapping the bolt driver for an
+    MCP shim whose .session().run() POSTs cypher to the gateway. Lets the longinus
+    audit/materialize reach a KG that only exposes its MCP endpoint (e.g.
+    airobotics-1 over Tailscale; bolt 7687 firewalled, MCP open on :55013).
+    """
+
+    def __init__(self, url: str):
+        self._url = url
+        self._driver = _McpDriver(url)
+
+    def merge_forward_binding(self, site: ReferenceSite, *, line_count: int) -> bool:
+        """Override: the gateway's write tool returns counters, not the RETURN row,
+        so the parent's `row["bound"]` read is unavailable. Confirm the kg anchor
+        exists via a read (matches the parent's `WITH kg WHERE kg IS NOT NULL` skip —
+        no dangling binding), then run the MERGE as a write."""
+        kg_ref = site.kg_anchor or site.sourceId
+        if not self.has_node(kg_ref):
+            return False
+        src_name = site.sourcePath.rsplit("/", 1)[-1]
+        self._driver.session().run(
+            """
+            MATCH (kg {name: $kg_ref}) WITH kg LIMIT 1
+            MERGE (rs:ReferenceSite {sourceId: $sourceId, sourcePath: $sourcePath})
+              SET rs.sha256 = $sha256, rs.sha256_baseline = $sha256_baseline,
+                  rs.kg_anchor = $kg_ref, rs.layer = $layer, rs.repo_tag = $repo_tag,
+                  rs.signature_baseline = $signature_baseline, rs.last_validated = $last_validated
+            MERGE (scn:SourceCodeNode {sourcePath: $sourcePath})
+              SET scn.sha256 = $sha256, scn.lineCount = $line_count, scn.name = $src_name
+            MERGE (rs)-[:BINDS_TO]->(kg)
+            MERGE (kg)-[:REALIZED_BY]->(rs)
+            MERGE (rs)-[:LOCATED_IN]->(scn)
+            """,
+            kg_ref=kg_ref,
+            sourceId=site.sourceId,
+            sourcePath=site.sourcePath,
+            sha256=site.sha256,
+            sha256_baseline=site.sha256_baseline,
+            layer=site.layer.value if site.layer else None,
+            repo_tag=site.repo_tag,
+            signature_baseline=site.signature_baseline,
+            last_validated=site.last_validated,
+            line_count=line_count,
+            src_name=src_name,
+        )
+        return True
+
+
 class JsonFileKgClient(MockKgClient):
     """Neo4j-free local backend — MockKgClient persisted to a JSON file.
 
