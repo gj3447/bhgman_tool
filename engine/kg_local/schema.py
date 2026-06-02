@@ -78,6 +78,14 @@ NODE_SCHEMAS: dict[str, NodeSchema] = {
         unique=("name",),
         key="name",
     ),
+    # evolve_loop 검증 지식 플라이휠. oracle 통과(passed) 후보만 누적 = cross-session 복리 기억.
+    # candidateId = sha256(task::payload), task/score required (read_best top-K 정렬 키).
+    "EvolveCandidate": NodeSchema(
+        label="EvolveCandidate",
+        required=("candidateId", "task", "score"),
+        unique=("candidateId",),
+        key="candidateId",
+    ),
 }
 
 # 엔진들이 실제로 쓰는 엣지 타입 (occam supersede / hades materialize / eureka facet read /

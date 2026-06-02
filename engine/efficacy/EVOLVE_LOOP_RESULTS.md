@@ -61,13 +61,26 @@ uv run pytest engine/efficacy/tests/test_evolve_loop_min_experiment.py \
 3. **이질성은 보조.** 다양 연산자 이득 미미(p=0.054) → 4-lever ROI에서 heterogeneity 최저라는 finding-bci-D4와 정합.
 4. **정직 라벨**: 이 win조차 "oracle로 채널링된 탐색"(search+verifier)이지 창발적 집단 IQ가 아니다. 단 real capability(blind이 못 찾는 optimum을 찾음) — FunSearch가 새 수학을 찾듯.
 
-## 다음 (production 이식, 미구현)
+## production 이식 — 검증 지식 플라이휠 (step 1-3 BUILT)
 
-이 실험은 *시뮬레이션*으로 thesis를 falsifiable하게 확증한다. production 이식(별도 작업):
-`engine/legion/evolve_loop.py` 신설 → eureka.generate → `engine/naesengmoon/oracle_lens.py`에
-`score()→float` 어댑터(Lean sorry 수 / pytest pass-ratio / cypher-recount delta) → KG에
-점수付 :Candidate 누적 → best-K read-back. 자격 task: Lean 증명 / 테스트 동반 refactor /
-KG drift 수복 / occam supersession. 검증: 3-arm equal-token A/B(LLM 실호출)로 본 시뮬레이션
-결과가 실제 LLM 생성기에서도 재현되는지.
+이 실험은 *시뮬레이션*으로 thesis를 확증했고, production 닫힌 루프를 `engine/legion/evolve_loop.py`로
+배선했다 (단일 에이전트를 이기는 메커니즘 = 검증 지식 복리):
+
+- **step 1 — oracle scalar 어댑터** ✅ `LensScalarOracle`: 나생문 `OracleLens`(boolean PASS/FAIL)를
+  `score()→float`로 감쌈 (`to_scalar`: Lean 닫은 goal 수 / pytest pass-ratio / -drift-distance 주입).
+- **step 2 — production evolve_loop** ✅ `run_evolve` / `run_sessions`: generate→score→record→
+  read_best 닫힌 루프, 정확히 budget oracle-eval(equal-compute), 3 seam(Generator/ScalarOracle/
+  CandidateCorpus) DIP로 실 컴포넌트(eureka/LLM/Lean) 교체 가능.
+- **step 3 — KG 검증 corpus** ✅ `LocalKgCorpus`(JSON 영속, neo4j 불요) + `InMemoryCorpus`:
+  oracle 통과분만 누적(`:EvolveCandidate`, schema 등록) + cross-session read_back = *복리 기억*.
+
+검증(`engine/legion/tests/test_evolve_loop.py`, 6 pass): 같은 corpus 가로질러 세션이 쌓일수록
+best **단조 비감소 + 최종 > 첫 세션**(복리) / feedback(steering) OFF면 훨씬 못 도달(load-bearing) /
+passed=False는 누적 거부(oracle-gating) / 새 store 재로드 시 이전 세션 검증분 복원(영속).
+
+**남은 것** (별도 작업): 실 생성기 배선(eureka/LLM `propose`) + 실 oracle 배선(`build_command`로
+Lean `lake build`/pytest 실행) + 3-arm equal-token A/B(LLM 실호출)로 본 시뮬레이션이 실제
+생성기에서도 재현되는지. + (천장 돌파) 누적 검증 corpus를 fine-tune/RL 학습셋으로 환류.
+자격 task: Lean 증명 / 테스트 동반 refactor / KG drift 수복 / occam supersession.
 
 # KG: prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-collective-intelligence-design-2026-06-02
