@@ -288,6 +288,89 @@ def run_bestofn_task(
     return cands
 
 
+@dataclass(frozen=True)
+class SplitCandidate:
+    """held-out 분할 후보: visible(선택용) 통과수 + hidden(채점용) 전체통과."""
+
+    code: str
+    vis_passed: int   # visible 테스트 통과 수 = behavioral signature (텍스트 아님)
+    vis_total: int
+    hidden_pass: bool  # 모든 hidden 테스트 통과 (= 일반화 채점)
+
+
+def select_behavioral_majority(cands: Sequence[SplitCandidate]) -> bool:
+    """limit1 해결: visible-통과수로 클러스터, 최대 군집 대표의 hidden. 텍스트 무관 → degenerate 안 함. 순수."""
+    from collections import Counter  # noqa: PLC0415
+
+    if not cands:
+        return False
+    counts = Counter(c.vis_passed for c in cands)
+    top_sig = max(counts, key=lambda k: (counts[k], k))  # 동수면 더 많이통과한 군집
+    return next(c for c in cands if c.vis_passed == top_sig).hidden_pass
+
+
+def select_oracle_rerank_split(cands: Sequence[SplitCandidate]) -> bool:
+    """limit2 해결: VISIBLE로만 고르고(최다 통과) HIDDEN으로 채점 → 일반화 측정(oracle도 질 수 있음). 순수."""
+    if not cands:
+        return False
+    best = max(range(len(cands)), key=lambda i: (cands[i].vis_passed, -i))
+    return cands[best].hidden_pass
+
+
+def _collect_test_ids(py: str, wt: str, test_path: str) -> list[str]:  # pragma: no cover — IO
+    proc = subprocess.run(  # noqa: S603
+        [py, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider", test_path],
+        cwd=wt, capture_output=True, text=True, check=False,
+    )
+    return [ln.strip() for ln in proc.stdout.splitlines() if "::" in ln and " " not in ln.strip()]
+
+
+def run_bestofn_split_task(
+    repo: str, task: HadesTask, client, n: int = 5, model: str = "local",
+    temperature: float | None = 1.0,
+) -> list[SplitCandidate]:  # pragma: no cover — IO (rigorous: held-out split + behavioral)
+    """rigorous harness: 테스트를 visible(선택)/hidden(채점) 분할. ≥2 테스트 필요(아니면 빈 리스트)."""
+    repo_abs = os.path.abspath(repo)
+    py = os.path.join(repo_abs, ".venv/bin/python")
+    cands: list[SplitCandidate] = []
+    with tempfile.TemporaryDirectory(prefix="hades_split_") as wt:
+        if _git(repo_abs, ["worktree", "add", "--detach", wt, task.commit]).returncode != 0:
+            return []
+        try:
+            ids = _collect_test_ids(py, wt, task.test_path)
+            if len(ids) < 2:
+                return []  # 분할 불가
+            visible, hidden = ids[::2], ids[1::2]
+            test_src = open(os.path.join(wt, task.test_path), encoding="utf-8").read()  # noqa: SIM115,PTH123
+            for _ in range(n):
+                try:
+                    rev = _git(wt, ["checkout", task.parent, "--", task.impl_path])
+                    if rev.returncode != 0:
+                        open(os.path.join(wt, task.impl_path), "w").close()  # noqa: SIM115,PTH123
+                    comp = client.complete(
+                        system="You are an expert Python engineer. Output only code.",
+                        user=_regenerate_prompt(test_src, task.impl_path),
+                        model=model, max_tokens=8192, temperature=temperature,
+                    )
+                    with open(os.path.join(wt, task.impl_path), "w", encoding="utf-8") as fh:  # noqa: PTH123
+                        fh.write(strip_code_fence(comp.text))
+                    vproc = subprocess.run(  # noqa: S603
+                        [py, "-m", "pytest", *visible, "-q", "--tb=no", "-p", "no:cacheprovider"],
+                        cwd=wt, capture_output=True, text=True, check=False,
+                    )
+                    vp, vt = parse_pytest_counts(vproc.stdout)
+                    hproc = subprocess.run(  # noqa: S603
+                        [py, "-m", "pytest", *hidden, "-q", "--tb=no", "-p", "no:cacheprovider"],
+                        cwd=wt, capture_output=True, text=True, check=False,
+                    )
+                    cands.append(SplitCandidate(comp.text, vp, vt or len(visible), hproc.returncode == 0))
+                except Exception:  # noqa: BLE001
+                    cands.append(SplitCandidate("", 0, len(visible), False))
+        finally:
+            _git(repo_abs, ["worktree", "remove", "--force", wt])
+    return cands
+
+
 def main() -> int:  # pragma: no cover — IO 진입점
     import sys  # noqa: PLC0415
 
@@ -363,7 +446,30 @@ def main() -> int:  # pragma: no cover — IO 진입점
         print(f"  medium-band(0<통과<N) tasks = {nb}/{nt}  → 이 band lift = oracle−majority = {pn_b - maj_b:+.3f} (maj {maj_b:.3f} vs oracle {pn_b:.3f})")
         print("  ※ medium-band가 0이면 다양성/난이도 문제(=selector 무관). >0인데 lift>0이면 oracle이 진짜 이김.")
         return 0
-    print(f"unknown mode {mode} (use --list / --run / --ab / --bestofn)", file=sys.stderr)
+    if mode == "--bestofn-split":
+        from engine.agents.client import AgentClient  # noqa: PLC0415
+
+        n_cand = int(sys.argv[5]) if len(sys.argv) > 5 else 5
+        temp = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
+        client = AgentClient()
+        per = [run_bestofn_split_task(repo, t, client, n_cand, temperature=temp) for t in tasks]
+        per = [c for c in per if c]  # 분할가능(≥2테스트)+worktree성공 task만
+        nt = len(per)
+        p1 = sum(c[0].hidden_pass for c in per) / nt if nt else 0.0
+        beh = sum(select_behavioral_majority(c) for c in per) / nt if nt else 0.0
+        orc = sum(select_oracle_rerank_split(c) for c in per) / nt if nt else 0.0
+        ceil = sum(any(x.hidden_pass for x in c) for c in per) / nt if nt else 0.0
+        sband = [c for c in per if 0 < sum(x.hidden_pass for x in c) < len(c)]
+        nb = len(sband)
+        beh_b = sum(select_behavioral_majority(c) for c in sband) / nb if nb else 0.0
+        orc_b = sum(select_oracle_rerank_split(c) for c in sband) / nb if nb else 0.0
+        print(f"hades RIGOROUS best-of-N (held-out split + behavioral, N={n_cand} temp={temp}) [{repo}] splittable_tasks={nt}:")
+        print(f"  pass@1(hidden)={p1:.3f}  behavioral-majority(hidden)={beh:.3f}  oracle-rerank:visible→hidden={orc:.3f}  ceiling pass@N(hidden)={ceil:.3f}")
+        print(f"  ▶ RIGOROUS cognitive lift = oracle−behavioral = {orc - beh:+.3f}  (일반화: visible로 골라 hidden서 채점; oracle도 질 수 있음)")
+        print(f"  medium-band(hidden 0<통과<N) = {nb}/{nt} → band lift = {orc_b - beh_b:+.3f} (beh {beh_b:.3f} vs oracle {orc_b:.3f})")
+        print("  ※ limit1(behavioral≠textual) + limit2(visible-select/hidden-score) 둘 다 해결한 버전.")
+        return 0
+    print(f"unknown mode {mode} (use --list / --run / --ab / --bestofn / --bestofn-split)", file=sys.stderr)
     return 2
 
 
@@ -371,15 +477,19 @@ __all__ = [
     "Candidate",
     "HadesTask",
     "TaskResult",
+    "SplitCandidate",
     "build_tasks",
     "extract_signatures",
     "mean_test_pass_rate",
     "parse_pytest_counts",
     "pass_at_1",
     "pick_tasks",
+    "run_bestofn_split_task",
     "run_bestofn_task",
     "run_task",
+    "select_behavioral_majority",
     "select_majority_at_n",
+    "select_oracle_rerank_split",
     "select_pass_at_1",
     "select_pass_at_n",
     "strip_code_fence",

@@ -106,3 +106,28 @@ def test_bestofn_selectors():
 
     assert select_pass_at_1([]) is False
     assert select_pass_at_n([]) is False
+
+
+def test_rigorous_split_selectors():
+    from engine.efficacy.hades_realkg import (
+        SplitCandidate,
+        select_behavioral_majority,
+        select_oracle_rerank_split,
+    )
+    # 후보들: (vis_passed, vis_total, hidden_pass)
+    # behavioral: vis_passed별 클러스터 — 2표(vis=2)가 다수, 그 대표 hidden=True
+    cands = [
+        SplitCandidate("a", 2, 3, True),
+        SplitCandidate("b", 2, 3, True),   # vis=2 클러스터(2표) 대표 → hidden True
+        SplitCandidate("c", 0, 3, False),
+    ]
+    assert select_behavioral_majority(cands) is True
+    # oracle: vis 최다(=2)인 첫 후보 hidden → True (visible로 골라 hidden 채점)
+    assert select_oracle_rerank_split(cands) is True
+    # oracle이 질 수 있는 케이스: visible 만점인데 hidden 실패(과적합)
+    overfit = [
+        SplitCandidate("x", 3, 3, False),  # visible 만점이지만 hidden fail (visible 과적합)
+        SplitCandidate("y", 1, 3, True),   # visible 적게 통과하지만 hidden pass
+    ]
+    assert select_oracle_rerank_split(overfit) is False  # oracle이 과적합 후보 골라 hidden서 짐 = 일반화 측정됨
+    assert select_behavioral_majority([]) is False
