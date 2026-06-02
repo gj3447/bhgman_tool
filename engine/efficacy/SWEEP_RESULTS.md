@@ -226,6 +226,37 @@ needs tasks a strong model cannot one-shot but can improve toward (Lean proof-se
 > actually show: on independent toy functions + a binary oracle, best-of-N is provably optimal —
 > true, and nearly silent on the loop hypothesis.
 
+### FunSearch-regime fair test (2026-06-03): degenerate tie — both arms reach best-fit, no headroom above
+
+The postmortem's "one fair test" was built (`funsearch_binpack.py`, GATE-FIRST: offline-validated to
+fire both ways AND not favor ARM2) and run — graded continuous oracle (mean lower_bound/bins_used),
+real F3 island model, leak-resistant single-hard-problem (online bin-packing heuristic, FunSearch's
+own benchmark). qwen2.5-7b, 5 seeds, budget 6000, islands 4, token parity within 1.4%.
+
+Result: **5/5 EXACT ties** — ARM1 best-of-N == ARM2 island-evolve to 4 decimals (0.915/0.915,
+0.923/0.923, …), mean 0.9177 both, lift [0,0,0].
+
+Diagnosis (verified, not a bug — the offline fairness gate passes): the 7b writes *textually diverse*
+heuristics that collapse to two fitness levels — worst-fit variants (~0.83) and best-fit (~0.92).
+**best-fit is the reachable ceiling for this uniform U[0.1,0.7] distribution, and BOTH arms find it by
+sampling.** There is no heuristic *above* best-fit for this distribution that evolution could discover
+but sampling couldn't → no headroom → exact tie. This is NOT "loop broken" and NOT a rig; it is the C2
+(headroom) constraint again, now at the "is there a better-than-best-fit heuristic the model can iterate
+toward" level. Uniform bin-packing has none; FunSearch deliberately used distributions where best-fit
+*is* beatable.
+
+**TRIANGULATION (3 fair-ish attempts, same wall):** (1) toy code → model-saturated; (2) hard code +
+7b/32b → one-shot-saturated; (3) FunSearch regime → best-fit reachable, no headroom above. Every time
+the binding constraint is **headroom × model-strength × eval-scale**. The genuinely-complete test = a
+*provably-best-fit-beatable* distribution + a *frontier* model (can discover non-obvious heuristics) +
+many evals = exactly FunSearch's regime = the HARD CEILING.
+
+**Status (NOT a re-close — that word was burned once already): operational-substrate within-competence
+STANDS; loop-hypothesis remains OPEN but now LEANS structural-negative for bhgman's local reach,
+triangulated across 3 diagnosed regimes (not a single premature test).** Remaining open path: a
+frontier-model run (Anthropic API) on a best-fit-beatable distribution.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
-#     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02
+#     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
+#     lesson-premature-close-confirmation-toward-closure-2026-06-02
