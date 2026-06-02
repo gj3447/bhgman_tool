@@ -93,8 +93,29 @@ passed=False는 누적 거부(oracle-gating) / 새 store 재로드 시 이전 �
 - **학습 환류 다리(천장 돌파)** ✅ `export_training_set`/`write_training_jsonl`: 검증 통과 corpus →
   (task, verified-solution, score) JSONL = inference-time→learning-time. 이 검증셋으로 fine-tune/RL.
 
-**남은 것(외부 인프라 필요, seam만 배선됨)**: 실 LLM 백엔드(dgx vLLM/Ollama 또는 API 키) 띄워
-`LlmGenerator`로 본 demo 결과가 *실 생성기*에서도 재현되는지 — 코드는 준비됨, 백엔드 기동만 필요.
+### 실 LLM 라이브 런 (dgx qwen ollama, SSH 터널) — 정직한 결과
+
+실 백엔드(dgx ollama qwen2.5 7B/32B)에 SSH 터널로 붙여 end-to-end 라이브 실행함:
+
+- **실 oracle (pytest subprocess)**: test_pass→1.0, test_fail→0.0 ✅ 실 subprocess 작동.
+- **실 LLM 생성기**: qwen 7B/32B 실 호출 성공 ✅ (`openai-compat @ localhost:11434`).
+- **비-gameable 사전 oracle**: `/usr/share/dict/words` 235,976어 게이트, 가짜 단어 정확 reject ✅.
+- **코딩 A/B (`coding_flywheel_ab.py`, qwen 7B, equal 6 calls/arm)**:
+  `roman_to_int / valid_parens / rle` 전부 **BON=1.00✓ FLYWHEEL=1.00✓ Δ=0.00 (read_back=3)**.
+
+**정직한 판정 — 파이프라인은 PROVEN, 효능 분리는 toy task로 못 봄**:
+실 LLM 런 3종(vowel / dict-vowel / 코딩) 모두 *분리 실패*했는데 일관된 이유가 있다 —
+(a) 모델이 1-shot에 푸는 task(7B가 코딩 3/3, 32B가 sequoia 즉시) → BON 포화 → Δ=0
+    (이건 equal-compute 명제 그대로: 1-shot 역량 안의 task엔 loop 이득 0),
+(b) 모델이 못 푸는/gameable task(7B vowel-soup) → corpus 미seed → 복리 불가.
+**플라이휠 lift는 "1-shot 실패하지만 verify-retry로 성공"하는 좁은 헤드룸 band에서만 보인다.**
+결정론 실험(`evolve_loop_min`, 24비트 graded 공간)이 lift를 깨끗이 보인 건(Δ+3.43) 그 band를
+설계로 보장했기 때문. read_back=3은 corpus seed·누적·read-back이 *실제로 작동*함을 확인한다.
+
+**남은 것 = 헤드룸 벤치마크 큐레이션(데이터 작업, 배선 아님)**: 1-shot이 신뢰성 있게 실패하는
+task(SWE-bench류 실버그 / 경시대회 문제 / 다수 edge-case로 부분점수 나는 문제) 셋을 모아야
+실 LLM에서 flywheel lift가 측정된다. harness(`coding_flywheel_ab.py`)는 그 셋만 꽂으면 바로 돈다.
+p-hacking(positive 나올 때까지 task 사냥) 회피 위해 toy task 튜닝은 중단. + fine-tune/RL은 GPU 별 프로젝트.
 fine-tune/RL 실행은 GPU 학습 인프라(별 프로젝트); export가 그 입력 artifact를 생산. 자격 task:
 Lean 증명 / 테스트 동반 refactor / KG drift 수복 / occam supersession (결정론 verifier 보유분만).
 
