@@ -65,3 +65,13 @@ def test_mean_test_pass_rate():
     rs = [TaskResult(t, False, "x", 2, 3), TaskResult(t, False, "y", 4, 5)]
     assert abs(mean_test_pass_rate(rs) - (2 / 3 + 4 / 5) / 2) < 1e-9
     assert mean_test_pass_rate([]) == 0.0
+
+
+def test_extract_signatures():
+    from engine.efficacy.hades_realkg import extract_signatures
+
+    src = 'def foo(a, b=1):\n    """Does foo."""\n    return a\n\nclass Bar:\n    """A bar."""\n'
+    sig = extract_signatures(src)
+    assert "def foo(a, b=1): Does foo." in sig
+    assert "class Bar: A bar." in sig
+    assert extract_signatures("this is (not python") == ""  # SyntaxError → ""

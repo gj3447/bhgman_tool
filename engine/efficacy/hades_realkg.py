@@ -119,21 +119,48 @@ def build_tasks(
     return pick_tasks(fts, n, scope_prefix)
 
 
-def _regenerate_prompt(test_src: str, impl_path: str) -> str:
+def extract_signatures(src: str) -> str:
+    """impl 소스 → def/class 시그니처 + 첫 docstring 줄 (순수, ast). hades arm의 Contract 힌트."""
+    import ast  # noqa: PLC0415
+
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return ""
+    lines: list[str] = []
+    for node in ast.walk(tree):
+        doc = (ast.get_docstring(node) or "").split("\n")[0] if isinstance(
+            node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
+        ) else ""
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            lines.append(f"def {node.name}({ast.unparse(node.args)}): {doc}".rstrip())
+        elif isinstance(node, ast.ClassDef):
+            lines.append(f"class {node.name}: {doc}".rstrip())
+    return "\n".join(lines)
+
+
+def _regenerate_prompt(test_src: str, impl_path: str, contract: str = "") -> str:
+    contract_block = (
+        f"=== CONTRACT (the module's public interface — implement these) ===\n{contract}\n\n"
+        if contract
+        else ""
+    )
     return (
         f"Implement the Python module `{impl_path}`. It must make the following test "
         f"suite pass exactly as written (do not change the tests). Output ONLY the complete "
         f"contents of `{impl_path}` as Python — no markdown fences, no prose.\n\n"
+        f"{contract_block}"
         f"=== TEST SUITE (the spec / hidden oracle) ===\n{test_src}\n"
     )
 
 
 def run_task(
-    repo: str, task: HadesTask, client, model: str = "local"
+    repo: str, task: HadesTask, client, model: str = "local", use_contract: bool = False
 ) -> TaskResult:  # pragma: no cover — IO (worktree + LLM + pytest)
     """worktree 격리: feature commit checkout → impl revert → LLM 재생성 → pytest pass@1.
 
-    공유 working tree 불간섭(git worktree add 별도 디렉터리). finally에서 worktree 제거."""
+    use_contract=True (hades arm): revert 전 reference impl의 시그니처를 Contract로 주입.
+    False (base arm): test만. 공유 working tree 불간섭. finally에서 worktree 제거."""
     repo_abs = os.path.abspath(repo)
     py = os.path.join(repo_abs, ".venv/bin/python")
     with tempfile.TemporaryDirectory(prefix="hades_wt_") as wt:
@@ -143,6 +170,11 @@ def run_task(
         try:
             try:
                 test_src = (open(os.path.join(wt, task.test_path), encoding="utf-8").read())  # noqa: SIM115,PTH123
+                # hades arm: revert 전 feature impl 시그니처 추출 (Contract).
+                contract = ""
+                if use_contract:
+                    ref = open(os.path.join(wt, task.impl_path), encoding="utf-8").read()  # noqa: SIM115,PTH123
+                    contract = extract_signatures(ref)
                 # impl을 parent로 revert (기능 제거). parent에 없으면 빈 파일(from-scratch).
                 rev = _git(wt, ["checkout", task.parent, "--", task.impl_path])
                 if rev.returncode != 0:
@@ -151,7 +183,7 @@ def run_task(
                 # LLM 재생성 (timeout/네트워크 오류는 그 task FAIL로 — batch 중단 금지)
                 comp = client.complete(
                     system="You are an expert Python engineer. Output only code.",
-                    user=_regenerate_prompt(test_src, task.impl_path),
+                    user=_regenerate_prompt(test_src, task.impl_path, contract),
                     model=model,
                     max_tokens=8192,
                 )
@@ -199,7 +231,28 @@ def main() -> int:  # pragma: no cover — IO 진입점
         )
         print("  ※ 비순환: human-written hidden test oracle. residual: AI-authored 커밋 다수.")
         return 0
-    print(f"unknown mode {mode} (use --list / --run)", file=sys.stderr)
+    if mode == "--ab":
+        from engine.agents.client import AgentClient  # noqa: PLC0415
+
+        client = AgentClient()
+        base = [run_task(repo, t, client, use_contract=False) for t in tasks]
+        hades = [run_task(repo, t, client, use_contract=True) for t in tasks]
+        print(f"hades A/B (Contract 힌트 효과) [{repo}] cutoff={cutoff} n={len(tasks)}:")
+        print(
+            f"  base  (tests only):       pass@1={pass_at_1(base):.3f}  "
+            f"mean-test={mean_test_pass_rate(base):.3f}"
+        )
+        print(
+            f"  hades (tests+Contract):   pass@1={pass_at_1(hades):.3f}  "
+            f"mean-test={mean_test_pass_rate(hades):.3f}"
+        )
+        print(
+            f"  Δpass@1(hades−base)={pass_at_1(hades) - pass_at_1(base):+.3f}  "
+            f"Δmean-test={mean_test_pass_rate(hades) - mean_test_pass_rate(base):+.3f}  "
+            "※ 동일 모델, Contract 시그니처 힌트만 차이"
+        )
+        return 0
+    print(f"unknown mode {mode} (use --list / --run / --ab)", file=sys.stderr)
     return 2
 
 
@@ -207,6 +260,7 @@ __all__ = [
     "HadesTask",
     "TaskResult",
     "build_tasks",
+    "extract_signatures",
     "mean_test_pass_rate",
     "parse_pytest_counts",
     "pass_at_1",
