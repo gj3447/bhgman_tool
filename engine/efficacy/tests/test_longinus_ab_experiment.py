@@ -137,3 +137,21 @@ def test_assemble_git_sandbox_longinus_detects_real_move():
     sb = assemble_git_sandbox(recorded, disk, net, "engine/")
     assert longinus_detect(sb)["engine/a.py"] is Verdict.MOVED  # twin 매칭
     assert naive_detect(sb)["engine/a.py"] is Verdict.MISSING  # 경로만 봄
+
+
+def test_parse_llm_verdicts_maps_and_defaults_missing():
+    from engine.efficacy.longinus_ab_experiment import Verdict, parse_llm_verdicts
+
+    text = 'prose... {"a":"CLEAN","b":"moved","c":"GARBAGE"} trailing'
+    out = parse_llm_verdicts(text, ["a", "b", "c", "d"])
+    assert out["a"] is Verdict.CLEAN
+    assert out["b"] is Verdict.MOVED  # 대소문자 무관
+    assert out["c"] is Verdict.MISSING  # 유효하지 않은 verdict → 보수(오답)
+    assert out["d"] is Verdict.MISSING  # 누락 → 보수
+
+
+def test_parse_llm_verdicts_unparseable_all_missing():
+    from engine.efficacy.longinus_ab_experiment import Verdict, parse_llm_verdicts
+
+    out = parse_llm_verdicts("no json here at all", ["x", "y"])
+    assert all(v is Verdict.MISSING for v in out.values())

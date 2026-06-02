@@ -102,21 +102,26 @@ def assemble_git_sandbox(
     disk_blobs: dict[str, str],
     net_events: Sequence[GitEvent],
     scope_prefix: str = "",
+    max_nodes: int | None = None,
 ) -> Sandbox:
     """실 git 데이터로 Sandbox 조립 (순수). 합성 build_sandbox의 real-KG 대체.
 
     recorded_blobs = base(pre-T) {path: sha}, disk_blobs = HEAD {path: sha},
     net_events = `git diff -M base HEAD`(git의 rename 탐지 = longinus와 독립 → 비순환 ledger).
-    ledger true-kind는 *git이* 판정한 R/D/M (longinus sha-twin 아님)."""
+    ledger true-kind는 *git이* 판정한 R/D/M (longinus sha-twin 아님).
+    max_nodes: LLM arm 프롬프트 제어용 결정론 샘플(path 정렬 후 앞 N). disk는 twin 매칭 위해 full."""
     renamed_from = {e.old_path: e.path for e in net_events if e.kind == "RENAME" and e.old_path}
     deleted = {e.path for e in net_events if e.kind == "DELETE"}
     modified = {e.path for e in net_events if e.kind == "MODIFY"}
     disk = {p: s for p, s in disk_blobs.items() if p.endswith(".py")}
+    candidates = sorted(
+        (p, s) for p, s in recorded_blobs.items() if p.endswith(".py") and p.startswith(scope_prefix)
+    )
+    if max_nodes is not None:
+        candidates = candidates[:max_nodes]
     nodes: list[Node] = []
     ledger: dict[str, TrueKind] = {}
-    for path, sha in recorded_blobs.items():
-        if not path.endswith(".py") or not path.startswith(scope_prefix):
-            continue
+    for path, sha in candidates:
         nodes.append(Node(name=path, path=path, recorded_sha=sha))
         ledger[path] = _git_true_kind(path, sha, renamed_from, deleted, modified, disk)
     return Sandbox(nodes=tuple(nodes), disk=disk, ledger=ledger)
@@ -219,6 +224,41 @@ def serialize_task(sandbox: Sandbox) -> str:
     )
 
 
+def parse_llm_verdicts(text: str, node_names: Sequence[str]) -> dict[str, Verdict]:
+    """LLM JSON 출력 → {name: Verdict} (순수). 누락/파싱실패는 MISSING(=분류 오답)으로 보수.
+
+    base-LLM arm: serialize_task 프롬프트의 응답을 채점 가능한 verdict map으로."""
+    import json  # noqa: PLC0415
+    import re  # noqa: PLC0415
+
+    data: dict = {}
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            parsed = json.loads(match.group(0))
+            if isinstance(parsed, dict):
+                data = parsed
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+    valid = {v.value for v in Verdict}
+    out: dict[str, Verdict] = {}
+    for name in node_names:
+        raw = str(data.get(name, "")).strip().upper()
+        out[name] = Verdict(raw) if raw in valid else Verdict.MISSING
+    return out
+
+
+def llm_detect(sandbox: Sandbox, client, model: str = "local") -> dict[str, Verdict]:  # pragma: no cover — IO
+    """base-LLM arm: longinus와 *동일한* sha 데이터(serialize_task)로 LLM이 추론 분류."""
+    comp = client.complete(
+        system="You are a precise KG↔disk drift auditor. Output ONLY the JSON object, no prose.",
+        user=serialize_task(sandbox),
+        model=model,
+        max_tokens=4096,
+    )
+    return parse_llm_verdicts(comp.text, [n.name for n in sandbox.nodes])
+
+
 @dataclass(frozen=True)
 class ABResult:
     n_seeds: int
@@ -308,9 +348,54 @@ def run_experiment_real_kg(
     return sb, on, off
 
 
+def run_experiment_real_kg_3arm(
+    repo: str, cutoff: str, client, scope_prefix: str = "engine/", max_nodes: int = 40
+) -> tuple[Sandbox, dict[str, ArmScore]]:  # pragma: no cover — IO
+    """3-arm: longinus(sha-twin) / naive(same-path) / base-LLM(추론, 동 데이터예산)."""
+    sb = build_sandbox_from_git(repo, cutoff, scope_prefix)
+    # LLM 프롬프트 제어: disk를 scope로 한정(serialize_task 폭주 방지) + 결정론 node 샘플.
+    scoped_disk = {p: s for p, s in sb.disk.items() if p.startswith(scope_prefix)}
+    if max_nodes and len(sb.nodes) > max_nodes:
+        kept = {n.name for n in sorted(sb.nodes, key=lambda x: x.path)[:max_nodes]}
+        sb = Sandbox(
+            nodes=tuple(n for n in sb.nodes if n.name in kept),
+            disk=scoped_disk,
+            ledger={k: v for k, v in sb.ledger.items() if k in kept},
+        )
+    else:
+        sb = Sandbox(nodes=sb.nodes, disk=scoped_disk, ledger=sb.ledger)
+    arms = {
+        "longinus": score_arm(longinus_detect(sb), sb.ledger),
+        "naive": score_arm(naive_detect(sb), sb.ledger),
+        "base-LLM": score_arm(llm_detect(sb, client), sb.ledger),
+    }
+    return sb, arms
+
+
 def main() -> int:  # pragma: no cover — 진입점
     import sys  # noqa: PLC0415
 
+    if len(sys.argv) > 1 and sys.argv[1] == "--real-3arm":
+        from engine.agents.client import AgentClient  # noqa: PLC0415
+
+        repo = sys.argv[2] if len(sys.argv) > 2 else "."
+        cutoff = sys.argv[3] if len(sys.argv) > 3 else "2026-05-25"
+        scope = sys.argv[4] if len(sys.argv) > 4 else "engine/"
+        sb, arms = run_experiment_real_kg_3arm(repo, cutoff, AgentClient(), scope)
+        corrupted = sum(1 for v in sb.ledger.values() if v is not TrueKind.CLEAN)
+        print(f"longinus 3-arm real-KG [{repo}] cutoff={cutoff} scope={scope}:")
+        print(f"  nodes={len(sb.nodes)} corrupted={corrupted} (ground truth = git -M rename)")
+        for name, a in arms.items():
+            print(
+                f"  {name:<9} class={a.classification_accuracy:.3f} recall={a.detection_recall:.3f} "
+                f"false-kill={a.false_kill_rate:.3f} fp={a.false_positive_rate:.3f}"
+            )
+        lon, llm = arms["longinus"], arms["base-LLM"]
+        print(
+            f"  Δclass(longinus−base-LLM)={lon.classification_accuracy - llm.classification_accuracy:+.3f}"
+            "  ※ 동 데이터예산, base-LLM=ollama qwen2.5"
+        )
+        return 0
     if len(sys.argv) > 1 and sys.argv[1] == "--real":
         repo = sys.argv[2] if len(sys.argv) > 2 else "."
         cutoff = sys.argv[3] if len(sys.argv) > 3 else "2026-05-25"
@@ -352,10 +437,13 @@ __all__ = [
     "assemble_git_sandbox",
     "build_sandbox",
     "build_sandbox_from_git",
+    "llm_detect",
     "longinus_detect",
     "naive_detect",
+    "parse_llm_verdicts",
     "run_experiment",
     "run_experiment_real_kg",
+    "run_experiment_real_kg_3arm",
     "score_arm",
 ]
 

@@ -11,7 +11,7 @@ are reproduced by the commands shown; no value is hand-authored.
 | commander | verb | verdict | number | oracle (independent of the commander?) |
 |---|---|---|---|---|
 | **occam** | 정리 | **MEASURED** | AUC **0.602** (pos 77 / neg 242) | `disk_present` — filesystem, not occam's label. ✅ non-circular |
-| **longinus** | 연결 | **MEASURED** | ON **0.932** vs naive OFF 0.705, **Δ+0.227, perm p<1e-4**; false-kill 1.000→0.333 | injected disk mutations (20 seeds) + 101 independent drift events. ✅ |
+| **longinus** | 연결 | **MEASURED** | **real-KG Δ+0.050** (class ON 0.875 vs naive 0.825; false-kill ON 0.938 vs 1.000) — *synthetic Δ+0.227은 pure-MOVE 12개를 쌓아 ~4.5× 부풀린 값*; 실 history는 MOVE_EDIT 15 / pure MOVE 1 → sha-twin 매칭 실패 | **ground truth = git `-M` rename (longinus sha-twin과 독립) ✅ non-circular** (`--real`); synthetic 20 seeds는 외부타당성 없음 |
 | **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.52 ± 0.10** (n=10 runs, seed 0..9; range [0.30, 0.60]) — *non-deterministic per-run* (oracle = hypothesis property-test); single 0.600 was the high tail, not reproducible | injected code mutants on `engine/occam/scoring.py`. ✅ |
 | **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
