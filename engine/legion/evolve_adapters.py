@@ -111,7 +111,8 @@ def default_llm_render(task: str, best: Sequence[ScoredCandidate]) -> str:
 class LlmGenerator:
     """AgentClient 래퍼 Generator. 백엔드(local vLLM/Ollama 또는 anthropic) 주입식.
 
-    누적 토큰을 self.output_tokens에 기록(equal-token A/B 회계용). render로 best-K 주입.
+    누적 토큰을 self.output_tokens에 기록(equal-token A/B 회계용). render로 best-K 주입
+    (default_llm_render = 일반, coding_render 등 task별 교체 가능).
     """
 
     client: AgentClient
@@ -119,9 +120,10 @@ class LlmGenerator:
     system: str = _DEFAULT_SYSTEM
     max_tokens: int = 512
     output_tokens: int = 0
+    render: Callable[[str, Sequence[ScoredCandidate]], str] = default_llm_render
 
     def propose(self, task: str, best: Sequence[ScoredCandidate], rng: random.Random) -> Candidate:
-        user = default_llm_render(task, best)
+        user = self.render(task, best)
         completion = self.client.complete(
             system=self.system, user=user, model=self.model, max_tokens=self.max_tokens
         )
