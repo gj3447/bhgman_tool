@@ -3,8 +3,10 @@
 각 군단장의 (동사/task/metric/oracle/필요신호/기대방향/순환성keyword)를 한 곳에.
 label_cypher 있는 것만 실 KG 측정 시도; None은 oracle 미구축(UNMEASURABLE no-oracle).
 
-정직 현황(2026-06-01): 실 KG에 라벨이 있는 건 occam·longinus 둘 뿐이고 그조차 순환성 위험.
-나머지 5는 군단장-비생성 held-out oracle 미구축 → 측정 불가가 정직한 현재값.
+정직 현황(2026-06-02): label_cypher(AUC sweep용)이 있는 건 occam·longinus 둘 뿐이고 그조차
+순환성 위험. 나머지는 별도 독립-oracle 러너로 측정 — naesengmoon=mutation_oracle,
+jaebaeman=dispatch_telemetry, hades=hades_oracle(test-reachability+pytest, realization 0.838).
+prometheus·eureka만 held-out oracle 미구축 → UNMEASURABLE이 정직한 현재값. 통합표=SWEEP_RESULTS.md.
 
 # KG: efficacy-occam-sigma-ab-2026-06-01, 7cmd-measurement-driven-conditional-dispatch-2026-05-30,
 #     bihaenggiman-legioncommanders-2026-05-26

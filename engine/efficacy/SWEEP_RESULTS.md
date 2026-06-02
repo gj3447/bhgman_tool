@@ -14,10 +14,10 @@ are reproduced by the commands shown; no value is hand-authored.
 | **longinus** | 연결 | **MEASURED** | ON **0.932** vs naive OFF 0.705, **Δ+0.227, perm p<1e-4**; false-kill 1.000→0.333 | injected disk mutations (20 seeds) + 101 independent drift events. ✅ |
 | **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.600** (6/10; escapes 4 boundary/sign mutants) | injected code mutants on `engine/occam/scoring.py`. ✅ |
 | **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
+| **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
 | occam (registry) | 정리 | UNMEASURABLE | AUC 0.476 | KG `status` label is **73% occam-authored** → circular + inverted. |
 | prometheus | 획득 | UNMEASURABLE | n/a | no held-out external fact-set; self-citation risk. |
 | eureka | 발견·창조 | UNMEASURABLE | n/a | no reuse-timeseries corpus. |
-| hades | 실현 | UNMEASURABLE | n/a | no contract-test-suite results loaded into KG. |
 
 Reproduce:
 
@@ -30,6 +30,7 @@ uv run python -m engine.efficacy.drift_oracle             # 101 independent drif
 uv run python -m engine.efficacy.mutation_oracle          # naesengmoon catch 0.600
 uv run python -m engine.efficacy.dispatch_telemetry       # jaebaeman fidelity 1.000
 uv run python -m engine.efficacy.scale_curve              # operational scale to 100k
+uv run python -m engine.efficacy.hades_oracle             # hades realization 0.839 + unrealized list
 ```
 
 ## What moved (vs the prior open items)
@@ -45,16 +46,27 @@ holes. Both are partly closed:
    *zero*; it is *modest-but-real* for occam and *operational* for longinus at scale.
 
 2. **"only ~1.3 of 7 commanders tested."**
-   Now **4 of 7** carry a number from an oracle the commander did **not** author:
+   Now **5 of 7** carry a number from an oracle the commander did **not** author:
    occam (disk), longinus (injected mutation), naesengmoon (code mutants), jaebaeman
-   (dispatch telemetry).
+   (dispatch telemetry), **hades (test-reachability + pytest GREEN)**.
+
+3. **hades oracle built (2026-06-02).** `hades_oracle.py` — the 168 git-tracked source
+   modules are the "specs to realize"; a module is *realized* when a test reaches it
+   (static import graph) and the suite is GREEN. The oracle (import edges + pytest) is not
+   authored by hades → circularity 0. Result: **realization 0.839 (141/168)**; the 27
+   unrealized are CLI entry-points, bench scripts, mcp_server thin wrappers, and nightly
+   jobs — code that genuinely lacks unit tests (an actionable list, not a failure).
+   *Caveat:* this is realization **completeness** (operational/state), not a cognitive
+   win — there is no hades-built-vs-naive-built counterfactual, because code generation is
+   inherently LLM (no cheap deterministic baseline like longinus's sha-compare).
 
 ## What is still honestly open
 
-- **3 commanders (prometheus / eureka / hades) remain UNMEASURABLE** — not because they
-  fail, but because **no held-out oracle has been built**. UNMEASURABLE ≠ ineffective; it
-  means "not yet falsifiable." Building those oracles (external fact-set / reuse-timeseries
-  / contract-suite) is the next real work.
+- **2 commanders (prometheus / eureka) remain UNMEASURABLE** — not because they fail, but
+  because **no held-out oracle has been built**. UNMEASURABLE ≠ ineffective; it means "not
+  yet falsifiable." prometheus needs an external held-out fact-set (current grounding-proxy
+  0.006 measures citation density, not accuracy); eureka needs an abstraction→reuse
+  timeseries. Those two are the next real work.
 - **The positive longinus Δ is vs a *naive no-tracking* baseline**, on *injected* mutations.
   It is **not** a cognitive win over a base-LLM given equal tool budget — that controlled
   test (`project_bhgman_ab_falsifier_2026_05_30`) still reads ~0; longinus's value there is
