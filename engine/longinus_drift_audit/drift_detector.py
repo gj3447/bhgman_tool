@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 from collections import Counter
+from functools import lru_cache
 from typing import Callable, Iterable
 
 from engine.longinus_drift_audit.models import (
@@ -100,6 +101,12 @@ def detect_orphan(
     return out
 
 
+# Memoized: signature strings repeat heavily across a codebase (many symbols
+# share a shape, and each KG ref's expected_signature is compared against every
+# referencing symbol). Without this, detect_sig_mismatch re-runs ast.parse once
+# per (symbol, ref) pair — measured 40k parses for 10 distinct signatures.
+# Pure function of its str arg → safe to cache. maxsize caps unbounded growth.
+@lru_cache(maxsize=4096)
 def _parse_sig(sig: str) -> tuple[tuple[tuple[str, str | None], ...], str | None] | None:
     """Structured form of a signature string: (params, return).
 

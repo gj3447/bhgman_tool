@@ -173,3 +173,13 @@ class TestSigMismatchStructural:
         kgs = {"r": KgRefRecord(sourceId="r", sourcePath="p", expected_signature="a -> int")}
         out = drift_detector.detect_sig_mismatch(symbols=syms, kg_refs=kgs)
         assert len(out) == 1
+
+    def test_parse_sig_is_memoized(self):
+        """Repeated signature strings must not re-run ast.parse — the hot-path
+        optimization (was 40k parses for 10 distinct signatures)."""
+        drift_detector._parse_sig.cache_clear()
+        for _ in range(50):
+            drift_detector._parse_sig("a: int, b: str -> bool")
+        info = drift_detector._parse_sig.cache_info()
+        assert info.misses == 1  # parsed exactly once
+        assert info.hits == 49  # other 49 served from cache
