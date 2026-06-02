@@ -202,6 +202,83 @@ def run_task(
             _git(repo_abs, ["worktree", "remove", "--force", wt])
 
 
+@dataclass(frozen=True)
+class Candidate:
+    """best-of-N 후보 1개: 생성 코드 + 실제 hidden-test 통과 여부."""
+
+    code: str
+    passed: bool
+
+
+def _normalize_code(code: str) -> str:
+    """majority 투표용 정규화 — 공백/빈줄 제거 (텍스트 self-consistency, oracle 미사용)."""
+    return "\n".join(ln.rstrip() for ln in code.splitlines() if ln.strip())
+
+
+def select_pass_at_1(cands: Sequence[Candidate]) -> bool:
+    """블라인드 floor: 첫 샘플을 그냥 ship (= 단일패스 pass@1). 순수."""
+    return bool(cands) and cands[0].passed
+
+
+def select_majority_at_n(cands: Sequence[Candidate]) -> bool:
+    """텍스트 self-consistency: 가장 흔한 코드(정규화)를 ship. oracle 미사용. 순수.
+
+    동수면 먼저 등장한 군. base 모델의 '오라클 없는 N-선택' = 정직한 baseline."""
+    from collections import Counter  # noqa: PLC0415
+
+    if not cands:
+        return False
+    counts = Counter(_normalize_code(c.code) for c in cands)
+    top_norm = max(counts, key=lambda k: (counts[k], -[_normalize_code(c.code) for c in cands].index(k)))
+    rep = next(c for c in cands if _normalize_code(c.code) == top_norm)
+    return rep.passed
+
+
+def select_pass_at_n(cands: Sequence[Candidate]) -> bool:
+    """oracle-rerank: N 중 hidden-test 통과하는 게 하나라도 있으면 ship (= bhgman 완벽-oracle). 순수."""
+    return any(c.passed for c in cands)
+
+
+def run_bestofn_task(
+    repo: str, task: HadesTask, client, n: int = 5, model: str = "local"
+) -> list[Candidate]:  # pragma: no cover — IO (worktree + N×LLM + N×pytest)
+    """한 task에서 N개 후보 생성·각각 테스트. 같은 worktree 재사용, 매 후보 impl revert→생성→pytest.
+
+    동일 생성예산(N) 아래 selector만 바꿔 비교하려는 raw 재료. oracle은 토큰 0(실행만)."""
+    repo_abs = os.path.abspath(repo)
+    py = os.path.join(repo_abs, ".venv/bin/python")
+    cands: list[Candidate] = []
+    with tempfile.TemporaryDirectory(prefix="hades_bon_") as wt:
+        if _git(repo_abs, ["worktree", "add", "--detach", wt, task.commit]).returncode != 0:
+            return []
+        try:
+            test_src = open(os.path.join(wt, task.test_path), encoding="utf-8").read()  # noqa: SIM115,PTH123
+            for _ in range(n):
+                try:
+                    rev = _git(wt, ["checkout", task.parent, "--", task.impl_path])
+                    if rev.returncode != 0:
+                        open(os.path.join(wt, task.impl_path), "w").close()  # noqa: SIM115,PTH123
+                    comp = client.complete(
+                        system="You are an expert Python engineer. Output only code.",
+                        user=_regenerate_prompt(test_src, task.impl_path),
+                        model=model,
+                        max_tokens=8192,
+                    )
+                    code = strip_code_fence(comp.text)
+                    with open(os.path.join(wt, task.impl_path), "w", encoding="utf-8") as fh:  # noqa: PTH123
+                        fh.write(code)
+                    proc = subprocess.run(  # noqa: S603
+                        [py, "-m", "pytest", task.test_path, "-q", "-x", "-p", "no:cacheprovider"],
+                        cwd=wt, capture_output=True, text=True, check=False,
+                    )
+                    cands.append(Candidate(code=code, passed=proc.returncode == 0))
+                except Exception:  # noqa: BLE001 — 후보 1개 실패는 FAIL 후보로 계속
+                    cands.append(Candidate(code="", passed=False))
+        finally:
+            _git(repo_abs, ["worktree", "remove", "--force", wt])
+    return cands
+
+
 def main() -> int:  # pragma: no cover — IO 진입점
     import sys  # noqa: PLC0415
 
@@ -252,11 +329,30 @@ def main() -> int:  # pragma: no cover — IO 진입점
             "※ 동일 모델, Contract 시그니처 힌트만 차이"
         )
         return 0
-    print(f"unknown mode {mode} (use --list / --run / --ab)", file=sys.stderr)
+    if mode == "--bestofn":
+        from engine.agents.client import AgentClient  # noqa: PLC0415
+
+        n_cand = int(sys.argv[5]) if len(sys.argv) > 5 else 5
+        client = AgentClient()
+        per_task = [run_bestofn_task(repo, t, client, n_cand) for t in tasks]
+        per_task = [c for c in per_task if c]  # 빈(worktree 실패) task 제외
+        nt = len(per_task)
+        p1 = sum(select_pass_at_1(c) for c in per_task) / nt if nt else 0.0
+        maj = sum(select_majority_at_n(c) for c in per_task) / nt if nt else 0.0
+        pn = sum(select_pass_at_n(c) for c in per_task) / nt if nt else 0.0
+        print(f"hades best-of-N (동일 생성예산 N={n_cand}, oracle=토큰0) [{repo}] tasks={nt}:")
+        print(f"  pass@1 (블라인드 첫샘플):        {p1:.3f}")
+        print(f"  majority@N (텍스트 self-consist): {maj:.3f}   ← oracle 미사용 baseline")
+        print(f"  oracle-rerank@N (= pass@N, bhgman): {pn:.3f}   ← 완벽 oracle selector")
+        print(f"  ▶ cognitive lift = oracle−majority = {pn - maj:+.3f}   (headroom pass@N−pass@1 = {pn - p1:+.3f})")
+        print("  ※ 동일 N 생성예산; lift>0 = oracle이 블라인드 self-consistency를 이김(=bhgman 고유 자산)")
+        return 0
+    print(f"unknown mode {mode} (use --list / --run / --ab / --bestofn)", file=sys.stderr)
     return 2
 
 
 __all__ = [
+    "Candidate",
     "HadesTask",
     "TaskResult",
     "build_tasks",
@@ -265,7 +361,11 @@ __all__ = [
     "parse_pytest_counts",
     "pass_at_1",
     "pick_tasks",
+    "run_bestofn_task",
     "run_task",
+    "select_majority_at_n",
+    "select_pass_at_1",
+    "select_pass_at_n",
     "strip_code_fence",
 ]
 

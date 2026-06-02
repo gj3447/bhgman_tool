@@ -75,3 +75,34 @@ def test_extract_signatures():
     assert "def foo(a, b=1): Does foo." in sig
     assert "class Bar: A bar." in sig
     assert extract_signatures("this is (not python") == ""  # SyntaxError → ""
+
+
+def test_bestofn_selectors():
+    from engine.efficacy.hades_realkg import (
+        Candidate,
+        select_majority_at_n,
+        select_pass_at_1,
+        select_pass_at_n,
+    )
+
+    # 첫 샘플 fail, 다수파(2표) pass, 적어도 하나 pass
+    cands = [
+        Candidate("def f(): return 0", False),
+        Candidate("def f(): return 1", True),
+        Candidate("def f(): return 1", True),  # 다수파 = return 1 (pass)
+    ]
+    assert select_pass_at_1(cands) is False        # 첫 샘플
+    assert select_majority_at_n(cands) is True      # 다수파 return 1
+    assert select_pass_at_n(cands) is True          # 하나라도 pass
+
+    # 다수파가 틀린 경우: majority는 fail이지만 oracle은 잡음
+    bad_majority = [
+        Candidate("def f(): return 9", False),
+        Candidate("def f(): return 9", False),  # 다수파 = 틀림
+        Candidate("def f(): return 1", True),
+    ]
+    assert select_majority_at_n(bad_majority) is False
+    assert select_pass_at_n(bad_majority) is True   # oracle이 majority를 이기는 케이스
+
+    assert select_pass_at_1([]) is False
+    assert select_pass_at_n([]) is False
