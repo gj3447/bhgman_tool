@@ -17,6 +17,7 @@ are reproduced by the commands shown; no value is hand-authored.
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
 | **prometheus** | 획득 | **MEASURED** | groundedness: sourcing **0.077** (946/12356), verifiability **0.931** (881/946 external), self-cite **0.001** (1/946) | `urlparse` URL-structure classification — not prometheus's judgment. ✅ non-circular. verifiability/precision-floor, NOT novelty. |
 | **prometheus** (novelty) | 획득 | **MEASURED** | novelty **0.933** (14/15 beyond base-LLM recall), control_acc **1.00** | dgx-local qwen2.5:32b recall-delta, instrument-validated. ✅ non-circular. recall-delta *upper bound*, not precision. |
+| **prometheus** (faithful) | 획득 | **MEASURED** | extractive-faithfulness **0.045** (1/22 verbatim-supported by cited page), control_acc **1.00**, shuffled 0.000 | cited external page = oracle; positive + permutation controls. ✅ non-circular. **prometheus synthesizes, doesn't quote** (low ≠ false). |
 | **eureka** | 발견·창조 | **MEASURED** | recovery lift **+1.000** (6/6 planted) · KG reuse-breadth: 7 abstractions cover 319/319 nodes, extents [98..3] | planted concepts + real-KG synchronic cover. ✅ non-circular. extraction + breadth, NOT diachronic fan-in. |
 | occam (registry) | 정리 | UNMEASURABLE | AUC 0.476 | KG `status` label is **73% occam-authored** → circular + inverted. |
 
@@ -36,6 +37,7 @@ uv run python -m engine.efficacy.prometheus_oracle        # prometheus groundedn
 uv run python -m engine.efficacy.eureka_oracle            # eureka recovery + real-KG reuse-breadth
 ssh -fN -L 11434:localhost:11434 dgx                       # tunnel dgx-local ollama (for novelty)
 uv run python -m engine.efficacy.prometheus_novelty       # prometheus novelty 0.933 (control-validated)
+uv run python -m engine.efficacy.prometheus_faithfulness  # prometheus extractive-faithfulness 0.045 (fetches cited pages)
 ```
 
 ## What moved (vs the prior open items)
@@ -113,6 +115,29 @@ holes. Both are partly closed:
      abstraction now," NOT the *diachronic fan-in* (future reuse over time) — and
      `min_extent=2` forces extent ≥ 2, so the meaningful signal is the extent
      *distribution*, not a rate.
+
+7. **prometheus faithfulness + the three-layer synthesis (2026-06-02).**
+   `prometheus_faithfulness.py` fetches each finding's cited page and asks whether the page
+   *supports the claim verbatim* — the cited external source is the oracle (not prometheus).
+   Result: **extractive-faithfulness 0.045** (1/22), with control_acc 1.00 and shuffled
+   0.000. The three prometheus layers now form one coherent picture:
+   - **verifiability 0.931** — the cited URLs are real external pages;
+   - **novelty 0.933** — the claims are beyond base-LLM training recall;
+   - **extractive-faithfulness 0.045** — but the claims are *not verbatim in the cited pages*.
+
+   → **prometheus is a *synthesizer*, not a *quoter*.** It acquires by interpreting and
+   combining sources into novel framings, citing them as pointers rather than extracting
+   verbatim facts. (Low faithfulness ≠ false; whether a synthesis is *correct/valuable* is a
+   separate, harder question this oracle does not answer.) This quantifies the self-critique
+   note "통합력은 진짜, 신규 원리는 거의 없음" (`project_bhgman_self_critique_2026_05_28`).
+
+   *Feedback-loop correction:* the first faithfulness run returned **INCONCLUSIVE** — the
+   instrument had only a permutation control (catches "judge says FAITHFUL to everything"),
+   so when matched-faithfulness was genuinely near-floor it couldn't tell *real-low* from
+   *broken-instrument*. Root cause: no **positive** control. Added planted (claim, page)
+   pairs; the judge scored 5/5 on them (control_acc 1.00), proving it *can* detect
+   faithfulness — so 0.045 is a real measurement, not a dead instrument. (external verdict →
+   root cause → fix → re-measure.)
 
 ## What is still honestly open (the frontier moved, it didn't close)
 
