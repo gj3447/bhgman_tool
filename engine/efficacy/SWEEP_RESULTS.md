@@ -191,6 +191,27 @@ The gate logic is falsifiable offline: `test_composition_ab.py` proves it fires 
 (planted read-back-helps → realized; read-back-useless → unrealized) — so UNREALIZED here is a
 real negative, not a dead instrument.
 
+### Best-shot follow-up (2026-06-02): F4 textual-feedback + strongest local models → still UNREALIZED, now by saturation
+
+After the revival PROM (`prom16-evolve-loop-revival`) named the loop's biggest meetable lever as
+**C4 textual feedback** (Mind Evolution critic ablation 46→95), we gave the loop its best feasible
+local shot: wired **F4** (`_arm_evolve_feedback` — feeds the *failed* public assertions, not just a
+scalar, back into the read-back prompt) and ran the **strongest local models** on the hard band.
+
+| config | ARM1 best-of-N | ARM2+F4 evolve | ARM3 oracle-gate | realized |
+|---|---|---|---|---|
+| hard / qwen2.5-7b + feedback (n=4) | 1.00 | 1.00 | 1.00 | **False (saturated)** |
+| hard / qwen2.5-32b + feedback (n=4) | 1.00 | 1.00 | 1.00 | **False (saturated)** |
+
+The stronger models **one-shot all 4 hard code tasks** → every arm = 1.00 → zero headroom, nothing
+to differentiate. This is the **C1↔C2 squeeze** the PROM predicted, now empirical: weak models
+(0.5/1.5b) violate C1 (loop is *worse* than best-of-N), strong models (7b/32b) violate C2
+(saturation). **The local code-task set has no band where both C1 and C2 hold.** The headroom regime
+needs tasks a strong model cannot one-shot but can improve toward (Lean proof-search / competition-hard)
+= net-new + frontier-scale = the HARD CEILING. **Total: 6/6 UNREALIZED across model strengths and
+feedback on/off.** CLOSE-AS-OPERATIONAL confirmed empirically — the deterministic oracle gate, not
+the loop, is the value.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02
