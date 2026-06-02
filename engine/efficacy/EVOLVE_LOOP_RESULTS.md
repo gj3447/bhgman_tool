@@ -148,4 +148,27 @@ best-K(이전 시도) 컨텍스트가 stochastic 샘플을 anchoring/distract시
 fine-tune/RL 실행은 GPU 학습 인프라(별 프로젝트); export가 그 입력 artifact를 생산. 자격 task:
 Lean 증명 / 테스트 동반 refactor / KG drift 수복 / occam supersession (결정론 verifier 보유분만).
 
-# KG: prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-collective-intelligence-design-2026-06-02
+### 재배맨 dispatch-policy fix 실 LLM 확증 — harm 제거 검증 (qwen 7B, 3-way)
+
+HARD 셋 측정이 드러낸 결함(best-K mode-lock으로 rle_decode 등 FLYWHEEL<BON)을 재배맨
+`oracle_gated_dispatch`(1-shot→풀리면 early-exit / miss면 explore+feedback escalate)로 고친 뒤
+**실 LLM로 재측정** (budget 6, 2 trials, BON vs 구 pure-feedback FLYWHEEL vs 신 DISPATCH):
+
+```
+[atoi_clamp]      BON=1.00  FLYWHEEL_old=0.95  DISPATCH_new=1.00   evals=1.5
+[brackets_angle]  BON=1.00  FLYWHEEL_old=1.00  DISPATCH_new=1.00   evals=1.0
+[rle_decode]      BON=1.00  FLYWHEEL_old=0.33  DISPATCH_new=1.00   evals=1.5   ← harm 제거
+[compare_version] BON=1.00  FLYWHEEL_old=1.00  DISPATCH_new=1.00   evals=1.5
+[simplify_path]   BON=1.00  FLYWHEEL_old=1.00  DISPATCH_new=1.00   evals=1.0
+MEAN Δ: flywheel_old=-0.143   dispatch_new=+0.000
+HARM(arm<bon): flywheel_old=2/5   dispatch_new=0/5
+```
+
+**확증**: 구 pure-feedback FLYWHEEL은 2/5에서 BON을 *해침*(rle_decode 1.00→0.33, mean Δ-0.143).
+신 `oracle_gated_dispatch`는 **harm 0/5, Δ+0.000으로 BON과 동일** — 구조적으로 BON 밑돌 수 없음을
+실 LLM서 확인. 게다가 **evals ~1-1.5**(1-shot 풀리면 early-exit) vs BON 6 = **~4-6배 싸다**.
+within-competence라 positive lift는 여전히 0(헤드룸 band 필요, 미해결) — 단 본 측정의 목표였던
+*harm 제거*는 확정. 측정 결함(rle_decode Δ-0.33)이 dispatch 정책으로 실제 사라짐을 실 LLM 입증.
+
+# KG: prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-collective-intelligence-design-2026-06-02,
+#     jaebaeman-planfirst-essence-reframe-2026-05-27, 7cmd-measurement-driven-conditional-dispatch-2026-05-30
