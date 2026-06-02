@@ -103,12 +103,18 @@ def _truncate(items: list[Any], limit: int = EXAMPLE_LIMIT) -> list[Any]:
     return items[:limit]
 
 
+# Skeleton cannot detect these without AST + Pattern Library; they are deferred,
+# not "zero drift". Reported as null (NotImplemented sentinel) so consumers cannot
+# mis-read a silent 0 as "no drift found".
+# KG: sprint-tpa-schema-not-implemented-sentinel-2026-05-14
+DEFERRED_DRIFT_TYPES = ("Missing", "SigMismatch", "PatternDiv")
+
 _NOTE_AUDIT = (
     "Skeleton-level detection. Missing/SigMismatch/PatternDiv need AST + Pattern Library; "
-    "the skeleton returns 0 with a 'deferred' marker rather than guessing. Orphan requires "
-    "kg_simulated.json at the repo root; otherwise it reports 0 (kg_simulated_present=false). "
-    "Goodhart safeguard: no coverage_ratio scalar; consumers must judge from per-type counts + "
-    "examples."
+    "the skeleton returns null (NotImplemented sentinel) rather than 0, so consumers cannot "
+    "mis-read silent-0 as 'no drift'. Orphan requires kg_simulated.json at the repo root; "
+    "otherwise it reports 0 (kg_simulated_present=false). Goodhart safeguard: no coverage_ratio "
+    "scalar; consumers must judge from per-type counts + examples."
 )
 
 
@@ -143,7 +149,9 @@ def tpa_drift_audit_impl(repo_path: str) -> dict[str, Any]:
     known_kg = _load_known_kg_ids(root)
     refs = _scan_kg_refs(root)
 
-    counts = {d: 0 for d in DRIFT_TYPES}
+    counts: dict[str, int | None] = {
+        d: (None if d in DEFERRED_DRIFT_TYPES else 0) for d in DRIFT_TYPES
+    }
     examples: dict[str, list[dict[str, Any]]] = {d: [] for d in DRIFT_TYPES}
 
     orphans = _detect_orphans(refs, known_kg)
@@ -154,7 +162,7 @@ def tpa_drift_audit_impl(repo_path: str) -> dict[str, Any]:
     counts["LabelRot"] = len(label_rot)
     examples["LabelRot"] = _truncate(label_rot)
 
-    deferred = [d for d in ("Missing", "SigMismatch", "PatternDiv") if counts[d] == 0]
+    deferred = list(DEFERRED_DRIFT_TYPES)
 
     return {
         "audit_id": f"mcp-tpa-{root.name}",

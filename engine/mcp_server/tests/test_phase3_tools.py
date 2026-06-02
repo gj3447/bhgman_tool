@@ -233,6 +233,11 @@ def test_tpa_drift_audit_deferred_when_no_kg_sim(tmp_path):
     assert "Missing" in result["deferred_drift_types"]
     assert "SigMismatch" in result["deferred_drift_types"]
     assert "PatternDiv" in result["deferred_drift_types"]
+    # Deferred types report null (NotImplemented sentinel), NOT a silent 0 that
+    # a consumer could mis-read as "no drift found".
+    assert result["drift_counts"]["Missing"] is None
+    assert result["drift_counts"]["SigMismatch"] is None
+    assert result["drift_counts"]["PatternDiv"] is None
 
 
 def test_tpa_drift_types_canonical():
