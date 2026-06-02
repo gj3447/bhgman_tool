@@ -107,17 +107,11 @@ repos:
         pass_filenames: false
         always_run: true
 
-  # ============================================================
-  # Stage 6: lychee link check (pre-push, slow + network)
-  # audit ratchet #4 — wave11 box check
-  # ============================================================
-  - repo: https://github.com/lycheeverse/lychee
-    rev: lychee-v0.24.2
-    hooks:
-      - id: lychee
-        stages: [pre-push]
-        args: [--config, lychee.toml, --no-progress, --offline, README.md, README.ko-KR.md, docs/, skills/]
-        pass_filenames: false
+  # Stage 6 (lychee link check) removed from pre-push 2026-06-02: broken on macOS —
+  # lychee ships no prebuilt darwin binary, so the rev guard rejects patch tags and
+  # cargo-binstall fails to build (`--install-path` unsupported). Both local sessions
+  # had to --no-verify every push. Link-checking is fully covered in CI
+  # (.github/workflows/lychee.yml, runs on push to main + PRs). No coverage lost.
 
   # ============================================================
   # Stage 7: audit_grep_coverage — GrepPatternCatalog v1 enforcement (pre-push)
