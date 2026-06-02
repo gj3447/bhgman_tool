@@ -179,6 +179,25 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 
 ---
 
+## Repository layout
+
+```
+engine/      # 핵심. 7 군단장 + 인프라 + KG 백엔드 — 지도: engine/README.md
+docs/        # 사용자 문서 (quickstart / concepts / references / philosophy)
+skills/      # Claude Code 스킬 (symposium-skills 서브모듈 백킹)
+lean/        # Lean 4 형식 증명 (Mathlib-free 89 + mathlib sister 16)
+theory/      # KG 구조 템플릿 / 개념 앵커
+ADRs/        # 아키텍처 결정 기록
+verification/# count-claim 검증 스크립트 + 결과
+gate/ resolver/ → engine/ 하위 (APT v27 A6/A7)
+worked/      # 워크드 예제 (실험·데모, 프로덕션 아님) — worked/README.md
+333q_demo/   # Mermin GHZ 데모 (APT 풀 사이클, nested TS workspace)
+REVIEWS/     # 외부 재현 스냅샷 (참고용) — REVIEWS/README.md
+bin/ plugins/ assets/  # 헬퍼 스크립트 / Claude 플러그인 매니페스트 / 미디어
+```
+
+> 엔진 내부가 궁금하면 **[engine/README.md](engine/README.md)** 한 장이면 됨 (20 subdir 지도 + longinus 이름 함정 정리).
+
 ## Documentation
 
 - [docs/01-quickstart.md](docs/01-quickstart.md) — full setup
