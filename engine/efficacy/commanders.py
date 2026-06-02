@@ -6,8 +6,9 @@ label_cypher 있는 것만 실 KG 측정 시도; None은 oracle 미구축(UNMEAS
 정직 현황(2026-06-02): label_cypher(AUC sweep용)이 있는 건 occam·longinus 둘 뿐이고 그조차
 순환성 위험. 나머지는 별도 독립-oracle 러너로 측정 — naesengmoon=mutation_oracle,
 jaebaeman=dispatch_telemetry, hades=hades_oracle(test-reachability+pytest, realization 0.839),
-prometheus=prometheus_oracle(citation verifiability: sourcing 0.077/verifiability 0.931/self 0.001).
-eureka만 held-out oracle 미구축(abstraction→reuse 시계열) → UNMEASURABLE. 통합표=SWEEP_RESULTS.md.
+prometheus=prometheus_oracle(citation verifiability: sourcing 0.077/verifiability 0.931/self 0.001),
+eureka=eureka_oracle(planted-concept FCA recovery, lift +1.000 vs naive, extraction-correctness).
+전원 측정값 보유하되 honesty tier 상이(cognitive/operational/capability) → 통합표=SWEEP_RESULTS.md.
 
 # KG: efficacy-occam-sigma-ab-2026-06-01, 7cmd-measurement-driven-conditional-dispatch-2026-05-30,
 #     bihaenggiman-legioncommanders-2026-05-26
