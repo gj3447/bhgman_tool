@@ -78,6 +78,58 @@ def _hidden_ok(code: str, task: Task) -> bool:
     return _run_tests(code, task.hidden_tests) == len(task.hidden_tests)
 
 
+def _failing_public(code: str, task: Task) -> list[str]:
+    """PUBLIC test 중 실패한 assertion 문자열 (F4 텍스트 피드백 재료, scalar 아님)."""
+    return [t for t in task.public_tests if _run_tests(code, [t]) == 0]
+
+
+def _gen_feedback(
+    task: Task, complete: CompleteFn, seed: int, parents_fb: list[tuple[str, list[str]]]
+) -> tuple[str, int]:
+    """F4 read-back: 이전 best-K 코드 + *왜 실패했는지*(실패 assertion)를 프롬프트에 동봉.
+
+    Mind Evolution critic/feedback ablation(46→95)·AlphaCodium(19→44)의 메커니즘 —
+    scalar 점수 대신 텍스트 진단을 되먹인다. 프롬프트는 길어지므로(토큰 비용) 동일 예산서
+    후보 수는 줄어든다(정직한 trade-off — 그게 측정 대상).
+    """
+    blocks = []
+    for i, (code, fails) in enumerate(parents_fb):
+        diag = "FAILED:\n" + "\n".join(fails) if fails else "passed all public tests"
+        blocks.append(f"# prior attempt {i} ({diag}):\n{code}")
+    user = {
+        "role": "user",
+        "content": f"{task.prompt}\n\nIMPROVE on these prior attempts — fix the FAILED tests, "
+        f"keep what passed:\n" + "\n\n".join(blocks),
+    }
+    text, toks = complete([_SYS, user], seed)
+    return _extract_code(text), toks
+
+
+def _arm_evolve_feedback(
+    task: Task, complete: CompleteFn, budget: int, seed0: int
+) -> tuple[bool, int]:
+    """ARM2+F4 — read-back 루프 + 텍스트 피드백(실패 assertion 동봉). bhgman이 충족 가능한 C4 레버."""
+    oracle = _public_oracle(task)
+    db = ProgramDatabase()
+    tok = 0
+    i = 0
+    gen = 0
+    seed_code, t = _gen(task, complete, seed0)
+    tok += t
+    db.add(payload=seed_code, score=oracle.evaluate(seed_code).value, generation=0, parent=None)
+    while tok < budget:
+        gen += 1
+        i += 1
+        parents = db.best_k(2)
+        parents_fb = [(c.payload, _failing_public(c.payload, task)) for c in parents]
+        code, t = _gen_feedback(task, complete, seed0 + i, parents_fb)
+        tok += t
+        parent_idx = parents[0].index if parents else None
+        db.add(payload=code, score=oracle.evaluate(code).value, generation=gen, parent=parent_idx)
+    best = db.best()
+    return (_hidden_ok(best.payload, task) if best else False), tok
+
+
 def _arm_best_of_n(task: Task, complete: CompleteFn, budget: int, seed0: int) -> tuple[bool, int]:
     """ARM1 — T 토큰까지 독립 샘플, public 최다통과 pick (read-back 無)."""
     oracle = _public_oracle(task)
@@ -158,15 +210,21 @@ def run_gate(
     *,
     budget_tokens: int,
     seed0: int = 1000,
+    feedback: bool = False,
 ) -> CompositionVerdict:
-    """3 arm 을 동일 토큰 예산 T 로 실행 → CompositionVerdict."""
+    """3 arm 을 동일 토큰 예산 T 로 실행 → CompositionVerdict.
+
+    feedback=True 면 ARM2 가 _arm_evolve_feedback(F4 텍스트 피드백 read-back)을 쓴다 —
+    루프에게 문헌상 최대 레버(critic/feedback)를 준 best-shot 변형.
+    """
+    arm2_fn = _arm_evolve_feedback if feedback else _arm_evolve
     a1: list[bool] = []
     a2: list[bool] = []
     a3: list[bool] = []
     tk = {"best_of_n": 0, "evolve": 0, "oracle_gate": 0}
     for task in tasks:
         ok1, t1 = _arm_best_of_n(task, complete, budget_tokens, seed0)
-        ok2, t2 = _arm_evolve(task, complete, budget_tokens, seed0)
+        ok2, t2 = arm2_fn(task, complete, budget_tokens, seed0)
         ok3, t3 = _arm_oracle_gate(task, complete, budget_tokens, seed0)
         a1.append(ok1)
         a2.append(ok2)
@@ -227,5 +285,11 @@ if __name__ == "__main__":
 
     band = os.environ.get("CAB_BAND", "medium")
     budget = int(os.environ.get("CAB_BUDGET", "4000"))
+    fb = os.environ.get("CAB_FEEDBACK", "0") == "1"
     sel = TASKS if band == "all" else [t for t in TASKS if t.difficulty == band]
-    main(sel, budget)
+    print(
+        f"composition 4th gate — budget={budget} band={band} feedback={fb} tasks={len(sel)}",
+        file=sys.stderr,
+    )
+    verdict = run_gate(sel, budget_tokens=budget, feedback=fb)
+    print(json.dumps(verdict.__dict__, ensure_ascii=False, indent=1))

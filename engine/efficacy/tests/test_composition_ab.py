@@ -71,6 +71,13 @@ def test_token_parity_across_arms():
     assert v.gen_tokens["evolve"] == 300 * len(_PLANTED)  # 3 calls/task × 100 tok
 
 
+def test_feedback_arm_realizes_when_readback_helps():
+    """F4 텍스트 피드백 arm(feedback=True)도 planted-helps 조건서 발화 (게이트 무결성)."""
+    v = run_gate(_PLANTED, _fake_readback_helps, budget_tokens=300, seed0=1, feedback=True)
+    assert v.realized is True
+    assert v.rates["evolve"] == 1.0
+
+
 def test_verdict_reason_names_failure_mode():
     """ARM2<=ARM1 → 'just more compute', ARM2<=ARM3 → 'oracle did it' 을 reason 이 명시."""
     v = run_gate(_PLANTED, _fake_always_good, budget_tokens=300, seed0=1)
