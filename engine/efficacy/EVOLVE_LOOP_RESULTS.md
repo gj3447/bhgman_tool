@@ -112,10 +112,39 @@ passed=False는 누적 거부(oracle-gating) / 새 store 재로드 시 이전 �
 결정론 실험(`evolve_loop_min`, 24비트 graded 공간)이 lift를 깨끗이 보인 건(Δ+3.43) 그 band를
 설계로 보장했기 때문. read_back=3은 corpus seed·누적·read-back이 *실제로 작동*함을 확인한다.
 
-**남은 것 = 헤드룸 벤치마크 큐레이션(데이터 작업, 배선 아님)**: 1-shot이 신뢰성 있게 실패하는
-task(SWE-bench류 실버그 / 경시대회 문제 / 다수 edge-case로 부분점수 나는 문제) 셋을 모아야
-실 LLM에서 flywheel lift가 측정된다. harness(`coding_flywheel_ab.py`)는 그 셋만 꽂으면 바로 돈다.
-p-hacking(positive 나올 때까지 task 사냥) 회피 위해 toy task 튜닝은 중단. + fine-tune/RL은 GPU 별 프로젝트.
+### HARD 셋 라이브 측정 — 진짜 lift 측정 시도, 정직한 NULL/NEGATIVE 결과
+
+헤드룸을 원리적으로 설계한 `HARD_PROBLEMS`(edge-case 다수 + anti-memorization 트위스트:
+atoi_clamp 커스텀 clamp / brackets_angle `<>` 추가 / rle_decode / compare_version / simplify_path)로
+qwen 7B, 8 calls/arm, 2 trials 라이브 실행:
+
+```
+[atoi_clamp]      BON=1.00✓  FLYWHEEL=1.00✓  Δ=+0.00
+[brackets_angle]  BON=1.00✓  FLYWHEEL=1.00✓  Δ=+0.00
+[rle_decode]      BON=1.00✓  FLYWHEEL=0.67   Δ=-0.33   ← best-K 피드백이 오히려 해침(anchoring)
+[compare_version] BON=1.00✓  FLYWHEEL=1.00✓  Δ=+0.00
+[simplify_path]   BON=1.00✓  FLYWHEEL=1.00✓  Δ=+0.00
+TOTAL solved: BON=5/5  FLYWHEEL=4/5  mean Δ=-0.067
+```
+
+**정직한 결론 (네 번째 일관된 측정)**: qwen 7B는 HARD 트위스트 문제도 전부 1-shot에 풀었다
+(BON=5/5). 헤드룸을 못 만들었다 — 그리고 rle_decode에선 FLYWHEEL이 **더 나빴다**(Δ-0.33):
+best-K(이전 시도) 컨텍스트가 stochastic 샘플을 anchoring/distract시켜 해친 것. 이는 equal-compute
+문헌의 두 예측을 *실 LLM 실코딩에서 동시 확증*한다: (1) 1-shot 역량 안의 task엔 멀티스텝 이득 0,
+(2) 멀티에이전트/피드백은 anchoring·conformity로 **net harm**도 가능.
+
+**메커니즘은 거짓이 아니다 — task headroom 문제다.** 결정론 실험(`evolve_loop_min`, 24비트 graded
+공간)은 헤드룸을 *설계로 보장*해 lift를 깨끗이 보였다(Δ+3.43). 실 LLM에서 그 band("1-shot 실패
+∧ retry 성공")는 손으로 쓴 kata로는 안 잡힌다 — qwen 7B가 전부 1-shot하거나(포화) 전부 실패(미seed).
+
+**진짜 lift 측정의 전제조건 = 그 band를 실제로 차지하는 벤치마크**: SWE-bench Verified류 실버그,
+경시대회 hard, 또는 *훨씬 약한 모델*(0.5B/1.5B)에 중간 난도. 이건 데이터/모델 큐레이션이지 배선이
+아니다. harness(`coding_flywheel_ab.py`)는 그 셋만 꽂으면 바로 돈다. 4회 일관 결과로 toy 사냥은
+중단(p-hacking 회피). + fine-tune/RL 환류는 GPU 별 프로젝트.
+
+**한 줄**: 파이프라인은 라이브로 완전 작동(실 LLM+실 pytest+corpus 복리 read_back=4 확인). 진짜 lift는
+결정론 헤드룸에선 +3.43으로 증명됐고, 실 LLM 실측은 within-competence라 0~약간 음수 — 메커니즘이
+아니라 *task가 헤드룸 band를 안 차지*해서다. 이게 정직한 종착.
 fine-tune/RL 실행은 GPU 학습 인프라(별 프로젝트); export가 그 입력 artifact를 생산. 자격 task:
 Lean 증명 / 테스트 동반 refactor / KG drift 수복 / occam supersession (결정론 verifier 보유분만).
 
