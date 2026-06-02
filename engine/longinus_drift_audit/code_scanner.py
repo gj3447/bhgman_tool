@@ -38,9 +38,29 @@ Override: env LONGINUS_PARALLEL_FILE_THRESHOLD or kwarg ``threshold=``.
 """
 
 
-_KG_REF_PATTERN = re.compile(r"#\s*KG:\s*([a-zA-Z0-9_\-./, ]+)")
+_KG_REF_PATTERN = re.compile(r"(?<!`)#\s*KG:\s*(.+)")
+"""`# KG: a, b (note)` → captures `a, b (note)`. The negative lookbehind on a
+backtick skips prose *examples* written inside docstrings/markdown (`` `# KG: xxx` ``),
+which are documentation, not real anchors. Real anchors — module-docstring lines,
+standalone comments, and trailing `def foo():  # KG: x` comments — are never
+backtick-prefixed, so all legit forms survive. Per-token validation (`_clean_ref`)
+then drops prose tails the wide `.+` capture lets through."""
+_KG_NAME = re.compile(r"^\w[\w\-./]*$")
+"""A valid KG ref token: unicode word-start then word/-/./_, NO whitespace.
+KG canonical names span digit-leading (`7cmd-`) and Korean (`재배맨-`); `\\w` covers both."""
 _PY_FUNC = re.compile(r"^def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)")
 _PY_CLASS = re.compile(r"^class\s+([A-Z][a-zA-Z0-9_]*)")
+
+
+def _clean_ref(part: str) -> str | None:
+    """One comma-separated ref → cleaned token, or None if it is prose.
+
+    Strips a trailing parenthetical note (`foo (canon …)` → `foo`) and rejects
+    anything that still carries whitespace or is not KG-name-shaped — dropping
+    prose tails like `LensSet UNION coverage canon` or `cycle prom16-…` that the
+    wide capture would otherwise treat as bogus anchor names."""
+    tok = re.sub(r"\s*\(.*$", "", part).strip()
+    return tok if _KG_NAME.match(tok) else None
 
 
 def iter_files(root: Path, *, suffixes: Iterable[str] = (".py",)) -> Iterator[Path]:
@@ -68,8 +88,7 @@ def scan_kg_refs(file_path: Path) -> list[tuple[int, list[str]]]:
     for i, line in enumerate(content.splitlines(), start=1):
         m = _KG_REF_PATTERN.search(line)
         if m:
-            refs_raw = m.group(1)
-            refs = [r.strip() for r in refs_raw.split(",") if r.strip()]
+            refs = [r for r in (_clean_ref(p) for p in m.group(1).split(",")) if r]
             if refs:
                 out.append((i, refs))
     return out
