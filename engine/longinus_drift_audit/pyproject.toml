@@ -23,22 +23,46 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+# Must list every top-level *.py module (except __init__) or a non-editable wheel
+# build silently drops the unlisted ones. Kept complete + sorted; enforced by
+# tests/test_pyproject_modules_complete.py so it can't drift again.
 py-modules = [
-  "models",
-  "kg_client",
-  "code_scanner",
-  "reference_layers",
-  "bx_lens",
-  "drift_detector",
-  "ged_metric",
-  "reverse_orphan_scan",
-  "sha256_baseline",
-  "forward_orphan_scan",
-  "otel_channel",
-  "dispatch_eval",
   "audit_runner",
+  "bx_lens",
+  "code_scanner",
   "daemon",
   "daemon_cli",
+  "delta_category_registry",
+  "delta_lens",
+  "dispatch_audit",
+  "dispatch_eval",
+  "drift_detector",
+  "dynamic_dispatch_probe",
+  "edit_lens_line_range",
+  "embedding_channel",
+  "forward_binding_materialize",
+  "forward_orphan_scan",
+  "ged_metric",
+  "intoto_channel",
+  "kg_binding_categories",
+  "kg_binding_delta",
+  "kg_binding_delta_lens",
+  "kg_binding_lenses",
+  "kg_binding_registry_install",
+  "kg_binding_state",
+  "kg_client",
+  "models",
+  "otel_channel",
+  "profunctor_api",
+  "prov_channel",
+  "reference_layers",
+  "refresh_drifted_baselines",
+  "reverse_orphan_scan",
+  "scip_adapter",
+  "sha256_baseline",
+  "signature_baseline",
+  "tree_sitter_adapter",
+  "urdna2015_channel",
 ]
 
 [tool.pytest.ini_options]
