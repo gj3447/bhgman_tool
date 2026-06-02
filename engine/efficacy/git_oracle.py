@@ -136,6 +136,21 @@ def parse_ref_comment_patch(patch_text: str) -> list[GitEvent]:
     return events
 
 
+def parse_diff_status(text: str) -> list[GitEvent]:
+    """`git diff --name-status -M base head` 출력(커밋 헤더 없음) → GitEvent (순수).
+
+    net 변화(base→head)를 종류별로. commit/date는 비움(단일 비교라 무의미)."""
+    events: list[GitEvent] = []
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if not line:
+            continue
+        ev = _parse_status_line(line, "", "")
+        if ev is not None:
+            events.append(ev)
+    return events
+
+
 def feature_test_commits(events: Iterable[GitEvent]) -> list[FeatureTestCommit]:
     """impl .py와 test_*.py를 함께 건드린 커밋 추출 (순수). date는 첫 이벤트."""
     by_commit: dict[str, list[GitEvent]] = defaultdict(list)
@@ -194,6 +209,27 @@ def mine_ref_comment_events(
     return parse_ref_comment_patch(_git(repo, args))
 
 
+def cutoff_commit(repo: str, date: str) -> str:  # pragma: no cover — IO
+    """date(ISO) 직전 마지막 커밋 sha = temporal split의 base(pre-T 상태)."""
+    return _git(repo, ["rev-list", "-1", f"--before={date}", "HEAD"]).strip()
+
+
+def tree_blobs(repo: str, ref: str) -> dict[str, str]:  # pragma: no cover — IO
+    """ref 시점 {path: blob_sha} = 그 시점 KG-recorded/disk 상태의 진짜 sha."""
+    blobs: dict[str, str] = {}
+    for line in _git(repo, ["ls-tree", "-r", ref]).splitlines():
+        meta, _, path = line.partition("\t")
+        parts = meta.split()
+        if len(parts) >= 3 and parts[1] == "blob":
+            blobs[path] = parts[2]
+    return blobs
+
+
+def net_status(repo: str, base: str, head: str = "HEAD") -> list[GitEvent]:  # pragma: no cover — IO
+    """base→head net 변화 (git -M rename 탐지 = longinus와 독립 메커니즘 → 비순환 oracle)."""
+    return parse_diff_status(_git(repo, ["diff", "--name-status", "-M", base, head]))
+
+
 def freeze(repo: str, cutoff: str, since: str | None = None) -> OracleSnapshot:  # pragma: no cover
     """재현 동결 튜플 생성 — (HEAD sha, cutoff, pre/post 이벤트 수)."""
     head = _git(repo, ["rev-parse", "HEAD"]).strip()
@@ -232,14 +268,18 @@ __all__ = [
     "FeatureTestCommit",
     "GitEvent",
     "OracleSnapshot",
+    "cutoff_commit",
     "feature_test_commits",
     "freeze",
     "mine_events",
     "mine_ref_comment_events",
+    "net_status",
+    "parse_diff_status",
     "parse_name_status",
     "parse_ref_comment_patch",
     "positive_paths",
     "split_by_cutoff",
+    "tree_blobs",
 ]
 
 

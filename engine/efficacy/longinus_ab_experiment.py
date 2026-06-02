@@ -21,8 +21,11 @@ metric = detection recall + classification accuracy + false-positive(clean 오�
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
+
+from engine.efficacy.git_oracle import GitEvent
 
 
 class TrueKind(str, Enum):
@@ -92,6 +95,49 @@ def build_sandbox(n_clean: int, n_edit: int, n_move: int, n_delete: int, n_move_
         elif kind is TrueKind.MOVE_EDIT:
             disk[f"engine/moved/m{i}.py"] = f"sha{i:04d}Y"  # 새 경로 + 새 sha
     return Sandbox(nodes=tuple(nodes), disk=disk, ledger=ledger)
+
+
+def assemble_git_sandbox(
+    recorded_blobs: dict[str, str],
+    disk_blobs: dict[str, str],
+    net_events: Sequence[GitEvent],
+    scope_prefix: str = "",
+) -> Sandbox:
+    """실 git 데이터로 Sandbox 조립 (순수). 합성 build_sandbox의 real-KG 대체.
+
+    recorded_blobs = base(pre-T) {path: sha}, disk_blobs = HEAD {path: sha},
+    net_events = `git diff -M base HEAD`(git의 rename 탐지 = longinus와 독립 → 비순환 ledger).
+    ledger true-kind는 *git이* 판정한 R/D/M (longinus sha-twin 아님)."""
+    renamed_from = {e.old_path: e.path for e in net_events if e.kind == "RENAME" and e.old_path}
+    deleted = {e.path for e in net_events if e.kind == "DELETE"}
+    modified = {e.path for e in net_events if e.kind == "MODIFY"}
+    disk = {p: s for p, s in disk_blobs.items() if p.endswith(".py")}
+    nodes: list[Node] = []
+    ledger: dict[str, TrueKind] = {}
+    for path, sha in recorded_blobs.items():
+        if not path.endswith(".py") or not path.startswith(scope_prefix):
+            continue
+        nodes.append(Node(name=path, path=path, recorded_sha=sha))
+        ledger[path] = _git_true_kind(path, sha, renamed_from, deleted, modified, disk)
+    return Sandbox(nodes=tuple(nodes), disk=disk, ledger=ledger)
+
+
+def _git_true_kind(
+    path: str,
+    sha: str,
+    renamed_from: dict[str, str],
+    deleted: set[str],
+    modified: set[str],
+    disk: dict[str, str],
+) -> TrueKind:
+    """git net status → TrueKind. rename은 disk sha 동일성으로 MOVE vs MOVE_EDIT 구분."""
+    if path in renamed_from:
+        return TrueKind.MOVE if disk.get(renamed_from[path]) == sha else TrueKind.MOVE_EDIT
+    if path in deleted:
+        return TrueKind.DELETE
+    if path in modified:
+        return TrueKind.EDIT
+    return TrueKind.CLEAN
 
 
 def longinus_detect(sandbox: Sandbox) -> dict[str, Verdict]:
@@ -239,7 +285,58 @@ def run_experiment(
     )
 
 
+def build_sandbox_from_git(
+    repo: str, cutoff: str, scope_prefix: str = "engine/"
+) -> Sandbox:  # pragma: no cover — IO
+    """git_oracle를 소비해 실 git 데이터로 Sandbox 조립 (합성 sandbox의 real-KG 대체)."""
+    from engine.efficacy import git_oracle as go  # noqa: PLC0415
+
+    base = go.cutoff_commit(repo, cutoff)
+    recorded = go.tree_blobs(repo, base)
+    disk = go.tree_blobs(repo, "HEAD")
+    net = go.net_status(repo, base, "HEAD")
+    return assemble_git_sandbox(recorded, disk, net, scope_prefix)
+
+
+def run_experiment_real_kg(
+    repo: str, cutoff: str, scope_prefix: str = "engine/"
+) -> tuple[Sandbox, ArmScore, ArmScore]:  # pragma: no cover — IO
+    """실 git drift 위 longinus(ON) vs naive(OFF) 단일 표본. ground truth=git -M rename."""
+    sb = build_sandbox_from_git(repo, cutoff, scope_prefix)
+    on = score_arm(longinus_detect(sb), sb.ledger)
+    off = score_arm(naive_detect(sb), sb.ledger)
+    return sb, on, off
+
+
 def main() -> int:  # pragma: no cover — 진입점
+    import sys  # noqa: PLC0415
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--real":
+        repo = sys.argv[2] if len(sys.argv) > 2 else "."
+        cutoff = sys.argv[3] if len(sys.argv) > 3 else "2026-05-25"
+        sb, on, off = run_experiment_real_kg(repo, cutoff)
+        corrupted = sum(1 for v in sb.ledger.values() if v is not TrueKind.CLEAN)
+        dist: dict[str, int] = {}
+        for v in sb.ledger.values():
+            dist[v.value] = dist.get(v.value, 0) + 1
+        print(f"longinus real-KG drift [{repo}] cutoff={cutoff} (ground truth = git -M rename):")
+        print(f"  nodes={len(sb.nodes)} corrupted={corrupted} true-kinds={dist}")
+        print(
+            f"  ON (longinus): class={on.classification_accuracy:.3f} "
+            f"recall={on.detection_recall:.3f} false-kill={on.false_kill_rate:.3f} "
+            f"fp={on.false_positive_rate:.3f}"
+        )
+        print(
+            f"  OFF (naive):   class={off.classification_accuracy:.3f} "
+            f"recall={off.detection_recall:.3f} false-kill={off.false_kill_rate:.3f} "
+            f"fp={off.false_positive_rate:.3f}"
+        )
+        print(
+            f"  Δclass={on.classification_accuracy - off.classification_accuracy:+.3f}  "
+            f"Δfalse-kill(OFF−ON)={off.false_kill_rate - on.false_kill_rate:+.3f}  "
+            "※ single real sample, non-circular (git rename ⊥ longinus sha-twin)"
+        )
+        return 0
     res = run_experiment()
     print(res.summary)
     return 0
@@ -252,10 +349,13 @@ __all__ = [
     "Sandbox",
     "TrueKind",
     "Verdict",
+    "assemble_git_sandbox",
     "build_sandbox",
+    "build_sandbox_from_git",
     "longinus_detect",
     "naive_detect",
     "run_experiment",
+    "run_experiment_real_kg",
     "score_arm",
 ]
 
