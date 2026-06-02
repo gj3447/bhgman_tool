@@ -16,7 +16,8 @@ are reproduced by the commands shown; no value is hand-authored.
 | **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
 | **prometheus** | 획득 | **MEASURED** | groundedness: sourcing **0.077** (946/12356), verifiability **0.931** (881/946 external), self-cite **0.001** (1/946) | `urlparse` URL-structure classification — not prometheus's judgment. ✅ non-circular. verifiability/precision-floor, NOT novelty. |
-| **eureka** | 발견·창조 | **MEASURED** | recovery: FCA **1.000** vs naive single-attr **0.000** (lift **+1.000**, 6/6 planted) | planted cyclic-pair concepts (I author the ground truth). ✅ non-circular. extraction-correctness, NOT reuse value. |
+| **prometheus** (novelty) | 획득 | **MEASURED** | novelty **0.933** (14/15 beyond base-LLM recall), control_acc **1.00** | dgx-local qwen2.5:32b recall-delta, instrument-validated. ✅ non-circular. recall-delta *upper bound*, not precision. |
+| **eureka** | 발견·창조 | **MEASURED** | recovery lift **+1.000** (6/6 planted) · KG reuse-breadth: 7 abstractions cover 319/319 nodes, extents [98..3] | planted concepts + real-KG synchronic cover. ✅ non-circular. extraction + breadth, NOT diachronic fan-in. |
 | occam (registry) | 정리 | UNMEASURABLE | AUC 0.476 | KG `status` label is **73% occam-authored** → circular + inverted. |
 
 Reproduce:
@@ -32,7 +33,9 @@ uv run python -m engine.efficacy.dispatch_telemetry       # jaebaeman fidelity 1
 uv run python -m engine.efficacy.scale_curve              # operational scale to 100k
 uv run python -m engine.efficacy.hades_oracle             # hades realization 0.839 + unrealized list
 uv run python -m engine.efficacy.prometheus_oracle        # prometheus groundedness (sourcing/verifiability/self-cite)
-uv run python -m engine.efficacy.eureka_oracle            # eureka FCA recovery vs naive (lift +1.000)
+uv run python -m engine.efficacy.eureka_oracle            # eureka recovery + real-KG reuse-breadth
+ssh -fN -L 11434:localhost:11434 dgx                       # tunnel dgx-local ollama (for novelty)
+uv run python -m engine.efficacy.prometheus_novelty       # prometheus novelty 0.933 (control-validated)
 ```
 
 ## What moved (vs the prior open items)
@@ -95,16 +98,32 @@ holes. Both are partly closed:
 - **Capability demonstration, synthetic:** eureka (FCA recovery lift +1.000 on a planted
   ideal), naesengmoon (mutation catch 0.600 on injected mutants).
 
+6. **the two thinnest counterfactuals now have a first measurement (2026-06-02).**
+   - **prometheus novelty** (`prometheus_novelty.py`): asks dgx-local qwen2.5:32b, no
+     tools, to label each finding KNOWN/NOVEL from training alone. The instrument is
+     **self-validated** — 5 control facts (3 known / 2 fabricated) must be discriminated
+     first; here **control_acc = 1.00**, so the run is MEASURED (not INCONCLUSIVE). Result:
+     **novelty 0.933 (14/15)** — prometheus's external-knowledge findings sit beyond base
+     recall. *Caveat:* NOVEL conflates *genuinely acquired specialized facts* with
+     *unverifiable assertions*, so 0.933 is a recall-delta **upper bound**, not precision.
+   - **eureka reuse-breadth** (`eureka_oracle.py` layer 2): runs eureka on the real KG
+     facet-graph (319 nodes) → 7 induced abstractions with extents [98, 95, 92, 91, 31,
+     13, 3], covering 319/319 nodes. Each abstraction is a *synchronic* multi-node cover
+     (immediate reuse breadth). *Caveat:* this is "how many existing nodes share an
+     abstraction now," NOT the *diachronic fan-in* (future reuse over time) — and
+     `min_extent=2` forces extent ≥ 2, so the meaningful signal is the extent
+     *distribution*, not a rate.
+
 ## What is still honestly open (the frontier moved, it didn't close)
 
-- **Every "MEASURED" has a deferred deeper layer.** None of the 7 is yet a clean *cognitive
-  win over a base-LLM at equal tool budget* — that controlled test
+- **Every "MEASURED" still has a deferred deeper layer.** None of the 7 is yet a clean
+  *cognitive win over a base-LLM at equal tool budget* — that controlled test
   (`project_bhgman_ab_falsifier_2026_05_30`) still reads ~0, and the operational value
-  (scale / reproducibility / audit) is the honest through-line.
-- **The two thinnest:** prometheus *novelty* (groundedness ≠ non-obviousness; needs a
-  base-LLM recall-delta on dgx-local) and eureka *reuse value* (recovery ≠ downstream
-  reuse; needs eureka to write `:AbstractCategory` to the real KG and accrue fan-in over
-  time). Those two counterfactuals are the next real data-collection work.
+  (scale / reproducibility / audit) is the honest through-line. The two new measurements
+  sharpen but don't overturn this: prometheus is *beyond base recall* (0.933) yet that
+  upper bound includes unverifiable claims; eureka covers nodes *now* but diachronic
+  fan-in (does anyone reuse the abstraction later?) needs `:AbstractCategory` written to
+  the KG and time to accrue. Those remain the genuine open frontier.
 - **The positive longinus Δ is vs a *naive no-tracking* baseline**, on *injected* mutations.
   It is **not** a cognitive win over a base-LLM given equal tool budget — that controlled
   test (`project_bhgman_ab_falsifier_2026_05_30`) still reads ~0; longinus's value there is

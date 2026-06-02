@@ -26,6 +26,9 @@ cognitive/downstream 층은 정직히 OPEN" 패턴.
 
 from __future__ import annotations
 
+import sys
+from dataclasses import dataclass
+
 from engine.eureka.induction_operators.fca import induce_fca
 
 _DECOY = "common_decoy_attr"  # 모든 객체 공유 = naive baseline의 함정
@@ -77,6 +80,66 @@ def naive_extents(context: dict[str, frozenset[str]]) -> list[frozenset[str]]:
     return [frozenset(o for o, oa in context.items() if a in oa) for a in sorted(attrs)]
 
 
+@dataclass(frozen=True)
+class ReuseBreadth:
+    """실 KG에서 eureka 추상의 즉시적 reuse breadth (synchronic cover)."""
+
+    n_objects: int
+    n_concepts: int
+    extents: tuple[int, ...]  # 각 induced 추상이 cover하는 KG 노드 수 (내림차순)
+    nodes_covered: int
+
+    @property
+    def avg_extent(self) -> float:
+        return sum(self.extents) / len(self.extents) if self.extents else 0.0
+
+    @property
+    def median_extent(self) -> int:
+        return self.extents[len(self.extents) // 2] if self.extents else 0
+
+    @property
+    def coverage(self) -> float:
+        return self.nodes_covered / self.n_objects if self.n_objects else 0.0
+
+    def summary(self) -> str:
+        return (
+            f"eureka KG reuse-breadth: {self.n_concepts} 추상 induced over {self.n_objects} "
+            f"facet-graph 노드 · extents={list(self.extents)} · avg={self.avg_extent:.1f} "
+            f"median={self.median_extent} · coverage={self.nodes_covered}/{self.n_objects} "
+            f"({self.coverage:.2f})"
+        )
+
+
+def reuse_breadth(extents: list[int], n_objects: int, nodes_covered: int) -> ReuseBreadth:
+    """induced 추상 extent 리스트 → reuse breadth (순수). extent = 한 추상이 묶은 노드 수."""
+    ordered = tuple(sorted(extents, reverse=True))
+    return ReuseBreadth(
+        n_objects=n_objects,
+        n_concepts=len(ordered),
+        extents=ordered,
+        nodes_covered=nodes_covered,
+    )
+
+
+def _kg_reuse() -> ReuseBreadth | None:  # pragma: no cover — IO
+    """실 KG에서 eureka 돌려 reuse breadth 측정. neo4j 없으면 None."""
+    from engine.cli.runtime import make_kg_runners  # noqa: PLC0415
+    from engine.eureka.formal_context_builder import build_formal_context  # noqa: PLC0415
+
+    runners = make_kg_runners()
+    if runners is None:
+        return None
+    run_cypher, _w, close = runners
+    try:
+        ctx, meta = build_formal_context(run_cypher)
+        res = induce_fca(ctx, min_extent=2, min_stability=0.0)
+        extents = [len(c.extent) for c in res.concepts]
+        covered = len(set().union(*[c.extent for c in res.concepts])) if res.concepts else 0
+        return reuse_breadth(extents, int(meta["objects"]), covered)
+    finally:
+        close()
+
+
 def main() -> int:  # pragma: no cover — 진입점
     context, planted = build_planted_context()
     result = induce_fca(context, min_extent=2, min_stability=0.0)
@@ -92,9 +155,21 @@ def main() -> int:  # pragma: no cover — 진입점
     print(
         "  읽기: lift>0 = eureka가 단일속성으론 못 잡는 conjunctive 잠재구조를 추출(extraction 효능)."
     )
+    # 2층: 실 KG reuse breadth (synchronic cover) — neo4j 있으면.
+    rb = _kg_reuse()
+    if rb is None:
+        print("  [KG reuse] neo4j 미연결 — synchronic reuse-breadth 생략.", file=sys.stderr)
+    else:
+        print("  ── 실 KG reuse-breadth (synchronic, 비순환: 노드·facet은 eureka 무관) ──")
+        print(f"  {rb.summary()}")
+        print(
+            "  읽기: 각 추상이 13~수십 노드를 묶음 = 즉시적 reuse breadth(추상 하나가 N개 기존노드 cover). "
+            "단 min_extent=2가 singleton pruning이라 'extent≥2'는 tautology — 의미는 extent *분포·coverage*."
+        )
     print(
-        "  주의: extraction 정확성(잠재구조 복원)이지 *reuse 효능* 아님 — 실 KG에 :AbstractCategory 0개 "
-        "+ reuse 시계열 미수집이라 downstream 가치는 UNMEASURABLE(OPEN)."
+        "  주의: (1)planted=extraction capability (2)KG breadth=*synchronic* cover(지금 N노드 묶음)이지 "
+        "*diachronic fan-in*(미래 재사용 시계열) 아님 — 후자는 :AbstractCategory write+시간 필요 = OPEN. "
+        "facet-graph 319노드 narrow slice."
     )
     return 0
 

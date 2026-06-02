@@ -7,6 +7,7 @@ from engine.efficacy.eureka_oracle import (
     build_planted_context,
     naive_extents,
     recovery_recall,
+    reuse_breadth,
 )
 
 
@@ -51,3 +52,20 @@ def test_naive_single_attr_cannot_recover_cyclic_concepts():
     ctx, planted = build_planted_context(k=6, objects_per=4)
     naive_recall = recovery_recall(naive_extents(ctx), planted)
     assert naive_recall == 0.0  # 단일속성 extent는 항상 2개 개념 병합 → Jaccard<0.8
+
+
+# ── reuse_breadth (synchronic cover) ─────────────────────────────────────────────
+def test_reuse_breadth_orders_and_aggregates():
+    rb = reuse_breadth(extents=[3, 98, 13], n_objects=200, nodes_covered=110)
+    assert rb.extents == (98, 13, 3)  # 내림차순
+    assert rb.n_concepts == 3
+    assert rb.median_extent == 13
+    assert abs(rb.avg_extent - (114 / 3)) < 1e-9
+    assert rb.coverage == 110 / 200
+
+
+def test_reuse_breadth_empty_safe():
+    rb = reuse_breadth(extents=[], n_objects=0, nodes_covered=0)
+    assert rb.avg_extent == 0.0
+    assert rb.median_extent == 0
+    assert rb.coverage == 0.0
