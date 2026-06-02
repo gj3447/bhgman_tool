@@ -27,6 +27,37 @@ class TestScanKgRefs:
         _write_py(p, "def x(): pass\n")
         assert code_scanner.scan_kg_refs(p) == []
 
+    def test_parenthetical_note_stripped(self, tmp_path):
+        # legit form: `# KG: anchor (free-text note)` → anchor only.
+        p = tmp_path / "a.py"
+        _write_py(p, "# KG: hub-harness-3tier (canon in SYMPOSIUM — the family hub)\n")
+        assert code_scanner.scan_kg_refs(p) == [(1, ["hub-harness-3tier"])]
+
+    def test_backtick_example_in_docstring_ignored(self, tmp_path):
+        # prose example of the syntax, NOT a real anchor — must not be captured.
+        p = tmp_path / "a.py"
+        _write_py(p, '"""A `# KG: xxx` example, and ``# KG: lesson-foo-2026`` too."""\n')
+        assert code_scanner.scan_kg_refs(p) == []
+
+    def test_prose_tail_after_comma_dropped(self, tmp_path):
+        # real comment, real first anchor, but a prose tail after the comma.
+        p = tmp_path / "a.py"
+        _write_py(p, "# KG: lesson-real-2026-04-16, LensSet UNION coverage canon\n")
+        assert code_scanner.scan_kg_refs(p) == [(1, ["lesson-real-2026-04-16"])]
+
+    def test_kg_inside_string_literal_dropped(self, tmp_path):
+        # `# KG:` mentioned inside a string value is prose, not an anchor.
+        p = tmp_path / "a.py"
+        _write_py(p, 'NOTE = "scans for # KG: refs and reports orphans"\n')
+        assert code_scanner.scan_kg_refs(p) == []
+
+    def test_digit_leading_and_korean_anchor_kept(self, tmp_path):
+        p = tmp_path / "a.py"
+        _write_py(p, "# KG: 7cmd-need-based-2026-05-30, 재배맨-v2-protocol\n")
+        assert code_scanner.scan_kg_refs(p) == [
+            (1, ["7cmd-need-based-2026-05-30", "재배맨-v2-protocol"])
+        ]
+
 
 class TestScanPythonSymbols:
     def test_function_and_class(self, tmp_path):
