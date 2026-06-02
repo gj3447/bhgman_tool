@@ -20,6 +20,7 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 # runner: command argv -> (returncode, combined_output). 주입식 (테스트=fake, 실전=subprocess).
 CommandRunner = Callable[[Sequence[str]], "tuple[int, str]"]
@@ -78,10 +79,65 @@ def run_oracle_gate(
     return True, verdicts
 
 
+# ── 연속 fitness oracle (FunSearch loop용 scalar 확장) ──────────────────────
+# binary OracleLens(PASS/FAIL)의 scalar 확장. evolve_loop가 maximize할 *외부 결정론*
+# metric. 점수원이 외부 도구 실행(LLM 판정 아님)이어야 equal-compute에서 DPI 상한을
+# 뚫는 외부 정보원이 된다 (prom16-bhgman-ci-design-2026-06-02 §0/§3). 관례: 높을수록
+# 좋음 — minimize 지표(drift·complexity)는 음수화하여 등록.
+# 자격 task 4류 metric: lean-goals(닫은 goal 수) / pytest-ratio(통과율) /
+# drift-recount(drift→0, 음수화) / occam-twins(무손실 제거 수).
+
+# candidate -> fitness (높을수록 좋음). candidate 타입은 task마다 다름(코드 str / KG diff / proof).
+ScoreFn = Callable[[Any], float]
+
+
+@dataclass(frozen=True)
+class OracleScore:
+    """연속 fitness 결과. value 높을수록 좋음 (minimize 지표는 음수화하여 등록)."""
+
+    lens: str
+    kind: str
+    value: float
+
+
+@dataclass(frozen=True)
+class ScalarOracle:
+    """연속 fitness oracle. binary OracleLens 의 scalar 확장.
+
+    FunSearch/AlphaEvolve 가 maximize 할 외부 결정론 metric. 점수원이 *외부 도구 실행*
+    이어야 (LLM-judges-LLM 아님) DPI 를 뚫는다 — 그렇지 않으면 evolve_loop 가
+    equal-compute ~0 의 자기참조 함정으로 붕괴한다.
+    """
+
+    name: str
+    kind: str  # lean-goals | pytest-ratio | drift-recount | occam-twins
+    score: ScoreFn
+
+    def evaluate(self, candidate: Any) -> OracleScore:
+        return OracleScore(self.name, self.kind, float(self.score(candidate)))
+
+
+def scalar_from_lens(lens: OracleLens, runner: CommandRunner = subprocess_runner) -> ScalarOracle:
+    """binary 컴파일러나생문 → {0.0, 1.0} fitness 어댑터 (gate→scalar).
+
+    candidate 는 무시(렌즈의 command 가 고정)하므로 gate-as-fitness 용도. 연속 gradient
+    가 필요한 task(pytest 통과율 등)는 전용 ScoreFn 으로 ScalarOracle 을 직접 구성.
+    """
+
+    def _score(_candidate: Any) -> float:
+        return 1.0 if lens.verify(runner).passed else 0.0
+
+    return ScalarOracle(name=lens.name, kind=lens.kind, score=_score)
+
+
 __all__ = [
     "CommandRunner",
     "OracleLens",
+    "OracleScore",
     "OracleVerdict",
+    "ScalarOracle",
+    "ScoreFn",
     "run_oracle_gate",
+    "scalar_from_lens",
     "subprocess_runner",
 ]
