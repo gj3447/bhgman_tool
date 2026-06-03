@@ -28,7 +28,6 @@ import argparse
 import hashlib
 import json
 import re
-import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -90,7 +89,7 @@ def measure_file(p: Path) -> dict:
     }
 
 
-def compute(lean_root: Path, glob: str = "APT*.lean") -> dict:
+def compute(lean_root: Path, glob: str = "APT*.lean", *, with_axioms: bool = False) -> dict:
     files = sorted(p for p in lean_root.glob(glob) if p.is_file())
     per_file = [measure_file(p) for p in files]
     agg = {
@@ -104,17 +103,30 @@ def compute(lean_root: Path, glob: str = "APT*.lean") -> dict:
             f["disjunct_discharge_documented"] for f in per_file
         ),
     }
-    # W4: axiom-level NONTRIVIAL classification requires a Lean toolchain + lakefile.
-    toolchain = shutil.which("lake") or shutil.which("lean")
-    has_lakefile = any(
-        (lean_root / n).exists() for n in ("lakefile.lean", "lakefile.toml", "lean-toolchain")
-    )
-    agg["axiom_classification"] = "AVAILABLE_NOT_RUN" if (toolchain and has_lakefile) else "UNKNOWN"
-    agg["axiom_classification_note"] = (
-        "no lakefile/toolchain in lean_root -> per-theorem `#print axioms` not run; "
-        "'0 live_sorry' is proof-TERM level only and does NOT certify deep theorems are "
-        "non-trivially proven (see n_disjunct_discharge_documented). Do not read 'proven'."
-    )
+    # W4: authoritative "no hidden sorry" via lean `#print axioms` (opt-in --axioms, slow).
+    if with_axioms:
+        from engine.efficacy.lean_axiom_probe import probe_all  # noqa: PLC0415
+
+        oracle = probe_all(lean_root, glob)
+        agg["axiom_oracle"] = oracle
+        if oracle.get("available"):
+            agg["axiom_classification"] = "MEASURED"
+            agg["axiom_classification_note"] = (
+                f"lean #print axioms: n_sorry_tainted={oracle['n_sorry_tainted']} (transitive sorryAx), "
+                f"n_genuinely_proven={oracle['n_genuinely_proven']}/{oracle['n_theorems_probed']}. "
+                "Authoritative for hidden sorry; does NOT detect statement-weakening "
+                "(disjunct-discharge) — see n_disjunct_discharge_documented."
+            )
+        else:
+            agg["axiom_classification"] = "UNKNOWN"
+            agg["axiom_classification_note"] = oracle.get("note", "axiom oracle unavailable")
+    else:
+        agg["axiom_classification"] = "UNKNOWN"
+        agg["axiom_classification_note"] = (
+            "per-theorem `#print axioms` not run (use --axioms). '0 live_sorry' is regex/proof-TERM "
+            "level only and does NOT certify deep theorems are non-trivially proven "
+            "(see n_disjunct_discharge_documented). Do not read 'proven'."
+        )
     return {
         "schema": "apt_lean_metrics_v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -210,9 +222,15 @@ def main() -> int:
         help="ratchet: with --check, exit 1 only if drift COUNT exceeds this baseline "
         "(grandfathers existing drift, blocks net-new). -1 (default) = strict (any drift fails).",
     )
+    ap.add_argument(
+        "--axioms",
+        action="store_true",
+        help="run the lean `#print axioms` oracle (slow, authoritative no-hidden-sorry). "
+        "Sets axiom_classification=MEASURED.",
+    )
     args = ap.parse_args()
 
-    data = compute(args.lean_root)
+    data = compute(args.lean_root, with_axioms=args.axioms)
     agg = data["aggregate"]
 
     if args.check:
