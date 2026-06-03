@@ -287,6 +287,27 @@ true frontier arm needs a fresh console `ANTHROPIC_API_KEY`.) Net across all Fun
 32b wash. Loop-hypothesis stays OPEN but the *local* signal is gone; the decisive test is frontier + a
 headroom-rich problem.
 
+### dgx vLLM Qwen3.6-27B (2026-06-03): clean flat tie — completes the local triangulation
+
+Ran the gate on the dgx "api" = k8s `ai/vllm` serving **Qwen3.6-27B** (newer-gen, reasoning model;
+`enable_thinking=false` + terse-code prompt to avoid the reasoning/truncation traps). weibull, n=8,
+budget 3000, fixed bootstrap. **Clean run: 0 timeouts, 0/8 crash-zeros (validity-checked).**
+
+Result: **wins=0, ties=8, losses=0 — 8/8 EXACT ties**, lift [0,0,0], realized=False. Both arms
+converge to the same best-fit heuristic (~0.93) every seed → no headroom above best-fit → flat.
+
+**Local triangulation complete (3 model gens, all no edge):** 7b → flat; 32b → wash (n=20, signal
+was noise); Qwen3.6-27B → flat 8/8. Across everything bhgman can run locally, the island-evolve loop
+does **not** beat best-of-N — best-fit is the reachable ceiling for these distributions and both arms
+reach it. (Getting infra-clean took 3 tries: timeout-crash → retry; 3h40m-slow → max_tokens cut;
+truncation-0.0-artifact → terse prompt. Each artifact caught + fixed, not reported as a result.)
+
+**Verdict (robust, NOT premature — clean data, multi-model, fixed/validated stats): loop-hypothesis
+has NO local evidence through Qwen3.6-27B.** The decisive test remains a *frontier* model (can discover
+non-obvious heuristics beating best-fit — FunSearch's regime) on a *headroom-rich* problem, which needs
+a console `ANTHROPIC_API_KEY` (dgx has only an expired Claude Code OAuth token). operational-substrate
+within-competence stands; loop stays OPEN-pending-frontier.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
