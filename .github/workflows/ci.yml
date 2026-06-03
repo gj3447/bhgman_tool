@@ -53,11 +53,12 @@ jobs:
           python-version: '3.12'
       - name: Install uv
         run: pip install uv
+      - name: Sync full env (the oracle's nested pytest must load the repo conftest, which needs extras)
+        run: uv sync --all-extras
       - name: bhgman-tool oracle --kind pytest-ratio (verify surface, self-contained)
-        # Self-contained targets: a tmp trivial test (proves the surface runs+gates in the pipeline,
-        # zero repo coupling) + a deterministic in-repo test with no extra deps. Pointing the oracle
-        # at an extras-dependent dir under nested `uv run` would correctly report 0.0 (those tests
-        # can't collect without `--all-extras`) — a true FAIL, but the wrong target for a surface demo.
+        # Proves the reasoner-facing verify surface runs+gates in the real pipeline. Targets are
+        # self-contained: a tmp trivial test (zero repo coupling) + a deterministic extras-free
+        # in-repo test. Needs --all-extras synced above so the nested pytest can import the root conftest.
         run: |
           printf 'def test_surface_ok():\n    assert 1 + 1 == 2\n' > /tmp/test_verify_surface.py
           uv run bhgman-tool oracle --kind pytest-ratio --target /tmp/test_verify_surface.py --json
