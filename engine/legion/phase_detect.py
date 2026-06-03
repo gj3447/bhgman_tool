@@ -125,10 +125,39 @@ def detect_phase(target: str, run_cypher) -> PhaseStatus:
     return classify_phase(fetch_facts(target, run_cypher))
 
 
+_Q_ALL_SA = (
+    "MATCH (sa:SemanticAnchor) WHERE coalesce(sa.status,'active')='active' "
+    "RETURN sa.name AS name ORDER BY sa.name"
+)
+
+
+def list_active_sas(run_cypher) -> list[str] | None:
+    """All active SemanticAnchor names, or None if the backend can't answer."""
+    try:
+        rows = run_cypher(_Q_ALL_SA, {})
+    except Exception:  # noqa: BLE001
+        return None
+    out = []
+    for r in rows:
+        name = r.get("name") if isinstance(r, dict) else None
+        out.append(name if name is not None else next(iter(r.values())))
+    return out
+
+
+def detect_all(run_cypher) -> list[tuple[str, PhaseStatus]]:
+    """Navigate every active SA → (name, PhaseStatus). Empty if backend can't answer."""
+    names = list_active_sas(run_cypher)
+    if names is None:
+        return []
+    return [(n, detect_phase(n, run_cypher)) for n in names]
+
+
 __all__ = [
     "PhaseFacts",
     "PhaseStatus",
     "classify_phase",
+    "detect_all",
     "detect_phase",
     "fetch_facts",
+    "list_active_sas",
 ]

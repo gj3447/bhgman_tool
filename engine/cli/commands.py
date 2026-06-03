@@ -145,16 +145,9 @@ def cmd_apt(args: argparse.Namespace) -> int:
 
 
 def _cmd_apt_status(args: argparse.Namespace) -> int:
-    """Phase navigation — detect which APT phase a project is at + what runs next (item ⑤)."""
-    from engine.legion.phase_detect import detect_phase  # noqa: PLC0415
+    """Phase navigation — which APT phase a project (or every active SA) is at + what runs next (⑤)."""
+    from engine.legion.phase_detect import detect_all, detect_phase  # noqa: PLC0415
 
-    target = getattr(args, "target", None)
-    if not target:
-        print(
-            "usage: bhgman-tool apt --status --target <SemanticAnchor name> [--local]",
-            file=sys.stderr,
-        )
-        return 2
     runners = _resolve_kg_runners(args)
     if runners is None:
         print(
@@ -163,17 +156,37 @@ def _cmd_apt_status(args: argparse.Namespace) -> int:
         )
         return 2
     run_cypher, _write, close = runners
+    target = getattr(args, "target", None)
     try:
-        status = detect_phase(target, run_cypher)
+        if target:
+            status = detect_phase(target, run_cypher)
+            print(f"[apt --status] {target}")
+            print(f"  phase   : {status.phase}")
+            print(f"  next    : {status.next_skill}")
+            print(f"  evidence: {status.evidence}")
+            if status.phase == "UNKNOWN":
+                print(
+                    "  (backend could not answer — local KG lacks SA chain; navigation needs neo4j.)"
+                )
+            return 0 if status.phase != "UNKNOWN" else 1
+        # no target → navigate every active SA
+        rows = detect_all(run_cypher)
     finally:
         close()
-    print(f"[apt --status] {target}")
-    print(f"  phase   : {status.phase}")
-    print(f"  next    : {status.next_skill}")
-    print(f"  evidence: {status.evidence}")
-    if status.phase == "UNKNOWN":
-        print("  (backend could not answer — local KG lacks SA chain; navigation needs neo4j.)")
-    return 0 if status.phase != "UNKNOWN" else 1
+    if not rows:
+        print(
+            "[apt --status] no active SemanticAnchor reachable (local KG lacks SA chain; needs neo4j)."
+        )
+        return 1
+    print(f"[apt --status] {len(rows)} active SemanticAnchor(s):")
+    from collections import Counter  # noqa: PLC0415
+
+    tally: Counter = Counter()
+    for name, st in rows:
+        tally[st.phase] += 1
+        print(f"  {st.phase:20s} {name}  → {st.next_skill}")
+    print("  ── phase tally: " + ", ".join(f"{k}={v}" for k, v in sorted(tally.items())))
+    return 0
 
 
 def _cmd_apt_gated(args: argparse.Namespace) -> int:
