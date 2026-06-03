@@ -233,7 +233,10 @@ def _bootstrap_ci(deltas: list[int], iters: int = 10000) -> tuple[float, float, 
         s = 0
         for _ in range(n):
             state = (state * 6364136223846793005 + 1442695040888963407) & ((1 << 64) - 1)
-            s += deltas[state % n]
+            # HIGH bits: LCG low bits are periodic (period <= n) → every "resample" drew a fixed
+            # cyclic index pattern → degenerate lo==hi CI = FALSE POSITIVE on sparse small-n deltas
+            # (funsearch n=8 [8,0×7] reported realized=True spuriously). Verified vs true-random 2026-06-03.
+            s += deltas[(state >> 33) % n]
         means.append(s / n)
     means.sort()
     return mean, means[int(0.025 * iters)], means[int(0.975 * iters)]

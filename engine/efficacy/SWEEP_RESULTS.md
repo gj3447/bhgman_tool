@@ -256,6 +256,27 @@ STANDS; loop-hypothesis remains OPEN but now LEANS structural-negative for bhgma
 triangulated across 3 diagnosed regimes (not a single premature test).** Remaining open path: a
 frontier-model run (Anthropic API) on a best-fit-beatable distribution.
 
+### Stronger-model follow-up + a bootstrap false-positive I caught (2026-06-03)
+
+Ran the same gate on the strongest LOCAL model (qwen2.5-32b) × weibull (FunSearch's distribution):
+- **7b → flat tie** (lift 0, model below the self-improvement floor).
+- **32b → weak POSITIVE, not significant.** n=8: per-seed **1 win (+0.0083), 7 exact ties, 0 losses**,
+  mean lift +0.001. The loop is *never worse* and *occasionally better* — directionally consistent
+  with "stronger model → loop edges up" (C1), but the effect is tiny and rare.
+
+**The gate first reported `realized=True` at 32b — that was a FALSE POSITIVE from a broken bootstrap.**
+`_bootstrap_ci` (shared by p1/composition/funsearch) resampled with `deltas[state % n]`, and an LCG's
+low bits are periodic (period ≤ n) → every "resample" drew the same fixed cyclic index pattern →
+degenerate lo==hi CI that clears 0 on sparse small-n deltas. Caught it (proper random bootstrap gives
+lo95=0.000; sign test on 1-win/7-tie/0-loss is p≈0.5), **fixed to high bits `(state >> 33) % n`**
+(verified vs true-random), recomputed → **UNREALIZED** (lo95=0.000). This is the mirror of the
+premature-CLOSE catch: a premature-CLAIM, caught by the same verify-your-own-stats discipline.
+
+Honest status (unchanged in direction, sharper): loop-hypothesis OPEN, leaning weak-positive-with-model-
+strength but NOT significant locally. A +0.001 effect at a ~1/8 win rate needs either ~50+ seeds (power)
+or a frontier model + headroom-rich problem (more wins) to confirm. The dgx credential is a Claude Code
+*subscription OAuth* token (not a console API key) and is not usable for this scripted batch.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
