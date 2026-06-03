@@ -89,9 +89,34 @@ def measure_file(p: Path) -> dict:
     }
 
 
+# A distinct math/physics workstream (diffusion / forcing / flow-matching / wave-index / MDL /
+# structural-refinement / functor-factorization) — NOT the 13-tier philosophical-grounding
+# architecture that several docs count as "25 files / 245+ theorems". The full APT*.lean glob (32)
+# conflates both populations; this list lets the metric report each honestly so a hand-typed "25"
+# (architecture subset) is not mistaken for drift against the full-glob 32. Heuristic, not user-canon.
+# (W3 adversarial audit 2026-06-03: docs use ≥2 populations; README counts full 32, ABSTRACT/
+#  PHILOSOPHICAL/FINAL_VERDICT count the architecture ~24-25. "159 drift" ≠ 159 errors.)
+NON_ARCHITECTURE_STREAM = (
+    "APT_AtomicSpan_MDL.lean",
+    "APT_Diffusion_Foundation.lean",
+    "APT_Flow_Matching.lean",
+    "APT_Forcing_Distance_FiniteDensity.lean",
+    "APT_Forcing_Salvage_PosetDuality.lean",
+    "APT_FunctorFactorization.lean",
+    "APT_Structural_Refinement.lean",
+    "APT_WaveIndex_Mirsky.lean",
+)
+
+
+def _pop(files: list[dict]) -> dict:
+    return {"n_files": len(files), "n_theorems": sum(f["theorems"] for f in files)}
+
+
 def compute(lean_root: Path, glob: str = "APT*.lean", *, with_axioms: bool = False) -> dict:
     files = sorted(p for p in lean_root.glob(glob) if p.is_file())
     per_file = [measure_file(p) for p in files]
+    arch = [f for f in per_file if f["file"] not in NON_ARCHITECTURE_STREAM]
+    stream = [f for f in per_file if f["file"] in NON_ARCHITECTURE_STREAM]
     agg = {
         "n_files": len(per_file),
         "n_theorems": sum(f["theorems"] for f in per_file),
@@ -102,6 +127,17 @@ def compute(lean_root: Path, glob: str = "APT*.lean", *, with_axioms: bool = Fal
         "n_disjunct_discharge_documented": sum(
             f["disjunct_discharge_documented"] for f in per_file
         ),
+        "populations": {
+            "full_glob": _pop(per_file),
+            "architecture_subset": _pop(arch),
+            "non_architecture_stream": {**_pop(stream), "files": [f["file"] for f in stream]},
+            "note": (
+                "docs use ≥2 populations: README counts full_glob (32); ABSTRACT/PHILOSOPHICAL/"
+                "FINAL_VERDICT count architecture_subset (~24-25, excludes the math/physics stream). "
+                "A hand-typed '25 files' is likely architecture_subset, NOT drift vs full 32. "
+                "--check compares to full_glob; treat its findings as REVIEW flags, not errors."
+            ),
+        },
     }
     # W4: authoritative "no hidden sorry" via lean `#print axioms` (opt-in --axioms, slow).
     if with_axioms:

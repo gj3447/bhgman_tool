@@ -59,3 +59,17 @@ def test_disk_reality_canonical_tree():
     assert agg["n_live_admit"] == 0
     # W4 honesty: no toolchain -> axiom-level classification must be UNKNOWN, never "proven"
     assert agg["axiom_classification"] in ("UNKNOWN", "AVAILABLE_NOT_RUN")
+
+
+def test_population_split_full_vs_architecture():
+    """W3 adversarial finding: docs' '25 files' = architecture subset, not the full 32-glob."""
+    import pytest
+
+    if not M.DEFAULT_LEAN_ROOT.exists():
+        pytest.skip("canonical lean tree not present on this host")
+    pops = M.compute(M.DEFAULT_LEAN_ROOT)["aggregate"]["populations"]
+    assert pops["full_glob"] == {"n_files": 32, "n_theorems": 340}
+    assert pops["architecture_subset"]["n_files"] == 24  # ≈ docs' "25 files"
+    assert pops["non_architecture_stream"]["n_files"] == 8
+    # architecture theorems (266) ≥ docs' "245+" lower bound — so "245+" is true, not drift
+    assert pops["architecture_subset"]["n_theorems"] >= 245
