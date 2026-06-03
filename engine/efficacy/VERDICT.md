@@ -99,9 +99,17 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   Lean sorry=0 × real F3 island × graded oracle) was never run.** The measured negative is true for
   *this regime* (independent toy functions + binary oracle, where best-of-N is provably optimal) and
   says almost nothing about the loop hypothesis. See `SWEEP_RESULTS.md` §"Composition 4th gate".
-- **External impact — UNMEASURED.** Every number here is internal/self-referential. Whether
-  anyone *outside* this project uses or benefits from the tool is the genuinely untested
-  axis (`project_bhgman_self_critique_2026_05_28`).
+- **External impact — MEASURED 2026-06-04 → realized `trace` / potential `weak`.** A 6-dimension,
+  13-agent audit (ungameable signals + preflight 3-falsifier + both-direction adversarial verify;
+  all verdicts held) found **nothing has crossed an ungameable outside boundary**: GitHub stars/fork
+  are all owner accounts and the 6567 clones are own-CI (r≈0.96 with Actions runs, 253:1 clone:view);
+  not on PyPI/npm/Docker (the README's `pip install bhgman_tool` itself 404s); papers SUBMISSION_READY
+  but unsubmitted in a PRIVATE repo (OpenAlex/Crossref/Zenodo/arXiv = 0 for author + "metahumotonic");
+  the "3rd-party reproduction" is the owner's own company account running an AI agent (content
+  non-circular, account-circular = trace); metahumotonic.com live but 7/7 feedback rows are owner
+  LAN curl-probes; ~12 web searches + GitHub code-search = 0 genuine mentions. The two acts that would
+  create external exposure (arXiv upload, PyPI publish) are owner-only and have not happened. Full:
+  `EXTERNAL_IMPACT_AUDIT_2026-06-04.md`. (`project_bhgman_self_critique_2026_05_28`)
 - **Do not over-correct.** "Not cognitively superior to a base-LLM" ≠ "useless." The
   operational properties above are real, valuable, and the correct basis for the tool's
   positioning. The claim is precise, not deflationary.

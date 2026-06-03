@@ -53,10 +53,15 @@ jobs:
           python-version: '3.12'
       - name: Install uv
         run: pip install uv
-      - name: bhgman-tool oracle --kind pytest-ratio (verify surface on real artifacts)
+      - name: bhgman-tool oracle --kind pytest-ratio (verify surface, self-contained)
+        # Self-contained targets: a tmp trivial test (proves the surface runs+gates in the pipeline,
+        # zero repo coupling) + a deterministic in-repo test with no extra deps. Pointing the oracle
+        # at an extras-dependent dir under nested `uv run` would correctly report 0.0 (those tests
+        # can't collect without `--all-extras`) — a true FAIL, but the wrong target for a surface demo.
         run: |
-          uv run bhgman-tool oracle --kind pytest-ratio --target engine/naesengmoon --json
-          uv run bhgman-tool oracle --kind pytest-ratio --target engine/efficacy/tests --json
+          printf 'def test_surface_ok():\n    assert 1 + 1 == 2\n' > /tmp/test_verify_surface.py
+          uv run bhgman-tool oracle --kind pytest-ratio --target /tmp/test_verify_surface.py --json
+          uv run bhgman-tool oracle --kind pytest-ratio --target engine/efficacy/tests/test_funsearch_binpack.py --json
 
   lint:
     name: ruff
