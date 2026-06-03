@@ -52,6 +52,36 @@ commanders (occam/longinus/hades + the compiler-naesengmoon) are: 0-token, ungam
 confirms the operational-substrate verdict *constructively* (it shows where the value is, not only
 where it isn't).
 
+## Run 4 — strong model (qwen-32b) on the same hard tasks → SATURATION
+
+To meet the "strong model" condition, re-ran the headroom probe on the strongest local model
+(qwen2.5:32b-instruct, 19.9 GB) on the 8 hard/medium tasks.
+
+| | single | oracle_select | hetero |
+|---|---|---|---|
+| pass / 8 | **8** | 8 | 8 | (`saturated: true`) |
+
+The strong model solves **every** task single-shot. Zero headroom. Composition cannot help because
+there is nothing left to add.
+
+**The decisive structural finding — power–headroom mutual exclusivity (now empirically shown on both
+ends).** Weak model (1.5b): headroom exists (10/15) but no capability → composition doesn't help and
+hurts. Strong model (32b): capability exists but the standard tasks saturate (8/8) → no headroom for
+composition to act. The two conditions the cell needs (capable model AND task beyond its single-shot
+reach) are **mutually exclusive on standard HumanEval-style tasks** — the better the model, the more it
+saturates them. This is exactly the VERDICT.md §3 postmortem observation ("power and headroom are
+mutually exclusive across the whole sweep"), now confirmed across both available models.
+
+**What this means for "opening the cell."** The cell only opens when headroom and capability coexist —
+which requires tasks genuinely *beyond* a strong model's single shot: (a) too big for one context
+(decomposition headroom), (b) needing external info the model lacks (prometheus's gap-ingest domain),
+or (c) needing a formal proof the model can't one-shot with an ungameable oracle (Lean #print-axioms).
+Standard code tasks are none of these. **And those three task types are precisely what bhgman's KG
+substrate is built for** (cross-session beyond-context state / external-knowledge ingest / formal
+ground-truth oracles) — which is why the measured value lives in the operational substrate, not in
+beating a model on tasks it can already do. The cell is not "closed"; it is *unreachable with standard
+tasks + available models*, and reaching it needs the very regime the substrate already targets.
+
 ## Still untested (the genuinely OPEN cell)
 
 strong model × **ground-truth (non-proxy) oracle** × real headroom (task too big / outside single-shot
