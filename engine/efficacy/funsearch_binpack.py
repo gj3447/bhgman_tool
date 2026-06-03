@@ -93,11 +93,18 @@ class BinPackTask:
     cap: float = _CAP
 
 
-def make_task(seed: int, n_public: int = 5, n_hidden: int = 5) -> BinPackTask:
-    """결정론 bin-packing task (seed 고정). item ~ U[0.1, 0.7]·cap → first-fit에 headroom 존재."""
+def make_task(
+    seed: int, n_public: int = 5, n_hidden: int = 5, dist: str = "uniform"
+) -> BinPackTask:
+    """결정론 bin-packing task (seed 고정). dist=uniform U[0.1,0.7] / weibull(FunSearch 분포)."""
     rng = random.Random(seed)
 
     def _instance() -> list[float]:
+        if dist == "weibull":  # FunSearch가 쓴 분포 — 휴리스틱 선택이 가장 민감
+            return [
+                min(0.99, round(rng.weibullvariate(0.45, 3.0), 3))
+                for _ in range(_ITEMS_PER_INSTANCE)
+            ]
         return [round(rng.uniform(0.1, 0.7), 3) for _ in range(_ITEMS_PER_INSTANCE)]
 
     return BinPackTask(
@@ -245,12 +252,13 @@ def run_gate(
     *,
     budget_tokens: int,
     n_islands: int = 4,
+    dist: str = "uniform",
 ) -> FunSearchVerdict:
     """seed당 task 1개 → (ARM1 best-of-N, ARM2 island-evolve) HIDDEN 점수 쌍. 동일 토큰 예산."""
     pairs: list[tuple[float, float]] = []
     tk = {"best_of_n": 0, "island_evolve": 0}
     for s in seeds:
-        task = make_task(s)
+        task = make_task(s, dist=dist)
         a1, t1 = arm_best_of_n(task, complete, budget_tokens, seed0=s * 1000)
         a2, t2 = arm_island_evolve(
             task, complete, budget_tokens, seed0=s * 1000, n_islands=n_islands
@@ -285,10 +293,11 @@ if __name__ == "__main__":
     n_seeds = int(os.environ.get("FS_SEEDS", "5"))
     budget = int(os.environ.get("FS_BUDGET", "6000"))
     islands = int(os.environ.get("FS_ISLANDS", "4"))
+    dist = os.environ.get("FS_DIST", "uniform")
     seeds = list(range(1, n_seeds + 1))
     print(
-        f"funsearch binpack gate — seeds={n_seeds} budget={budget} islands={islands}",
+        f"funsearch binpack gate — seeds={n_seeds} budget={budget} islands={islands} dist={dist}",
         file=sys.stderr,
     )
-    v = run_gate(seeds, budget_tokens=budget, n_islands=islands)
+    v = run_gate(seeds, budget_tokens=budget, n_islands=islands, dist=dist)
     print(json.dumps(v.__dict__, ensure_ascii=False, indent=1))
