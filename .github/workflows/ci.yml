@@ -39,6 +39,25 @@ jobs:
         run: |
           uv run --all-extras pytest -q --tb=short
 
+  oracle-verify:
+    # Wires the reasoner-facing verify surface (`bhgman-tool oracle`) into the REAL pipeline:
+    # the deterministic oracle gates every push the same way an external reasoner would call it.
+    # Dogfood/real-workflow adoption (not third-party — that needs real users). CI-safe oracles
+    # only: lean-goals needs a Lean toolchain, drift/occam need neo4j; both absent on the runner.
+    name: bhgman verify (oracle surface dogfood)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        run: pip install uv
+      - name: bhgman-tool oracle --kind pytest-ratio (verify surface on real artifacts)
+        run: |
+          uv run bhgman-tool oracle --kind pytest-ratio --target engine/naesengmoon --json
+          uv run bhgman-tool oracle --kind pytest-ratio --target engine/efficacy/tests --json
+
   lint:
     name: ruff
     runs-on: ubuntu-latest

@@ -91,6 +91,31 @@ Falsifiable A/B tests, scored by an **external oracle** (planted ground truth / 
 
 **Bottom line: bhgman_tool is a governance / audit layer (reproducibility, provenance, contract enforcement, drift detection) — not a capability multiplier. Treat it as *discipline*, not *intelligence*.** Reproduce any of the above from `/tmp/bhgman_ab/`-style harnesses; numbers are deliberately un-flattering where the measurement said so.
 
+### Verify surface — `bhgman-tool oracle` (the reasoner-facing oracle)
+
+The honest positioning hardened 2026-06-04, after a FunSearch-style agentic evolve-loop was built and
+*decisively closed* (neutral-to-worse than best-of-N at every reachable scale; `SWEEP_RESULTS.md`): the
+one consistently-valuable piece is the deterministic **oracle**. So bhgman = the **verification substrate
+a reasoner calls**. One entry point routes an artifact to a substrate-disjoint, zero-LLM-token oracle:
+
+```bash
+bhgman-tool oracle --kind lean-goals    --target Proof.lean --lean-dir lean --json   # proof checker
+bhgman-tool oracle --kind pytest-ratio  --target tests/ --json                       # test execution
+bhgman-tool oracle --kind drift-recount --code-root engine --local --json            # KG↔code drift
+bhgman-tool oracle --kind occam-twins   --scope mypkg --local --json                 # stale dup nodes
+```
+
+→ `{"kind","target","score","passed","detail"}`; exit `0`=pass / `1`=fail / `2`=KG-unavailable. Python
+API: `from engine.naesengmoon.verify import verify`. Wired into this repo's own CI (the `oracle` job
+gates every push through the same surface an external reasoner would call).
+
+**Its value scales with reasoner fallibility** (measured, `SWEEP_RESULTS.md` §External-value proxy): a
+strong reasoner on within-competence tasks self-verifies reliably so the oracle is marginal there
+(Qwen3.6-27B: **0/15** confident-but-wrong); a fallible reasoner is confidently wrong often and the
+oracle catches every case its self-assessment missed (qwen2.5-0.5b: **10/15**). A
+**fallibility-proportional deterministic error-catcher** — most useful at the competence edge, for
+weaker reasoners, or on out-of-competence tasks. (Not a cognition amplifier — `tlb`/loop experiments said so.)
+
 > **Third-party reproductions** (independent clean-clone runs by a *different* agent, kept whole — their unresolved framing critiques included, e.g. the self-granted `axiom CHU` foundation) live in [`REVIEWS/`](REVIEWS/). Every in-repo validation lane here is the same author's machinery checking the same author's work; outside reproduction is the one layer this project structurally cannot self-generate, so it is collected, not curated.
 
 ```bash
