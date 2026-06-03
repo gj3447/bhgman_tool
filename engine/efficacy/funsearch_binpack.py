@@ -55,7 +55,8 @@ _TASK = (
     "Write `def priority(item, bins):` for ONLINE bin packing. `item` is a float size; "
     "`bins` is a list of remaining capacities of the bins that CAN fit the item. Return a list "
     "of the SAME length as `bins` — a score per bin; the bin with the HIGHEST score is chosen "
-    "(higher = prefer). Design the scoring to minimise the total number of bins used."
+    "(higher = prefer). Design the scoring to minimise the total number of bins used. "
+    "Return ONLY the function — no docstring, no comments, keep it short (a few lines)."
 )
 
 # subprocess scorer: exec candidate `priority`, run online packing over instances, print mean
