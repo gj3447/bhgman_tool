@@ -120,16 +120,84 @@ beyond the bare model (Run 5, one task) — and the mechanism is the ground-trut
 orchestration. The band is thin, which is *why* the operational substrate (independent of cognitive
 uplift) is the robust value, and the cognitive win is a narrow, real, hard-to-reach exception.
 
-## Still untested at scale (the cell is open a crack, not wide)
+## Run 6 — REASONING models (qwen3 via dgx ollama) + the reproduction that wiped the signal
 
-strong model × **ground-truth (non-proxy) oracle** × real headroom (task too big / outside single-shot
-competence) — needs a frontier backend AND a Lean-capable generator (so the hidden oracle is the
-ungameable W4 check, not a 2-test proxy). Not runnable here. The harness + gate + probe are ready.
+Pushed the faithful rig onto genuine **reasoning** models (Qwen3 thinking-mode) via the dgx GB10 over
+an ssh tunnel, to ask the real question: *does a reasoning model + ungameable oracle (repair) reach
+headroom theorems the bare reasoning model can't single-shot?* Three reasoning models, hard infra
+reality on each:
+
+| model | reasoning? | Lean capability | speed (GB10 ollama) | usable? |
+|---|---|---|---|---|
+| qwen3:32b | ✓ | sufficient | **4.1 tok/s** (245 s / ~1k tok) | **no** — 30-gen rig = multi-hour + random >timeout deaths |
+| qwen3:8b  | ✓ | **too weak** (`rfl` for `0+n`, wrong induction case names) | fast | runs, but **all-zero** (no band exists) |
+| qwen3:14b | ✓ | mid (attempts *close*, fixable) | 8.5 tok/s | **yes** — full rig completes |
+
+**qwen3:14b full rig (K=3, max_tokens 6000, ungameable oracle), run 1:**
+
+| task | diff | single | repair (oracle-fed) | bestN (blind) |
+|---|---|---|---|---|
+| zero_add | easy | 0 | 0 | 0 |
+| app_nil | easy | 0 | 1 | 0 |
+| gauss | headroom | 0 | 0 | 0 |
+| double | headroom | 0 | **1** | 0 |
+| cnt_len | headroom | 0 | 0 | 0 |
+| sumto_mono | headroom | 0 | **1** | 1 |
+
+headroom totals run 1: single **0** / repair **2** / bestN 1 → `repair_beats_single`=true. At face value the
+cleanest opening yet (single=0 everywhere ⇒ every repair win is unambiguously "reached beyond bare").
+
+**Then I reproduced it — and it vanished.** Re-ran the repair arm (fresh draws) on the two headroom
+winners: **double 0/3, sumto_mono 0/3.** Both 0. The model *repeated the same error class* across all 3
+attempts (double: `calc … : rfl` — Lean-3 `:` instead of `:=`, never fixed by the fed-back error;
+sumto_mono: `Nat.le_add_right` variants that don't typecheck). The run-1 wins did not reproduce.
+
+**Why (mechanism, not hand-wave).** The openai-compat path passes **no seed and no temperature** →
+ollama samples at its default temp 0.8 with a fresh random seed every call (the rig's `_seed` arg is
+ignored on this path; it only bites the local-`_ollama` path). So every generation is an independent
+draw, and **run-1's "repair 2/4" was a lucky draw, not a stable effect.** The arms remain valid (bestN
+= K independent samples; repair = K samples with error feedback), but a single run's counts are
+**high-variance** and an n=1 win is unreliable.
+
+**What is robust (survives reproduction) vs what is noise:**
+
+- **ROBUST:** single-shot = 0 for 14b reasoning on *every* core-Lean task here — reasoning did **not**
+  buy single-shot capability at this scale (capability floor). And 8b reasoning = all-zero. The
+  reasoning models are simply weak at core Lean.
+- **ROBUST:** taking K samples (repair *or* bestN) **occasionally** lands a valid proof that the
+  ungameable oracle correctly certifies (compiles + `#print axioms` no `sorryAx`) — *unreliably*.
+- **NOISE:** "repair beats single" and "repair beats bestN" on headroom. Both are within sampling
+  variance at this n — repair headroom count was {2, then 0 on the same two tasks}. repair vs bestN is
+  *indistinguishable* here: both are "K lottery tickets," and the run-1 repair>bestN edge did not hold.
+
+**The honest verdict on the cell.** When tested *faithfully and with reproduction*, the "make the model
+smarter via composition" cell does **not robustly open.** The narrow openings — Run 5's `sumto_mono`
+(qwen2.5:32b, n=1) and Run 6's run-1 (qwen3:14b, n=2) — are **sampling noise at the floor**; the 14b one
+explicitly failed to reproduce, and the rig's non-determinism means Run 5's was almost certainly the
+same. What is real and reproducible is the **ungameable oracle**: you can take K shots and *trust* the
+one that passes `#print axioms`. That trust — not "oracle-guided iteration is cognitively better than
+blind retry" — is the value. This is exactly the **operational substrate**, and it is now confirmed by
+the *failure* of the cognitive-uplift signal to survive replication, not just by its absence.
+
+> Meta: this is the verify-before-writeup / never-close-on-an-n=1 discipline working as intended. The
+> single-run "cell opens, narrowly" of Run 5 would have become canon had I not reproduced it. It didn't
+> reproduce. Recorded as noise, not as a win. (cf. evolve_loop premature-close postmortem, numerology MC
+> discipline.)
+
+## Still untested (and now likely moot)
+
+strong **reasoning** model that is *also* Lean-capable *and* fast enough to replicate (≥30 trials for a
+rate with CI) — the reasoning×capable×fast cell is unreachable on local dgx (32b too slow, 8b/14b too
+weak). A frontier API (the rig is wired: `ANTHROPIC_API_KEY` → AgentClient anthropic path) could test
+it, but the reproduction result above predicts the same: any single-run opening must be replicated
+before it counts, and the robust value will still be the ungameable oracle, not the orchestration.
 
 ## One-line
 
-Across saturated, hard, and weak-unsaturated regimes the 7-commander composition never beat a bare
-single shot — and the weak-unsaturated probe localized *why*: the win is neither orchestration nor
-proxy-oracle selection (which overfits, Goodhart), but **ground-truth oracle gating** — exactly the
-deterministic 0-token KG checks the tool already has. The "make the model smarter" cell (strong model +
-ungameable oracle + real headroom) stays OPEN, pending resources not available here.
+Across saturated, hard, weak-unsaturated **and now faithful-headroom-with-reasoning** regimes, the
+7-commander composition's cognitive uplift over a bare single shot is **at the noise floor** — the only
+positive signals (n=1/n=2) **failed to reproduce** under the rig's temp-0.8 independent draws. The
+robust, replicated value is **ground-truth oracle gating** (trust a sample that passes `#print axioms` /
+the compiler / the deterministic 0-token KG checks) — the operational substrate — *not* "composition
+makes the model smarter." The cell did not open; the discipline of reproducing before writing up is
+what kept a lucky draw from becoming a false canon.
