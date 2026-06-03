@@ -331,6 +331,28 @@ at bhgman's reachable scale it is at best neutral and at worst counterproductive
 stands; the "evolve loop gives cognitive lift" claim has zero local support and one significant local
 *negative*.
 
+### External-value proxy (2026-06-04): the oracle's value = the reasoner's confident-error rate
+
+After confirming bhgman = oracle substrate (the `bhgman-tool oracle` verify surface + 4 wired
+adapters), the genuinely-untested axis (VERDICT.md: external value) got a first honest proxy. On real
+code tasks a reasoner generates a solution AND self-rates it correct/incorrect; the bhgman oracle
+(hidden-test execution) gives ground truth. The value the oracle adds over the reasoner alone =
+**confident-but-wrong** (reasoner says YES, oracle says FAIL).
+
+| reasoner | oracle-pass | self-assessment acc | confident-but-wrong |
+|---|---|---|---|
+| Qwen3.6-27B (strong) | 1.00 (15/15) | 1.00 | **0/15** |
+| qwen2.5-0.5b (weak)  | 0.27 | 0.33 | **10/15 (0.667)** |
+
+So bhgman verify's external value is **real but conditional — it scales with reasoner fallibility/
+overconfidence.** A strong reasoner on within-competence tasks self-verifies reliably (acc 1.0) → the
+oracle is marginal there. A fallible reasoner is confidently wrong 2/3 of the time, and the oracle
+catches **every** one its self-assessment missed (Huang 2310.01798: intrinsic self-correction fails
+without an external signal — confirmed empirically). The honest external-value answer: not a cognition
+amplifier, but a **fallibility-proportional deterministic error-catcher** — most valuable exactly at the
+competence edge / for weaker reasoners / on out-of-competence tasks where even strong models err. True
+external *adoption* remains untested (needs a real user); this is the utility proxy.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
