@@ -192,6 +192,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_oc.add_argument("--limit", type=int, default=200, help="Semantic mode: max nodes to scan.")
     p_oc.set_defaults(func=commands.cmd_occam)
 
+    p_orc = sub.add_parser(
+        "oracle",
+        help="결정론 검증 substrate — artifact 건전성을 4 oracle 중 하나로 (추론기가 호출하는 API/CLI).",
+    )
+    p_orc.add_argument(
+        "--kind",
+        required=True,
+        choices=["lean-goals", "pytest-ratio", "drift-recount", "occam-twins"],
+        help="검증 oracle 종류.",
+    )
+    p_orc.add_argument("--target", help="lean-goals: 자족 .lean 파일 / pytest-ratio: pytest 대상.")
+    p_orc.add_argument("--lean-dir", default="lean", help="lean-goals: .lean 파일 디렉터리.")
+    p_orc.add_argument("--code-root", default=".", help="drift-recount: 코드 루트.")
+    p_orc.add_argument("--scope", help="occam-twins: sourcePath CONTAINS 필터.")
+    p_orc.add_argument("--local", action="store_true", help="drift/occam: 로컬 neo4j-free KG.")
+    p_orc.add_argument("--json", action="store_true", help="JSON verdict 출력.")
+    p_orc.set_defaults(func=commands.cmd_oracle)
+
     p_hd = sub.add_parser(
         "hades",
         help="하데스 — ACCEPTED 추상을 KG에 실현 (CANONICAL+INSTANCE_OF). dry-run default, --apply to write.",

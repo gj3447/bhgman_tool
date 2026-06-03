@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -800,6 +801,67 @@ def cmd_occam(args: argparse.Namespace) -> int:
         for o in res.report.orphans:
             print(f"    [orphan] {o.name} @ {o.source_path}")
     return 0
+
+
+def _oracle_kg_client(args: argparse.Namespace):  # noqa: ANN202
+    """drift-recount용 KgClient 구성 (--local=JSON / BHGMAN_KG_MCP_URL=mcp / NEO4J_*=neo4j)."""
+    from engine.longinus_drift_audit.audit_runner import build_kg  # noqa: PLC0415
+
+    mode = (
+        "local"
+        if getattr(args, "local", False)
+        else ("mcp" if os.environ.get("BHGMAN_KG_MCP_URL") else "neo4j")
+    )
+    ns = argparse.Namespace(
+        kg=mode,
+        kg_path=None,
+        mcp_url=os.environ.get("BHGMAN_KG_MCP_URL"),
+        uri=os.environ.get("NEO4J_URI"),
+        user=os.environ.get("NEO4J_USER"),
+        password=os.environ.get("NEO4J_PASSWORD"),
+    )
+    return build_kg(ns)
+
+
+def cmd_oracle(args: argparse.Namespace) -> int:
+    """결정론 검증 substrate — artifact를 4 oracle 중 하나로 검증 (추론기가 호출하는 표면).
+
+    exit 0 = passed(건전), 1 = failed, 2 = KG 미가용. 루프 아닌 *검증*이 bhgman 정체성 (verdict 2026-06-04).
+    """
+    from engine.naesengmoon.verify import verify  # noqa: PLC0415
+
+    kind = args.kind
+    close = None
+    kwargs: dict = {}
+    if kind == "lean-goals":
+        kwargs = {"lean_dir": args.lean_dir}
+    elif kind == "pytest-ratio":
+        kwargs = {}
+    elif kind == "drift-recount":
+        kwargs = {"code_root": args.code_root, "kg": _oracle_kg_client(args)}
+    elif kind == "occam-twins":
+        runners = _resolve_kg_runners(args)
+        if runners is None:
+            print(
+                "[oracle] occam-twins needs a KG (NEO4J_* / BHGMAN_KG_MCP_URL, or --local).",
+                file=sys.stderr,
+            )
+            return 2
+        run_cypher, _w, close = runners
+        kwargs = {"run_cypher": run_cypher, "scope": args.scope}
+
+    try:
+        v = verify(kind, args.target, **kwargs)
+    finally:
+        if close is not None:
+            close()
+
+    if getattr(args, "json", False):
+        print(json.dumps(v.__dict__, ensure_ascii=False))
+    else:
+        status = "PASS" if v.passed else "FAIL"
+        print(f"[{v.kind}] {v.target}: {status} (score={v.score}) - {v.detail}")
+    return 0 if v.passed else 1
 
 
 def cmd_export_prov(args: argparse.Namespace) -> int:
