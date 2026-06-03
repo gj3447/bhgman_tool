@@ -58,19 +58,21 @@ def _prompt(task, prior=None, error=None):
     return [sys, {"role": "user", "content": ask}]
 
 
-def _gen(task, model, prior=None, error=None):
-    text, _ = _ollama(_prompt(task, prior, error), 0)
+def _gen(task, model, seed, prior=None, error=None):
+    # seed THREADED per attempt — otherwise ollama returns identical samples and bestN collapses to
+    # single (the confound found 2026-06-03). bestN/repair must vary seed to be a fair K-budget arm.
+    text, _ = _ollama(_prompt(task, prior, error), seed)
     return _extract_proof(text)
 
 
 def _arm_single(task, model):
-    return evaluate(task.name, task.signature, _gen(task, model), preamble=task.preamble).proven
+    return evaluate(task.name, task.signature, _gen(task, model, 0), preamble=task.preamble).proven
 
 
 def _arm_repair(task, model, k):
     prior, err = None, None
-    for _ in range(k):
-        proof = _gen(task, model, prior, err)
+    for i in range(k):
+        proof = _gen(task, model, i, prior, err)  # varied seed + error feedback
         v = evaluate(task.name, task.signature, proof, preamble=task.preamble)
         if v.proven:
             return True
@@ -79,9 +81,9 @@ def _arm_repair(task, model, k):
 
 
 def _arm_bestn(task, model, k):
-    for _ in range(k):
-        if evaluate(task.name, task.signature, _gen(task, model), preamble=task.preamble).proven:
-            return True
+    for i in range(k):
+        if evaluate(task.name, task.signature, _gen(task, model, i), preamble=task.preamble).proven:
+            return True  # varied seed → genuinely independent attempts (no oracle feedback)
     return False
 
 
