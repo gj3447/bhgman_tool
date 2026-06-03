@@ -127,7 +127,10 @@ class AgentClient:
             "max_tokens": max_tokens,
         }
         headers = {"Authorization": f"Bearer {self._key}"}
-        resp = self._post(f"{self._base}/chat/completions", payload, headers, 120.0)
+        timeout = float(
+            os.environ.get("BHGMAN_LLM_TIMEOUT", "120")
+        )  # reasoning models load+think slowly
+        resp = self._post(f"{self._base}/chat/completions", payload, headers, timeout)
         choice = (resp.get("choices") or [{}])[0]
         text = (choice.get("message") or {}).get("content") or ""
         usage = resp.get("usage") or {}
