@@ -129,16 +129,51 @@ def cmd_daemon(args: argparse.Namespace) -> int:
 
 
 def cmd_apt(args: argparse.Namespace) -> int:
-    """APT cycle dispatch (SA → SP → ST → SCW). --gated = verified legion runtime; else skill route."""
+    """APT cycle dispatch (SA → SP → ST → SCW). --status nav / --gated runtime / else skill route."""
+    if getattr(args, "status", False):
+        return _cmd_apt_status(args)
     if getattr(args, "gated", False):
         return _cmd_apt_gated(args)
     if not args.task:
         print(
-            "usage: bhgman-tool apt <task>  |  bhgman-tool apt --gated [--local] [--ground-truth CMD]",
+            "usage: bhgman-tool apt <task>  |  apt --status --target <SA>  |  "
+            "apt --gated [--local] [--target <SA>] [--ground-truth CMD]",
             file=sys.stderr,
         )
         return 2
     return _route_skill("apt", args.task)
+
+
+def _cmd_apt_status(args: argparse.Namespace) -> int:
+    """Phase navigation — detect which APT phase a project is at + what runs next (item ⑤)."""
+    from engine.legion.phase_detect import detect_phase  # noqa: PLC0415
+
+    target = getattr(args, "target", None)
+    if not target:
+        print(
+            "usage: bhgman-tool apt --status --target <SemanticAnchor name> [--local]",
+            file=sys.stderr,
+        )
+        return 2
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[apt --status] neo4j unavailable — set NEO4J_*, or run via parent Claude MCP.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, _write, close = runners
+    try:
+        status = detect_phase(target, run_cypher)
+    finally:
+        close()
+    print(f"[apt --status] {target}")
+    print(f"  phase   : {status.phase}")
+    print(f"  next    : {status.next_skill}")
+    print(f"  evidence: {status.evidence}")
+    if status.phase == "UNKNOWN":
+        print("  (backend could not answer — local KG lacks SA chain; navigation needs neo4j.)")
+    return 0 if status.phase != "UNKNOWN" else 1
 
 
 def _cmd_apt_gated(args: argparse.Namespace) -> int:
@@ -160,7 +195,13 @@ def _cmd_apt_gated(args: argparse.Namespace) -> int:
         return 2
     run_cypher, write_cypher, close = runners
     ctx = {"run_cypher": run_cypher, "write_cypher": write_cypher, "apply": False}
+    target = getattr(args, "target", None)
     try:
+        if target:
+            from engine.legion.phase_detect import detect_phase  # noqa: PLC0415
+
+            ph = detect_phase(target, run_cypher)
+            print(f"[apt --gated] {target} phase={ph.phase} (next {ph.next_skill}) — {ph.evidence}")
         result = run_gated(
             build_default_legion(), ctx, ground_truth_cmd=getattr(args, "ground_truth", None)
         )

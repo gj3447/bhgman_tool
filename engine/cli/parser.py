@@ -72,6 +72,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="(--gated) external oracle command for G3, e.g. 'uv run pytest -q'. "
         "Omit => G3 SKIPPED => not verified.",
     )
+    p_apt.add_argument(
+        "--status",
+        action="store_true",
+        help="Phase navigation: detect which APT phase a project (SemanticAnchor) is at + what runs next.",
+    )
+    p_apt.add_argument(
+        "--target", help="(--status / --gated) project SemanticAnchor name to navigate."
+    )
     p_apt.set_defaults(func=commands.cmd_apt)
 
     p_tpa = sub.add_parser("tpa", help="TPA reverse cycle (TCW → ST → SP → TA).")
