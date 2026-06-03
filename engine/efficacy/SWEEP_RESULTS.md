@@ -277,6 +277,16 @@ strength but NOT significant locally. A +0.001 effect at a ~1/8 win rate needs e
 or a frontier model + headroom-rich problem (more wins) to confirm. The dgx credential is a Claude Code
 *subscription OAuth* token (not a console API key) and is not usable for this scripted batch.
 
+**Power check (2026-06-03): the n=8 weak-positive WASHED OUT at n=20 — it was noise.** Same gate, 32b ×
+weibull × n=20, fixed bootstrap: mean lift +0.0012, **CI95 [-0.135, +0.138]** (straddles 0 widely),
+**wins=2, ties=17, losses=1**. And one of the 2 "wins" is an artifact — best-of-N picked a heuristic
+that passed PUBLIC but crashed on HIDDEN (score 0.0 → ARM2's 0.92 "beat" it); the only genuine win is a
+single +0.008. Drop the outlier → ~1 win / 1 loss / 17 ties = a **wash**. So with proper power the 32b
+loop shows **no detectable edge** over best-of-N. (The dgx OAuth token is also expired ~84 days, 401 — the
+true frontier arm needs a fresh console `ANTHROPIC_API_KEY`.) Net across all FunSearch-regime runs: 7b flat,
+32b wash. Loop-hypothesis stays OPEN but the *local* signal is gone; the decisive test is frontier + a
+headroom-rich problem.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
