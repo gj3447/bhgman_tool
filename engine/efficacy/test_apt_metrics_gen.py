@@ -61,6 +61,26 @@ def test_disk_reality_canonical_tree():
     assert agg["axiom_classification"] in ("UNKNOWN", "AVAILABLE_NOT_RUN")
 
 
+def test_disjunct_discharge_detector_flags_trivial_disjunct():
+    """W4 statement-weakening: `realClaim ∨ trivialClaim` proved by selecting the trivial side."""
+    weak = "theorem deep (n : Nat) : n = 99 ∨ n ≥ 0 := by\n" "  right\n" "  exact Nat.zero_le _\n"
+    assert M.disjunct_discharge_suspects(weak) == ["deep"]
+    # a genuine theorem (no Or, or no disjunct selection) is not flagged
+    genuine = "theorem real (n : Nat) : n + 0 = n := by simp\n"
+    assert M.disjunct_discharge_suspects(genuine) == []
+
+
+def test_disjunct_discharge_real_mirsky():
+    import pytest
+
+    if not M.DEFAULT_LEAN_ROOT.exists():
+        pytest.skip("canonical lean tree not present on this host")
+    agg = M.compute(M.DEFAULT_LEAN_ROOT)["aggregate"]
+    suspects = agg["disjunct_discharge_suspects"]
+    assert "APT_WaveIndex_Mirsky.lean" in suspects
+    assert "apt_layer_count_eq_longest_chain" in suspects["APT_WaveIndex_Mirsky.lean"]
+
+
 def test_population_split_full_vs_architecture():
     """W3 adversarial finding: docs' '25 files' = architecture subset, not the full 32-glob."""
     import pytest

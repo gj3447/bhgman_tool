@@ -48,6 +48,33 @@ DISJUNCT_RE = re.compile(
     re.IGNORECASE,
 )
 
+# W4 statement-weakening DETECTOR (2026-06-03, the gap `#print axioms` cannot see):
+# a theorem whose STATEMENT is `realClaim ∨ trivialClaim` and whose PROOF selects the trivial
+# disjunct (`right`/`left`/`Or.inr`) — proving the easy side, leaving the real claim unproven.
+# This is the actual APT_WaveIndex_Mirsky pattern (e.g. `... = longestChain + 1 ∨ ... ≥ 1` proved
+# by `right; exact wave_pos`). Axiom-clean yet not a genuine proof of the intended theorem.
+_OR_RE = re.compile(r"∨")
+_SELECT_RE = re.compile(
+    r"(?m)^\s*(?:·\s*)?(?:right|left)\b|Or\.inr\b|Or\.inl\b|<;>\s*(?:right|left)\b"
+)
+_THM_BLOCK_RE = re.compile(
+    r"(?ms)^[ \t]*(?:theorem|lemma)\s+([\w']+)(.*?)"
+    r"(?=^[ \t]*(?:theorem|lemma|def|instance|namespace|end|section)\b|\Z)"
+)
+
+
+def disjunct_discharge_suspects(raw: str) -> list[str]:
+    """Theorem names whose statement has a top-level ∨ and whose proof selects one disjunct
+    (right/left/Or.inr) — suspected statement-weakening (real claim left unproven)."""
+    code = strip_comments(raw)
+    out: list[str] = []
+    for m in _THM_BLOCK_RE.finditer(code):
+        name, body = m.group(1), m.group(2)
+        stmt, _, proof = body.partition(":=")
+        if _OR_RE.search(stmt) and _SELECT_RE.search(proof):
+            out.append(name)
+    return out
+
 
 def strip_comments(src: str) -> str:
     """Remove Lean string literals, block (/- -/, incl. /-- -/ docstrings) and line (--)
@@ -76,6 +103,7 @@ def measure_file(p: Path) -> dict:
     live_sorry = len(SORRY_RE.findall(code))
     total_admit = len(ADMIT_RE.findall(raw))
     live_admit = len(ADMIT_RE.findall(code))
+    suspects = disjunct_discharge_suspects(raw)
     return {
         "file": p.name,
         "sha256": sha256_of(p),
@@ -86,6 +114,7 @@ def measure_file(p: Path) -> dict:
         "live_admit": live_admit,
         "comment_admit": total_admit - live_admit,
         "disjunct_discharge_documented": len(DISJUNCT_RE.findall(raw)),
+        "disjunct_discharge_suspected": suspects,
     }
 
 
@@ -127,6 +156,14 @@ def compute(lean_root: Path, glob: str = "APT*.lean", *, with_axioms: bool = Fal
         "n_disjunct_discharge_documented": sum(
             f["disjunct_discharge_documented"] for f in per_file
         ),
+        "n_disjunct_discharge_suspected": sum(
+            len(f["disjunct_discharge_suspected"]) for f in per_file
+        ),
+        "disjunct_discharge_suspects": {
+            f["file"]: f["disjunct_discharge_suspected"]
+            for f in per_file
+            if f["disjunct_discharge_suspected"]
+        },
         "populations": {
             "full_glob": _pop(per_file),
             "architecture_subset": _pop(arch),

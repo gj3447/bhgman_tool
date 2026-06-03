@@ -133,15 +133,78 @@ def cmd_apt(args: argparse.Namespace) -> int:
     if getattr(args, "status", False):
         return _cmd_apt_status(args)
     if getattr(args, "gated", False):
+        if args.task:
+            return _cmd_apt_task_gated(args)
         return _cmd_apt_gated(args)
     if not args.task:
         print(
             "usage: bhgman-tool apt <task>  |  apt --status --target <SA>  |  "
-            "apt --gated [--local] [--target <SA>] [--ground-truth CMD]",
+            "apt --gated [--target <SA>] [--ground-truth CMD]  |  apt <task> --gated [--ground-truth CMD]",
             file=sys.stderr,
         )
         return 2
     return _route_skill("apt", args.task)
+
+
+def _cmd_apt_task_gated(args: argparse.Namespace) -> int:
+    """Gated general-task attempt — produce → adversarially review → G1/G2/G3 (item ⑤ general half).
+
+    OVER-CLAIM GUARD: no cognitive-quality claim. The model's measured advantage is ~0; this only
+    certifies the attempt is reproducible (hashed) + audited (reviewed) + oracle-correct (G3).
+    """
+    from engine.legion.gated_task import run_task_gated  # noqa: PLC0415
+
+    task = " ".join(args.task) if isinstance(args.task, list) else str(args.task)
+    agents, reason = _agent_runtime()
+    if agents is None:
+        print(
+            f"[apt <task> --gated] LLM runtime unavailable ({reason}). Set ANTHROPIC_API_KEY or "
+            "BHGMAN_LLM_BASE_URL. It would: produce an artifact → adversarially review → gate "
+            "G1/G2/G3 (operational verification, NOT a cognitive-quality claim).",
+            file=sys.stderr,
+        )
+        return 2
+    client = agents.AgentClient()
+    model = os.environ.get("BHGMAN_LLM_MODEL", "claude-sonnet-4-6")
+
+    def produce(t: str) -> str:
+        return client.complete(
+            system="Attempt the task. Output only the artifact (code or answer), no preamble.",
+            user=t,
+            model=model,
+        ).text
+
+    def adversary(t: str, artifact: str) -> dict:
+        try:
+            verdict = client.complete(
+                system="Adversarial reviewer. Reply 'REJECT: <reason>' if the artifact fails the "
+                "task, else 'ACCEPT'.",
+                user=f"Task: {t}\n\nArtifact:\n{artifact}",
+                model=model,
+            ).text
+        except Exception as exc:  # noqa: BLE001
+            return {"ran": False, "detail": str(exc)[:120]}
+        return {
+            "ran": True,
+            "rejected": verdict.strip().upper().startswith("REJECT"),
+            "detail": verdict.strip()[:120],
+        }
+
+    res = run_task_gated(
+        task, produce, adversary_fn=adversary, ground_truth_cmd=getattr(args, "ground_truth", None)
+    )
+    print(f"[apt <task> --gated] {task[:60]}")
+    marks = {"PASS": "✓", "FAIL": "✗", "SKIPPED": "–"}
+    for g in res.gates:
+        print(f"  {marks.get(g.status, '?')} {g.name}: {g.status} — {g.detail}")
+    print(f"  artifact sha256: {res.artifact_sha256[:16]}…")
+    if res.verified:
+        print(
+            "  VERIFIED ✓ (operational gate — reproducible + audited + oracle-green; NOT a quality claim)"
+        )
+    else:
+        print("  NOT VERIFIED (fail-closed: not all gates PASS)")
+    return 0 if res.verified else 1
 
 
 def _cmd_apt_status(args: argparse.Namespace) -> int:
