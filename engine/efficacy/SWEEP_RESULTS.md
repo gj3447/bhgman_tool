@@ -308,6 +308,29 @@ non-obvious heuristics beating best-fit — FunSearch's regime) on a *headroom-r
 a console `ANTHROPIC_API_KEY` (dgx has only an expired Claude Code OAuth token). operational-substrate
 within-competence stands; loop stays OPEN-pending-frontier.
 
+### Headroom-rich task (symbolic regression) on dgx vLLM (2026-06-03): the loop is SIGNIFICANTLY WORSE
+
+The bin-packing ties were blamed on no-headroom (best-fit one-liner). So we built a headroom-rich task
+— symbolic regression of a hidden g(x)=c0+c1x+c2x²+c3·sin(c4x), graded by 1/(1+RMSE), rich residual
+feedback in read-back (the AlphaCodium lever). Gate-first validated (fires both ways, fair). Run on the
+SAME dgx vLLM (Qwen3.6-27B), n=8, budget 3000, clean (0/8 crashes; arm1 scores spread 0.17–0.84 =
+genuine fitting, headroom confirmed).
+
+Result: **mean best-of-N 0.466 vs island-evolve 0.414, lift -0.0526, CI95 [-0.098, -0.010] — entirely
+below 0. wins=2, ties=1, losses=5.** So with real headroom, the read-back loop is **statistically
+*worse*** than best-of-N (not just a tie). Likely mechanism: read-back causes **premature convergence**
+(refines around an early mediocre fit / local optimum) while best-of-N keeps sampling diverse fresh
+formulas; plus the longer read-back prompt buys fewer candidates per token → less exploration. A modest
+4-island/k=2/small-budget setup cannot supply the diversity FunSearch's huge populations + ~10⁶ evals do.
+
+This is the sharpest datum yet and it *flips the framing*: the loop's problem isn't only "no room to
+win" (bin-packing) — when there IS room, naive read-back at small scale actively **narrows exploration
+and loses**. Net across all runs: 7b flat / 32b wash / Qwen3.6-27B binpack flat / Qwen3.6-27B symreg
+**significantly worse**. The loop needs FunSearch-scale diversity+budget (frontier regime) to win;
+at bhgman's reachable scale it is at best neutral and at worst counterproductive. operational-substrate
+stands; the "evolve loop gives cognitive lift" claim has zero local support and one significant local
+*negative*.
+
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
