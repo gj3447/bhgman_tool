@@ -45,7 +45,9 @@ def lean_goals_oracle(lean_dir: str | Path = ".", timeout_s: int = 240) -> Scala
             proc = subprocess.run(  # noqa: S603, S607
                 ["lean", str(path)], capture_output=True, text=True, timeout=timeout_s, check=False
             )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
+        except (subprocess.TimeoutExpired, OSError):
+            # OSError covers FileNotFoundError (no lean on PATH, e.g. CI) AND PermissionError
+            # (non-executable lean) — a missing/broken toolchain → FAIL gate, never a crash.
             return -1000.0
         if proc.returncode != 0:
             return -1000.0
@@ -76,7 +78,7 @@ def pytest_ratio_oracle(timeout_s: int = 120) -> ScalarOracle:
                 timeout=timeout_s,
                 check=False,
             )
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, OSError):
             return 0.0
         out = proc.stdout + proc.stderr
 

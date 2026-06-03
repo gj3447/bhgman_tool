@@ -10,7 +10,10 @@ state; here we assert construction + the lean real-verification path.)
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
+
+import pytest
 
 from engine.naesengmoon.oracle_adapters import (
     drift_recount_oracle,
@@ -20,8 +23,10 @@ from engine.naesengmoon.oracle_adapters import (
 )
 
 _LEAN_DIR = Path(__file__).resolve().parents[3] / "lean"
+_HAS_LEAN = shutil.which("lean") is not None
 
 
+@pytest.mark.skipif(not _HAS_LEAN, reason="lean toolchain not installed (e.g. CI runner)")
 def test_lean_goals_oracle_real_proof():
     """실제 자족 증명 → 닫은 goal 14 (theorem 14 - sorry 0), `lean` exit 0 전제."""
     o = lean_goals_oracle(_LEAN_DIR)
