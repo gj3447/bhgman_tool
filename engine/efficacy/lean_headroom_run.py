@@ -36,6 +36,33 @@ from engine.efficacy.p1_oracle_rerank_pilot import _ollama
 _FENCE = re.compile(r"```(?:lean)?\s*(.*?)```", re.DOTALL)
 
 
+def _make_complete():
+    """(messages, seed) -> text. FRONTIER (Anthropic / OpenAI-compat via AgentClient) when a key/
+    endpoint is set (ANTHROPIC_API_KEY or BHGMAN_LLM_BASE_URL), else LOCAL ollama. Turnkey: export a
+    frontier key and the same command runs on the frontier model — widening the headroom band."""
+    from engine.cli.runtime import _agent_runtime  # noqa: PLC0415
+
+    agents, reason = _agent_runtime()
+    if agents is not None:
+        client = agents.AgentClient()
+        model = os.environ.get("BHGMAN_LLM_MODEL") or os.environ.get(
+            "P1_MODEL", "claude-sonnet-4-6"
+        )
+
+        def complete(messages, _seed):
+            system = next((m["content"] for m in messages if m["role"] == "system"), "")
+            user = next((m["content"] for m in messages if m["role"] == "user"), "")
+            return client.complete(system=system, user=user, model=model).text
+
+        return complete, f"frontier:{model}"
+
+    def complete(messages, seed):
+        text, _ = _ollama(messages, seed)
+        return text
+
+    return complete, f"local-ollama:{os.environ.get('P1_MODEL', 'qwen2.5:0.5b-instruct')}"
+
+
 def _extract_proof(text: str) -> str:
     m = _FENCE.search(text)
     body = m.group(1) if m else text
@@ -58,21 +85,22 @@ def _prompt(task, prior=None, error=None):
     return [sys, {"role": "user", "content": ask}]
 
 
-def _gen(task, model, seed, prior=None, error=None):
-    # seed THREADED per attempt — otherwise ollama returns identical samples and bestN collapses to
-    # single (the confound found 2026-06-03). bestN/repair must vary seed to be a fair K-budget arm.
-    text, _ = _ollama(_prompt(task, prior, error), seed)
-    return _extract_proof(text)
+def _gen(task, complete, seed, prior=None, error=None):
+    # seed THREADED per attempt — otherwise samples are identical and bestN collapses to single
+    # (the confound found 2026-06-03). bestN/repair must vary seed to be a fair K-budget arm.
+    return _extract_proof(complete(_prompt(task, prior, error), seed))
 
 
-def _arm_single(task, model):
-    return evaluate(task.name, task.signature, _gen(task, model, 0), preamble=task.preamble).proven
+def _arm_single(task, complete):
+    return evaluate(
+        task.name, task.signature, _gen(task, complete, 0), preamble=task.preamble
+    ).proven
 
 
-def _arm_repair(task, model, k):
+def _arm_repair(task, complete, k):
     prior, err = None, None
     for i in range(k):
-        proof = _gen(task, model, i, prior, err)  # varied seed + error feedback
+        proof = _gen(task, complete, i, prior, err)  # varied seed + error feedback
         v = evaluate(task.name, task.signature, proof, preamble=task.preamble)
         if v.proven:
             return True
@@ -80,9 +108,11 @@ def _arm_repair(task, model, k):
     return False
 
 
-def _arm_bestn(task, model, k):
+def _arm_bestn(task, complete, k):
     for i in range(k):
-        if evaluate(task.name, task.signature, _gen(task, model, i), preamble=task.preamble).proven:
+        if evaluate(
+            task.name, task.signature, _gen(task, complete, i), preamble=task.preamble
+        ).proven:
             return True  # varied seed → genuinely independent attempts (no oracle feedback)
     return False
 
@@ -91,21 +121,23 @@ def main() -> int:
     if not lean_available():
         print("[lean-headroom] lean toolchain not on PATH — cannot run.")
         return 2
-    model = os.environ.get("P1_MODEL", "qwen2.5:0.5b-instruct")
+    complete, backend = _make_complete()
     k = int(os.environ.get("LEAN_K", "4"))
     rows = []
-    print(f"[lean-headroom] model={model} K={k} n={len(TASKS)} (ungameable oracle, headroom tasks)")
+    print(
+        f"[lean-headroom] backend={backend} K={k} n={len(TASKS)} (ungameable oracle, headroom tasks)"
+    )
     for t in TASKS:
-        single = _arm_single(t, model)
-        repair = _arm_repair(t, model, k)
-        bestn = _arm_bestn(t, model, k)
+        single = _arm_single(t, complete)
+        repair = _arm_repair(t, complete, k)
+        bestn = _arm_bestn(t, complete, k)
         rows.append((t.difficulty, single, repair, bestn))
         print(
             f"  [{t.difficulty:8s}] {t.name:12s} single={int(single)} repair={int(repair)} bestN={int(bestn)}"
         )
     hr = [r for r in rows if r[0] == "headroom"]
     out = {
-        "model": model,
+        "backend": backend,
         "K": k,
         "n_tasks": len(rows),
         "n_headroom": len(hr),
