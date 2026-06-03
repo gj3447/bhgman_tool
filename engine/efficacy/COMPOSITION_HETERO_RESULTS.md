@@ -82,7 +82,45 @@ ground-truth oracles) — which is why the measured value lives in the operation
 beating a model on tasks it can already do. The cell is not "closed"; it is *unreachable with standard
 tasks + available models*, and reaching it needs the very regime the substrate already targets.
 
-## Still untested (the genuinely OPEN cell)
+## Run 5 — FAITHFUL test (real Lean, ungameable oracle, headroom) → the cell opens, narrowly
+
+Built the faithful rig (`lean_oracle.py` + `lean_tasks.py` + `lean_headroom_run.py`): real Lean,
+statement fixed by construction, hidden = `#print axioms` no-sorryAx (ungameable), headroom tasks
+(omega/simp don't one-shot), strong-ish model (qwen-32b), capability-heterogeneous (model + the real
+Lean compiler). Found + fixed a seed confound first (bestN had identical samples → re-run below).
+
+| task | diff | single | repair (oracle-fed) | bestN (blind retry) |
+|---|---|---|---|---|
+| zero_add | easy | 0 | 1 | 1 |
+| app_nil | easy | 1 | 1 | 1 |
+| gauss | headroom | 0 | 0 | 0 | ← above 32b's reach (repair can't either) |
+| double | headroom | 0 | 0 | 0 | ← above reach |
+| cnt_len | headroom | 1 | 1 | 1 | ← below reach (one-shot) |
+| **sumto_mono** | headroom | **0** | **1** | **0** | ★ in the band |
+
+headroom totals: single 1 / **repair 2** / bestN 1.
+
+**★ The opening (one task, exactly as predicted).** On `sumto_mono` (`sumTo n ≤ sumTo (n+1)`) the bare
+model failed single-shot (0) AND failed 4 blind retries (bestN=0), but **proved it with oracle-guided
+repair** (lean error fed back → fixed). Ungameable (real `#print axioms` proof). This is a genuine
+instance of *composition + a ground-truth oracle reaching BEYOND the bare model* — and `repair > bestN`
+on this task means the active ingredient is the **oracle feedback**, not extra compute. This is the
+value-locus the whole analysis pointed to, now shown constructively on a real theorem.
+
+**Calibration (do NOT over-read).** n=4 headroom, the win is **one** task. The "headroom band" is thin:
+2/4 above 32b's reach (unprovable even with repair), 1/4 below (one-shot), only 1/4 in the band where
+repair helps. So this is a **positive SIGNAL pointing exactly where predicted, not a robust result** —
+n=1 win, could be noise. Firming it up needs more tasks *in the band* (between one-shot reach and the
+absolute ceiling — a thin, hard-to-populate region) + more seeds + ideally a frontier model (which
+would widen the band). The signal is real and directionally confirmed; the magnitude is unestablished.
+
+**What this resolves about the whole arc.** ~0 was real in the within-competence / strawman / saturated
+regimes (Runs 1–4). In the *faithful* headroom + ungameable-oracle regime, composition **does** reach
+beyond the bare model (Run 5, one task) — and the mechanism is the ground-truth oracle feedback, not
+orchestration. The band is thin, which is *why* the operational substrate (independent of cognitive
+uplift) is the robust value, and the cognitive win is a narrow, real, hard-to-reach exception.
+
+## Still untested at scale (the cell is open a crack, not wide)
 
 strong model × **ground-truth (non-proxy) oracle** × real headroom (task too big / outside single-shot
 competence) — needs a frontier backend AND a Lean-capable generator (so the hidden oracle is the
