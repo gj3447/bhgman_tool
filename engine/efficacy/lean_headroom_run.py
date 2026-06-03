@@ -33,7 +33,7 @@ from engine.efficacy.lean_oracle import evaluate, lean_available
 from engine.efficacy.lean_tasks import TASKS
 from engine.efficacy.p1_oracle_rerank_pilot import _ollama
 
-_FENCE = re.compile(r"```(?:lean)?\s*(.*?)```", re.DOTALL)
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
 def _make_complete():
@@ -49,10 +49,12 @@ def _make_complete():
             "P1_MODEL", "claude-sonnet-4-6"
         )
 
+        mx = int(os.environ.get("LEAN_MAX_TOKENS", "3072"))  # reasoning models think long
+
         def complete(messages, _seed):
             system = next((m["content"] for m in messages if m["role"] == "system"), "")
             user = next((m["content"] for m in messages if m["role"] == "user"), "")
-            return client.complete(system=system, user=user, model=model).text
+            return client.complete(system=system, user=user, model=model, max_tokens=mx).text
 
         return complete, f"frontier:{model}"
 
@@ -64,11 +66,13 @@ def _make_complete():
 
 
 def _extract_proof(text: str) -> str:
-    m = _FENCE.search(text)
-    body = m.group(1) if m else text
-    if ":=" in body:  # model echoed the theorem line — take the proof after the last :=
-        body = body.split(":=", 1)[1]
-    return body.strip()
+    text = _THINK.sub(" ", text)  # reasoning models (qwen3) emit <think>…</think> — drop it
+    text = re.sub(r"```", "", text)  # strip code-fence markers (handles unclosed fences too)
+    if ":=" in text:  # model echoed the theorem line — take the proof after the first :=
+        text = text.split(":=", 1)[1]
+    text = text.strip()
+    # drop a leading bare language tag (```python without close → "python\nby ...")
+    return re.sub(r"^(?:lean4?|python)\b[ \t]*\n?", "", text, flags=re.IGNORECASE).strip()
 
 
 def _prompt(task, prior=None, error=None):
