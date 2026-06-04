@@ -23,7 +23,8 @@
 ## 30 秒内可获得
 
 ```bash
-pip install bhgman_tool
+# 尚未发布到 PyPI (publish 已延后) — 目前从源码安装:
+git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git && cd bhgman_tool
 uv run bhgman-tool install-skills    # 添加 /apt /prom /tpa /tlb /longinus /harness /jaebaeman 到 Claude Code
 ```
 
@@ -51,13 +52,14 @@ uv run bhgman-tool install-skills    # 添加 /apt /prom /tpa /tlb /longinus /ha
 ## 安装
 
 ```bash
+# ⚠ 尚未发布到 PyPI — 发布后才可用。在此之前请用上面的 git clone。
 pip install bhgman_tool                       # 最小 (CLI + Pydantic 模型)
 pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
 pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
 pip install "bhgman_tool[all]"                # 全部
 ```
 
-> PyPI wheel 仅包含 `engine/`。`install-skills` / `verify` / `version` subcommand 需要 source repo(`skills/` + `lean/`)同时存在 — 完整功能需 clone。详见 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md)。
+> **尚未发布到 PyPI**(无 token，已延后 — [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md))。现在 `pip install bhgman_tool` 会失败；请从源码安装：`git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`。发布后 PyPI wheel 仅包含 `engine/`。`install-skills` / `verify` / `version` subcommand 需要 source repo(`skills/` + `lean/`)同时存在 — 完整功能需 clone。详见 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md)。
 
 ---
 

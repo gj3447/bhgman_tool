@@ -23,7 +23,8 @@
 ## 30 秒で得られるもの
 
 ```bash
-pip install bhgman_tool
+# まだ PyPI 未公開 (publish 保留中) — 現在はソースからインストール:
+git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git && cd bhgman_tool
 uv run bhgman-tool install-skills    # /apt /prom /tpa /tlb /longinus /harness /jaebaeman を Claude Code に追加
 ```
 
@@ -51,13 +52,14 @@ Claude Code を再起動し、chat で:
 ## インストール
 
 ```bash
+# ⚠ まだ PyPI 未公開 — 公開後のみ有効。それまでは上記の git clone を使用。
 pip install bhgman_tool                       # 最小 (CLI + Pydantic モデル)
 pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
 pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
 pip install "bhgman_tool[all]"                # 全部
 ```
 
-> PyPI wheel は `engine/` のみ同梱。`install-skills` / `verify` / `version` subcommand は source repo(`skills/` + `lean/`)が並んで存在する必要あり — フル機能には clone。詳細は [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md)。
+> **まだ PyPI 未公開**（token なしで保留中 — [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md)）。現在 `pip install bhgman_tool` は失敗します；ソースからインストール: `git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`。公開後の PyPI wheel は `engine/` のみ同梱。`install-skills` / `verify` / `version` subcommand は source repo(`skills/` + `lean/`)が並んで存在する必要あり — フル機能には clone。詳細は [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md)。
 
 ---
 

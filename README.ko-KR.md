@@ -23,7 +23,8 @@
 ## 30초 안에 얻는 것
 
 ```bash
-pip install bhgman_tool
+# 아직 PyPI 미배포 (publish 보류) — 지금은 소스에서 설치:
+git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git && cd bhgman_tool
 uv run bhgman-tool install-skills    # /apt /prom /tpa /tlb /longinus /harness /jaebaeman 추가
 ```
 
@@ -51,13 +52,14 @@ Claude Code 재시작 후 chat에서:
 ## 설치
 
 ```bash
+# ⚠ 아직 PyPI 미배포 — publish 후에만 동작. 그전엔 위 git clone 사용.
 pip install bhgman_tool                       # 최소 (CLI + Pydantic 모델)
 pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
 pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
 pip install "bhgman_tool[all]"                # 전체
 ```
 
-> PyPI wheel은 `engine/`만 포함. `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함 — 전체 기능을 위해서는 clone. 자세히는 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
+> **아직 PyPI 미배포** (token 없어 보류 — [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md)). 지금 `pip install bhgman_tool`은 실패함; 소스에서 설치: `git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`. publish 후 PyPI wheel은 `engine/`만 포함 — `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함. `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함 — 전체 기능을 위해서는 clone. 자세히는 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
 
 ---
 
