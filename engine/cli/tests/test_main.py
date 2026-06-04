@@ -46,6 +46,21 @@ def test_version_command_writes_to_stdout(capsys):
     assert "engine" in captured.out
 
 
+def test_version_degrades_gracefully_in_wheel_only_install(monkeypatch, capsys):
+    """Wheel-only install has no skills/ → _repo_root raises; version must still
+    print the version + a clean note and exit 0, not a RuntimeError traceback."""
+
+    def _no_repo() -> object:
+        raise RuntimeError("bhgman_tool repo root not found (wheel-only)")
+
+    monkeypatch.setattr("engine.cli.commands._repo_root", _no_repo)
+    rc = cli(["version"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "bhgman-tool" in captured.out  # version line still printed
+    assert "wheel-only" in captured.out  # graceful note instead of traceback
+
+
 def test_install_skills_dry_run(tmp_path, capsys):
     target = tmp_path / "fake-claude-skills"
     rc = cli(["install-skills", "--target", str(target), "--dry-run"])

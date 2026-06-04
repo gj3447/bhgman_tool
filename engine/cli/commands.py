@@ -107,13 +107,25 @@ def cmd_version(_args: argparse.Namespace) -> int:
 
     Honest about source — version is read from this module, not from
     the installed wheel metadata. They can drift if not bumped together.
-    """
-    root = _repo_root()
-    skills = sorted(p.name for p in (root / "skills").iterdir() if p.is_dir())
-    engine_subs = sorted(p.name for p in (root / "engine").iterdir() if p.is_dir())
-    worked = sorted(p.name for p in (root / "worked").iterdir() if p.is_dir())
 
+    Degrades gracefully in a wheel-only install: the PyPI wheel ships ``engine/``
+    only, so ``skills/`` + ``worked/`` (and thus ``_repo_root()``) are absent — we
+    still print the version and a clear note instead of a RuntimeError traceback.
+    """
     print(f"bhgman-tool {PACKAGE_VERSION}")
+    try:
+        root = _repo_root()
+    except RuntimeError:
+        print("  layout: wheel-only install (engine/ only — skills/ + lean/ not bundled)")
+        print("  for full layout + install-skills/verify, clone the source repo")
+        print("  layer: tool (Airplane Man #4 engineering crystallization)")
+        return 0
+
+    def _subdirs(name: str) -> list[str]:
+        d = root / name
+        return sorted(p.name for p in d.iterdir() if p.is_dir()) if d.is_dir() else []
+
+    skills, engine_subs, worked = _subdirs("skills"), _subdirs("engine"), _subdirs("worked")
     print(f"  repo root: {root}")
     print(f"  skills ({len(skills)}): {', '.join(skills)}")
     print(f"  engine ({len(engine_subs)}): {', '.join(engine_subs)}")
