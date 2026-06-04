@@ -48,9 +48,11 @@ def build_server() -> Any:
     register_symposium(mcp)
 
     # Security audit (PROM 16 lever ④): log the toolset's lethal-trifecta profile.
-    # AUDIT-mode / warn-only by default — never alters tool behavior, so no impact
-    # on Claude Code development. Opt-in enforcement via BHGMAN_SECURITY_ENFORCE=1 is
-    # applied by callers of engine.mcp_server.security.audit_tool_call.
+    # ⚠ This is a ONE-SHOT boot-time profiler, NOT a live guard: it runs once here
+    # and the FastMCP loop never calls audit_tool_call per invocation, so no live
+    # tool argument is ever scanned. Enforcement (BHGMAN_SECURITY_ENFORCE=1) only
+    # bites if a caller explicitly wraps a call with audit_tool_call — the live path
+    # does not. Per-call interception is a follow-up. See security.py docstring.
     try:
         from .security import audit_toolset, current_mode
 
