@@ -14,7 +14,7 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-332%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1337%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1340%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -119,7 +119,7 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 | Claim | Command | 무엇을 확인 |
 |---|---|---|
 | `332 passed, 1 skipped` (engine 부분) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (repo root) | engine 부분 pass count + runtime |
-| `1333 passed, 4 skipped` (전체 repo; 1337 collected) | `uv run --all-extras pytest -q` (root, 또는 `uvx pre-commit run --all-files`) | 전체 repo pass count. NOTE: `--all-extras` 필수 — 없으면 collection 단계에서 `import frontmatter` 실패 (python-frontmatter 가 `resolver`/`all` extra 소속, 기본 deps 아님). |
+| `1336 passed, 4 skipped` (전체 repo; 1340 collected) | `uv run --all-extras pytest -q` (root, 또는 `uvx pre-commit run --all-files`) | 전체 repo pass count. NOTE: `--all-extras` 필수 — 없으면 collection 단계에서 `import frontmatter` 실패 (python-frontmatter 가 `resolver`/`all` extra 소속, 기본 deps 아님). |
 | `Lean 4: proof-position sorry=0` | `cd lean && export LEAN_PATH=$PWD && for f in Measurement_MetricScale Measurement_CommanderMetrics Measurement_CompositionSafety Measurement_Phase4_EmpiricalValidation; do lean --o=$f.olean $f.lean \|\| exit 1; done && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 14개 Mathlib-free 파일 빌드(LEAN_PATH 로 의존순) + 미완성 증명 수(= 0; 트리의 모든 `sorry` 토큰은 주석 안) |
 | `105 theorems` (`lean/` 트리 전체; standalone 14파일 89) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | 최상위 theorem/lemma 선언 수 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 재실행 + KG output diff |
@@ -143,7 +143,7 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 
 ## Contributing
 
-Pre-commit 4-ratchet gate가 모든 commit에 ruff lint+format / complexipy ≤15 / deptry / 1337 pytest 실행, push마다 lychee 링크 검사. 설치: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
+Pre-commit 4-ratchet gate가 모든 commit에 ruff lint+format / complexipy ≤15 / deptry / 1340 pytest 실행, push마다 lychee 링크 검사. 설치: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 
