@@ -56,6 +56,49 @@ TASKS = [
         "headroom",
         "by simp [sumTo] <;> omega",
     ),
+    # ── band enrichment 2026-06-05 (powered re-test): 6 more custom-def headroom tasks ──
+    LeanTask(
+        "sumlist_app",
+        "def sumL : List Nat -> Nat | [] => 0 | h::t => h + sumL t",
+        "(l1 l2 : List Nat) : sumL (l1 ++ l2) = sumL l1 + sumL l2",
+        "headroom",
+        "by induction l1 with | nil => simp [sumL] | cons h t ih => simp [sumL, ih] <;> omega",
+    ),
+    LeanTask(
+        "addone_len",
+        "def addOne : List Nat -> List Nat | [] => [] | h::t => (h+1) :: addOne t",
+        "(l : List Nat) : (addOne l).length = l.length",
+        "headroom",
+        "by induction l with | nil => rfl | cons h t ih => simp [addOne, ih]",
+    ),
+    LeanTask(
+        "repl_len",
+        "def repl : Nat -> List Nat | 0 => [] | (n+1) => 0 :: repl n",
+        "(n : Nat) : (repl n).length = n",
+        "headroom",
+        "by induction n with | zero => rfl | succ k ih => simp [repl, ih]",
+    ),
+    LeanTask(
+        "pow2_pos",
+        "def pow2 : Nat -> Nat | 0 => 1 | (n+1) => 2 * pow2 n",
+        "(n : Nat) : 1 <= pow2 n",
+        "headroom",
+        "by induction n with | zero => simp [pow2] | succ k ih => simp [pow2] <;> omega",
+    ),
+    LeanTask(
+        "le_sumto",
+        _SUMTO,
+        "(n : Nat) : n <= sumTo n",
+        "headroom",
+        "by induction n with | zero => simp [sumTo] | succ k ih => simp [sumTo] <;> omega",
+    ),
+    LeanTask(
+        "dbl_ge",
+        "def dbl : Nat -> Nat | 0 => 0 | (n+1) => dbl n + 2",
+        "(n : Nat) : n <= dbl n",
+        "headroom",
+        "by induction n with | zero => simp | succ k ih => simp [dbl] <;> omega",
+    ),
 ]
 
 __all__ = ["LeanTask", "TASKS"]

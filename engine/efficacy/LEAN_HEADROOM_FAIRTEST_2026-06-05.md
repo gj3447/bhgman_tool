@@ -1,8 +1,14 @@
 # Lean headroom fair-test — oracle-guided repair loop vs best-of-N (2026-06-05)
 
 > Answers part of the open hypothesis in `VERDICT.md` §3 ("the one fair test ... was never run").
-> Runner: `engine/efficacy/lean_headroom_run.py` (+ `SEED_OFFSET` replication control added this run).
-> Verified per `feedback_verify_async_results_before_writeup`: process exited, JSON re-fetched + parsed.
+> Runner: `engine/efficacy/lean_headroom_run.py` (+ `SEED_OFFSET` replication control + graded oracle).
+> Verified per `feedback_verify_async_results_before_writeup`: processes exited, JSON re-fetched + parsed.
+>
+> **Headline: a powered re-test (Run B) OVERTURNS Run A's thin-band null.** With a proper headroom band
+> (10 tasks, 5 live) and 10 replications, the oracle-guided repair **loop beats best-of-N** on boundary
+> headroom Lean tasks — reproducibly and significantly (sign-test p=0.016, repair ≥ best-of-N in 10/10
+> runs, never loses). Run A (4 tasks, 1 live) saw no signal *because the band was too thin*, not because
+> the loop has no value. Both runs are kept below; Run B is authoritative.
 
 ## What was tested
 
@@ -17,72 +23,99 @@ or weakened proof cannot compile). Three arms, K=4:
 | `bestN` | K independent attempts (varied seed), first that PROVES | the control (generate-and-verify, no loop) |
 
 **Repair > bestN at equal K ⇒ the oracle-feedback loop adds value beyond just "more tries + a verifier".**
-That is the cognitive-uplift claim. Repair ≈ bestN ⇒ the loop is operational, not cognitive.
+That is the loop-value claim. Repair ≈ bestN ⇒ the loop is operational, not better than independent retries.
 
-## Setup (the fairness conditions)
+Fairness conditions (both runs): seed threaded per attempt at `P1_TEMP=0.8` → genuinely independent draws
+(not the collapsed-to-single confound found 2026-06-03; verified seeds 1,2 give *different* proofs);
+`SEED_OFFSET` replication control symmetric across all three arms (no bias); real `lean` 4.30 core oracle,
+Mac-local; model on dgx ollama via SSH tunnel.
 
-- **Model**: `qwen2.5:32b-instruct` (ollama on dgx GB10, via SSH tunnel; the strongest reachable model —
-  *not* frontier; this is the one axis the harness docstring admits it cannot fix).
-- **Oracle**: real `lean` 4.30 compiler, core (no Mathlib), `#print axioms` no-`sorryAx` gate. Mac-local.
-- **Fair bestN**: seed threaded per attempt (`P1_TEMP=0.8`) → genuinely independent draws, not the
-  collapsed-to-single confound found 2026-06-03. Verified: seed 1 and seed 2 produce *different* proofs.
-- **Replication**: `SEED_OFFSET ∈ {0,10,20,30,40}` → **5 independent replications** (the crux — the prior
-  n=1/n=2 signals *vanished* on reproduction). The offset is symmetric across all three arms (no bias).
-- Tasks: 6 (`lean_tasks.py`); 4 tagged `headroom` (custom recursive def + a property `omega`/`simp` do
-  not one-shot, verified 2026-06-03), 2 `easy`.
+---
 
-## Result — 5 replications
+## Run A — thin band (4 headroom tasks), 5 reps — NULL (later shown to be an artifact)
 
-**Headroom only (4 tasks), proven count per arm:**
+Model `qwen2.5:32b-instruct`, K=4, seed_offset ∈ {0,10,20,30,40}. Headroom proven count:
 
-| seed_offset | single | repair (loop) | bestN (control) | repair > bestN? |
-|---|---|---|---|---|
-| 0  | 1 | 2 | 2 | no (tie) |
-| 10 | 1 | 2 | 2 | no (tie) |
-| 20 | 1 | 2 | 2 | no (tie) |
-| 30 | 1 | 2 | 2 | no (tie) |
-| 40 | 1 | 1 | 2 | **no (bestN wins)** |
+| seed_offset | single | repair | bestN |
+|---|---|---|---|
+| 0/10/20/30 | 1 | 2 | 2 |
+| 40 | 1 | 1 | 2 |
 
-**Repair never beats bestN on headroom across 5 replications** (4 ties + 1 bestN-win). Reproducible — this
-is *not* the noise that vanished before; it is a stable negative.
+repair never beat best-of-N → *apparent* null. **But the band had only 1 live headroom task** (`sumto_mono`);
+the other 3 were floor (`gauss`,`double`: all arms 0) or ceiling (`cnt_len`: all arms 1). A single live task
+— which happened to be a tie — has no power to detect a loop edge. This null was a **sampling artifact**.
 
-**Per-task, summed over the 5 runs (proven / 5):**
+## Run B — powered re-test (10 headroom tasks + graded oracle), n=10 reps — REPRODUCIBLE SIGNAL
 
-| task | difficulty | single | repair | bestN | reads as |
-|---|---|---|---|---|---|
-| `zero_add` | easy | 0/5 | **5/5** | 2/5 | loop **wins** — but on an *easy* task (error points straight at the fix) |
-| `app_nil` | easy | 5/5 | 5/5 | 5/5 | ceiling (no discrimination) |
-| `gauss` | headroom | 0/5 | 0/5 | 0/5 | **floor** (all arms fail) |
-| `double` | headroom | 0/5 | 0/5 | 0/5 | **floor** (all arms fail) |
-| `cnt_len` | headroom | 5/5 | 5/5 | 5/5 | ceiling (no discrimination) |
-| `sumto_mono` | headroom | 0/5 | **4/5** | 5/5 | the *only* discriminating headroom task — **bestN ≥ loop** |
+Same model/K. Band enriched to **10 headroom tasks** (added 6 custom-recursive-def tasks, all with verified
+reference proofs: `sumlist_app`, `addone_len`, `repl_len`, `pow2_pos`, `le_sumto`, `dbl_ge`). Graded oracle
+(0 = no-compile / 0.5 = compiles-with-sorry / 1 = proven) tracked per arm. **10 replications** (seed_offset
+0…90 step 10; non-overlapping seeds).
 
-## Verdict
+**Per-run headroom (repair vs best-of-N):**
 
-**At the qwen2.5:32b tier, the oracle-guided repair loop does NOT beat best-of-N on headroom Lean tasks —
-reproducibly (5/5).** The loop's *only* reproducible win is `zero_add`, an **easy** task where the Lean
-error text names the fix directly (local repair, not search). On the single headroom task that actually
-discriminates (`sumto_mono`), best-of-N matches-or-beats the loop (5/5 vs 4/5).
+| outcome | count |
+|---|---|
+| repair > bestN | **7 / 10** |
+| tie | 3 / 10 |
+| bestN > repair | **0 / 10** |
 
-This **refines** the `operational-substrate, not cognitive-amplifier` verdict and adds a mechanism: the
-loop's value concentrates where the oracle's error is *directly actionable* (easy, local fixes) — exactly
-where you didn't need a loop. Where genuine multi-step construction is required (headroom), the loop adds
-nothing over independent retries + the same verifier. The prior verdict holds for the repair-loop variant,
-now with a **reproducible** fair test behind it rather than an unrun hypothesis.
+repair ≥ best-of-N in **10/10** runs. **Sign test** on the 7 non-tied runs: **7/7 repair-wins, two-sided p = 0.016.**
+
+**Per-task, proven out of 10 runs:**
+
+| task | difficulty | single | repair | bestN | Δ(r−b) | reads as |
+|---|---|---|---|---|---|---|
+| `dbl_ge` | headroom (new) | 0 | **5** | **0** | **+5** | best-of-N *never* proves it; repair does 5/10 |
+| `le_sumto` | headroom (new) | 0 | 5 | 1 | +4 | repair clearly ahead |
+| `zero_add` | easy | 0 | 9 | 5 | +4 | loop wins on easy local-fix (consistent with Run A) |
+| `sumto_mono` | headroom | 2 | 9 | 7 | +2 | repair edges |
+| `sumlist_app` | headroom (new) | 0 | 2 | 0 | +2 | repair edges (floor in Run A's band) |
+| `double` | headroom | 0 | 1 | 2 | −1 | the only reversal — marginal |
+| `app_nil` `cnt_len` `addone_len` `repl_len` | ceiling | 10 | 10 | 10 | 0 | no discrimination |
+| `gauss` `pow2_pos` | floor | 0 | 0 | 0 | 0 | model below capability — no partial progress to build on |
+
+repair beats best-of-N on **4 of 5 live headroom tasks** (ties/marginally-loses on 1). The `dbl_ge` result
+(best-of-N 0/10, repair 5/10) is the cleanest: independent resampling never lands the proof, but feeding the
+Lean error back does — 5 times out of 10.
+
+## Verdict (revises Run A)
+
+**At the qwen2.5:32b tier, the oracle-guided repair loop BEATS best-of-N on boundary headroom Lean tasks —
+reproducibly (repair ≥ best-of-N 10/10 runs, strict win 7/10, sign-test p=0.016, never loses).** Run A's
+"repair never beats best-of-N" was a **thin-band artifact** (1 live task, an unlucky tie); the powered band
+(5 live tasks) reveals a clear, statistically-supported edge.
+
+**Mechanism.** The discriminating tasks need a specific tactic combination (`by induction … simp [def] <;>
+omega`). The model often gets *close* — wrong simp lemma, missing `omega`, wrong base case — and the Lean
+error names the defect. The repair loop uses that error to converge; best-of-N's independent draws resample
+*without* the signal, so they hit the exact combo less often. **The loop's value is using the verifier's
+error text to climb — which independent retries structurally cannot.** That is the loop structure beating
+best-of-N, not just "more tries + a verifier."
+
+**Where the edge lives: the competence boundary.** Floor tasks (`gauss`,`pow2_pos`: model can't start →
+no partial progress for the error to guide) and ceiling tasks (solved trivially by all arms) show no edge.
+The loop helps exactly where the model is *near* the answer — which is mechanistically the right place.
 
 ## Honest limitations (what stays open)
 
-1. **Not frontier.** qwen2.5:32b is strong-ish, not a FunSearch/AlphaEvolve-class model. A frontier model
-   could lift the floor tasks (`gauss`/`double`) off 0 and create real headroom discrimination. This axis
-   the harness cannot fix locally; it is a *negative at the 32b tier*, not a universal close.
-2. **Thin headroom band.** Of 4 headroom tasks, 2 are floor (0/0/0) and 1 is ceiling (5/5/5). Only
-   `sumto_mono` discriminates among arms — so the headroom conclusion effectively rests on **n=1 live task**.
-   A wider, frontier-calibrated headroom set is needed for a powered headroom comparison.
-3. **Tests the repair loop, NOT F3 islands.** This is ARM2 (oracle-guided repair) vs ARM3 (best-of-N).
-   The load-bearing FunSearch ingredient — **F3 population/island diversity** — is still not implemented,
-   so the *full* FunSearch-island hypothesis remains untested.
-4. K=4, binary per-task oracle (proven/not). Larger K or a graded oracle could shift the picture.
+1. **Bounded repair, not discovery.** The proofs are 1–2 tactic lines; "repair" = fixing a tactic combo
+   from an error, not multi-step search. This is evidence for *oracle-guided repair* (which `VERDICT.md`
+   already named the defensible value) **beating best-of-N** — a step beyond the prior "loop ≤ best-of-N",
+   but not a claim about open-ended discovery.
+2. **Not frontier / not reasoning.** qwen2.5:32b-instruct. The stronger-reasoning-model axis (qwen3:14b/32b)
+   was attempted and is **infeasible on the available backend** (>150 s/call on hard Lean prompts → a
+   10-rep sweep would be ~10 h). So this is a tier result, not a frontier close.
+3. **Graded ≈ proven here.** The graded oracle was wired (0/0.5/1) but these tasks are effectively pass/fail —
+   the model rarely produces "compiles-with-sorry" middles — so graded tracked proven exactly and added no
+   hidden partial-progress signal. (Useful instrumentation for tasks where it would; not load-bearing here.)
+4. **Real F3 island diversity still unimplemented.** This tests ARM repair vs ARM best-of-N, not the full
+   FunSearch island/migration mechanism.
+5. **K=4.** The edge's dependence on the budget K is unmeasured.
 
-**Net: the repair-loop ≤ best-of-N hypothesis on headroom now has a reproducible fair test (negative at the
-32b tier). The residual open axes are: frontier model × richer headroom band × real F3 islands × graded
-oracle.** The question is narrower than "never run," not closed.
+## Lesson
+
+Run A's null was a **thin-discriminating-band artifact** (n=1 live task → no power). The fix was not a bigger
+model but a **bigger, calibrated task band** + replication. A "no signal" from an underpowered design is not
+evidence of "no effect" — it is evidence of no power. (Mirrors the original premature-close postmortem: there
+too, the design *structurally could not* return a positive.)

@@ -38,6 +38,17 @@ class LeanVerdict:
     def public_score(self) -> float:
         return 1.0 if self.compiles else 0.0
 
+    @property
+    def graded_score(self) -> float:
+        """3-level partial-progress fitness: 0 = no compile, 0.5 = compiles but sorry-tainted
+        (incomplete), 1.0 = proven (compiles + no sorryAx). Gives read-back/repair a gradient
+        that the binary `proven` hides."""
+        if self.proven:
+            return 1.0
+        if self.compiles:
+            return 0.5
+        return 0.0
+
 
 def lean_available() -> bool:
     return shutil.which("lean") is not None

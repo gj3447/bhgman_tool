@@ -95,17 +95,19 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   (island/diversity — the load-bearing FunSearch ingredient) was never implemented. And the CLOSE
   was committed (813da6f @21:21) *before* the confirming best-shot run (8768b9f @22:59) = confirmation
   toward closure. **Corrected status: operational-substrate (within-competence) STANDS;
-  LOOP-HYPOTHESIS = NARROWED (was "never tested fairly").** A fair test of the *repair-loop* variant
-  (ARM2 oracle-guided repair vs ARM3 best-of-N, equal K=4) on real leak-resistant core-Lean with an
-  ungameable `#print axioms` oracle, seed-controlled across **5 replications**, was run 2026-06-05
-  (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`, model qwen2.5:32b-instruct): **repair NEVER beats best-of-N on
-  headroom (4 ties + 1 best-of-N win); the loop's only reproducible win is an *easy* task where the Lean
-  error names the fix directly.** That is a *reproducible* negative for the repair loop at this tier — not
-  the n=1/n=2 noise that vanished before. **Residual open axes (genuinely untested):** frontier model ×
-  richer headroom band (here 2/4 headroom tasks floor at 0, 1 ceiling at 5 → only 1 live discriminating
-  task) × real F3 island diversity (still unimplemented) × graded oracle. The earlier toy-function negative
-  still says little; this Lean test says the repair loop ≤ best-of-N on the hard regime, reproducibly.
-  See also `SWEEP_RESULTS.md` §"Composition 4th gate".
+  LOOP-HYPOTHESIS = POSITIVE (bounded repair) at the 32b tier — was "never tested fairly".** A fair test of
+  the *repair-loop* variant (ARM2 oracle-guided repair vs ARM3 best-of-N, equal K=4) on real leak-resistant
+  core-Lean with an ungameable `#print axioms` oracle was run 2026-06-05 (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`,
+  model qwen2.5:32b-instruct). **Run A (thin band, 4 headroom tasks, 1 live) saw no edge — but that was a
+  sampling artifact (no power), not a null.** **Run B — powered: headroom band enriched to 10 tasks (5 live)
+  + graded oracle + 10 seed replications — REVERSED it: the repair loop BEATS best-of-N on boundary headroom
+  (repair ≥ best-of-N in 10/10 runs, strict win 7/10, never loses; sign-test p=0.016). Per-task the new live
+  tasks drive it: `dbl_ge` best-of-N 0/10 vs repair 5/10, `le_sumto` 1/10 vs 5/10.** Mechanism: the model
+  gets *close* and the Lean error names the defect → repair converges where independent draws can't. So the
+  loop structure (error-feedback) does add value beyond best-of-N **at the competence boundary** — bounded
+  *repair*, not discovery. **Residual open axes:** frontier / reasoning model (qwen3 attempted, infeasible
+  here >150 s/call) × real F3 island diversity (still unimplemented) × larger K × open-ended discovery (vs
+  bounded tactic-repair). NB this *revises* the earlier "loop ≤ best-of-N" reading. See also `SWEEP_RESULTS.md`.
 - **External impact — MEASURED 2026-06-04 → realized `trace` / potential `weak`.** A 6-dimension,
   13-agent audit (ungameable signals + preflight 3-falsifier + both-direction adversarial verify;
   all verdicts held) found **nothing has crossed an ungameable outside boundary**: GitHub stars/fork

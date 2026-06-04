@@ -96,29 +96,45 @@ def _gen(task, complete, seed, prior=None, error=None):
 
 
 def _arm_single(task, complete, off=0):
-    return evaluate(
-        task.name, task.signature, _gen(task, complete, off), preamble=task.preamble
-    ).proven
+    v = evaluate(task.name, task.signature, _gen(task, complete, off), preamble=task.preamble)
+    return v.proven, v.graded_score
 
 
 def _arm_repair(task, complete, k, off=0):
-    prior, err = None, None
+    prior, err, best = None, None, 0.0
     for i in range(k):
         proof = _gen(task, complete, off + i, prior, err)  # varied seed + error feedback
         v = evaluate(task.name, task.signature, proof, preamble=task.preamble)
+        best = max(best, v.graded_score)
         if v.proven:
-            return True
+            return True, 1.0
         prior, err = proof, v.error_tail
-    return False
+    return False, best
 
 
 def _arm_bestn(task, complete, k, off=0):
-    for i in range(k):
-        if evaluate(
+    best = 0.0
+    for i in range(k):  # varied seed → genuinely independent attempts (no oracle feedback)
+        v = evaluate(
             task.name, task.signature, _gen(task, complete, off + i), preamble=task.preamble
-        ).proven:
-            return True  # varied seed → genuinely independent attempts (no oracle feedback)
-    return False
+        )
+        best = max(best, v.graded_score)
+        if v.proven:
+            return True, 1.0
+    return False, best
+
+
+def _summary(rows: list) -> dict:
+    """proven counts + graded partial-progress sums for a subset of rows."""
+    return {
+        "single": sum(r[1] for r in rows),
+        "repair": sum(r[2] for r in rows),
+        "bestN": sum(r[3] for r in rows),
+        "graded_single": round(sum(r[4] for r in rows), 2),
+        "graded_repair": round(sum(r[5] for r in rows), 2),
+        "graded_bestN": round(sum(r[6] for r in rows), 2),
+        "of": len(rows),
+    }
 
 
 def main() -> int:
@@ -131,15 +147,16 @@ def main() -> int:
     rows = []
     print(
         f"[lean-headroom] backend={backend} K={k} seed_offset={off} n={len(TASKS)} "
-        "(ungameable oracle, headroom tasks)"
+        "(ungameable oracle, headroom tasks; graded 0/0.5/1)"
     )
     for t in TASKS:
-        single = _arm_single(t, complete, off)
-        repair = _arm_repair(t, complete, k, off)
-        bestn = _arm_bestn(t, complete, k, off)
-        rows.append((t.difficulty, single, repair, bestn))
+        s_p, s_g = _arm_single(t, complete, off)
+        r_p, r_g = _arm_repair(t, complete, k, off)
+        b_p, b_g = _arm_bestn(t, complete, k, off)
+        rows.append((t.difficulty, s_p, r_p, b_p, s_g, r_g, b_g))
         print(
-            f"  [{t.difficulty:8s}] {t.name:12s} single={int(single)} repair={int(repair)} bestN={int(bestn)}"
+            f"  [{t.difficulty:8s}] {t.name:12s} proven s/r/b={int(s_p)}/{int(r_p)}/{int(b_p)}  "
+            f"graded s/r/b={s_g:.1f}/{r_g:.1f}/{b_g:.1f}"
         )
     hr = [r for r in rows if r[0] == "headroom"]
     out = {
@@ -148,20 +165,10 @@ def main() -> int:
         "seed_offset": off,
         "n_tasks": len(rows),
         "n_headroom": len(hr),
-        "all": {
-            "single": sum(r[1] for r in rows),
-            "repair": sum(r[2] for r in rows),
-            "bestN": sum(r[3] for r in rows),
-            "of": len(rows),
-        },
-        "headroom_only": {
-            "single": sum(r[1] for r in hr),
-            "repair": sum(r[2] for r in hr),
-            "bestN": sum(r[3] for r in hr),
-            "of": len(hr),
-        },
-        "repair_beats_single_on_headroom": sum(r[2] for r in hr) > sum(r[1] for r in hr),
-        "bestN_beats_single_on_headroom": sum(r[3] for r in hr) > sum(r[1] for r in hr),
+        "all": _summary(rows),
+        "headroom_only": _summary(hr),
+        "repair_beats_bestN_on_headroom_proven": sum(r[2] for r in hr) > sum(r[3] for r in hr),
+        "repair_beats_bestN_on_headroom_graded": sum(r[5] for r in hr) > sum(r[6] for r in hr),
     }
     print(json.dumps(out, indent=1))
     return 0

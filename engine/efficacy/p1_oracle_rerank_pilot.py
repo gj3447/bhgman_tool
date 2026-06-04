@@ -39,6 +39,7 @@ MODEL = os.environ.get("P1_MODEL", "qwen2.5:0.5b-instruct")
 N = int(os.environ.get("P1_N", "8"))
 TEMP = float(os.environ.get("P1_TEMP", "0.8"))
 SEED_BASE = int(os.environ.get("P1_SEED", "1000"))
+MAX_TOK = int(os.environ.get("P1_MAX_TOKENS", "700"))  # raise for reasoning models (qwen3 <think>)
 
 
 @dataclass
@@ -83,7 +84,7 @@ def _ollama(messages: list[dict], seed: int) -> tuple[str, int]:
             "messages": messages,
             "temperature": TEMP,
             "seed": seed,
-            "max_tokens": 700,
+            "max_tokens": MAX_TOK,
         }
     ).encode()
     req = urllib.request.Request(
