@@ -11,7 +11,7 @@ are reproduced by the commands shown; no value is hand-authored.
 | commander | verb | verdict | number | oracle (independent of the commander?) |
 |---|---|---|---|---|
 | **occam** | 정리 | **MEASURED** | AUC **0.602** (pos 77 / neg 242) | `disk_present` — filesystem, not occam's label. ✅ non-circular |
-| **longinus** | 연결 | **MEASURED** | ON **0.932** vs naive OFF 0.705, **Δ+0.227, perm p<1e-4**; false-kill 1.000→0.333 | injected disk mutations (20 seeds) + 101 independent drift events. ✅ |
+| **longinus** | 연결 | **MEASURED** | ON **0.932** vs naive OFF 0.705, **Δ+0.227** on *injected* mutations (perm p<1e-4); ⚠ **deflates to Δ+0.050 on real git history** (class 0.875 vs 0.825 — the synthetic sandbox stacked pure-MOVE cases, inflating it ~4.5×; see VERDICT.md §1 / `git_oracle`) | injected disk mutations (20 seeds) + 101 drift events; real-data hold-out via git net-status. |
 | **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.600** (6/10; escapes 4 boundary/sign mutants) | injected code mutants on `engine/occam/scoring.py`. ✅ |
 | **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
@@ -93,8 +93,9 @@ holes. Both are partly closed:
 
 ## Honesty tiers — all 7 measured, but not the same kind of number
 
-- **Cognitive-leaning, real data:** occam (AUC 0.602 on real KG), longinus (Δ+0.227 vs
-  naive on injected mutations).
+- **Cognitive-leaning:** occam (AUC 0.602 on real KG). longinus's headline Δ+0.227 is
+  vs naive on *injected* mutations — on **real git history it deflates to Δ+0.050**
+  (VERDICT.md §1), so it sits nearer the operational tier than +0.227 suggests.
 - **Operational / state, real data:** jaebaeman (dispatch fidelity 1.000), hades
   (realization 0.839), prometheus (groundedness layers on 12356 real findings).
 - **Capability demonstration, synthetic:** eureka (FCA recovery lift +1.000 on a planted
