@@ -14,8 +14,8 @@ describes the intended design; the runtime is partial. Honest scope:
 | Piece | State | Note |
 |---|---|---|
 | Circuit breaker (Redis 3-state FSM) | ✅ **real, working** | restart-survivable; tested with fakeredis |
-| `/gate/check` PASS/FAIL verdict | ⚠ **stub** | `_call_kg_with_retry` compares `context.expected_count` vs `context.actual_count` — it does **not** query Neo4j. Real KG Cypher gate query = Sprint-3. |
-| OPA / Rego policies | ⚠ **authored, NOT wired** | the ~780 LOC of Rego (below) + `OPAClient` are real, and the client is built + health-checked at boot — but `/gate/check` **never calls `opa.eval()`**. So policies are enforced at the *authoring/library* level only, not at runtime. Wiring needs the request to carry the structured policy `input` (`input.sa.*`, `input.apt_progress.*`) + a gate→policy map. |
+| OPA / Rego policy enforcement | ✅ **wired (opt-in)** | with `APT_OPA_ENABLED=true` AND a gate that maps to a policy (`_GATE_POLICY`, e.g. `sa_to_sp`→`apt.phase_gates.sa_to_sp`, or an explicit `context["_policy"]`), `/gate/check` calls `opa.eval()` and the Rego allow/deny **is** the verdict (authoritative; the request carries the structured policy `input` as `context`). OPA unreachable ⇒ fail-closed. Tested via a fake OPA (allow→PASS / deny→WOULD_FAIL / unreachable→fail-closed). |
+| `/gate/check` fallback verdict (OPA off, or unmapped gate) | ⚠ **stub** | `_call_kg_with_retry` compares `context.expected_count` vs `context.actual_count` — it does **not** query Neo4j. Real KG Cypher gate query = Sprint-3. |
 | Audit log | ⚠ **stub** | stderr print; no KG `:GateAuditEntry` node yet |
 | break-glass Slack/PagerDuty alert | ⚠ **TODO** | allowlist check is real; the alert is not |
 

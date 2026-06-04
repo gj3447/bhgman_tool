@@ -3,26 +3,24 @@
 Absorbed from SYMPOSIUM/THEORY/APT/gate_endpoint_prototype/gate_endpoint.py
 (Wave 7 P3-H, 2026-05-14).
 
-⚠ PROTOTYPE SCOPE — NOT A PRODUCTION SECURITY CONTROL (read before deploying):
+⚠ PROTOTYPE SCOPE — read before deploying:
 
-  What actually runs in /gate/check today:
+  What runs in /gate/check today:
     * Layer 2 circuit breaker — REAL (Redis-backed 3-state FSM, restart-survivable).
-    * The PASS/FAIL verdict itself — STUB. ``_call_kg_with_retry`` does NOT query
-      Neo4j; it only compares ``context.expected_count`` vs ``context.actual_count``.
-      A caller that omits those (or sets them equal) gets a meaningless PASS.
-
-  What is authored but NOT wired into the verdict:
-    * OPA / Rego policies (engine/gate/policies/*.rego, ~780 LOC of real allow/deny
-      logic) — the OPAClient is *built and health-checked at boot* (when
-      APT_OPA_ENABLED=true) but ``/gate/check`` NEVER calls ``opa.eval()``. So "OPA
-      policy enforcement" is true at the authoring/library level, FALSE at runtime.
-      Real wiring needs the request to carry the structured policy ``input`` the
-      Rego expects (input.sa.*, input.apt_progress.*) + a gate→policy map — Sprint-3.
+    * OPA / Rego policy enforcement — WIRED, opt-in via APT_OPA_ENABLED=true. When
+      OPA is enabled AND the gate maps to a policy (``_GATE_POLICY`` or an explicit
+      ``context["_policy"]``), ``/gate/check`` calls ``opa.eval()`` and the Rego
+      allow/deny IS the verdict — authoritative, replacing the stub for that gate.
+      The request carries the structured policy ``input`` as ``context`` (input.sa.*,
+      input.apt_progress.* per the Rego). OPA unreachable ⇒ fail-closed (FAIL/WOULD_FAIL).
+    * The fallback verdict (OPA off, or gate with no mapped policy) — STILL A STUB.
+      ``_call_kg_with_retry`` does NOT query Neo4j; it only compares
+      ``context.expected_count`` vs ``context.actual_count``. Real KG Cypher = Sprint-3.
 
   Also stubbed: ``_audit`` is stderr print (no KG :GateAuditEntry yet); break-glass
   Slack/PagerDuty alert is a TODO. See engine/gate/README.md "상태" checklist.
 
-POST /gate/check        circuit-breaker + context sanity-check (OPA NOT consulted)
+POST /gate/check        circuit-breaker + OPA policy (if enabled) | else context stub
 GET  /gate/health       Composition Root health
 POST /gate/break-glass  Essential infra emergency override (audit + alert)
 
@@ -39,6 +37,7 @@ import sys
 import uuid
 from contextlib import asynccontextmanager
 from enum import Enum
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -140,8 +139,26 @@ def health(req: Request):
     }
 
 
+def _fail_verdict(mode: EnforcementMode) -> str:
+    return "FAIL" if mode is EnforcementMode.BLOCKER else "WOULD_FAIL"
+
+
+def _fail_response(
+    verdict: str, reason: str, audit_id: str, cb_state: str, mode: EnforcementMode
+) -> GateResponse:
+    """Shared FAIL/WOULD_FAIL/OPEN_REFUSED response (advisory in informational mode)."""
+    return GateResponse(
+        verdict=verdict,
+        reason=reason,
+        audit_id=audit_id,
+        circuit_breaker_state=cb_state,
+        enforcement_mode=mode.value,
+        advisory_only=(mode is EnforcementMode.INFORMATIONAL),
+    )
+
+
 @app.post("/gate/check", response_model=GateResponse)
-def gate_check(payload: GateRequest, req: Request) -> GateResponse:
+async def gate_check(payload: GateRequest, req: Request) -> GateResponse:
     redis = req.app.state.redis
     cb = CircuitBreaker(redis, payload.gate_name)
 
@@ -154,55 +171,32 @@ def gate_check(payload: GateRequest, req: Request) -> GateResponse:
         # circuit OPEN → 즉시 거부 (단, informational 모드에선 advisory)
         verdict = "OPEN_REFUSED" if mode is EnforcementMode.BLOCKER else "WOULD_FAIL"
         _audit(audit_id, payload, verdict, decision.reason, mode)
-        return GateResponse(
-            verdict=verdict,
-            reason=decision.reason,
-            audit_id=audit_id,
-            circuit_breaker_state=decision.state.value,
-            enforcement_mode=mode.value,
-            advisory_only=(mode is EnforcementMode.INFORMATIONAL),
-        )
+        return _fail_response(verdict, decision.reason, audit_id, decision.state.value, mode)
 
-    # Layer 1+4: timeout + retry + KG query
+    # Resolve verdict: OPA policy (authoritative, opt-in) or the context sanity stub.
     try:
-        kg_pass, kg_reason = _call_kg_with_retry(payload)
-    except Exception as e:  # noqa: BLE001
-        # 3 consecutive fails — promote to OPEN
+        ok, reason = await _decide(req.app.state.opa, payload)
+    except Exception as e:  # noqa: BLE001 — fail-closed on any gate-backend error
         new_state = cb.record_failure()
-        verdict = "FAIL" if mode is EnforcementMode.BLOCKER else "WOULD_FAIL"
-        _audit(audit_id, payload, verdict, f"KG retry exhausted: {e}", mode)
-        return GateResponse(
-            verdict=verdict,
-            reason=f"KG unreachable: {e}",
-            audit_id=audit_id,
-            circuit_breaker_state=new_state.value,
-            enforcement_mode=mode.value,
-            advisory_only=(mode is EnforcementMode.INFORMATIONAL),
+        _audit(audit_id, payload, _fail_verdict(mode), f"gate backend error: {e}", mode)
+        return _fail_response(
+            _fail_verdict(mode), f"gate backend unreachable: {e}", audit_id, new_state.value, mode
         )
 
-    if kg_pass:
+    if ok:
         cb.record_success()
-        _audit(audit_id, payload, "PASS", kg_reason, mode)
+        _audit(audit_id, payload, "PASS", reason, mode)
         return GateResponse(
             verdict="PASS",
-            reason=kg_reason,
+            reason=reason,
             audit_id=audit_id,
             circuit_breaker_state=State.CLOSED.value,
             enforcement_mode=mode.value,
         )
 
-    # KG-level fail
     new_state = cb.record_failure()
-    verdict = "FAIL" if mode is EnforcementMode.BLOCKER else "WOULD_FAIL"
-    _audit(audit_id, payload, verdict, kg_reason, mode)
-    return GateResponse(
-        verdict=verdict,
-        reason=kg_reason,
-        audit_id=audit_id,
-        circuit_breaker_state=new_state.value,
-        enforcement_mode=mode.value,
-        advisory_only=(mode is EnforcementMode.INFORMATIONAL),
-    )
+    _audit(audit_id, payload, _fail_verdict(mode), reason, mode)
+    return _fail_response(_fail_verdict(mode), reason, audit_id, new_state.value, mode)
 
 
 @app.post("/gate/break-glass")
@@ -242,6 +236,53 @@ def _call_kg_with_retry(payload: GateRequest) -> tuple[bool, str]:
     if expected != actual:
         return False, f"count mismatch: expected={expected}, actual={actual}"
     return True, f"PASS: expected={expected}, actual={actual}"
+
+
+# ─── OPA policy decision (opt-in via APT_OPA_ENABLED) ─────────────────────
+
+# gate_name → Rego policy package. An explicit context["_policy"] overrides this.
+_GATE_POLICY: dict[str, str] = {
+    "sa_to_sp": "apt.phase_gates.sa_to_sp",
+    "sp_to_st": "apt.phase_gates.sp_to_st",
+    "st_to_scw": "apt.phase_gates.st_to_scw",
+    "fulfillment_gate": "apt.fulfillment_gate",
+    "fulfillment": "apt.fulfillment_gate",
+    "break_glass": "apt.break_glass",
+    "harness": "apt.harness.constrain",
+    "taliban": "apt.taliban.constitutional",
+    "naesengmoon": "apt.taliban.constitutional",
+    "kg_admission": "apt.kg.admission",
+}
+
+
+def _opa_policy_path(payload: GateRequest) -> str | None:
+    """Resolve the Rego policy for a gate: explicit context['_policy'] wins, else the map."""
+    explicit = payload.context.get("_policy")
+    if isinstance(explicit, str) and explicit:
+        return explicit
+    return _GATE_POLICY.get(payload.gate_name)
+
+
+async def _eval_opa(opa: Any, policy: str, context: dict) -> tuple[bool, str]:
+    """Evaluate a Rego policy → (allow, reason). Accepts both package and `.allow` query shapes."""
+    raw = await opa.eval(policy, context)
+    result = raw.get("result")
+    if isinstance(result, bool):
+        return result, f"OPA {policy}: {'allow' if result else 'deny'}"
+    result = result or {}
+    allow = bool(result.get("allow", False))
+    deny = [str(d) for d in (result.get("deny") or [])]
+    if allow:
+        return True, f"OPA {policy}: allow"
+    return False, f"OPA {policy} deny: {'; '.join(deny) or '(no reason given)'}"
+
+
+async def _decide(opa: Any, payload: GateRequest) -> tuple[bool, str]:
+    """Gate verdict: OPA policy (authoritative) when enabled + mapped, else the KG sanity stub."""
+    policy = _opa_policy_path(payload)
+    if opa is not None and policy is not None:
+        return await _eval_opa(opa, policy, payload.context)
+    return _call_kg_with_retry(payload)
 
 
 # ─── audit (JFrog 패턴 — actor/timestamp/verdict) ────────────────────────

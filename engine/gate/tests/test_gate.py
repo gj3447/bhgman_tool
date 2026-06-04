@@ -137,3 +137,97 @@ def test_health_endpoint(client):
     body = r.json()
     assert body["redis"] is True
     assert body["enforcement_mode"] == "informational"
+
+
+# ─── OPA policy enforcement (opt-in, APT_OPA_ENABLED=true) ────────────────
+
+
+class _FakeOPA:
+    """Stand-in OPA sidecar — canned allow/deny, no httpx/process needed."""
+
+    def __init__(self, *, allow: bool = True, raise_on_eval: bool = False):
+        self._allow = allow
+        self._raise = raise_on_eval
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def health(self):
+        return True
+
+    async def eval(self, policy_path, input_doc):
+        if self._raise:
+            raise RuntimeError("OPA sidecar down")
+        return {"result": {"allow": self._allow, "deny": [] if self._allow else ["V-SA3 NoRoot"]}}
+
+
+def _opa_client(monkeypatch, **kw):
+    """gate TestClient with OPA enabled + a fake OPA injected (informational mode)."""
+    monkeypatch.setenv("APT_GATE_MODE", "informational")
+    monkeypatch.setenv("APT_OPA_ENABLED", "true")
+    from engine.gate import circuit_breaker, opa_client
+
+    monkeypatch.setattr(circuit_breaker, "build_redis_client", lambda: fakeredis.FakeRedis())
+    monkeypatch.setattr(opa_client, "OPAClient", lambda *a, **k: _FakeOPA(**kw))
+    from engine.gate import gate_endpoint
+
+    return TestClient(gate_endpoint.app)
+
+
+def test_opa_allow_yields_pass(monkeypatch):
+    with _opa_client(monkeypatch, allow=True) as client:
+        r = client.post(
+            "/gate/check",
+            json={
+                "gate_name": "sa_to_sp",
+                "cycle_id": "c",
+                "actor": "a",
+                "context": {"sa": {"name": "X", "status": "active"}},
+            },
+        )
+    body = r.json()
+    assert body["verdict"] == "PASS"
+    assert "apt.phase_gates.sa_to_sp" in body["reason"]  # OPA was the authority
+
+
+def test_opa_deny_yields_would_fail_with_reason(monkeypatch):
+    with _opa_client(monkeypatch, allow=False) as client:
+        r = client.post(
+            "/gate/check",
+            json={"gate_name": "sa_to_sp", "cycle_id": "c", "actor": "a", "context": {}},
+        )
+    body = r.json()
+    assert body["verdict"] == "WOULD_FAIL"
+    assert body["advisory_only"] is True
+    assert "deny" in body["reason"].lower()
+    assert "V-SA3" in body["reason"]  # the Rego deny reason surfaced
+
+
+def test_opa_unreachable_fails_closed(monkeypatch):
+    with _opa_client(monkeypatch, raise_on_eval=True) as client:
+        r = client.post(
+            "/gate/check",
+            json={"gate_name": "sa_to_sp", "cycle_id": "c", "actor": "a", "context": {}},
+        )
+    body = r.json()
+    assert body["verdict"] == "WOULD_FAIL"  # fail-closed, not a silent PASS
+    assert "unreachable" in body["reason"].lower()
+
+
+def test_opa_enabled_unmapped_gate_falls_back_to_stub(monkeypatch):
+    """A gate with no policy mapping uses the context stub even when OPA is on."""
+    with _opa_client(monkeypatch, allow=False) as client:  # OPA would deny, but G3.5 is unmapped
+        r = client.post(
+            "/gate/check",
+            json={
+                "gate_name": "G3.5",
+                "cycle_id": "c",
+                "actor": "a",
+                "context": {"expected_count": 16, "actual_count": 16},
+            },
+        )
+    body = r.json()
+    assert body["verdict"] == "PASS"  # stub passed; OPA not consulted for an unmapped gate
