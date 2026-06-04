@@ -95,16 +95,16 @@ def _gen(task, complete, seed, prior=None, error=None):
     return _extract_proof(complete(_prompt(task, prior, error), seed))
 
 
-def _arm_single(task, complete):
+def _arm_single(task, complete, off=0):
     return evaluate(
-        task.name, task.signature, _gen(task, complete, 0), preamble=task.preamble
+        task.name, task.signature, _gen(task, complete, off), preamble=task.preamble
     ).proven
 
 
-def _arm_repair(task, complete, k):
+def _arm_repair(task, complete, k, off=0):
     prior, err = None, None
     for i in range(k):
-        proof = _gen(task, complete, i, prior, err)  # varied seed + error feedback
+        proof = _gen(task, complete, off + i, prior, err)  # varied seed + error feedback
         v = evaluate(task.name, task.signature, proof, preamble=task.preamble)
         if v.proven:
             return True
@@ -112,10 +112,10 @@ def _arm_repair(task, complete, k):
     return False
 
 
-def _arm_bestn(task, complete, k):
+def _arm_bestn(task, complete, k, off=0):
     for i in range(k):
         if evaluate(
-            task.name, task.signature, _gen(task, complete, i), preamble=task.preamble
+            task.name, task.signature, _gen(task, complete, off + i), preamble=task.preamble
         ).proven:
             return True  # varied seed → genuinely independent attempts (no oracle feedback)
     return False
@@ -127,14 +127,16 @@ def main() -> int:
         return 2
     complete, backend = _make_complete()
     k = int(os.environ.get("LEAN_K", "4"))
+    off = int(os.environ.get("SEED_OFFSET", "0"))  # replication control (symmetric across arms)
     rows = []
     print(
-        f"[lean-headroom] backend={backend} K={k} n={len(TASKS)} (ungameable oracle, headroom tasks)"
+        f"[lean-headroom] backend={backend} K={k} seed_offset={off} n={len(TASKS)} "
+        "(ungameable oracle, headroom tasks)"
     )
     for t in TASKS:
-        single = _arm_single(t, complete)
-        repair = _arm_repair(t, complete, k)
-        bestn = _arm_bestn(t, complete, k)
+        single = _arm_single(t, complete, off)
+        repair = _arm_repair(t, complete, k, off)
+        bestn = _arm_bestn(t, complete, k, off)
         rows.append((t.difficulty, single, repair, bestn))
         print(
             f"  [{t.difficulty:8s}] {t.name:12s} single={int(single)} repair={int(repair)} bestN={int(bestn)}"
@@ -143,6 +145,7 @@ def main() -> int:
     out = {
         "backend": backend,
         "K": k,
+        "seed_offset": off,
         "n_tasks": len(rows),
         "n_headroom": len(hr),
         "all": {
