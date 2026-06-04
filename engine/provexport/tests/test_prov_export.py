@@ -5,7 +5,7 @@ import io
 import rdflib
 from prov.model import ProvDocument
 
-from engine.provexport.prov_export import build_prov_document, serialize
+from engine.provexport.prov_export import build_nanopub_trig, build_prov_document, serialize
 
 SAMPLE = [
     {
@@ -76,6 +76,45 @@ def test_prov_constraints_hold():
 def test_provjson_serializes():
     js = serialize(_doc(), "provjson")
     assert "entity" in js and "activity" in js
+
+
+def test_nanopub_trig_has_four_graphs_and_np_structure():
+    """nanopub export = valid TriG with the 4 canonical nanopublication graphs."""
+    trig = build_nanopub_trig("cycle-test-1", SAMPLE, DERIV)
+    ds = rdflib.Dataset()
+    ds.parse(io.StringIO(trig), format="trig")  # raises if invalid TriG
+    NP = rdflib.Namespace("http://www.nanopub.org/nschema#")
+    PROV = rdflib.Namespace("http://www.w3.org/ns/prov#")
+    BH = rdflib.Namespace("https://bhgman.ai/kg/")
+
+    # Head graph declares the nanopub + links the 3 sub-graphs.
+    np_uri = rdflib.URIRef("https://bhgman.ai/kg/np/cycle-test-1")
+    head = ds.graph(rdflib.URIRef(str(np_uri) + "#Head"))
+    assertion = rdflib.URIRef(str(np_uri) + "#assertion")
+    provenance = rdflib.URIRef(str(np_uri) + "#provenance")
+    pubinfo = rdflib.URIRef(str(np_uri) + "#pubinfo")
+    assert (np_uri, rdflib.RDF.type, NP.Nanopublication) in head
+    assert (np_uri, NP.hasAssertion, assertion) in head
+    assert (np_uri, NP.hasProvenance, provenance) in head
+    assert (np_uri, NP.hasPublicationInfo, pubinfo) in head
+
+    # All four named graphs exist and are non-empty.
+    named = {str(g.identifier) for g in ds.graphs() if len(g) > 0}
+    for g_uri in (str(head.identifier), str(assertion), str(provenance), str(pubinfo)):
+        assert g_uri in named, f"missing/empty nanopub graph: {g_uri}"
+
+    # Assertion graph carries the claim; provenance graph carries how it was made.
+    g_assert = ds.graph(assertion)
+    g_prov = ds.graph(provenance)
+    assert (BH["finding-x-A1"], rdflib.RDF.type, BH.ResearchFinding) in g_assert
+    assert (BH["finding-x-A2"], PROV.wasDerivedFrom, BH["finding-x-A1"]) in g_assert
+    assert (BH["finding-x-A1"], PROV.wasGeneratedBy, BH["cycle-cycle-test-1"]) in g_prov
+    assert (None, PROV.hadPrimarySource, None) in g_prov
+
+
+def test_nanopub_trig_is_idempotent():
+    """Same inputs → byte-identical TriG (no wall-clock injected)."""
+    assert build_nanopub_trig("c", SAMPLE, DERIV) == build_nanopub_trig("c", SAMPLE, DERIV)
 
 
 def test_export_real_prom6_fixture(tmp_path):

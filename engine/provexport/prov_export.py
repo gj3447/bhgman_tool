@@ -1,4 +1,4 @@
-"""bhgman export-prov — bhgman KG findings → W3C PROV-O (Turtle / JSON / XML).
+"""bhgman export-prov — bhgman KG findings → W3C PROV-O (Turtle / JSON / XML) + nanopublication (TriG).
 
 Maps the per-finding KG provenance loop onto W3C PROV-O so it is FAIR-citable and
 not a vendor silo (see ADRs/prov-o-nanopub-export-2026-05-30.md):
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from prov.model import ProvDocument
 
 BHGMAN_NS = "https://bhgman.ai/kg/"
+NANOPUB_NS = "http://www.nanopub.org/nschema#"
 
 
 def _parse_dt(value: Any) -> datetime | None:
@@ -144,6 +145,126 @@ def serialize(doc: ProvDocument, fmt: str = "turtle") -> str:
     raise ValueError(f"unknown format: {fmt}")
 
 
+# ---- nanopublication (TriG, 4 named graphs) --------------------------------
+
+
+def _np_assert_finding(g_assert: Any, bh: Any, f: dict[str, Any]) -> None:
+    """Assertion-graph triples for one finding (the *claim*)."""
+    from rdflib import Literal
+    from rdflib.namespace import PROV, RDF
+
+    ent = bh[f["findingId"]]
+    g_assert.add((ent, RDF.type, bh.ResearchFinding))
+    if f.get("oneLineSummary"):
+        g_assert.add((ent, PROV.value, Literal(str(f["oneLineSummary"]))))
+    if f.get("domain"):
+        g_assert.add((ent, bh.domain, Literal(str(f["domain"]))))
+    if f.get("confidence") is not None:
+        g_assert.add((ent, bh.confidence, Literal(str(f["confidence"]))))
+
+
+def _np_prov_finding(
+    g_prov: Any, bh: Any, cycle_uri: Any, f: dict[str, Any], agents: set[str], srcs: set[str]
+) -> datetime | None:
+    """Provenance-graph triples for one finding (*how* it came to be). Returns its time."""
+    from rdflib import Literal
+    from rdflib.namespace import PROV, RDF, XSD
+
+    ent = bh[f["findingId"]]
+    g_prov.add((ent, PROV.wasGeneratedBy, cycle_uri))
+    t = _parse_dt(f.get("researchedAt"))
+    if t is not None:
+        g_prov.add((ent, PROV.generatedAtTime, Literal(t.isoformat(), datatype=XSD.dateTime)))
+    if f.get("agentId"):
+        agent = bh["agent-" + str(f["agentId"])]
+        if str(agent) not in agents:
+            g_prov.add((agent, RDF.type, PROV.SoftwareAgent))
+            agents.add(str(agent))
+        g_prov.add((ent, PROV.wasAttributedTo, agent))
+    urls = list(f.get("references") or [])
+    if f.get("citation_url"):
+        urls = [f["citation_url"], *urls]
+    for url in (u for u in urls if u):
+        sid = bh["src-" + hashlib.sha256(str(url).encode("utf-8")).hexdigest()[:16]]
+        if str(sid) not in srcs:
+            g_prov.add((sid, bh.url, Literal(str(url))))
+            srcs.add(str(sid))
+        g_prov.add((ent, PROV.hadPrimarySource, sid))
+    return t
+
+
+def build_nanopub_trig(
+    cycle_id: str,
+    findings: list[dict[str, Any]],
+    derivations: list[tuple[str, str]] | None = None,
+) -> str:
+    """bhgman cycle → a W3C nanopublication as TriG (http://nanopub.org).
+
+    A nanopublication is one Head graph that declares the nanopub and points at
+    three sub-graphs. We map the cycle's data into the canonical buckets:
+
+      - **Assertion** — the findings themselves (the *claim*): each ResearchFinding
+        with its summary/domain/confidence + the GERMINATED_FROM derivation edges.
+      - **Provenance** — how each finding came to be: the cycle activity, agent
+        attribution, generation time, and cited primary sources.
+      - **PublicationInfo** — metadata about *this nanopub*: minted by bhgman-tool,
+        ``dcterms:created`` derived from the findings' latest researchedAt (so the
+        output stays idempotent — no wall-clock injected).
+
+    The assertion/provenance split is coarse-but-principled (entity declarations →
+    assertion; prov:* relations → provenance), not a flat PROV dump relabelled.
+    Pure: same (cycle_id, findings, derivations) → byte-identical TriG.
+    """
+    from rdflib import Dataset, Literal, Namespace, URIRef
+    from rdflib.namespace import DCTERMS, PROV, RDF, XSD
+
+    bh = Namespace(BHGMAN_NS)
+    npns = Namespace(NANOPUB_NS)
+    base = f"{BHGMAN_NS}np/{cycle_id}"
+    np_uri = URIRef(base)
+    head, assertion, provenance, pubinfo = (
+        URIRef(base + "#Head"),
+        URIRef(base + "#assertion"),
+        URIRef(base + "#provenance"),
+        URIRef(base + "#pubinfo"),
+    )
+
+    ds = Dataset()
+    for prefix, ns in (("bhgman", bh), ("np", npns), ("prov", PROV), ("dcterms", DCTERMS)):
+        ds.bind(prefix, ns)
+
+    # Head — declare the nanopub + wire the three sub-graphs.
+    g_head = ds.graph(head)
+    g_head.add((np_uri, RDF.type, npns.Nanopublication))
+    g_head.add((np_uri, npns.hasAssertion, assertion))
+    g_head.add((np_uri, npns.hasProvenance, provenance))
+    g_head.add((np_uri, npns.hasPublicationInfo, pubinfo))
+
+    cycle_uri = bh["cycle-" + cycle_id]
+    g_assert = ds.graph(assertion)
+    g_prov = ds.graph(provenance)
+    g_prov.add((cycle_uri, RDF.type, PROV.Activity))
+    agents: set[str] = set()
+    srcs: set[str] = set()
+    latest: datetime | None = None
+
+    for f in findings:
+        _np_assert_finding(g_assert, bh, f)
+        t = _np_prov_finding(g_prov, bh, cycle_uri, f, agents, srcs)
+        if t is not None and (latest is None or t > latest):
+            latest = t
+    for child, parent in derivations or []:
+        g_assert.add((bh[child], PROV.wasDerivedFrom, bh[parent]))
+
+    # PublicationInfo — about this nanopub (idempotent: no wall-clock).
+    g_pub = ds.graph(pubinfo)
+    g_pub.add((np_uri, PROV.wasAttributedTo, bh["tool"]))
+    if latest is not None:
+        g_pub.add((np_uri, DCTERMS.created, Literal(latest.isoformat(), datatype=XSD.dateTime)))
+
+    return ds.serialize(format="trig")
+
+
 # ---- live KG path ----------------------------------------------------------
 
 _CYPHER_FINDINGS = """
@@ -187,6 +308,8 @@ def export_prov(cycle_id: str, fmt: str = "turtle", findings_json: str | None = 
         )
     if not findings:
         raise SystemExit(f"no ResearchFinding for cycle_id={cycle_id}")
+    if fmt == "nanopub":
+        return build_nanopub_trig(cycle_id, findings, derivations)
     doc = build_prov_document(cycle_id, findings, derivations)
     return serialize(doc, fmt)
 
@@ -199,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--format",
         default="turtle",
-        choices=["turtle", "ttl", "jsonld", "json-ld", "provjson", "xml"],
+        choices=["turtle", "ttl", "jsonld", "json-ld", "provjson", "xml", "nanopub"],
     )
     ap.add_argument("--findings-json", help="offline input instead of live KG")
     ap.add_argument("--out", help="output file (default: stdout)")
