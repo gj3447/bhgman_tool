@@ -2,19 +2,19 @@
 
 # bhgman_tool
 
-**KG-anchored agent orchestration toolkit for Claude Code skill workflows.** Lean 4 verified confidence schema (7 theorems, `sorry=0`) · KG↔code drift audit (Python + APOC trigger, currently warn-mode).
+**KG-anchored agent orchestration toolkit for Claude Code skill workflows.** Lean 4 verified confidence schema (7 theorems, `sorry=0`; 105 theorem/lemma across the full `lean/` tree) · KG↔code drift audit (Python + APOC trigger, currently warn-mode).
 
 <a href="https://github.com/gj3447/bhgman_tool/releases/download/v0.1.0-assets/hero.mp4"><img src="assets/hero.gif" width="600" alt="bhgman_tool hero (click for full mp4)"></a>
 
 [English](README.md) | [한국어](README.ko-KR.md) | [中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
 [![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg?style=flat-square)](https://github.com/gj3447/bhgman_tool#status-experimental)
-[![PyPI](https://img.shields.io/pypi/v/bhgman_tool.svg?style=flat-square)](https://pypi.org/project/bhgman_tool/)
+[![PyPI: not yet published](https://img.shields.io/badge/PyPI-not%20yet%20published-lightgrey.svg?style=flat-square)](docs/PYPI_PUBLISH_STATUS.md)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
-[![Lean 4](https://img.shields.io/badge/Lean-4.29.1-purple.svg?style=flat-square)](https://leanprover.github.io/)
+[![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest engine](https://img.shields.io/badge/pytest%20engine-319%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1153%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-332%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1337%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -23,7 +23,8 @@
 ## What you get in 30 seconds
 
 ```bash
-pip install bhgman_tool
+# not yet on PyPI (publish deferred) — install from source for now:
+git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git && cd bhgman_tool
 uv run bhgman-tool install-skills    # adds /apt /prom /tpa /tlb /longinus /harness /jaebaeman to Claude Code
 ```
 
@@ -53,13 +54,14 @@ Ephemeral subagent runs become first-class, auditable records.
 ## Install
 
 ```bash
+# ⚠ NOT YET ON PyPI — these become live only after publish (deferred). Until then, clone from source.
 pip install bhgman_tool                       # minimal (CLI + Pydantic models)
 pip install "bhgman_tool[resolver]"           # + APT v27 resolver (Jinja2 + Neo4j)
 pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI + Redis)
 pip install "bhgman_tool[all]"                # everything
 ```
 
-> The PyPI wheel ships `engine/` only. The `install-skills` / `verify` / `version` subcommands need the source repo (`skills/` + `lean/`) alongside — clone (with `--recurse-submodules`) for full functionality. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
+> **Not yet published to PyPI** — publish is deferred (no token; see [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md)). A `pip install bhgman_tool` fails today; install from source instead: `git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`. Once published, the PyPI wheel will ship `engine/` only — the `install-skills` / `verify` / `version` subcommands need the source repo (`skills/` + `lean/`) alongside. See [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
 
 ### LegionCommander standalone scope (honest disclosure)
 
@@ -147,7 +149,7 @@ cd bhgman_tool
 
 # 1. engine — verify pytest (run from repo ROOT; tests use absolute `engine.longinus_drift_audit.*`
 #    imports, and --all-extras pulls suite deps like python-frontmatter)
-uv run --all-extras pytest engine/longinus_drift_audit/tests -q   # expected: 319 passed, 1 skipped in ~2s
+uv run --all-extras pytest engine/longinus_drift_audit/tests -q   # expected: 332 passed, 1 skipped in ~2s
 
 # 2. Lean 4 — verify formal claims (optional)
 ( cd lean && lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean )   # exit 0, sorry=0
@@ -163,7 +165,7 @@ Restart Claude Code, then `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/
 
 ```mermaid
 flowchart LR
-    A([git clone]) --> B[engine pytest<br/>319 PASS]
+    A([git clone]) --> B[engine pytest<br/>332 PASS]
     B --> C{Lean 4?<br/>optional}
     C -- yes --> D[lean verify<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
@@ -194,8 +196,8 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 
 | Claim | Command | What it checks |
 |---|---|---|
-| `319 passed, 1 skipped` (engine subset) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (from repo root) | engine subset pass count + runtime |
-| `1149 passed, 4 skipped` (full repo; 1153 collected) | `uv run --all-extras pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (skips on a keyless clone: real-API smoke + otel no-op). NOTE: `--all-extras` is required — plain `uv run pytest` (or bare `pytest`) fails at collection on `import frontmatter`, because python-frontmatter lives in the `resolver`/`all` extra, not the default deps. |
+| `332 passed, 1 skipped` (engine subset) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (from repo root) | engine subset pass count + runtime |
+| `1333 passed, 4 skipped` (full repo; 1337 collected) | `uv run --all-extras pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (skips on a keyless clone: real-API smoke + otel no-op). NOTE: `--all-extras` is required — plain `uv run pytest` (or bare `pytest`) fails at collection on `import frontmatter`, because python-frontmatter lives in the `resolver`/`all` extra, not the default deps. |
 | `Lean 4: proof-position sorry=0` | `cd lean && export LEAN_PATH=$PWD && for f in Measurement_MetricScale Measurement_CommanderMetrics Measurement_CompositionSafety Measurement_Phase4_EmpiricalValidation; do lean --o=$f.olean $f.lean \|\| exit 1; done && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 14 Mathlib-free files build (dependency-ordered via LEAN_PATH) + count of unfinished proofs (= 0; every `sorry` token in the tree is in a comment) |
 | `105 theorems` (whole `lean/` tree; 89 in the 14 Mathlib-free files) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | top-level theorem/lemma declaration count |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | re-runs a cycle and diffs the KG output |
@@ -240,7 +242,7 @@ Early-adopter stage. API surface, skill contracts, and badge counts may change w
 
 ## Contributing
 
-Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 1153 pytest tests on every commit; lychee link-check on every push. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
+Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 1337 pytest tests on every commit; lychee link-check runs in CI. Install with `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 

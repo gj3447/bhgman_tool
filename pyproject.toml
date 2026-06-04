@@ -1,7 +1,7 @@
 [project]
 name = "bhgman_tool"
 version = "0.1.0"
-description = "비행기맨(#4 사도)의 공학적 결정화 (Harness) 측 도구 모음. 본 repo = 도구 layer (본질 측 정전은 별도). 17 axes external grounding + 71 Lean 4 verified theorem/lemma (Mathlib-free standalone, lean exit 0; 87 across the lean/ tree incl. the 16-theorem apt_functor_with_mathlib sister-project) + Goodhart safeguard."
+description = "비행기맨(#4 사도)의 공학적 결정화 (Harness) 측 도구 모음. 본 repo = 도구 layer (본질 측 정전은 별도). 17 axes external grounding + 89 Lean 4 verified theorem/lemma (Mathlib-free standalone, lean exit 0; 105 across the lean/ tree incl. the 16-theorem apt_functor_with_mathlib sister-project) + Goodhart safeguard."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "gj3447 (METAHUMOTONIC)", email = "gj3447@gmail.com" }]
