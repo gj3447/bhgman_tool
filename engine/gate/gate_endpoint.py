@@ -3,11 +3,30 @@
 Absorbed from SYMPOSIUM/THEORY/APT/gate_endpoint_prototype/gate_endpoint.py
 (Wave 7 P3-H, 2026-05-14).
 
-POST /gate/check        Resilience4j 4-layer 게이트 (timeout + CB + audit + fallback)
+⚠ PROTOTYPE SCOPE — NOT A PRODUCTION SECURITY CONTROL (read before deploying):
+
+  What actually runs in /gate/check today:
+    * Layer 2 circuit breaker — REAL (Redis-backed 3-state FSM, restart-survivable).
+    * The PASS/FAIL verdict itself — STUB. ``_call_kg_with_retry`` does NOT query
+      Neo4j; it only compares ``context.expected_count`` vs ``context.actual_count``.
+      A caller that omits those (or sets them equal) gets a meaningless PASS.
+
+  What is authored but NOT wired into the verdict:
+    * OPA / Rego policies (engine/gate/policies/*.rego, ~780 LOC of real allow/deny
+      logic) — the OPAClient is *built and health-checked at boot* (when
+      APT_OPA_ENABLED=true) but ``/gate/check`` NEVER calls ``opa.eval()``. So "OPA
+      policy enforcement" is true at the authoring/library level, FALSE at runtime.
+      Real wiring needs the request to carry the structured policy ``input`` the
+      Rego expects (input.sa.*, input.apt_progress.*) + a gate→policy map — Sprint-3.
+
+  Also stubbed: ``_audit`` is stderr print (no KG :GateAuditEntry yet); break-glass
+  Slack/PagerDuty alert is a TODO. See engine/gate/README.md "상태" checklist.
+
+POST /gate/check        circuit-breaker + context sanity-check (OPA NOT consulted)
 GET  /gate/health       Composition Root health
 POST /gate/break-glass  Essential infra emergency override (audit + alert)
 
-Polly v8 정책 chain: rate-limiter → timeout → circuit-breaker → retry → fallback.
+Polly v8 정책 chain (intended): rate-limiter → timeout → circuit-breaker → retry → fallback.
 
 KG ref: rfc-apt-v27-A7-gate-hook-fail-closed-4-layer-2026-04-30
 """

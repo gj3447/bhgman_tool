@@ -6,6 +6,21 @@
 > **Sprint**: 3 (4주 estimate, 병렬 가능)
 > **Stack**: Python 3.11+ / FastAPI / Redis (circuit breaker state) / `tenacity` (Resilience4j-style retry) / structlog
 
+## ⚠ Status: PROTOTYPE — what actually runs vs what is stubbed
+
+This is a **prototype, not a production security control.** The architecture below
+describes the intended design; the runtime is partial. Honest scope:
+
+| Piece | State | Note |
+|---|---|---|
+| Circuit breaker (Redis 3-state FSM) | ✅ **real, working** | restart-survivable; tested with fakeredis |
+| `/gate/check` PASS/FAIL verdict | ⚠ **stub** | `_call_kg_with_retry` compares `context.expected_count` vs `context.actual_count` — it does **not** query Neo4j. Real KG Cypher gate query = Sprint-3. |
+| OPA / Rego policies | ⚠ **authored, NOT wired** | the ~780 LOC of Rego (below) + `OPAClient` are real, and the client is built + health-checked at boot — but `/gate/check` **never calls `opa.eval()`**. So policies are enforced at the *authoring/library* level only, not at runtime. Wiring needs the request to carry the structured policy `input` (`input.sa.*`, `input.apt_progress.*`) + a gate→policy map. |
+| Audit log | ⚠ **stub** | stderr print; no KG `:GateAuditEntry` node yet |
+| break-glass Slack/PagerDuty alert | ⚠ **TODO** | allowlist check is real; the alert is not |
+
+See the "상태" checklist at the bottom for the Sprint-3 sub-tasks that close these gaps.
+
 ## CLI entry
 
 ```bash
