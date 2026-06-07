@@ -209,6 +209,7 @@ def _jaebaeman_seed_merge(store: LocalKgStore, params: dict) -> list[dict]:
             "expectedOutcome": params.get("expectedOutcome", ""),
             "germinationMethod": params.get("germinationMethod", "singleton"),
             "depth": params.get("depth") if params.get("depth") is not None else 0,
+            "cycleId": params.get("cycle_id"),  # germinate scope key (neo4j _SEED_MERGE 패리티)
             "status": "READY",
         },
     )
@@ -276,6 +277,58 @@ def _jaebaeman_status_set(store: LocalKgStore, params: dict) -> list[dict]:
     return [{"updated": params["name"]}]
 
 
+def _decomposes_parents(store: LocalKgStore) -> dict[str, str]:
+    # child name → 첫 DECOMPOSES_TO 부모 name (SubagentTaskSpec만). dedupe 기준.
+    parent_of: dict[str, str] = {}
+    for n in store.nodes:
+        if "SubagentTaskSpec" not in n["labels"]:
+            continue
+        for rel, dst in store.out_edges(n):
+            cname = dst["props"].get("name")
+            if rel == "DECOMPOSES_TO" and cname and cname not in parent_of:
+                parent_of[cname] = n["props"].get("name")
+    return parent_of
+
+
+def _is_ready_seed(node: dict, cycle: str | None) -> bool:
+    p = node["props"]
+    if "SubagentTaskSpec" not in node["labels"] or p.get("status") != "READY":
+        return False
+    if cycle is not None and p.get("cycleId") != cycle:
+        return False
+    return bool(p.get("name"))
+
+
+def _ready_seed_row(p: dict, parent: str | None) -> dict:
+    name = p["name"]
+    return {
+        "name": name,
+        "skill": p.get("skill") or "jaebaeman",
+        "sourceId": p.get("sourceId") or name,
+        "displayName": p.get("displayName") or name,
+        "taskType": p.get("taskType") or "research",
+        "targetDomain": p.get("targetDomain") or "",
+        "expectedOutcome": p.get("expectedOutcome") or "",
+        "germinationMethod": p.get("germinationMethod") or "manual",
+        "depth": p.get("depth") if p.get("depth") is not None else 0,
+        "parent": parent,
+    }
+
+
+def _jaebaeman_ready_seeds(store: LocalKgStore, params: dict) -> list[dict]:
+    # READY SubagentTaskSpec read-back (씨앗→발아 입력). cycle_id 주면 그 cycle만. name당 1행(dedupe).
+    cycle = params.get("cycle_id")
+    parent_of = _decomposes_parents(store)
+    out = [
+        _ready_seed_row(n["props"], parent_of.get(n["props"]["name"]))
+        for n in store.nodes
+        if _is_ready_seed(n, cycle)
+    ]
+    out.sort(key=lambda r: (r["depth"], r["name"]))
+    limit = params.get("limit")
+    return out[:limit] if limit is not None else out
+
+
 def _jaebaeman_orphan_anchor(store: LocalKgStore, params: dict) -> list[dict]:
     # E1 게이트: 주어진 anchor name 중 KG에 노드가 없는 것만 collect (read-only).
     anchors = params.get("anchors") or []
@@ -320,6 +373,12 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
         lambda c: "SET s.status = $status, s.lifecycleUpdatedAt" in c,
         _jaebaeman_status_set,
         True,
+    ),
+    # READY 씨앗 read-back (씨앗→발아 입력). SourceCodeNode read보다 먼저(둘 다 RETURN s.name).
+    (
+        lambda c: "(s:SubagentTaskSpec)" in c and "s.status = 'READY'" in c,
+        _jaebaeman_ready_seeds,
+        False,
     ),
     (lambda c: "MERGE (r:JaebaemanRun {name: $run_id})" in c, _jaebaeman_run_record, True),
     (

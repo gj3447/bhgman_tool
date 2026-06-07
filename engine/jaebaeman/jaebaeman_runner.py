@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from engine.jaebaeman.invariants import validate_seed_invariants
 from engine.jaebaeman.jaebaeman_models import MAX_DEPTH, Goal, PlanResult, SeedApplyResult
-from engine.jaebaeman.kg_adapter import CypherRunner, kg_decompose, plant_seeds
+from engine.jaebaeman.kg_adapter import CypherRunner, kg_decompose, plant_seeds, read_ready_seeds
+from engine.jaebaeman.lifecycle import Dispatcher, LifecycleResult, drive_seeds
 from engine.jaebaeman.planner import (
     DecomposeFn,
     depth_max,
@@ -104,4 +105,39 @@ def run_jaebaeman(
     )
 
 
-__all__ = ["run_jaebaeman"]
+def germinate_ready_seeds(
+    dispatcher: Dispatcher,
+    run_cypher: CypherRunner,
+    *,
+    cycle_id: str,
+    write_cypher: CypherRunner | None = None,
+    apply: bool = False,
+    limit: int | None = None,
+) -> LifecycleResult:
+    """씨앗→발아→동작 핸드오프: KG의 READY 씨앗을 read-back → dispatcher 출격 → status write.
+
+    run_jaebaeman(plan→plant, Phase 0~1)의 다음 단계(Phase 2~4). plant_seeds로 심긴 READY
+    :SubagentTaskSpec를 read_ready_seeds로 다시 읽어(발아 입력) drive_seeds로 출격·수확·status 전이.
+    dispatcher 주입: agent_dispatcher(client)=실 LLM 출격(동작) / fake=테스트.
+
+    **cycle_id 필수** — 전역 READY 씨앗(KG 누적분) 무차별 dispatch 방지. 보통 직전 plant의 cycle_id.
+    **apply가 dispatch+write 둘 다의 게이트**: apply=False면 dispatcher를 *호출하지 않고*(LLM 비용 0)
+    READY 씨앗 수만 보고하는 진짜 dry-run. apply=True에서만 실제 출격(LLM)+status write.
+
+    이전엔 READY 씨앗을 다시 읽어 dispatch하는 코드가 부재해 씨앗(KG)이 dispatch의 dead-end였다
+    (감사 finding-jaebaeman-seed-dispatch-handoff-unwired-2026-06-07). 이 함수가 그 한 가닥을 잇는다.
+    """
+    seeds = read_ready_seeds(run_cypher, limit=limit, cycle_id=cycle_id)
+    if not apply:
+        return LifecycleResult(
+            outcomes=(),
+            dry_run=True,
+            notes=(
+                f"dry-run: cycle '{cycle_id}'에 발아 대기 READY 씨앗 {len(seeds)}개 "
+                "(--apply로 출격+status write; dispatch 미실행 = LLM 비용 0)",
+            ),
+        )
+    return drive_seeds(seeds, dispatcher, write_cypher=write_cypher, apply=True)
+
+
+__all__ = ["germinate_ready_seeds", "run_jaebaeman"]

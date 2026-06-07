@@ -1124,6 +1124,73 @@ def cmd_legion(args: argparse.Namespace) -> int:
     return 0 if run.completed else 1
 
 
+def _resolve_cycle_id(args: argparse.Namespace) -> str:
+    """--cycle-id 있으면 그것, 없으면 per-invocation 유니크 default — cross-run 발아 scope 격리.
+
+    plant + germinate가 *같은* cycle_id를 공유해야 발아가 이번 run의 씨앗만 본다 (footgun 방지).
+    """
+    explicit = getattr(args, "cycle_id", None)
+    if explicit:
+        return explicit
+    import datetime as _dt  # noqa: PLC0415
+
+    return "jaebaeman-cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+
+
+def _maybe_germinate(
+    args: argparse.Namespace, run_cypher, write_cypher, cycle_id: str, res
+) -> None:
+    """--germinate면 발아 단계 실행. 실패 격리 — 발아 오류가 이미 성공한 plant을 죽이지 않는다."""
+    if not getattr(args, "germinate", False) or res.violations:
+        return
+    if run_cypher is None:
+        print("[jaebaeman] --germinate는 KG가 필요하다 (--local 또는 NEO4J_*).", file=sys.stderr)
+        return
+    try:
+        _germinate_after_plant(args, run_cypher, write_cypher, cycle_id)
+    except Exception as e:  # noqa: BLE001 — 발아 실패 격리 (plant은 이미 성공)
+        print(
+            f"[jaebaeman] 발아 실패 (격리됨, plant은 성공): {type(e).__name__}: {e}",
+            file=sys.stderr,
+        )
+
+
+def _germinate_after_plant(
+    args: argparse.Namespace, run_cypher, write_cypher, cycle_id: str
+) -> None:
+    """발아: 심긴 READY 씨앗을 LLM subagent로 출격(동작)시킨다 — 씨앗→발아→동작 핸드오프.
+
+    --apply 없으면 dispatch 미실행(LLM 비용 0) + 발아 대기 씨앗 수만 보고(true dry-run). --apply면
+    실 LLM 출격 + status write. LLM runtime 없으면 graceful skip(계획/씨앗은 이미 성공).
+    # KG: finding-jaebaeman-seed-dispatch-handoff-unwired-2026-06-07 (read-back+dispatch 배선)
+    """
+    from engine.jaebaeman.jaebaeman_runner import germinate_ready_seeds  # noqa: PLC0415
+    from engine.jaebaeman.lifecycle import agent_dispatcher  # noqa: PLC0415
+
+    limit = getattr(args, "germinate_limit", None)
+    if not getattr(args, "apply", False):  # true dry-run: dispatch 미실행
+        lc = germinate_ready_seeds(lambda _s: [], run_cypher, cycle_id=cycle_id, limit=limit)
+        print(f"[jaebaeman 발아] {' / '.join(lc.notes)}")
+        return
+    agents, reason = _agent_runtime()
+    if agents is None:
+        print(f"[jaebaeman] 발아 skip — LLM runtime 사용 불가 ({reason}).", file=sys.stderr)
+        print(_BACKEND_HINT, file=sys.stderr)
+        return
+    lc = germinate_ready_seeds(
+        agent_dispatcher(agents.AgentClient()),
+        run_cypher,
+        cycle_id=cycle_id,
+        write_cypher=write_cypher,
+        apply=True,
+        limit=limit,
+    )
+    print(f"[jaebaeman 발아] {lc.summary}")
+    for o in lc.outcomes:
+        mark = "ok" if o.status.value == "COLLECTED" else "FAIL"
+        print(f"    [{mark}] {o.seed_name}: {o.detail[:80]}")
+
+
 def cmd_jaebaeman(args: argparse.Namespace) -> int:
     """재배맨 — 계획→씨앗 결정화. 목표를 계획 트리로 unfold하고 SubagentTaskSpec 씨앗으로 심는다.
 
@@ -1160,18 +1227,20 @@ def cmd_jaebaeman(args: argparse.Namespace) -> int:
         )
         return 2
 
+    cycle_id = _resolve_cycle_id(args)  # plant + germinate가 공유 (per-run scope)
     try:
         res = run_jaebaeman(
             goal,
             run_cypher=run_cypher,
             write_cypher=write_cypher,
             skill=getattr(args, "skill", None) or "jaebaeman",
-            cycle_id=getattr(args, "cycle_id", None) or "jaebaeman-cli",
+            cycle_id=cycle_id,
             apply=getattr(args, "apply", False),
             max_depth=getattr(args, "depth", 3),
             coinductive=getattr(args, "coinductive", False),
             fuel=getattr(args, "fuel", None),
         )
+        _maybe_germinate(args, run_cypher, write_cypher, cycle_id, res)
     finally:
         close()
 

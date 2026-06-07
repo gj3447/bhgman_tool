@@ -67,6 +67,68 @@ def kg_decompose(run_cypher: CypherRunner, *, task_type: str = "research"):
     return decompose
 
 
+# ── READ-BACK: 심긴 READY 씨앗 → SeedRecord (씨앗→발아 핸드오프 입력) ──────────
+# plant_seeds가 status='READY'로 심은 :SubagentTaskSpec를 다시 읽어 SeedRecord로 복원.
+# 이것이 "발아"의 입력 — lifecycle.drive_seeds(agent_dispatcher)가 소비해 출격→동작.
+# 감사 finding-jaebaeman-seed-dispatch-handoff-unwired-2026-06-07 해소 (read-back 부재 → 추가).
+_READY_SEEDS_RETURN = (
+    "OPTIONAL MATCH (p:SubagentTaskSpec)-[:DECOMPOSES_TO]->(s) "
+    "WITH s, head(collect(p.name)) AS parent "  # dedupe: 다중 부모(DAG) 시 씨앗당 1행
+    "RETURN s.name AS name, coalesce(s.skill, 'jaebaeman') AS skill, "
+    "coalesce(s.sourceId, s.name) AS sourceId, coalesce(s.displayName, s.name) AS displayName, "
+    "coalesce(s.taskType, 'research') AS taskType, coalesce(s.targetDomain, '') AS targetDomain, "
+    "coalesce(s.expectedOutcome, '') AS expectedOutcome, "
+    "coalesce(s.germinationMethod, 'manual') AS germinationMethod, "
+    "coalesce(s.depth, 0) AS depth, parent "
+    "ORDER BY s.depth, s.name"
+)
+
+
+def ready_seeds_cypher(limit: int | None = None, cycle_id: str | None = None) -> tuple[str, dict]:
+    """READY 씨앗 read-back cypher + params. read-only (covenant 토큰 부재 — 검증 불필요).
+
+    cycle_id 주면 그 cycle에 심긴 씨앗만(s.cycleId) — KG 전역 READY 씨앗 무차별 발아 footgun 방지.
+    """
+    where = "WHERE s.status = 'READY'"
+    params: dict = {}
+    if cycle_id is not None:
+        where += " AND s.cycleId = $cycle_id"
+        params["cycle_id"] = cycle_id
+    cypher = f"MATCH (s:SubagentTaskSpec) {where} " + _READY_SEEDS_RETURN
+    if limit is not None:
+        cypher += " LIMIT $limit"
+        params["limit"] = limit
+    return cypher, params
+
+
+def read_ready_seeds(
+    run_cypher: CypherRunner, *, limit: int | None = None, cycle_id: str | None = None
+) -> list[SeedRecord]:
+    """심긴 READY :SubagentTaskSpec 씨앗을 KG에서 읽어 SeedRecord로 복원 (plant_seeds의 역).
+
+    dispatch가 소비할 씨앗 read-back — 씨앗(KG)↔발아(dispatch) 사이 끊겨 있던 핸드오프.
+    parent = DECOMPOSES_TO 부모(계획 트리 보존). cycle_id로 scope(전역 무차별 발아 방지). read-only.
+    """
+    cypher, params = ready_seeds_cypher(limit, cycle_id)
+    rows = run_cypher(cypher, params)
+    return [
+        SeedRecord(
+            name=r["name"],
+            skill=r.get("skill") or "jaebaeman",
+            source_id=r.get("sourceId") or r["name"],
+            display_name=r.get("displayName") or r["name"],
+            task_type=r.get("taskType") or "research",
+            target_domain=r.get("targetDomain") or "",
+            expected_outcome=r.get("expectedOutcome") or "",
+            germination_method=r.get("germinationMethod") or "manual",
+            depth=int(r.get("depth") or 0),
+            parent=r.get("parent"),
+        )
+        for r in rows
+        if r.get("name")
+    ]
+
+
 # ── WRITE (covenant: MERGE-only, depth NOT NULL) ─────────────────────────────
 _SEED_MERGE = (
     "MERGE (s:SubagentTaskSpec {name: $name}) "
@@ -78,6 +140,7 @@ _SEED_MERGE = (
     "s.expectedOutcome = $expectedOutcome, "
     "s.germinationMethod = $germinationMethod, "
     "s.depth = coalesce($depth, 0), "  # SKILL v2.4 §p3: NULL이면 t_depth_not_null rollback
+    "s.cycleId = $cycle_id, "  # germinate scope key — read_ready_seeds가 이 cycle만 발아
     "s.status = 'READY', "
     "s.createdAt = datetime() "
     "RETURN s.name AS seeded"
@@ -195,4 +258,6 @@ __all__ = [
     "children_cypher",
     "kg_decompose",
     "plant_seeds",
+    "read_ready_seeds",
+    "ready_seeds_cypher",
 ]

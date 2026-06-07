@@ -69,6 +69,9 @@ class LifecycleResult:
 
 
 # status 전이 write (covenant: SET만). READY→DISPATCHED→COLLECTED/FAILED.
+# NOTE: 씨앗 lifecycle 종결값은 'COLLECTED'(Lean SeedLifecycle 정전). KG 전역 done-status인
+# 'COMPLETED'와 다르므로 t_dep_unlock 트리거(IN-list=COMPLETED)는 COLLECTED 씨앗의 BLOCKED
+# 의존자를 자동 unlock하지 않는다 — 의도된 분리. 의존 unlock 필요 시 별도 매핑(범위 밖).
 _STATUS_SET = (
     "MATCH (s:SubagentTaskSpec {name: $name}) "
     "SET s.status = $status, s.lifecycleUpdatedAt = datetime() "

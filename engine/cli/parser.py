@@ -291,6 +291,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="production 표면: 실행을 :JaebaemanRun KG 감사노드 + OTel attrs + PROV-O로 기록.",
     )
+    p_jb.add_argument(
+        "--germinate",
+        action="store_true",
+        help="발아: 심긴 READY 씨앗을 KG에서 읽어 LLM subagent로 출격(동작)시킨다 "
+        "(씨앗→발아→동작 핸드오프). LLM 백엔드 필요; status 전이는 --apply와 함께 write.",
+    )
+    p_jb.add_argument(
+        "--germinate-limit",
+        dest="germinate_limit",
+        type=int,
+        default=None,
+        help="--germinate 시 한 번에 발아할 READY 씨앗 최대 수 (생략=전부).",
+    )
     p_jb.set_defaults(func=commands.cmd_jaebaeman)
 
     p_eu = sub.add_parser(
