@@ -6,6 +6,8 @@ cell passed — or honestly failed — the same 3-falsifier preflight
 (`engine/efficacy/falsifier.py`: circularity / signal-absent / signal-inverted). Numbers
 are reproduced by the commands shown; no value is hand-authored.
 
+> **⚠️ SUPERSEDED-IN-PART (2026-06-05): the "LOOP-HYPOTHESIS = OPEN / leaning negative" conclusions below were REVERSED for the bounded-repair regime.** A powered Lean fair-test (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`, `VERDICT.md` §3, commit `88839e0`) found an oracle-guided **repair loop beats best-of-N on competence-boundary tasks**: repair ≥ best-of-N in 10/10 runs, strict win 7/10, never loses, sign-test **p=0.016**. The negatives below are real but regime-scoped (FunSearch *island-evolve* on bin-packing/symreg at small budget + an underpowered early Lean band) — they do NOT cover oracle-guided *repair* at the competence edge. Full dated note at the end of this file. within-competence cognitive ~0 is unchanged.
+
 ## Scoreboard
 
 | commander | verb | verdict | number | oracle (independent of the commander?) |
@@ -354,6 +356,24 @@ amplifier, but a **fallibility-proportional deterministic error-catcher** — mo
 competence edge / for weaker reasoners / on out-of-competence tasks where even strong models err. True
 external *adoption* remains untested (needs a real user); this is the utility proxy.
 
+### ★ Headroom reversal (2026-06-05): oracle-guided repair loop BEATS best-of-N — the OPEN above is resolved for bounded repair
+
+Every "loop OPEN / leaning negative" conclusion above was measured on **island-evolve** (FunSearch-style population diversity) at small budget, plus one **underpowered** early Lean band (Run A: only 1 live headroom task → no power; a sampling artifact, not a null). A powered re-test reverses the headroom reading.
+
+Run B (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`, commit `88839e0`): band enriched 4→10 headroom Lean tasks (5 live, +6 verified custom-recursive proofs), graded oracle (0/0.5/1), 10-seed replication, ungameable `#print axioms` check. Three arms at equal K=4: single / **oracle-guided repair** / best-of-N.
+
+- **repair ≥ best-of-N in 10/10 runs, strict win 7/10, never loses; sign-test p=0.016.**
+- Per-task: `dbl_ge` best-of-N 0/10 vs repair 5/10; `le_sumto` 1/10 vs 5/10.
+- Mechanism: the model gets *close*, the Lean error names the defect, repair converges where independent draws can't.
+
+**Scope (precise):** bounded oracle-guided **repair** (NOT open-ended discovery), at the **qwen2.5:32b** tier (NOT frontier — qwen3 reasoning infeasible at >150s/call), K=4. The edge lives exactly at the competence boundary (floor + ceiling tasks show none). within-competence cognitive ~0 is unchanged; this does not touch the drift/dedup F1=1.0 regime.
+
+This also corrects the earlier "6/6 UNREALIZED → loop CLOSED" — a 4-critic postmortem (conf 0.82–0.84) caught it as PREMATURE: the denominator was 2 underpowered nulls + 4 non-measurements that saturate to delta=0 by arithmetic, F3 islands were never implemented, and CLOSE was committed before the confirming run.
+
+Adversarially re-verified (workflow w24bu3fss; EFF-4/EFF-5/EFF-7 CONFIRMED, p recomputed 0.0156). Authoritative verdict: `VERDICT.md` §3. (Caveat: raw per-run JSON is not committed — the per-task counts live in the markdown narrative; frontier tier, open-ended discovery, and K-dependence remain open.)
+
+# 2026-06-05 reversal source: VERDICT.md §3 + LEAN_HEADROOM_FAIRTEST_2026-06-05.md (commit 88839e0);
+#     KG verdict node bhgman-efficacy-verdict-operational-substrate-2026-06-02 (headroom_resolution_2026_06_07 field), efficacy-map-final-2026-06-01 (headroom_update_2026_06_07)
 # KG: efficacy-measurement-line-2026-06-01, efficacy-occam-sigma-ab-2026-06-01,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30, project_bhgman_ab_falsifier_2026_05_30,
 #     prom16-bhgman-ci-design-2026-06-02, lesson-bhgman-cognitive-lift-requires-oracle-guided-search-2026-06-02,
