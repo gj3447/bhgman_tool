@@ -14,7 +14,7 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-332%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1359%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1363%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -132,7 +132,7 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 | Claim | Command | 何を確認するか |
 |---|---|---|
 | `332 pytest PASS` (engine 部分) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 部分 pass count + runtime |
-| `1355 passed, 4 skipped` (リポジトリ全体; 1359 collected) | `uvx pre-commit run --all-files` (またはルートで `pytest -q`) | リポジトリ全体の pass count (4 skip = キー無し clone: 実-API smoke 3 + otel no-op 1) |
+| `1359 passed, 4 skipped` (リポジトリ全体; 1363 collected) | `uvx pre-commit run --all-files` (またはルートで `pytest -q`) | リポジトリ全体の pass count (4 skip = キー無し clone: 実-API smoke 3 + otel no-op 1) |
 | `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 14 個の standalone(Mathlib-free)ファイルをビルド + 未完成の証明数(= 0；ツリー内の全 `sorry` トークンはコメント内) |
 | `105 theorems` (`lean/` ツリー全体；standalone 14 ファイルで 89) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | トップレベル theorem/lemma 宣言数 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 再実行 + KG output diff |
@@ -156,7 +156,7 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 
 ## Contributing
 
-Pre-commit 4-ratchet gate が毎 commit に ruff lint+format / complexipy ≤15 / deptry / 1359 pytest テストを実行、毎 push に lychee リンクチェック。インストール: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
+Pre-commit 4-ratchet gate が毎 commit に ruff lint+format / complexipy ≤15 / deptry / 1363 pytest テストを実行、毎 push に lychee リンクチェック。インストール: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
 
 ---
 
