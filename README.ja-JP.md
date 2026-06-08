@@ -14,7 +14,7 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-332%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1340%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1359%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -60,6 +60,17 @@ pip install "bhgman_tool[all]"                # 全部
 ```
 
 > **まだ PyPI 未公開**（token なしで保留中 — [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md)）。現在 `pip install bhgman_tool` は失敗します；ソースからインストール: `git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`。公開後の PyPI wheel は `engine/` のみ同梱。`install-skills` / `verify` / `version` subcommand は source repo(`skills/` + `lean/`)が並んで存在する必要あり — フル機能には clone。詳細は [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md)。
+
+### 測定された効能 — 何を*追加しないか* (外部 A/B, 2026-05-30)
+
+**外部 oracle**(植えた ground truth / ライブ URL チェック — bhgman 自身の KG では*ない*)で採点し、base-LLM arm に**同等のツール予算**を与えた反証可能な A/B:
+
+- **決定論エンジンは能力を追加しない。** sha256 drift 検出(不可視の zero-width / NBSP / homoglyph 編集を含む)と KG ノード dedup において、`longinus` / `occam` / `hades` は **F1 1.0 — だが `shasum`/推論を使う base LLM も同じく 1.0、試験した全規模(2000 ファイルまで)で**。価値は**決定論・網羅性・冪等性・署名付き audit trail** であって「モデルより賢い」ではない。
+- **Grounding は効くが RAG 一般論。** 実際の検索ソースを与えると幻覚引用が **42.9% → 0%** — *検索*の価値であり、LLM + 検索なら誰でも得られる。bhgman はそれをパッケージ化するだけで発明はしない。
+- **敵対的 verify-gate(`tlb`/naesengmoon)は過剰却下していた — 2026-05-30 に修正。** 以前の prompt が健全で十分に hedge された作業を flag していた(モデルが大きくなるほど precision が 0 に)。較正修正(*名指しできる*違反でのみ FAIL、誠実な hedge は通過)で **base モデルと同等 + over-claim 100% 捕捉**に回復。
+- **Composition の創発は governance であって cognition ではない。** 7 軍団長 contract + oracle-gate パイプライン(`legion`)が統合失敗を、改竄検知可能な **HMAC** audit trail と共に決定論的に捕捉する — ad-hoc orchestration が既定では与えないもの — だが base モデルを超えて推論を**引き上げはしない**。
+
+**結論: bhgman_tool は governance / audit 層(再現性・provenance・contract 強制・drift 検出)であって、能力倍増器ではない。*intelligence* ではなく *discipline* として扱うこと。**
 
 ---
 
@@ -121,7 +132,7 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 | Claim | Command | 何を確認するか |
 |---|---|---|
 | `332 pytest PASS` (engine 部分) | `cd engine/longinus_drift_audit && uv run --with pytest pytest -q` | engine 部分 pass count + runtime |
-| `1336 passed, 4 skipped` (リポジトリ全体; 1340 collected) | `uvx pre-commit run --all-files` (またはルートで `pytest -q`) | リポジトリ全体の pass count (4 skip = キー無し clone: 実-API smoke 3 + otel no-op 1) |
+| `1355 passed, 4 skipped` (リポジトリ全体; 1359 collected) | `uvx pre-commit run --all-files` (またはルートで `pytest -q`) | リポジトリ全体の pass count (4 skip = キー無し clone: 実-API smoke 3 + otel no-op 1) |
 | `Lean 4: proof-position sorry=0` | `cd lean && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 14 個の standalone(Mathlib-free)ファイルをビルド + 未完成の証明数(= 0；ツリー内の全 `sorry` トークンはコメント内) |
 | `105 theorems` (`lean/` ツリー全体；standalone 14 ファイルで 89) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | トップレベル theorem/lemma 宣言数 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 再実行 + KG output diff |
@@ -145,7 +156,7 @@ README の全定量 claim にはワンコマンド検証スクリプトが付属
 
 ## Contributing
 
-Pre-commit 4-ratchet gate が毎 commit に ruff lint+format / complexipy ≤15 / deptry / 1340 pytest テストを実行、毎 push に lychee リンクチェック。インストール: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
+Pre-commit 4-ratchet gate が毎 commit に ruff lint+format / complexipy ≤15 / deptry / 1359 pytest テストを実行、毎 push に lychee リンクチェック。インストール: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`。
 
 ---
 

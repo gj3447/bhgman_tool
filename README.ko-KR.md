@@ -14,7 +14,7 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-332%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
-[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1340%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
+[![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1359%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
 
@@ -59,7 +59,18 @@ pip install "bhgman_tool[gate]"               # + APT v27 gate endpoint (FastAPI
 pip install "bhgman_tool[all]"                # 전체
 ```
 
-> **아직 PyPI 미배포** (token 없어 보류 — [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md)). 지금 `pip install bhgman_tool`은 실패함; 소스에서 설치: `git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`. publish 후 PyPI wheel은 `engine/`만 포함 — `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함. `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함 — 전체 기능을 위해서는 clone. 자세히는 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
+> **아직 PyPI 미배포** (token 없어 보류 — [docs/PYPI_PUBLISH_STATUS.md](docs/PYPI_PUBLISH_STATUS.md)). 지금 `pip install bhgman_tool`은 실패함; 소스에서 설치: `git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git`. publish 후 PyPI wheel은 `engine/`만 포함 — `install-skills` / `verify` / `version` subcommand는 source repo(`skills/` + `lean/`)가 옆에 있어야 함 — 전체 기능을 위해선 clone. 자세히는 [docs/PYPI_PUBLISH.md](docs/PYPI_PUBLISH.md).
+
+### 측정된 효능 — 무엇을 *더해주지 않는가* (외부 A/B, 2026-05-30)
+
+**외부 oracle**(심어둔 ground truth / 라이브 URL 검사 — bhgman 자체 KG가 *아님*)로 채점하고, base-LLM arm에 **동일한 도구 예산**을 준 falsifiable A/B:
+
+- **결정론 엔진은 능력을 추가하지 않는다.** sha256 drift 탐지(보이지 않는 zero-width / NBSP / homoglyph 편집 포함)와 KG 노드 dedup에서 `longinus` / `occam` / `hades`는 **F1 1.0 — 하지만 `shasum`/추론을 쓴 base LLM도 똑같이 1.0, 시험한 모든 규모(2000 파일까지)에서**. 가치는 **결정론·전수성·멱등성·서명된 audit trail**이지 "모델보다 똑똑함"이 아니다.
+- **Grounding은 효과 있지만 RAG 일반론이다.** 실제 검색 소스를 먹이면 환각 인용이 **42.9% → 0%** — *검색*의 가치이고 LLM + 검색이면 누구나 누림. bhgman은 그걸 패키징할 뿐 발명하지 않는다.
+- **적대 verify-gate(`tlb`/나생문)는 과잉 기각 중이었고 — 2026-05-30 수정됨.** 이전 prompt가 건전하고 잘 hedge된 작업을 flag했음(모델이 커질수록 precision이 0으로). calibration 수정(*명명 가능한* 위반에만 FAIL, 정직한 hedge는 통과)으로 **base 모델과 동률 + over-claim 100% 포착** 회복.
+- **Composition 창발은 governance지 cognition이 아니다.** 7군단장 contract + oracle-gate 파이프라인(`legion`)이 통합 실패를 변조 탐지 가능한 **HMAC** audit trail과 함께 결정론적으로 잡아냄 — ad-hoc orchestration이 기본 제공 못 하는 것 — 하지만 base 모델 이상으로 추론을 **끌어올리지 않는다**.
+
+**결론: bhgman_tool은 governance / audit layer(재현성·provenance·contract 강제·drift 탐지)이지 능력 배수기가 아니다. *intelligence*가 아니라 *discipline*으로 취급할 것.**
 
 ---
 
@@ -119,7 +130,7 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 | Claim | Command | 무엇을 확인 |
 |---|---|---|
 | `332 passed, 1 skipped` (engine 부분) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (repo root) | engine 부분 pass count + runtime |
-| `1336 passed, 4 skipped` (전체 repo; 1340 collected) | `uv run --all-extras pytest -q` (root, 또는 `uvx pre-commit run --all-files`) | 전체 repo pass count. NOTE: `--all-extras` 필수 — 없으면 collection 단계에서 `import frontmatter` 실패 (python-frontmatter 가 `resolver`/`all` extra 소속, 기본 deps 아님). |
+| `1355 passed, 4 skipped` (전체 repo; 1359 collected) | `uv run --all-extras pytest -q` (root, 또는 `uvx pre-commit run --all-files`) | 전체 repo pass count. NOTE: `--all-extras` 필수 — 없으면 collection 단계에서 `import frontmatter` 실패 (python-frontmatter 가 `resolver`/`all` extra 소속, 기본 deps 아님). |
 | `Lean 4: proof-position sorry=0` | `cd lean && export LEAN_PATH=$PWD && for f in Measurement_MetricScale Measurement_CommanderMetrics Measurement_CompositionSafety Measurement_Phase4_EmpiricalValidation; do lean --o=$f.olean $f.lean \|\| exit 1; done && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 14개 Mathlib-free 파일 빌드(LEAN_PATH 로 의존순) + 미완성 증명 수(= 0; 트리의 모든 `sorry` 토큰은 주석 안) |
 | `105 theorems` (`lean/` 트리 전체; standalone 14파일 89) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | 최상위 theorem/lemma 선언 수 |
 | `KG cycle reproducibility` | `bhgman-tool replay-cycle <cycle_id>` | cycle 재실행 + KG output diff |
@@ -143,7 +154,7 @@ README의 모든 정량 claim에는 한 줄짜리 verifier가 붙어 있음. cle
 
 ## Contributing
 
-Pre-commit 4-ratchet gate가 모든 commit에 ruff lint+format / complexipy ≤15 / deptry / 1340 pytest 실행, push마다 lychee 링크 검사. 설치: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
+Pre-commit 4-ratchet gate가 모든 commit에 ruff lint+format / complexipy ≤15 / deptry / 1359 pytest 실행, push마다 lychee 링크 검사. 설치: `uvx pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
 ---
 
