@@ -6,60 +6,59 @@
 
 package apt.break_glass
 
-import future.keywords.if
-import future.keywords.in
+import rego.v1
 
 default allow_override := false
 
 # 허용 actor 목록 (KG :BreakGlassAllowlist 노드 또는 정적 list)
 allowed_emergency_overrides := {
-  "cluster-autoscaler",
-  "essential-infra-pod",
-  "dr-recovery-agent",
-  "kg-restore-agent",
-  "schema-migration-bot",
+	"cluster-autoscaler",
+	"essential-infra-pod",
+	"dr-recovery-agent",
+	"kg-restore-agent",
+	"schema-migration-bot",
 }
 
 # 모든 조건 충족
 allow_override if {
-  input.actor in allowed_emergency_overrides
-  input.override_reason != ""
-  count(input.override_reason) >= 20  # reason 최소 20자 (E-SA-Drift-2 회피)
-  time.now_ns() < input.override_expires_at
+	input.actor in allowed_emergency_overrides
+	input.override_reason != ""
+	count(input.override_reason) >= 20 # reason 최소 20자 (E-SA-Drift-2 회피)
+	time.now_ns() < input.override_expires_at
 }
 
 # Deny
-deny[msg] {
-  not input.actor in allowed_emergency_overrides
-  msg := sprintf(
-    "Actor '%s' not in break-glass allowlist (%d allowed)",
-    [input.actor, count(allowed_emergency_overrides)],
-  )
+deny contains msg if {
+	not input.actor in allowed_emergency_overrides
+	msg := sprintf(
+		"Actor '%s' not in break-glass allowlist (%d allowed)",
+		[input.actor, count(allowed_emergency_overrides)],
+	)
 }
 
-deny[msg] {
-  input.actor in allowed_emergency_overrides
-  count(input.override_reason) < 20
-  msg := sprintf(
-    "override_reason 길이 부족 (%d < 20자) — E-SA-Drift-2 회피",
-    [count(input.override_reason)],
-  )
+deny contains msg if {
+	input.actor in allowed_emergency_overrides
+	count(input.override_reason) < 20
+	msg := sprintf(
+		"override_reason 길이 부족 (%d < 20자) — E-SA-Drift-2 회피",
+		[count(input.override_reason)],
+	)
 }
 
-deny[msg] {
-  input.actor in allowed_emergency_overrides
-  time.now_ns() >= input.override_expires_at
-  msg := "override 만료 — break-glass session expired"
+deny contains msg if {
+	input.actor in allowed_emergency_overrides
+	time.now_ns() >= input.override_expires_at
+	msg := "override 만료 — break-glass session expired"
 }
 
 # Audit event (Kafka BreakGlassActivated 발행용)
 audit_event := {
-  "event": "BreakGlassActivated",
-  "actor": input.actor,
-  "gate_name": input.gate_name,
-  "override_reason": input.override_reason,
-  "override_expires_at": input.override_expires_at,
-  "approved": allow_override,
-  "deny_reasons": deny,
-  "timestamp_ns": time.now_ns(),
+	"event": "BreakGlassActivated",
+	"actor": input.actor,
+	"gate_name": input.gate_name,
+	"override_reason": input.override_reason,
+	"override_expires_at": input.override_expires_at,
+	"approved": allow_override,
+	"deny_reasons": deny,
+	"timestamp_ns": time.now_ns(),
 }

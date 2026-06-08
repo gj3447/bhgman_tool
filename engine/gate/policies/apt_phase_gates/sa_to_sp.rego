@@ -14,114 +14,113 @@
 
 package apt.phase_gates.sa_to_sp
 
-import future.keywords.if
-import future.keywords.in
+import rego.v1
 
 default allow := false
 
 # 기본 anchor 존재 + active
 anchor_active if {
-  input.sa.name != ""
-  input.sa.status == "active"
+	input.sa.name != ""
+	input.sa.status == "active"
 }
 
 # Root Span 연결
 root_attached if {
-  input.sa.root_span_name != ""
-  input.sa.root_span_status == "open"
+	input.sa.root_span_name != ""
+	input.sa.root_span_status == "open"
 }
 
 # Context Budget 할당
 budget_allocated if {
-  input.sa.context_budget_total != null
-  input.sa.context_budget_total > 0
+	input.sa.context_budget_total != null
+	input.sa.context_budget_total > 0
 }
 
 # 중복 앵커 없음
 no_duplicate if {
-  input.sa.duplicate_anchor_count == 0
+	input.sa.duplicate_anchor_count == 0
 }
 
 # Progressive Disclosure L1 로드
 pd_l1_loaded if {
-  input.apt_progress.l1_span_count > 0
+	input.apt_progress.l1_span_count > 0
 }
 
 # A15 work_kind 기록됨
 a15_workkind_set if {
-  valid := {"NEW", "EXTEND", "MAINTENANCE"}
-  input.sa.work_kind in valid
+	valid := {"NEW", "EXTEND", "MAINTENANCE"}
+	input.sa.work_kind in valid
 }
 
 # A15 Phase Activation mode 결정
 a15_mode_set if {
-  valid := {"FULL", "SHORT_CIRCUIT", "SKIP_TO_ST_DRIFT"}
-  input.sa.phase_activation_mode in valid
+	valid := {"FULL", "SHORT_CIRCUIT", "SKIP_TO_ST_DRIFT"}
+	input.sa.phase_activation_mode in valid
 }
 
 # Git commit done
 git_committed if {
-  input.apt_progress.git_committed == true
+	input.apt_progress.git_committed == true
 }
 
 # 메인 allow
 allow if {
-  anchor_active
-  root_attached
-  budget_allocated
-  no_duplicate
-  pd_l1_loaded
-  a15_workkind_set
-  a15_mode_set
-  git_committed
+	anchor_active
+	root_attached
+	budget_allocated
+	no_duplicate
+	pd_l1_loaded
+	a15_workkind_set
+	a15_mode_set
+	git_committed
 }
 
 # Deny 메시지
-deny[msg] {
-  not anchor_active
-  msg := sprintf(
-    "Anchor 비활성: name=%v status=%v (expected status='active')",
-    [input.sa.name, input.sa.status],
-  )
+deny contains msg if {
+	not anchor_active
+	msg := sprintf(
+		"Anchor 비활성: name=%v status=%v (expected status='active')",
+		[input.sa.name, input.sa.status],
+	)
 }
 
-deny[msg] {
-  not root_attached
-  msg := "Root Span 미연결 — V-SA3 NoRoot 위반"
+deny contains msg if {
+	not root_attached
+	msg := "Root Span 미연결 — V-SA3 NoRoot 위반"
 }
 
-deny[msg] {
-  not budget_allocated
-  msg := "Context Budget 미할당 — V-SA4 NoBudget 위반"
+deny contains msg if {
+	not budget_allocated
+	msg := "Context Budget 미할당 — V-SA4 NoBudget 위반"
 }
 
-deny[msg] {
-  not no_duplicate
-  msg := sprintf(
-    "중복 앵커 %d개 — V-SA2 DuplicateAnchor 위반",
-    [input.sa.duplicate_anchor_count],
-  )
+deny contains msg if {
+	not no_duplicate
+	msg := sprintf(
+		"중복 앵커 %d개 — V-SA2 DuplicateAnchor 위반",
+		[input.sa.duplicate_anchor_count],
+	)
 }
 
-deny[msg] {
-  not pd_l1_loaded
-  msg := "Progressive Disclosure L1 미로드 — E-SA2 위반"
+deny contains msg if {
+	not pd_l1_loaded
+	msg := "Progressive Disclosure L1 미로드 — E-SA2 위반"
 }
 
-deny[msg] {
-  not a15_workkind_set
-  msg := sprintf(
-    "A15 work_kind 미지정 — V-SA5 NoWorkKindRecord 위반 (input=%v)",
-    [input.sa.work_kind],
-  )
+deny contains msg if {
+	not a15_workkind_set
+	msg := sprintf(
+		"A15 work_kind 미지정 — V-SA5 NoWorkKindRecord 위반 (input=%v)",
+		[input.sa.work_kind],
+	)
 }
 
-deny[msg] {
-  not a15_mode_set
-  msg := "A15 Phase Activation mode 미결정"
+deny contains msg if {
+	not a15_mode_set
+	msg := "A15 Phase Activation mode 미결정"
 }
 
-deny[msg] {
-  not git_committed
-  msg := "apt-progress.md git commit 미완료"
+deny contains msg if {
+	not git_committed
+	msg := "apt-progress.md git commit 미완료"
 }

@@ -9,65 +9,63 @@
 
 package apt.phase_gates.sp_to_st
 
-import future.keywords.if
-import future.keywords.in
-import future.keywords.every
+import rego.v1
 
 default allow := false
 
 # C(S) 5-predicate 검증
 cs_predicate_fields := {
-  "objective",
-  "definition",
-  "keyAssertion",
-  "verification",
-  "c_s_predicate",
+	"objective",
+	"definition",
+	"keyAssertion",
+	"verification",
+	"c_s_predicate",
 }
 
 all_leaves_atomic if {
-  every leaf in input.sp.leaves {
-    leaf.is_atomic == true
-    every f in cs_predicate_fields {
-      leaf[f] != null
-    }
-  }
+	every leaf in input.sp.leaves {
+		leaf.is_atomic == true
+		every f in cs_predicate_fields {
+			leaf[f] != null
+		}
+	}
 }
 
 # LensSet completeness (constitutional 9 만장일치)
 lensset_complete if {
-  input.taliban_verdict == "APPROVED"
-  input.taliban_lens_count == 9
+	input.taliban_verdict == "APPROVED"
+	input.taliban_lens_count == 9
 }
 
 # Crystallization Frontier 충족
 crystallization_frontier_reached if {
-  count(input.sp.leaves) >= 1
-  count([leaf | leaf := input.sp.leaves[_]; not leaf.is_atomic]) == 0
+	count(input.sp.leaves) >= 1
+	count([leaf | leaf := input.sp.leaves[_]; not leaf.is_atomic]) == 0
 }
 
 # 메인 allow
 allow if {
-  all_leaves_atomic
-  lensset_complete
-  crystallization_frontier_reached
+	all_leaves_atomic
+	lensset_complete
+	crystallization_frontier_reached
 }
 
 # Deny 메시지
 deny[msg] if {
-  not all_leaves_atomic
-  non_atomic := [leaf.name | leaf := input.sp.leaves[_]; not leaf.is_atomic]
-  msg := sprintf("AtomicSpan 미완성 leaves: %v. D(S) 재귀 분해 필요.", [non_atomic])
+	not all_leaves_atomic
+	non_atomic := [leaf.name | leaf := input.sp.leaves[_]; not leaf.is_atomic]
+	msg := sprintf("AtomicSpan 미완성 leaves: %v. D(S) 재귀 분해 필요.", [non_atomic])
 }
 
 deny[msg] if {
-  not lensset_complete
-  msg := sprintf(
-    "LensSet completeness 위반: taliban_verdict=%s, lens_count=%d/9 (3-lens shortcut 의심)",
-    [input.taliban_verdict, input.taliban_lens_count],
-  )
+	not lensset_complete
+	msg := sprintf(
+		"LensSet completeness 위반: taliban_verdict=%s, lens_count=%d/9 (3-lens shortcut 의심)",
+		[input.taliban_verdict, input.taliban_lens_count],
+	)
 }
 
 deny[msg] if {
-  not crystallization_frontier_reached
-  msg := "Crystallization Frontier 미도달 — 일부 leaf가 still non-atomic"
+	not crystallization_frontier_reached
+	msg := "Crystallization Frontier 미도달 — 일부 leaf가 still non-atomic"
 }
