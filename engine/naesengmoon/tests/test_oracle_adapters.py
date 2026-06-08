@@ -45,3 +45,33 @@ def test_all_four_factories_yield_scalar_oracle_with_kind():
     assert pytest_ratio_oracle().kind == "pytest-ratio"
     assert drift_recount_oracle(code_root=".", kg=None).kind == "drift-recount"
     assert occam_twins_oracle(run_cypher=lambda *_a, **_k: []).kind == "occam-twins"
+
+
+def test_lean_goals_oracle_no_path_doubling(tmp_path, monkeypatch):
+    """A target already carrying the lean_dir prefix must not double-join to lean_dir/lean_dir/X
+    (regression). subprocess mocked → no lean toolchain needed; both prefixed and bare targets
+    must resolve to the single real file."""
+    import engine.naesengmoon.oracle_adapters as oa
+
+    leandir = tmp_path / "lean"
+    leandir.mkdir()
+    (leandir / "X.lean").write_text("theorem t : True := trivial\n")
+    monkeypatch.chdir(tmp_path)
+
+    seen: list[str] = []
+
+    class _Proc:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def _fake_run(cmd, **_kw):
+        seen.append(cmd[1])
+        return _Proc()
+
+    monkeypatch.setattr(oa.subprocess, "run", _fake_run)
+
+    o = oa.lean_goals_oracle("lean")
+    assert o.evaluate("lean/X.lean").value == 1.0  # prefixed target — must NOT double
+    assert o.evaluate("X.lean").value == 1.0  # bare target — resolves against lean_dir
+    assert seen == ["lean/X.lean", "lean/X.lean"], f"path doubled: {seen}"

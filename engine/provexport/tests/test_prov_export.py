@@ -131,3 +131,20 @@ def test_export_real_prom6_fixture(tmp_path):
     findings = [s for s in g.subjects(rdflib.RDF.type, PROV.Entity) if "finding-prom6" in str(s)]
     assert len(findings) == 6  # all 6 prom6 findings became prov:Entity
     assert (None, rdflib.RDF.type, PROV.Activity) in g  # the cycle
+
+
+def test_fetch_cycle_from_kg_degrades_on_unreachable(monkeypatch):
+    """Unreachable / bad-auth KG → clean SystemExit, not a raw neo4j traceback."""
+    import neo4j
+    import pytest
+    from neo4j.exceptions import ServiceUnavailable
+
+    from engine.provexport.prov_export import fetch_cycle_from_kg
+
+    def _boom(*_a, **_k):
+        raise ServiceUnavailable("unreachable")
+
+    monkeypatch.setattr(neo4j.GraphDatabase, "driver", staticmethod(_boom))
+    with pytest.raises(SystemExit) as exc:
+        fetch_cycle_from_kg("c", "bolt://127.0.0.1:9", "neo4j", "x")
+    assert "neo4j unavailable" in str(exc.value)

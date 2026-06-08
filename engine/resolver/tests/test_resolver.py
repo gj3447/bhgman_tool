@@ -117,6 +117,38 @@ def test_boot_fails_on_missing_core_field():
         real_method()
 
 
+def test_boot_fails_cleanly_on_missing_env(monkeypatch):
+    """No NEO4J_* env → clean SystemExit [BOOT FAIL], not a raw KeyError traceback."""
+    for var in ("NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD"):
+        monkeypatch.delenv(var, raising=False)
+    with pytest.raises(SystemExit) as exc:
+        resolver.boot_kg_client()
+    assert "BOOT FAIL" in str(exc.value)
+
+
+def test_boot_fails_cleanly_on_unreachable_kg(monkeypatch):
+    """KG configured but server unreachable/bad-auth → clean SystemExit, not a raw neo4j traceback."""
+    from neo4j.exceptions import ServiceUnavailable
+
+    monkeypatch.setenv("NEO4J_URI", "bolt://127.0.0.1:9")
+    monkeypatch.setenv("NEO4J_PASSWORD", "x")
+
+    class _Boom:
+        def __init__(self, *a, **k):
+            pass
+
+        def health_check(self):
+            raise ServiceUnavailable("unreachable")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(resolver, "CypherKGClient", _Boom)
+    with pytest.raises(SystemExit) as exc:
+        resolver.boot_kg_client()
+    assert "BOOT FAIL" in str(exc.value)
+
+
 # ─── jinja sandbox ───────────────────────────────────────────────────────
 
 

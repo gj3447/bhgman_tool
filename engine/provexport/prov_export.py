@@ -283,13 +283,24 @@ RETURN c.name AS child, p.name AS parent
 def fetch_cycle_from_kg(cycle_id: str, uri: str, user: str, password: str):
     from neo4j import GraphDatabase
 
-    driver = GraphDatabase.driver(uri, auth=(user, password))
+    from neo4j.exceptions import DriverError, Neo4jError
+
     try:
-        with driver.session() as s:
-            findings = [dict(r) for r in s.run(_CYPHER_FINDINGS, cid=cycle_id)]
-            derivations = [(r["child"], r["parent"]) for r in s.run(_CYPHER_DERIV, cid=cycle_id)]
-    finally:
-        driver.close()
+        driver = GraphDatabase.driver(uri, auth=(user, password))
+        try:
+            with driver.session() as s:
+                findings = [dict(r) for r in s.run(_CYPHER_FINDINGS, cid=cycle_id)]
+                derivations = [
+                    (r["child"], r["parent"]) for r in s.run(_CYPHER_DERIV, cid=cycle_id)
+                ]
+        finally:
+            driver.close()
+    except (DriverError, Neo4jError) as e:
+        # server unreachable / bad auth → clean degrade, not a raw neo4j traceback.
+        raise SystemExit(
+            f"[export-prov] neo4j unavailable ({type(e).__name__}): set NEO4J_URI/NEO4J_USER/"
+            "NEO4J_PASSWORD, or use --findings-json for the offline (no-KG) path."
+        )
     return findings, derivations
 
 

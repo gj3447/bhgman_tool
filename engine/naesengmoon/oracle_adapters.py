@@ -39,7 +39,10 @@ def lean_goals_oracle(lean_dir: str | Path = ".", timeout_s: int = 240) -> Scala
 
     def _score(lean_file: Any) -> float:
         path = Path(lean_file)
-        if not path.is_absolute():
+        if not path.is_absolute() and not path.exists():
+            # Resolve against lean_dir only when the target isn't already found as-given.
+            # Prevents lean_dir/lean_dir/X doubling when the caller passes a target that
+            # already includes the lean_dir prefix (e.g. --target lean/X --lean-dir lean).
             path = root / path
         try:
             proc = subprocess.run(  # noqa: S603, S607

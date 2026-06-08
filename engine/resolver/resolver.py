@@ -68,9 +68,27 @@ class ValidateReport:
 
 
 def boot_kg_client() -> CypherKGClient:
-    cfg = KGConfig.from_env()
+    from neo4j.exceptions import DriverError, Neo4jError  # noqa: PLC0415
+
+    try:
+        cfg = KGConfig.from_env()
+    except KeyError as e:
+        # missing NEO4J_* env → clean BOOT FAIL, not a raw KeyError traceback.
+        raise SystemExit(
+            f"[BOOT FAIL] KG env not configured (missing {e}). Set NEO4J_URI / "
+            "NEO4J_PASSWORD (NEO4J_USER optional), or run via parent Claude MCP. "
+            "Resolver refuses partial render."
+        )
     client = CypherKGClient(cfg)
-    if not client.health_check():
+    try:
+        healthy = client.health_check()
+    except (DriverError, Neo4jError) as e:
+        # server unreachable / bad auth → clean BOOT FAIL, not a raw neo4j traceback.
+        client.close()
+        raise SystemExit(
+            f"[BOOT FAIL] KG unreachable ({type(e).__name__}). Resolver refuses partial render."
+        )
+    if not healthy:
         client.close()
         raise SystemExit("[BOOT FAIL] KG unreachable. Resolver refuses partial render.")
     try:
