@@ -74,18 +74,28 @@ def fetch_source_nodes(run_cypher: CypherRunner, scope: str | None = None) -> li
 
 # ── WRITE (covenant: archive-only) ──────────────────────────────────────────
 
+# 식별 키 = (sourcePath, sha256) 복합키. name 단독 불가: (1) schema상 name은 required 아님
+# → null이면 MATCH 실패 + 다운스트림 None crash; (2) name 단독은 unique 아님. 복합키는 두
+# required 필드(sourcePath/sha256)로 모든 occam dup 모드를 disambiguate — same-path dup은
+# sha256가, abs/rel·sha-이동 dup은 sourcePath가 가른다.
+# # KG: challenge-occam-supersede-name-key-not-required-nullable-2026-06-02
 _SUPERSEDE_CYPHER = (
-    "MATCH (stale:SourceCodeNode {name: $stale_name}) "
-    "MATCH (current:SourceCodeNode {name: $current_name}) "
-    "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동명 no-op)
+    "MATCH (stale:SourceCodeNode {sourcePath: $stale_path, sha256: $stale_sha}) "
+    "MATCH (current:SourceCodeNode {sourcePath: $current_path, sha256: $current_sha}) "
+    "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동일키 no-op)
     "SET stale.status = 'SUPERSEDED', "
-    "stale.supersededBy = $current_name, "
+    "stale.supersededBy = $current_path, "
     "stale.supersededReason = $reason, "
     "stale.supersededAt = datetime(), "
     "stale.occamPass = 'occam' "
     "MERGE (stale)-[:SUPERSEDED_BY]->(current) "  # reversible: 원본 보존 + 엣지
-    "RETURN stale.name AS superseded, current.name AS current"
+    "RETURN stale.sourcePath AS superseded, current.sourcePath AS current"
 )
+
+
+def _ident(node: NodeRecord) -> str:
+    """표시용 식별자 (never None). name이 있으면 name, 없으면 sourcePath로 폴백."""
+    return node.name or node.source_path
 
 
 def build_supersede(candidate: SupersessionCandidate) -> tuple[str, dict]:
@@ -96,9 +106,14 @@ def build_supersede(candidate: SupersessionCandidate) -> tuple[str, dict]:
     if violations:  # 방어 — 향후 cypher 편집 시 covenant 회귀 차단
         raise AssertionError(f"occam covenant violation: {violations} in supersede cypher")
     params = {
-        "stale_name": candidate.stale.name,
-        "current_name": candidate.current.name,
+        "stale_path": candidate.stale.source_path,
+        "stale_sha": candidate.stale.sha256,
+        "current_path": candidate.current.source_path,
+        "current_sha": candidate.current.sha256,
         "reason": candidate.reason,
+        # 표시 전용 (CLI dry-run plan / superseded 라벨) — never None
+        "stale_name": _ident(candidate.stale),
+        "current_name": _ident(candidate.current),
     }
     return cypher, params
 
@@ -124,7 +139,7 @@ def apply_supersessions(
     write_cypher=None이거나 dry_run=True → planned cypher만 반환 (archive-only 안전).
     """
     plans = [build_supersede(c) for c in report.candidates]
-    stale_names = tuple(c.stale.name for c in report.candidates)
+    stale_names = tuple(_ident(c.stale) for c in report.candidates)
 
     if dry_run or write_cypher is None:
         note = "dry-run: planned only, no write (covenant archive-only)"
@@ -139,7 +154,7 @@ def apply_supersessions(
     applied: list[str] = []
     for (cypher, params), cand in zip(plans, report.candidates):
         write_cypher(cypher, params)
-        applied.append(cand.stale.name)
+        applied.append(_ident(cand.stale))
     return ApplyResult(
         superseded=tuple(applied),
         planned_cyphers=tuple(plans),

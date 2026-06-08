@@ -23,9 +23,10 @@ _OCCAM_FETCH = (
     "RETURN s.name AS name, s.sourcePath AS source_path, s.sha256 AS sha256, s.lineCount AS line_count"
 )
 _OCCAM_SUPERSEDE = (
-    "MATCH (stale:SourceCodeNode {name: $stale_name}) MATCH (current:SourceCodeNode {name: $current_name}) "
-    "WHERE stale <> current SET stale.status = 'SUPERSEDED', stale.supersededBy = $current_name "
-    "MERGE (stale)-[:SUPERSEDED_BY]->(current) RETURN stale.name AS superseded"
+    "MATCH (stale:SourceCodeNode {sourcePath: $stale_path, sha256: $stale_sha}) "
+    "MATCH (current:SourceCodeNode {sourcePath: $current_path, sha256: $current_sha}) "
+    "WHERE stale <> current SET stale.status = 'SUPERSEDED', stale.supersededBy = $current_path "
+    "MERGE (stale)-[:SUPERSEDED_BY]->(current) RETURN stale.sourcePath AS superseded"
 )
 _HADES_FETCH = (
     "MATCH (a:AbstractClass) WHERE a.verdictStatus = 'ACCEPTED' AND (a.status IS NULL OR a.status <> 'CANONICAL') "
@@ -66,8 +67,17 @@ def test_occam_supersede_sets_status_and_edge(tmp_path):
         "SourceCodeNode", "sourcePath", "new.py", {"name": "new", "sha256": "h2", "lineCount": 9}
     )
     run = make_local_runner(s)
-    out = run(_OCCAM_SUPERSEDE, {"stale_name": "old", "current_name": "new", "reason": "r"})
-    assert out == [{"superseded": "old", "current": "new"}]
+    out = run(
+        _OCCAM_SUPERSEDE,
+        {
+            "stale_path": "old.py",
+            "stale_sha": "h1",
+            "current_path": "new.py",
+            "current_sha": "h2",
+            "reason": "r",
+        },
+    )
+    assert out == [{"superseded": "old.py", "current": "new.py"}]
     old = s.find_one("name", "old")
     assert old["props"]["status"] == "SUPERSEDED"
     assert any(e["type"] == "SUPERSEDED_BY" for e in s.edges)
