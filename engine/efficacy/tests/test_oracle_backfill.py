@@ -8,7 +8,9 @@ from engine.efficacy.oracle_backfill import build_backfill_plan, count_invocatio
 
 
 def _line(tool, fp):
-    return json.dumps({"message": {"content": [{"type": "tool_use", "name": tool, "input": {"file_path": fp}}]}})
+    return json.dumps(
+        {"message": {"content": [{"type": "tool_use", "name": tool, "input": {"file_path": fp}}]}}
+    )
 
 
 def test_counts_file_tools_for_repo_paths():
@@ -78,8 +80,20 @@ def test_sigma_twin_raises_candidacy():
 
 def test_rows_to_items_labels_stale_as_positive():
     rows = [
-        {"name": "gone", "disk_present": False, "invocation_count": 0, "twins": 0, "provenance": ""},
-        {"name": "live", "disk_present": True, "invocation_count": 50, "twins": 0, "provenance": ""},
+        {
+            "name": "gone",
+            "disk_present": False,
+            "invocation_count": 0,
+            "twins": 0,
+            "provenance": "",
+        },
+        {
+            "name": "live",
+            "disk_present": True,
+            "invocation_count": 50,
+            "twins": 0,
+            "provenance": "",
+        },
     ]
     items = rows_to_items(rows)
     by = {i.item_id: i for i in items}

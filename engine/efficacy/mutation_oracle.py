@@ -85,7 +85,9 @@ def run_mutation_test(
     finally:
         path.write_text(original, encoding="utf-8")  # 원본 복원 (필수)
     return MutationResult(
-        total=len(mutants), caught=caught, escaped=len(escaped),
+        total=len(mutants),
+        caught=caught,
+        escaped=len(escaped),
         escaped_descriptions=tuple(escaped),
     )
 

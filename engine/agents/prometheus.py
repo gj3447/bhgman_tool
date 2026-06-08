@@ -50,8 +50,7 @@ class ResearchReport:
         ok = sum(1 for f in self.findings if f.ok)
         g = f" grounded={self.grounded_facts}" if self.grounded_facts else " grounded=0"
         return (
-            f"prometheus[{self.topic}]: planned={self.n} "
-            f"researched_ok={ok}/{len(self.findings)}{g}"
+            f"prometheus[{self.topic}]: planned={self.n} researched_ok={ok}/{len(self.findings)}{g}"
         )
 
 

@@ -8,13 +8,25 @@ from engine.efficacy.dispatch_telemetry import DispatchStats, scan_dispatches
 
 
 def _use(tid, name="Task"):
-    return json.dumps({"message": {"role": "assistant",
-        "content": [{"type": "tool_use", "id": tid, "name": name, "input": {}}]}})
+    return json.dumps(
+        {
+            "message": {
+                "role": "assistant",
+                "content": [{"type": "tool_use", "id": tid, "name": name, "input": {}}],
+            }
+        }
+    )
 
 
 def _result(tid, err=False):
-    return json.dumps({"message": {"role": "user",
-        "content": [{"type": "tool_result", "tool_use_id": tid, "is_error": err}]}})
+    return json.dumps(
+        {
+            "message": {
+                "role": "user",
+                "content": [{"type": "tool_result", "tool_use_id": tid, "is_error": err}],
+            }
+        }
+    )
 
 
 def test_success_and_error_matched():
@@ -31,9 +43,17 @@ def test_pending_when_no_result():
 
 
 def test_ignores_non_dispatch_tools():
-    lines = [json.dumps({"message": {"role": "assistant",
-        "content": [{"type": "tool_use", "id": "r1", "name": "Read", "input": {}}]}}),
-        _result("r1")]
+    lines = [
+        json.dumps(
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": [{"type": "tool_use", "id": "r1", "name": "Read", "input": {}}],
+                }
+            }
+        ),
+        _result("r1"),
+    ]
     s = scan_dispatches(lines)
     assert s.dispatched == 0
 

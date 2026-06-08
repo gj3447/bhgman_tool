@@ -28,7 +28,9 @@ def auc_mann_whitney(pos_scores: Sequence[float], neg_scores: Sequence[float]) -
     return concord / (n_pos * n_neg)
 
 
-def precision_recall_f1(true_pos: int, false_pos: int, false_neg: int) -> tuple[float, float, float]:
+def precision_recall_f1(
+    true_pos: int, false_pos: int, false_neg: int
+) -> tuple[float, float, float]:
     """precision / recall / F1. 분모 0이면 해당 지표 0.0."""
     precision = true_pos / (true_pos + false_pos) if (true_pos + false_pos) else 0.0
     recall = true_pos / (true_pos + false_neg) if (true_pos + false_neg) else 0.0

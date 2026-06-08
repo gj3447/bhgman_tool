@@ -46,7 +46,10 @@ def evaluate_commander(spec: CommanderEfficacySpec, run_cypher: CypherRunner) ->
     rows = run_cypher(spec.label_cypher, {})
     items = [_row_to_item(r) for r in rows]
     result = run_efficacy(spec, items)
-    if result.n_positive + result.n_negative < MIN_LABELS and result.verdict != Verdict.UNMEASURABLE:
+    if (
+        result.n_positive + result.n_negative < MIN_LABELS
+        and result.verdict != Verdict.UNMEASURABLE
+    ):
         return EfficacyResult(
             commander=spec.commander,
             verdict=Verdict.UNMEASURABLE,

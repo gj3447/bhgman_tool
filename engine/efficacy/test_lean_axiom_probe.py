@@ -35,7 +35,7 @@ def test_probe_file_skips_files_with_imports(tmp_path: Path):
 @pytest.mark.skipif(not shutil.which("lean"), reason="lean toolchain not installed")
 def test_probe_file_detects_sorry_taint(tmp_path: Path):
     f = tmp_path / "APT_Y.lean"
-    f.write_text("theorem t_clean : True := trivial\n" "theorem t_sorry : True := by sorry\n")
+    f.write_text("theorem t_clean : True := trivial\ntheorem t_sorry : True := by sorry\n")
     rep = P.probe_file(f)
     assert rep.n_theorems == 2
     assert rep.n_sorry_tainted == 1  # t_sorry → sorryAx

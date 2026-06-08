@@ -37,9 +37,7 @@ def circularity_ratio(items: Sequence[LabeledItem], keywords: Sequence[str]) -> 
     if not positives or not keywords:
         return 0.0
     lowered = [k.lower() for k in keywords]
-    hits = sum(
-        1 for it in positives if any(k in (it.provenance or "").lower() for k in lowered)
-    )
+    hits = sum(1 for it in positives if any(k in (it.provenance or "").lower() for k in lowered))
     return hits / len(positives)
 
 

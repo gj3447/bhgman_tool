@@ -22,7 +22,15 @@ from pathlib import Path
 
 from engine.occam.occam import normalize_path
 
-_SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "node_modules", "dist"}
+_SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "node_modules",
+    "dist",
+}
 
 
 def hash_file(path: Path) -> str | None:
@@ -116,7 +124,11 @@ def main() -> int:  # pragma: no cover — IO 진입점
     try:
         repo_root = os.environ.get("BHGMAN_REPO_ROOT", ".")
         nodes = run_cypher(_FETCH, {})
-        wanted = {normalize_path(n["sourcePath"]) for n in nodes if "bhgman_tool/" in (n["sourcePath"] or "")}
+        wanted = {
+            normalize_path(n["sourcePath"])
+            for n in nodes
+            if "bhgman_tool/" in (n["sourcePath"] or "")
+        }
         disk_hashes = _hash_repo(repo_root, wanted)
         rows = compute_sync(nodes, disk_hashes)
         write_cypher(_WRITE, {"rows": rows})

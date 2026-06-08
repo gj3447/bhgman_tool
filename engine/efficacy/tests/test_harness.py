@@ -16,9 +16,16 @@ from engine.efficacy.models import (
 
 def _spec(**kw):
     base = dict(
-        commander="t", verb="v", task="t", metric="AUC", oracle_source="o",
-        required_signal="s", expected_direction=Direction.HIGHER,
-        circularity_keywords=("occam",), label_cypher="MATCH ...", known_falsifier="",
+        commander="t",
+        verb="v",
+        task="t",
+        metric="AUC",
+        oracle_source="o",
+        required_signal="s",
+        expected_direction=Direction.HIGHER,
+        circularity_keywords=("occam",),
+        label_cypher="MATCH ...",
+        known_falsifier="",
     )
     base.update(kw)
     return CommanderEfficacySpec(**base)
@@ -75,27 +82,35 @@ def test_runner_no_oracle_unmeasurable():
 
 def test_runner_small_sample_unmeasurable():
     spec = _spec(circularity_keywords=("z",))
-    rows = [{"item_id": "a", "is_positive": True, "signal": 0.9, "provenance": "m"},
-            {"item_id": "b", "is_positive": False, "signal": 0.1, "provenance": "m"}]
+    rows = [
+        {"item_id": "a", "is_positive": True, "signal": 0.9, "provenance": "m"},
+        {"item_id": "b", "is_positive": False, "signal": 0.1, "provenance": "m"},
+    ]
     r = evaluate_commander(spec, lambda q, p: rows)
     assert r.verdict == Verdict.UNMEASURABLE
     assert "소표본" in r.reason
 
 
 def test_runner_circular_rows_unmeasurable():
-    rows = ([{"item_id": f"p{i}", "is_positive": True, "signal": 1.0, "provenance": "occam dup"}
-             for i in range(6)]
-            + [{"item_id": f"n{i}", "is_positive": False, "signal": 0.0, "provenance": "x"}
-               for i in range(6)])
+    rows = [
+        {"item_id": f"p{i}", "is_positive": True, "signal": 1.0, "provenance": "occam dup"}
+        for i in range(6)
+    ] + [
+        {"item_id": f"n{i}", "is_positive": False, "signal": 0.0, "provenance": "x"}
+        for i in range(6)
+    ]
     r = evaluate_commander(_spec(), lambda q, p: rows)
     assert r.verdict == Verdict.UNMEASURABLE
 
 
 def test_runner_clean_rows_measured():
-    rows = ([{"item_id": f"p{i}", "is_positive": True, "signal": 0.9, "provenance": "manual"}
-             for i in range(6)]
-            + [{"item_id": f"n{i}", "is_positive": False, "signal": 0.1, "provenance": "manual"}
-               for i in range(6)])
+    rows = [
+        {"item_id": f"p{i}", "is_positive": True, "signal": 0.9, "provenance": "manual"}
+        for i in range(6)
+    ] + [
+        {"item_id": f"n{i}", "is_positive": False, "signal": 0.1, "provenance": "manual"}
+        for i in range(6)
+    ]
     r = evaluate_commander(_spec(circularity_keywords=("z",)), lambda q, p: rows)
     assert r.verdict == Verdict.MEASURED
     assert r.auc == 1.0
@@ -113,7 +128,15 @@ def test_runner_null_signal_rows_handled():
 
 def test_seven_commanders_registered():
     names = {c.commander for c in COMMANDERS}
-    assert names == {"occam", "longinus", "prometheus", "eureka", "naesengmoon", "jaebaeman", "hades"}
+    assert names == {
+        "occam",
+        "longinus",
+        "prometheus",
+        "eureka",
+        "naesengmoon",
+        "jaebaeman",
+        "hades",
+    }
 
 
 def test_only_occam_longinus_have_cypher():

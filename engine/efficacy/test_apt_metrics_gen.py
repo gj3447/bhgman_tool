@@ -63,7 +63,7 @@ def test_disk_reality_canonical_tree():
 
 def test_disjunct_discharge_detector_flags_trivial_disjunct():
     """W4 statement-weakening: `realClaim ∨ trivialClaim` proved by selecting the trivial side."""
-    weak = "theorem deep (n : Nat) : n = 99 ∨ n ≥ 0 := by\n" "  right\n" "  exact Nat.zero_le _\n"
+    weak = "theorem deep (n : Nat) : n = 99 ∨ n ≥ 0 := by\n  right\n  exact Nat.zero_le _\n"
     assert M.disjunct_discharge_suspects(weak) == ["deep"]
     # a genuine theorem (no Or, or no disjunct selection) is not flagged
     genuine = "theorem real (n : Nat) : n + 0 = n := by simp\n"

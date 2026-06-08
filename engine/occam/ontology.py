@@ -208,7 +208,9 @@ def _check_dangling_parents(
     classes: list[OntologyClassRecord], cls_map: dict[str, OntologyClassRecord]
 ) -> list[Violation]:
     return [
-        Violation(ViolationKind.DANGLING_PARENT, c.name, f"subClassOf non-existent class '{p}'", (p,))
+        Violation(
+            ViolationKind.DANGLING_PARENT, c.name, f"subClassOf non-existent class '{p}'", (p,)
+        )
         for c in classes
         for p in c.parents
         if p not in cls_map
@@ -226,7 +228,9 @@ def _check_dangling_types(
     ]
 
 
-def _check_punning(cls_map: dict[str, OntologyClassRecord], inst_names: set[str]) -> list[Violation]:
+def _check_punning(
+    cls_map: dict[str, OntologyClassRecord], inst_names: set[str]
+) -> list[Violation]:
     return [
         Violation(
             ViolationKind.PUNNING,

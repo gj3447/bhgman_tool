@@ -282,7 +282,7 @@ def main(tasks: list[Task]) -> None:
         r = run_task(t)
         results.append(r)
         print(
-            f"  [{i+1}/{len(tasks)}] {t.name:24} ({t.difficulty:6}) "
+            f"  [{i + 1}/{len(tasks)}] {t.name:24} ({t.difficulty:6}) "
             f"base={int(r.base1)} sc={int(r.self_consistency)} "
             f"rerank={int(r.oracle_rerank)} passN={int(r.passN)} tok={r.n_tokens_total}",
             file=sys.stderr,
