@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
 
 from engine.cli.runtime import (
@@ -23,7 +24,10 @@ from engine.cli.runtime import (
 )
 
 
-PACKAGE_VERSION = "0.1.0"
+try:  # derive from installed dist metadata; no manual sync with pyproject
+    PACKAGE_VERSION = _pkg_version("bhgman_tool")
+except PackageNotFoundError:  # source checkout (not pip-installed) — no dist metadata
+    PACKAGE_VERSION = "0.1.0+source"
 
 
 def cmd_install_skills(args: argparse.Namespace) -> int:

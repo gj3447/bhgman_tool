@@ -206,7 +206,8 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
     def __init__(self, uri: str, auth: tuple[str, str]):
         from neo4j import GraphDatabase  # type: ignore
 
-        self._driver = GraphDatabase.driver(uri, auth=auth)
+        # Any: the McpKgClient subclass swaps in a duck-typed _McpDriver (session()/close()).
+        self._driver: Any = GraphDatabase.driver(uri, auth=auth)
 
     def close(self) -> None:
         self._driver.close()

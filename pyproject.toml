@@ -142,6 +142,13 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["engine"]
+# Keep test code out of the installed namespace (tests stay in the sdist + source repo).
+exclude = [
+  "**/tests",
+  "**/test_*.py",
+  "**/conftest.py",
+  "**/bench",
+]
 
 [tool.hatch.build.targets.sdist]
 include = [
