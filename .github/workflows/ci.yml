@@ -73,11 +73,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.15.12  # pinned — matches .pre-commit rev + pyproject [dev] (no skew)
       - name: ruff check
-        run: ruff check engine/ || true  # initial baseline; tighten later
+        run: ruff check engine/
       - name: ruff format check
-        run: ruff format --check engine/ || true
+        run: ruff format --check engine/
 
   typecheck:
     name: mypy
@@ -87,12 +87,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Install deps
-        working-directory: engine/longinus_drift_audit
-        run: pip install -e . mypy
-      - name: mypy
-        working-directory: engine/longinus_drift_audit
-        run: mypy --ignore-missing-imports --no-strict-optional . || true
+      - name: Install uv
+        run: pip install uv
+      - name: mypy (full engine, all extras — neo4j-typed, hard gate)
+        # was: an isolated longinus_drift_audit-only mypy with `|| true` (masked real errors,
+        # neo4j collapsed to Any). Now the full engine gate with all deps, exactly as local/pre-commit.
+        run: uv run --all-extras mypy engine
 
   lean:
     name: lean build

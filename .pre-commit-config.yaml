@@ -35,8 +35,9 @@ repos:
   # Stage 2: ruff lint + format (pre-commit, fast)
   # audit ratchet #1 — wave11 box check
   # ============================================================
+  # ruff pin must move together with pyproject [dev] ruff== and ci.yml lint job (no skew).
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.4
+    rev: v0.15.12
     hooks:
       - id: ruff
         stages: [pre-commit]

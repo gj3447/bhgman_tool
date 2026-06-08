@@ -71,9 +71,9 @@ def test_e2e_orphan_bare_number_detected(tmp_path, sample_skill_md_orphan, mock_
     bare = report.bare_inline_numbers
     # PARENTHETICAL_HINT_RE removes "(currently 200)" patterns,
     # so the bare "200" inline (not in parens) should remain flagged.
-    assert any(
-        "200" in str(b[1]) for b in bare
-    ), f"Expected bare 200 flag in non-paren context, got bare={bare}"
+    assert any("200" in str(b[1]) for b in bare), (
+        f"Expected bare 200 flag in non-paren context, got bare={bare}"
+    )
 
 
 def test_e2e_real_skill_md_apt_sp(mock_cfg_kg):

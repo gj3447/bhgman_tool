@@ -37,7 +37,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=4.0",
-    "ruff>=0.4",
+    "ruff==0.15.12",  # pinned — must match .pre-commit-config.yaml rev + ci.yml lint job (no skew)
     "mypy>=1.10",
     "build>=1.2",
     "twine>=5.1",
@@ -99,6 +99,13 @@ otel = [
 agents = [
     "anthropic>=0.40",
 ]
+# MCP server (engine/mcp_server) — exposes the 7 commanders + APT/TPA as Claude-Code-callable
+# tools over FastMCP. Opt-in so the default install stays lean; run: `uv run --extra mcp python -m
+# engine.mcp_server` (or `pip install 'bhgman_tool[mcp]'`). Absent → engine.mcp_server import fails
+# with a clear "pip install fastmcp" message (engine/mcp_server/__main__.py).
+mcp = [
+    "fastmcp>=2.0",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
@@ -124,6 +131,7 @@ all = [
     "opentelemetry-sdk>=1.20",
     "opentelemetry-exporter-otlp>=1.20",
     "anthropic>=0.40",
+    "fastmcp>=2.0",
 ]
 
 [project.scripts]
@@ -277,7 +285,8 @@ python-frontmatter = "frontmatter"
 # These do exist in pyproject [project.optional-dependencies] but deptry's default scan flags them.
 [tool.deptry.per_rule_ignores]
 # DEP001 = "module imported but not in deps" — false positives for optional/conditional imports
-DEP001 = ["sentence_transformers", "hnswlib", "testcontainers", "fastmcp",
+DEP001 = ["sentence_transformers", "hnswlib", "testcontainers",
+          # fastmcp removed from ignore 2026-06-08 — now a declared [mcp] extra (engine.mcp_server)
           "tree_sitter", "tree_sitter_python", "jedi",  # optional AST adapter + LSP enrich ([code_to_kg] extra, graceful import)
           "opentelemetry", # wave12 — optional [otel] dep, guarded try/except in otel_channel.py
           "anthropic",     # 2026-05-28 — optional [agents] dep, lazy import in engine/agents/client.py

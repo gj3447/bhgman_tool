@@ -104,9 +104,9 @@ class TestWaveIndexAssignment:
         edges = [("a", "b"), ("a", "c"), ("b", "d"), ("c", "d"), ("d", "e")]
         idx = assign_wave_index(nodes, edges)
         for parent, child in edges:
-            assert (
-                idx[child] > idx[parent]
-            ), f"dispatch invariant violated: {parent}@{idx[parent]} → {child}@{idx[child]}"
+            assert idx[child] > idx[parent], (
+                f"dispatch invariant violated: {parent}@{idx[parent]} → {child}@{idx[child]}"
+            )
 
 
 class TestAptIntegration:

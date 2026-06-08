@@ -48,9 +48,9 @@ def test_edit_lens_composition_associative_over_shifts() -> None:
     lens = EditLensLineRange()
     r = LineRange(start_line=100, end_line=200)
     for s1, s2 in [(5, 7), (-3, 10), (0, 8), (15, -20), (-50, 75)]:
-        assert (
-            lens.verify_composition(r, s1, s2) is True
-        ), f"composition failed at shifts ({s1}, {s2})"
+        assert lens.verify_composition(r, s1, s2) is True, (
+            f"composition failed at shifts ({s1}, {s2})"
+        )
 
 
 def test_line_range_shift_arithmetic_matches_expected() -> None:

@@ -192,6 +192,6 @@ class TestWave6Canon:
     def test_wave6_resolutions_all_have_package_path(self):
         for hub_name, fields in forward_orphan_scan.WAVE6_HUB_RESOLUTIONS.items():
             assert fields.get("package_path"), f"Wave 6 canon entry {hub_name} missing package_path"
-            assert fields["package_path"].startswith(
-                "THEORY/"
-            ), f"Wave 6 canon entry {hub_name} package_path should be THEORY/-prefixed"
+            assert fields["package_path"].startswith("THEORY/"), (
+                f"Wave 6 canon entry {hub_name} package_path should be THEORY/-prefixed"
+            )
