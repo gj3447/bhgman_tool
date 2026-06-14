@@ -400,6 +400,13 @@ def build_parser() -> argparse.ArgumentParser:
         "legion",
         help="레기온 — 6 군단장 통일 닫힌 루프 (획득→연결→창조→정리→검증→실현). 결정론 floor + --llm enrich.",
     )
+    p_lg.add_argument(
+        "verb",
+        nargs="?",
+        choices=["run"],
+        default="run",
+        help="Optional 'run' verb (ergonomic; `legion` and `legion run` are equivalent).",
+    )
     p_lg.add_argument("--local", action="store_true", help="Use the bundled neo4j-free local KG.")
     p_lg.add_argument(
         "--apply",

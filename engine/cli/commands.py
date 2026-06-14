@@ -993,7 +993,7 @@ def _oracle_kg_client(args: argparse.Namespace):  # noqa: ANN202
         kg_path=None,
         mcp_url=os.environ.get("BHGMAN_KG_MCP_URL"),
         uri=os.environ.get("NEO4J_URI"),
-        user=os.environ.get("NEO4J_USER"),
+        user=os.environ.get("NEO4J_USERNAME") or os.environ.get("NEO4J_USER"),
         password=os.environ.get("NEO4J_PASSWORD"),
     )
     return build_kg(ns)

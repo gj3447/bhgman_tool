@@ -49,19 +49,23 @@ def _run_tcw(ctx: dict) -> dict:
     if not root.exists():
         return _degraded("tcw_result", f"code_root not found: {root}")
     symbols: list[Any] = []
+    edges: list[Any] = []
     files = _iter_py_files(root)
     for f in files:
         try:
-            symbols.extend(extract_python_file(f).nodes)
+            g = extract_python_file(f)
         except Exception:  # noqa: BLE001 — one unparseable file must not sink the cycle
             continue
+        symbols.extend(g.nodes)
+        edges.extend(g.edges)
     return {
         "tcw_result": {
             "source_path": str(root),
             "files_scanned": len(files),
             "symbol_count": len(symbols),
             "symbols": symbols,
-            "summary": f"TCW: {len(symbols)} CodeSymbol from {len(files)} file(s)",
+            "edges": edges,
+            "summary": f"TCW: {len(symbols)} CodeSymbol + {len(edges)} edge(s) from {len(files)} file(s)",
         }
     }
 
@@ -71,8 +75,19 @@ _CONTRACT_KINDS = frozenset({"function", "method", "class"})
 
 
 def _run_recover_structure(ctx: dict) -> dict:
-    """Project callable/class symbols into recovered Contract candidates (deterministic)."""
-    syms = (ctx.get("tcw_result") or {}).get("symbols") or []
+    """Project callable/class symbols into recovered Contract candidates (deterministic).
+
+    Each candidate carries its dependency surface = the count of outbound CALLS edges (the
+    interface contract a TPA reverse pass recovers: what this symbol depends on).
+    """
+    tcw = ctx.get("tcw_result") or {}
+    syms = tcw.get("symbols") or []
+    calls: dict[str, int] = {}
+    for e in tcw.get("edges") or []:
+        if getattr(e, "rel", None) == "CALLS":
+            src = getattr(e, "src", None)
+            if src is not None:
+                calls[src] = calls.get(src, 0) + 1
     candidates = [
         {
             "name": s.name,
@@ -80,6 +95,7 @@ def _run_recover_structure(ctx: dict) -> dict:
             "kind": s.kind,
             "source_path": s.source_path,
             "symbol_id": s.symbol_id,
+            "dependency_count": calls.get(s.symbol_id, 0),
         }
         for s in syms
         if getattr(s, "kind", None) in _CONTRACT_KINDS
@@ -95,17 +111,29 @@ def _run_recover_structure(ctx: dict) -> dict:
 
 # ── 복원-피라미드 (SP) — deterministic structural grouping ───────────────────
 def _run_recover_pyramid(ctx: dict) -> dict:
-    """Cluster recovered symbols by kind into a pattern pyramid (deterministic)."""
+    """Cluster recovered symbols by kind + detect cross-class method recurrence (deterministic).
+
+    Pyramid = kind histogram. Shared-protocol candidates = method bare-names that appear in >=2
+    distinct classes (a recovered structural pattern: an implicit shared interface).
+    """
     syms = (ctx.get("tcw_result") or {}).get("symbols") or []
     groups: dict[str, int] = {}
+    method_classes: dict[str, set] = {}
     for s in syms:
         kind = getattr(s, "kind", "unknown")
         groups[kind] = groups.get(kind, 0) + 1
+        if kind == "method" and "." in getattr(s, "qualname", ""):
+            cls, _, meth = s.qualname.rpartition(".")
+            method_classes.setdefault(meth, set()).add(cls)
+    shared = {m: sorted(cs) for m, cs in method_classes.items() if len(cs) >= 2}
     return {
         "patterns": {
             "groups": groups,
             "count": len(groups),
-            "summary": "SP: pyramid " + ", ".join(f"{k}={v}" for k, v in sorted(groups.items())),
+            "shared_protocol_candidates": shared,
+            "summary": "SP: pyramid "
+            + ", ".join(f"{k}={v}" for k, v in sorted(groups.items()))
+            + (f"; {len(shared)} shared-protocol method(s)" if shared else ""),
         }
     }
 

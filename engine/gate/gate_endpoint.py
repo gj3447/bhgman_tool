@@ -276,9 +276,10 @@ def break_glass(payload: BreakGlassRequest, req: Request):
     retry=retry_if_exception_type(TransientGateError),
 )
 def _call_kg_with_retry(payload: GateRequest) -> tuple[bool, str]:
-    """Resilience4j-style timeout + retry. 실제 KG query는 후속 sprint."""
-    # Sprint 3 sub-task — kg_query.py로 실제 Cypher 실행
-    # 본 prototype: context 기반 sanity check
+    """Legacy count-compare for non-phase count gates when OPA is off. Fail-closed on missing
+    context. APT phase gates are decided by the Phase B KG materializer
+    (kg_materialize.decide_gate), NOT here — _decide refuses to route a phase gate to this stub."""
+    # context-based count sanity check (caller supplies expected/actual); fail-closed if absent.
     expected = payload.context.get("expected_count")
     actual = payload.context.get("actual_count")
     if expected is None or actual is None:
@@ -351,10 +352,17 @@ async def _decide(opa: Any, payload: GateRequest, run_cypher: Any = None) -> tup
     if opa is not None and policy is not None:
         package, rule = policy
         return await _eval_opa(opa, package, rule, payload.context)
-    if run_cypher is not None and payload.gate_name in _APT_PHASE_GATES:
-        from engine.gate.kg_materialize import decide_gate  # noqa: PLC0415
+    if payload.gate_name in _APT_PHASE_GATES:
+        if run_cypher is not None:
+            from engine.gate.kg_materialize import decide_gate  # noqa: PLC0415
 
-        return decide_gate(payload.gate_name, payload.cycle_id, run_cypher)
+            return decide_gate(payload.gate_name, payload.cycle_id, run_cypher)
+        # An APT phase gate must be decided by KG facts (materializer) or OPA — never by the
+        # caller-supplied count-stub. No runner + no OPA → fail-closed (do not silently pass).
+        return False, (
+            f"{payload.gate_name}: APT phase gate needs a KG runner (set NEO4J_*) or OPA "
+            "(APT_OPA_ENABLED); refusing legacy count-stub (fail-closed)"
+        )
     return _call_kg_with_retry(payload)
 
 

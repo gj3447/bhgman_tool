@@ -477,3 +477,35 @@ def test_hades_apply_requires_test_cmd(tmp_path, capsys):
     rc = cli(["hades", "--extract-superclass", str(f), "--apply"])
     assert rc == 2
     assert "test-cmd" in capsys.readouterr().err
+
+
+def test_legion_run_positional_is_optional_and_equivalent():
+    """`legion` and `legion run` both parse; the ergonomic 'run' verb defaults in."""
+    p = build_parser()
+    assert p.parse_args(["legion"]).verb == "run"
+    assert p.parse_args(["legion", "run"]).verb == "run"
+
+
+def test_make_kg_runners_accepts_neo4j_username_env(monkeypatch):
+    """make_kg_runners reads NEO4J_USERNAME (mcp/.mcp.json convention), not only NEO4J_USER."""
+    import types
+
+    from engine.cli import runtime
+
+    monkeypatch.delenv("BHGMAN_KG_MCP_URL", raising=False)
+    monkeypatch.setenv("NEO4J_PASSWORD", "pw")
+    monkeypatch.setenv("NEO4J_USERNAME", "alice")
+    monkeypatch.delenv("NEO4J_USER", raising=False)
+    captured: dict = {}
+
+    class _FakeDriver:
+        @staticmethod
+        def driver(uri, auth=None):
+            captured["uri"] = uri
+            captured["auth"] = auth
+            return types.SimpleNamespace(session=lambda: None, close=lambda: None)
+
+    monkeypatch.setattr("neo4j.GraphDatabase", _FakeDriver)
+    runners = runtime.make_kg_runners()
+    assert runners is not None
+    assert captured["auth"] == ("alice", "pw")  # NEO4J_USERNAME won over the default

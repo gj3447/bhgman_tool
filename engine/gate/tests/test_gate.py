@@ -367,3 +367,26 @@ def test_gate_materializer_blocks_non_atomic_leaf(monkeypatch):
             json={"gate_name": "sp_to_st", "cycle_id": "c", "actor": "a", "context": {}},
         )
     assert r.json()["verdict"] == "WOULD_FAIL"
+
+
+def test_apt_phase_gate_fail_closed_without_kg_runner(monkeypatch):
+    """No KG runner (NEO4J unset) + OPA off → an APT phase gate refuses the legacy count-stub and
+    fail-closes, even when matching expected/actual counts (which WOULD pass the stub) are supplied."""
+    monkeypatch.setenv("APT_GATE_MODE", "informational")
+    from engine.gate import circuit_breaker, gate_endpoint
+
+    monkeypatch.setattr(circuit_breaker, "build_redis_client", lambda: fakeredis.FakeRedis())
+    monkeypatch.setattr(gate_endpoint, "_build_kg_runner", lambda: None)
+    with TestClient(gate_endpoint.app) as client:
+        r = client.post(
+            "/gate/check",
+            json={
+                "gate_name": "sp_to_st",
+                "cycle_id": "c",
+                "actor": "a",
+                "context": {"expected_count": 1, "actual_count": 1},
+            },
+        )
+    body = r.json()
+    assert body["verdict"] != "PASS"  # the count-stub would have PASSed on matching counts
+    assert "phase gate needs" in body["reason"].lower()

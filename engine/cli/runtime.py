@@ -197,7 +197,8 @@ def make_kg_runners():
     if not pw:
         return None
     uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-    user = os.environ.get("NEO4J_USER", "neo4j")
+    # accept both NEO4J_USERNAME (the mcp / .mcp.json convention) and NEO4J_USER (engine legacy)
+    user = os.environ.get("NEO4J_USERNAME") or os.environ.get("NEO4J_USER", "neo4j")
     try:
         driver = GraphDatabase.driver(uri, auth=(user, pw))
     except Exception as e:  # noqa: BLE001 — any driver init failure → graceful degrade
