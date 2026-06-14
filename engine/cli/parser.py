@@ -192,6 +192,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Semantic mode target label: ResearchFinding | Lesson.",
     )
     p_oc.add_argument("--limit", type=int, default=200, help="Semantic mode: max nodes to scan.")
+    p_oc.add_argument(
+        "--allow-hash-embed",
+        action="store_true",
+        help="Semantic --apply override: permit superseding even when the real embedding "
+        "model is absent and the meaningless hash fallback is in use (NOT recommended).",
+    )
     p_oc.set_defaults(func=commands.cmd_occam)
 
     p_orc = sub.add_parser(

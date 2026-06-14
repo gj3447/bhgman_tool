@@ -252,6 +252,36 @@ def test_occam_degrades_when_no_neo4j(monkeypatch, capsys):
     assert "neo4j unavailable" in err
 
 
+def _patch_hash_fallback_embedder(monkeypatch):
+    from engine.memory.embedder import Embedder
+
+    monkeypatch.setattr(Embedder, "is_real_model", property(lambda self: False))
+
+
+def test_occam_semantic_apply_refuses_hash_fallback(monkeypatch, capsys):
+    """W1-B: superseding on the meaningless hash-fallback embedder would archive nodes at
+    random — `--apply` must refuse (non-zero, no write) when the real model is absent."""
+    _patch_hash_fallback_embedder(monkeypatch)
+    read, write = _FakeRunner([]), _FakeRunner()
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
+    rc = cli(["occam", "--semantic", "--apply"])
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "REFUSING --apply" in err
+    assert write.calls == []  # nothing archived
+
+
+def test_occam_semantic_allow_hash_embed_overrides(monkeypatch, capsys):
+    """--allow-hash-embed is the explicit opt-in override (no refusal)."""
+    _patch_hash_fallback_embedder(monkeypatch)
+    read, write = _FakeRunner([]), _FakeRunner()
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
+    rc = cli(["occam", "--semantic", "--apply", "--allow-hash-embed"])
+    err = capsys.readouterr().err
+    assert rc == 0
+    assert "REFUSING --apply" not in err
+
+
 # ─── hades verb (materialize ACCEPTED abstractions) ─────────────────────────
 # KG: hades-canonical-2026-05-27
 

@@ -817,6 +817,20 @@ def cmd_occam_semantic(args: argparse.Namespace) -> int:
         from engine.occam.semantic_dedup import run_semantic_dedup  # noqa: PLC0415
 
         emb = Embedder()
+        if (
+            getattr(args, "apply", False)
+            and not emb.is_real_model
+            and not getattr(args, "allow_hash_embed", False)
+        ):
+            print(
+                "[occam-semantic] REFUSING --apply: the sentence-transformers model is "
+                "unavailable, so the hash-fallback embedder is active — its cosine "
+                "similarities are meaningless and superseding on them would archive nodes "
+                "at random. Install the real model (pip install 'bhgman-tool[memory]') or "
+                "pass --allow-hash-embed to override (NOT recommended).",
+                file=sys.stderr,
+            )
+            return 1
         report = run_semantic_dedup(
             items,
             embed_fn=lambda texts: [emb.encode(t) for t in texts],

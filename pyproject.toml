@@ -106,6 +106,14 @@ agents = [
 mcp = [
     "fastmcp>=2.0",
 ]
+# Semantic memory / occam --semantic — real sentence-transformers embeddings + HNSW recall
+# (engine/memory). Absent → deterministic hash-fallback embedder whose cosine similarities
+# are meaningless, so `occam --semantic --apply` REFUSES without it (W1-B). Mirrors
+# engine/memory/pyproject.toml [project.optional-dependencies].full.
+memory = [
+    "sentence-transformers>=2.7",
+    "hnswlib>=0.8",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
