@@ -3,6 +3,10 @@ from engine.eureka.protocols import StageResult
 
 
 def test_pipeline_runs_to_completion_with_fca_input():
+    """A fully-cohesive formal context yields a stability=1.0 concept. After W1-E that
+    concept SURVIVES the quality gate and reaches the stage-5 naesengmoon gate — the
+    pipeline genuinely runs to completion instead of silently halting at 4.5 (the old
+    test name lied: it asserted only stage 4 while the gate killed its own best output)."""
     context = {
         "node_a": frozenset({"axis_x", "axis_y"}),
         "node_b": frozenset({"axis_x", "axis_y"}),
@@ -17,6 +21,15 @@ def test_pipeline_runs_to_completion_with_fca_input():
     induce_result = next(s for s in result.stages if s.stage == "4-induce-fca")
     assert induce_result.ok
     assert induce_result.payload["abstract_classes"] >= 1
+
+    # the gate must KEEP the perfectly-cohesive concept (not reject it as a Goodhart artifact)
+    gate = next(s for s in result.stages if s.stage == "4.5-quality-gate")
+    assert gate.ok, gate.error
+    assert gate.payload["survived"] >= 1
+    # and the pipeline must actually reach the stage-5 adversary gate (the real completion)
+    assert "5-naesengmoon-gate" in stage_names
+    s5 = next(s for s in result.stages if s.stage == "5-naesengmoon-gate")
+    assert s5.payload["verdict_pending"] >= 1
 
 
 def test_pipeline_empty_input_no_crash():

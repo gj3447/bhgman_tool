@@ -5,7 +5,8 @@ Thresholds per consensus seed-prom16lag-cons-quality-gate-silhouette-modularity-
 - modularity Q ≥ 0.30 (Newman 2006 PNAS)
 - FCA concept stability σ ≥ 0.50 (Roth-Obiedkov-Kourie 2008) when formal context applicable
 - AMI ≥ 0.50 (Vinh-Epps-Bailey 2010) for supervised re-runs
-- Goodhart cap P ≤ 0.90 (Zaveri 2016) — reject > 0.95 as artifact
+- Goodhart cap (Zaveri 2016) — reject silhouette/modularity/AMI > 0.95 as a gamed proxy.
+  fca_stability is EXEMPT: a fully-cohesive concept legitimately scores 1.0 (W1-E).
 """
 # KG: eureka-canonical-2026-05-26
 
@@ -57,10 +58,13 @@ def evaluate(
         passed = False
         reasons.append(f"ami {ami:.3f} < {AMI_MIN}")
 
+    # Goodhart cap (Zaveri 2016): near-perfect silhouette/modularity/AMI signal a gamed
+    # proxy. fca_stability is EXEMPT — a fully-cohesive formal concept legitimately scores
+    # 1.0 (its extent exactly closes its intent); capping it rejected the STRONGEST
+    # abstractions and halted the pipeline before stage 5 (W1-E).
     for label, value in [
         ("silhouette", silhouette),
         ("modularity", modularity),
-        ("fca_stability", fca_stability),
         ("ami", ami),
     ]:
         if value is not None and value > GOODHART_CAP:

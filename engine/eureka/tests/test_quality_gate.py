@@ -41,6 +41,15 @@ def test_fca_stability_path():
     assert not evaluate(fca_stability=FCA_STABILITY_MIN - 0.01).passed
 
 
+def test_fca_stability_perfect_cohesion_passes():
+    """W1-E: a fully-cohesive formal concept legitimately scores 1.0 — it is EXEMPT from
+    the Goodhart cap (which still rejects silhouette/modularity/AMI ≈ 1.0 as gamed)."""
+    assert evaluate(fca_stability=1.0).passed  # was rejected: 1.0 > 0.95 cap
+    assert not evaluate(silhouette=0.99).passed  # other metrics still capped
+    assert not evaluate(modularity=0.99).passed
+    assert not evaluate(ami=0.99).passed
+
+
 def test_threshold_constants():
     assert SILHOUETTE_MIN == 0.50
     assert MODULARITY_MIN == 0.30

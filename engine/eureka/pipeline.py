@@ -341,16 +341,26 @@ def run(
     )
 
     if acs:
-        avg_stability = sum(ac.stabilityScore or 0.0 for ac in acs) / len(acs)
-        q_report = quality_gate_module.evaluate(fca_stability=avg_stability)
+        # Per-concept gate (was avg-of-batch, which let one weak concept drag the mean and
+        # kill ALL concepts — and rejected fully-cohesive stability=1.0 as a Goodhart
+        # artifact, halting before stage 5). Keep concepts that clear the stability floor;
+        # fca_stability has no upper cap (1.0 is legitimate). Halt only if none survive (W1-E).
+        floor = quality_gate_module.FCA_STABILITY_MIN
+        survivors = [ac for ac in acs if (ac.stabilityScore or 0.0) >= floor]
+        pruned = len(acs) - len(survivors)
         pr.record(
             "4.5-quality-gate",
-            q_report.passed,
-            payload=q_report,
-            error="; ".join(q_report.reasons) if not q_report.passed else None,
+            bool(survivors),
+            payload={"survived": len(survivors), "pruned_below_floor": pruned},
+            error=(
+                None
+                if survivors
+                else f"all {len(acs)} concept(s) below fca_stability floor {floor}"
+            ),
         )
-        if not q_report.passed:
+        if not survivors:
             return pr
+        acs = survivors
 
     # 4.7 나생문 oracle hard-gate (executable, KG 불변식). FAIL → 판단렌즈(stage_5) 진입 차단.
     if acs and not stage_4_7_oracle_gate(acs, config, pr):
