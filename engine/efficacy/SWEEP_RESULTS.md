@@ -6,7 +6,18 @@ cell passed — or honestly failed — the same 3-falsifier preflight
 (`engine/efficacy/falsifier.py`: circularity / signal-absent / signal-inverted). Numbers
 are reproduced by the commands shown; no value is hand-authored.
 
-> **⚠️ SUPERSEDED-IN-PART (2026-06-05): the "LOOP-HYPOTHESIS = OPEN / leaning negative" conclusions below were REVERSED for the bounded-repair regime.** A powered Lean fair-test (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`, `VERDICT.md` §3, commit `88839e0`) found an oracle-guided **repair loop beats best-of-N on competence-boundary tasks**: repair ≥ best-of-N in 10/10 runs, strict win 7/10, never loses, sign-test **p=0.016**. The negatives below are real but regime-scoped (FunSearch *island-evolve* on bin-packing/symreg at small budget + an underpowered early Lean band) — they do NOT cover oracle-guided *repair* at the competence edge. Full dated note at the end of this file. within-competence cognitive ~0 is unchanged.
+> ⚠️ **HONESTY QUALIFIER (2026-06-14, hardening audit H3):** "reproduced by the commands shown" holds
+> *against the live KG snapshot + dgx ollama available on the run date* — 7 of the 9 scoreboard cells
+> need live neo4j + dgx with no committed fixtures, so they are reproduced **on that infrastructure**,
+> not offline. Only `scale_curve` + the synthetic `Δ+0.227` reproduce from committed inputs alone.
+
+> ⚠️ **HONESTY CORRECTION (2026-06-14, hardening audit H2):** the `p=0.016` cited just below was on
+> `qwen2.5:32b` with **uncommitted raw JSONL** → not independently regenerable (historical, not
+> authoritative). A committed re-pin on a weaker `qwen2.5:7b` (n=10,
+> `verification/lean_headroom_repin_7b_2026-06-14/`) is a **NULL** (repair = best-of-N, p=1.00); it
+> does not refute the 32b claim but the 32b result is unreproduced with committed logs (re-run on dgx).
+
+> **⚠️ SUPERSEDED-IN-PART (2026-06-05): the "LOOP-HYPOTHESIS = OPEN / leaning negative" conclusions below were REVERSED for the bounded-repair regime.** A powered Lean fair-test (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`, `VERDICT.md` §3, commit `88839e0`) found an oracle-guided **repair loop beats best-of-N on competence-boundary tasks**: repair ≥ best-of-N in 10/10 runs, strict win 7/10, never loses, sign-test **p=0.016** *(historical — raw logs lost, see correction above)*. The negatives below are real but regime-scoped (FunSearch *island-evolve* on bin-packing/symreg at small budget + an underpowered early Lean band) — they do NOT cover oracle-guided *repair* at the competence edge. Full dated note at the end of this file. within-competence cognitive ~0 is unchanged.
 
 ## Scoreboard
 
@@ -15,7 +26,7 @@ are reproduced by the commands shown; no value is hand-authored.
 | **occam** | 정리 | **MEASURED** | AUC **0.602** (pos 77 / neg 242) | `disk_present` — filesystem, not occam's label. ✅ non-circular |
 | **longinus** | 연결 | **MEASURED** | ON **0.932** vs naive OFF 0.705, **Δ+0.227** on *injected* mutations (perm p<1e-4); ⚠ **deflates to Δ+0.050 on real git history** (class 0.875 vs 0.825 — the synthetic sandbox stacked pure-MOVE cases, inflating it ~4.5×; see VERDICT.md §1 / `git_oracle`) | injected disk mutations (20 seeds) + 101 drift events; real-data hold-out via git net-status. |
 | **naesengmoon** | 검증 | **MEASURED** | mutation catch-rate **0.600** (6/10; escapes 4 boundary/sign mutants) | injected code mutants on `engine/occam/scoring.py`. ✅ |
-| **jaebaeman** | 출격 | **MEASURED** | dispatch fidelity **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (correctness, not AUC). operational. |
+| **jaebaeman** | 출격 | **MEASURED** | dispatch success-rate **1.000** (2588/2596, 8 pending, 0 error) | run-record telemetry (success/(success+fail), NOT intent==actual "fidelity" which stays UNMEASURED — H4). operational, not AUC. |
 | **hades** | 실현 | **MEASURED** | realization **0.839** (141/168 source modules test-reached) | static import-reachability + pytest GREEN. ✅ non-circular. operational/state. |
 | **prometheus** | 획득 | **MEASURED** | groundedness: sourcing **0.077** (946/12356), verifiability **0.931** (881/946 external), self-cite **0.001** (1/946) | `urlparse` URL-structure classification — not prometheus's judgment. ✅ non-circular. verifiability/precision-floor, NOT novelty. |
 | **prometheus** (novelty) | 획득 | **MEASURED** | novelty **0.933** (14/15 beyond base-LLM recall), control_acc **1.00** | dgx-local qwen2.5:32b recall-delta, instrument-validated. ✅ non-circular. recall-delta *upper bound*, not precision. |
@@ -32,7 +43,7 @@ uv run python -m engine.efficacy.run_kg_efficacy          # occam disk-oracle, A
 uv run python -m engine.efficacy.longinus_ab_experiment   # longinus ON/OFF Δ+0.227
 uv run python -m engine.efficacy.drift_oracle             # 101 independent drift events
 uv run python -m engine.efficacy.mutation_oracle          # naesengmoon catch 0.600
-uv run python -m engine.efficacy.dispatch_telemetry       # jaebaeman fidelity 1.000
+uv run python -m engine.efficacy.dispatch_telemetry       # jaebaeman success-rate 1.000
 uv run python -m engine.efficacy.scale_curve              # operational scale to 100k
 uv run python -m engine.efficacy.hades_oracle             # hades realization 0.839 + unrealized list
 uv run python -m engine.efficacy.prometheus_oracle        # prometheus groundedness (sourcing/verifiability/self-cite)
@@ -98,7 +109,7 @@ holes. Both are partly closed:
 - **Cognitive-leaning:** occam (AUC 0.602 on real KG). longinus's headline Δ+0.227 is
   vs naive on *injected* mutations — on **real git history it deflates to Δ+0.050**
   (VERDICT.md §1), so it sits nearer the operational tier than +0.227 suggests.
-- **Operational / state, real data:** jaebaeman (dispatch fidelity 1.000), hades
+- **Operational / state, real data:** jaebaeman (dispatch success-rate 1.000), hades
   (realization 0.839), prometheus (groundedness layers on 12356 real findings).
 - **Capability demonstration, synthetic:** eureka (FCA recovery lift +1.000 on a planted
   ideal), naesengmoon (mutation catch 0.600 on injected mutants).

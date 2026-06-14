@@ -95,7 +95,14 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   (island/diversity — the load-bearing FunSearch ingredient) was never implemented. And the CLOSE
   was committed (813da6f @21:21) *before* the confirming best-shot run (8768b9f @22:59) = confirmation
   toward closure. **Corrected status: operational-substrate (within-competence) STANDS;
-  LOOP-HYPOTHESIS = POSITIVE (bounded repair) at the 32b tier — was "never tested fairly".** A fair test of
+  LOOP-HYPOTHESIS = POSITIVE (bounded repair) at the 32b tier — was "never tested fairly".**
+  > ⚠️ **HONESTY CORRECTION (2026-06-14, hardening audit H2):** the Run B `p=0.016` below was on
+  > `qwen2.5:32b` but its **raw JSONL was never committed** → not independently regenerable; treat as
+  > *historical, not authoritative*. A committed re-pin 2026-06-14 on a weaker `qwen2.5:7b` (n=10,
+  > `verification/lean_headroom_repin_7b_2026-06-14/`) is a **NULL** (repair 13 = best-of-N 13,
+  > p=1.00). The 7b null is a lower operating point and does not refute the 32b claim, but the 32b
+  > result is **unreproduced with committed logs** — re-run on dgx (local 32b) + commit to confirm.
+  A fair test of
   the *repair-loop* variant (ARM2 oracle-guided repair vs ARM3 best-of-N, equal K=4) on real leak-resistant
   core-Lean with an ungameable `#print axioms` oracle was run 2026-06-05 (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`,
   model qwen2.5:32b-instruct). **Run A (thin band, 4 headroom tasks, 1 live) saw no edge — but that was a

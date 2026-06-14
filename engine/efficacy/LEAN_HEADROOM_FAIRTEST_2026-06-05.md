@@ -5,11 +5,22 @@
 > graded oracle). Analyzer: `engine/efficacy/analyze_lean_headroom.py`.
 > Verified per `feedback_verify_async_results_before_writeup`: processes exited, JSON re-fetched + parsed.
 >
-> **Headline: a powered re-test (Run B) OVERTURNS Run A's thin-band null.** With a proper headroom band
-> (10 tasks, 5 live) and 10 replications, the oracle-guided repair **loop beats best-of-N** on boundary
+> ⚠️ **HONESTY CORRECTION (2026-06-14, hardening audit H2).** The "Run B p=0.016" headline below
+> was produced on `qwen2.5:32b` but its **raw JSONL was never committed**, so the published number is
+> **not independently regenerable** — treat it as *historical, not authoritative*. A committed re-pin
+> (`verification/lean_headroom_repin_7b_2026-06-14/`, runnable via the analyzer) was executed
+> 2026-06-14 on a **weaker** model (`qwen2.5:7b`, n=10): it is a **NULL** — repair ≈ best-of-N
+> (13 vs 13 headroom proofs; sign test 2 wins / 2 losses / 6 ties, **two-sided p = 1.00**). The 7b
+> null is a *different, lower* operating point and does NOT by itself refute the 32b claim — but the
+> 32b `p=0.016` result **remains unreproduced with committed logs**. To confirm it, re-run on `dgx`
+> where `qwen2.5:32b` is local and commit that JSONL. The original (uncommitted) Run B prose is kept
+> below for provenance, no longer marked authoritative.
+>
+> ~~**Headline: a powered re-test (Run B) OVERTURNS Run A's thin-band null.** With a proper headroom band
+> (10 tasks, 5 live) and 10 replications, the oracle-guided repair loop beats best-of-N on boundary
 > headroom Lean tasks — reproducibly and significantly (sign-test p=0.016, repair ≥ best-of-N in 10/10
-> runs, never loses). Run A (4 tasks, 1 live) saw no signal *because the band was too thin*, not because
-> the loop has no value. Both runs are kept below; Run B is authoritative.
+> runs, never loses).~~ *(historical — raw logs lost, see correction above.)* Run A (4 tasks, 1 live)
+> saw no signal because the band was too thin. Both runs are kept below for provenance.
 
 ## What was tested
 
