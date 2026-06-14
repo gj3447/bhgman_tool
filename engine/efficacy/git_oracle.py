@@ -106,8 +106,12 @@ def _parse_status_line(line: str, sha: str, date: str) -> GitEvent | None:
     """status\\tpath[\\tnewpath] 한 줄 → GitEvent. 알 수 없으면 None."""
     parts = line.split("\t")
     status = parts[0]
-    if (status.startswith("R") or status.startswith("C")) and len(parts) >= 3:
+    if status.startswith("R") and len(parts) >= 3:
         return GitEvent(sha, date, RENAME, path=parts[2], old_path=parts[1])
+    if status.startswith("C") and len(parts) >= 3:
+        # COPY: the source (parts[1]) is NOT moved/stale — it still exists. The new file is
+        # an ADD, not a RENAME (old_path would falsely flag the source as moved-away).
+        return GitEvent(sha, date, ADD, path=parts[2], old_path=None)
     simple = {"A": ADD, "D": DELETE, "M": MODIFY}.get(status)
     if simple and len(parts) >= 2:
         return GitEvent(sha, date, simple, path=parts[1])
