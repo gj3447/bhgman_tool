@@ -148,7 +148,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_hns.set_defaults(func=commands.cmd_harness)
 
-    p_st = sub.add_parser("status", help="KG audit (ssh dgx → cypher-shell).")
+    p_st = sub.add_parser(
+        "status", help="KG audit (local cypher-shell → ssh dgx/kubectl fallback)."
+    )
     p_st.set_defaults(func=commands.cmd_status)
 
     p_oc = sub.add_parser(

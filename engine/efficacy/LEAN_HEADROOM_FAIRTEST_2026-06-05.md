@@ -1,7 +1,8 @@
 # Lean headroom fair-test — oracle-guided repair loop vs best-of-N (2026-06-05)
 
 > Answers part of the open hypothesis in `VERDICT.md` §3 ("the one fair test ... was never run").
-> Runner: `engine/efficacy/lean_headroom_run.py` (+ `SEED_OFFSET` replication control + graded oracle).
+> Runner: `engine/efficacy/lean_headroom_run.py` (+ `--out-dir` raw JSONL, replication controls,
+> graded oracle). Analyzer: `engine/efficacy/analyze_lean_headroom.py`.
 > Verified per `feedback_verify_async_results_before_writeup`: processes exited, JSON re-fetched + parsed.
 >
 > **Headline: a powered re-test (Run B) OVERTURNS Run A's thin-band null.** With a proper headroom band
@@ -29,6 +30,24 @@ Fairness conditions (both runs): seed threaded per attempt at `P1_TEMP=0.8` → 
 (not the collapsed-to-single confound found 2026-06-03; verified seeds 1,2 give *different* proofs);
 `SEED_OFFSET` replication control symmetric across all three arms (no bias); real `lean` 4.30 core oracle,
 Mac-local; model on dgx ollama via SSH tunnel.
+
+### Reproduction hardening (2026-06-09)
+
+The historical Run B write-up was verified from process outputs and fetched/parsing checks, but its raw
+per-attempt JSONL was not committed. The runner now supports raw logs and a separate analyzer, so a rerun
+can be audited without trusting this markdown table:
+
+```bash
+P1_MODEL=qwen2.5:32b-instruct P1_TEMP=0.8 \
+  uv run python -m engine.efficacy.lean_headroom_run \
+  --k 4 --replications 10 --seed-step 10 --out-dir verification/lean_headroom_runB
+
+uv run python -m engine.efficacy.analyze_lean_headroom verification/lean_headroom_runB
+```
+
+The raw JSONL includes every generated proof, proof hash, Lean verdict, graded score, error tail, task
+summary, and run summary. The analyzer recomputes the repair-vs-bestN exact sign-test from `run_summary`
+records and per-task proven counts from `task_summary` records.
 
 ---
 

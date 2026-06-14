@@ -370,7 +370,7 @@ Run B (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`, commit `88839e0`): band enriched 
 
 This also corrects the earlier "6/6 UNREALIZED → loop CLOSED" — a 4-critic postmortem (conf 0.82–0.84) caught it as PREMATURE: the denominator was 2 underpowered nulls + 4 non-measurements that saturate to delta=0 by arithmetic, F3 islands were never implemented, and CLOSE was committed before the confirming run.
 
-Adversarially re-verified (workflow w24bu3fss; EFF-4/EFF-5/EFF-7 CONFIRMED, p recomputed 0.0156). Authoritative verdict: `VERDICT.md` §3. (Caveat: raw per-run JSON is not committed — the per-task counts live in the markdown narrative; frontier tier, open-ended discovery, and K-dependence remain open.)
+Adversarially re-verified (workflow w24bu3fss; EFF-4/EFF-5/EFF-7 CONFIRMED, p recomputed 0.0156). Authoritative verdict: `VERDICT.md` §3. (Caveat: historical Run B raw per-run JSON was not committed — the per-task counts live in the markdown narrative. As of 2026-06-09, `lean_headroom_run.py --out-dir ...` writes raw JSONL and `analyze_lean_headroom.py` recomputes the sign-test/per-task counts from those logs. Frontier tier, open-ended discovery, and K-dependence remain open.)
 
 # 2026-06-05 reversal source: VERDICT.md §3 + LEAN_HEADROOM_FAIRTEST_2026-06-05.md (commit 88839e0);
 #     KG verdict node bhgman-efficacy-verdict-operational-substrate-2026-06-02 (headroom_resolution_2026_06_07 field), efficacy-map-final-2026-06-01 (headroom_update_2026_06_07)

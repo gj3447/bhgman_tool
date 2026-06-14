@@ -105,7 +105,9 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   tasks drive it: `dbl_ge` best-of-N 0/10 vs repair 5/10, `le_sumto` 1/10 vs 5/10.** Mechanism: the model
   gets *close* and the Lean error names the defect → repair converges where independent draws can't. So the
   loop structure (error-feedback) does add value beyond best-of-N **at the competence boundary** — bounded
-  *repair*, not discovery. **Residual open axes:** frontier / reasoning model (qwen3 attempted, infeasible
+  *repair*, not discovery. Repro hardening added 2026-06-09: reruns can write raw JSONL with
+  `lean_headroom_run.py --out-dir ...`, and `analyze_lean_headroom.py` recomputes the sign-test and
+  per-task counts from those logs. **Residual open axes:** frontier / reasoning model (qwen3 attempted, infeasible
   here >150 s/call) × real F3 island diversity (still unimplemented) × larger K × open-ended discovery (vs
   bounded tactic-repair). NB this *revises* the earlier "loop ≤ best-of-N" reading. See also `SWEEP_RESULTS.md`.
 - **External impact — MEASURED 2026-06-04 → realized `trace` / potential `weak`.** A 6-dimension,

@@ -16,7 +16,7 @@ B. SYMPOSIUM-absorbed (Wave 7 P2-A 2026-05-14, KG rs-cli-symposium-absorb-2026-0
     bhgman-tool tlb <target> [--lens NAME]    — Taliban adversarial verification
     bhgman-tool longinus <op>                 — Longinus reference binding (bind/sha256/ged/reverse-scan)
     bhgman-tool harness <action>              — Harness 3-tier scaffolding diagnose
-    bhgman-tool status                        — KG audit (ssh dgx → cypher-shell)
+    bhgman-tool status                        — KG audit (local cypher-shell → ssh dgx fallback)
 
 C. SYMPOSIUM resolver/gate (Wave 7 P3-H 2026-05-14, KG span-bhgman-resolver-gate-absorption-wave7-2026-05-14):
     bhgman-tool resolver render --input X --output Y    — APT v27 A6 pre-prompt resolver render
@@ -38,7 +38,7 @@ Honest limitations (Goodhart safeguard — no headline metric promotion):
   - argparse error messages are not internationalized (README is 4-lang, CLI is en-only)
   - cohort B verbs `apt/tpa/prom/tlb/longinus/harness` only emit the SKILL.md path
     — the parent Claude harness consumes the body. They do NOT execute phase logic.
-  - `status` requires `ssh dgx` reachable; degrades to error if absent.
+  - `status` prefers local `cypher-shell`; if absent, it falls back to `ssh dgx`.
 """
 
 from __future__ import annotations

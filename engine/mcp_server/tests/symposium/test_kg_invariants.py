@@ -14,6 +14,8 @@ Provenance: SYMPOSIUM/tests/test_kg_invariants.py (absorbed Wave 7 P2-A)
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 from engine.mcp_server.tools.symposium import (
@@ -99,6 +101,22 @@ class TestWriteSafety:
 
 class TestFailOpen:
     """When ssh/cypher-shell is unreachable, return degraded dict, never raise."""
+
+    def test_ssh_cypher_uses_current_data_namespace(self, monkeypatch):
+        from engine.mcp_server.tools import symposium
+
+        monkeypatch.setenv("BHGMAN_STATUS_NEO4J_PASSWORD", "pw")
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append((cmd, kwargs))
+            return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+        monkeypatch.setattr(symposium.subprocess, "run", fake_run)
+        out = symposium._ssh_cypher("MATCH (n) RETURN count(n)", {"x": "y"})
+        assert out["ok"] is True
+        assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
+        assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
 
     def test_ssh_missing_returns_degraded(self, monkeypatch):
         from engine.mcp_server.tools import symposium

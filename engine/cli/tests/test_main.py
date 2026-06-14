@@ -37,6 +37,64 @@ def test_parser_has_symposium_absorbed_subcommands():
     assert symposium.issubset(choices), f"symposium cohort missing: {symposium - choices}"
 
 
+def _clear_status_env(monkeypatch):
+    for name in (
+        "BHGMAN_STATUS_NEO4J_URI",
+        "BHGMAN_STATUS_NEO4J_USER",
+        "BHGMAN_STATUS_NEO4J_PASSWORD",
+        "BHGMAN_STATUS_K8S_NAMESPACE",
+        "BHGMAN_STATUS_NEO4J_POD",
+        "BHGMAN_K8S_NAMESPACE",
+        "BHGMAN_NEO4J_POD",
+        "NEO4J_URI",
+        "NEO4J_USER",
+        "NEO4J_PASSWORD",
+        "SYMPOSIUM_KG_PASSWORD",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
+def test_status_prefers_direct_cypher_shell(monkeypatch, capsys):
+    _clear_status_env(monkeypatch)
+    monkeypatch.setenv("BHGMAN_STATUS_NEO4J_URI", "bolt://example:7687")
+    monkeypatch.setenv("BHGMAN_STATUS_NEO4J_PASSWORD", "pw")
+    monkeypatch.setattr("engine.cli.commands.shutil.which", lambda name: f"/bin/{name}")
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return subprocess.CompletedProcess(cmd, 0, stdout="label, count\n", stderr="")
+
+    monkeypatch.setattr("engine.cli.commands.subprocess.run", fake_run)
+    rc = cli(["status"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert calls[0][0][:3] == ["/bin/cypher-shell", "-a", "bolt://example:7687"]
+    assert calls[0][0][calls[0][0].index("-p") + 1] == "pw"
+    assert "cypher-shell bolt://example:7687" in captured.err
+    assert "label, count" in captured.out
+
+
+def test_status_falls_back_to_dgx_data_namespace(monkeypatch, capsys):
+    _clear_status_env(monkeypatch)
+    monkeypatch.setenv("BHGMAN_STATUS_NEO4J_PASSWORD", "pw")
+    monkeypatch.setattr("engine.cli.commands.shutil.which", lambda _name: None)
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr("engine.cli.commands.subprocess.run", fake_run)
+    rc = cli(["status"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert calls[0][0][0] == "ssh"
+    assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
+    assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
+    assert "cypher-shell not found" in captured.err
+
+
 def test_version_command_writes_to_stdout(capsys):
     rc = cli(["version"])
     captured = capsys.readouterr()

@@ -7,7 +7,7 @@ Provenance: span-bhgman-cli-mcp-absorption-wave7-2026-05-14
 Exposes 4 SYMPOSIUM core tools that thin-wrap the SYMPOSIUM/bhgman-tool infrastructure:
 
   apt_dispatch    — APT phase routing (sa | sp | st | scw | meta_review)
-  kg_query        — Neo4j Cypher wrapper, fail-open via ssh dgx → cypher-shell
+  kg_query        — Neo4j Cypher wrapper, fail-open via ssh dgx → data/neo4j-0
   gate_check      — apt-gate-check.sh wrapper (Resilience4j 4-layer chain)
   seed_germinate  — 재배맨 SubagentTaskSpec emission (jaebaeman protocol)
 
@@ -35,6 +35,7 @@ import hashlib
 import json
 import logging
 import os
+import shlex
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -143,11 +144,24 @@ def _ssh_cypher(
     Tests monkeypatch this to inject mocks; do not inline.
     """
     params_json = json.dumps(params or {})
+    param_arg = shlex.quote(f"p => {params_json}")
+    namespace = os.environ.get("BHGMAN_STATUS_K8S_NAMESPACE") or os.environ.get(
+        "BHGMAN_K8S_NAMESPACE", "data"
+    )
+    pod = os.environ.get("BHGMAN_STATUS_NEO4J_POD") or os.environ.get("BHGMAN_NEO4J_POD", "neo4j-0")
+    user = os.environ.get("BHGMAN_STATUS_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
+    password = (
+        os.environ.get("BHGMAN_STATUS_NEO4J_PASSWORD")
+        or os.environ.get("NEO4J_PASSWORD")
+        or os.environ.get("SYMPOSIUM_KG_PASSWORD")
+        or "neo4jpassword"
+    )
     cmd = [
         "ssh",
         DGX_HOST,
-        f'kubectl exec -n neo4j neo4j-0 -- cypher-shell -u neo4j -p "${{NEO4J_PASSWORD:-neo4j}}" '
-        f"--format plain --param 'p => {params_json}'",
+        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
+        f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} "
+        f"--format plain --param {param_arg}",
     ]
     try:
         result = subprocess.run(
