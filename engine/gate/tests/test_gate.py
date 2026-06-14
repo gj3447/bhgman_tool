@@ -119,13 +119,43 @@ def test_break_glass_allows_essential_infra(client):
         "/gate/break-glass",
         json={
             "actor": "ops",
-            "reason": "essential-infra-pod recovery",
-            "expires_at": "2026-04-30T13:00:00+00:00",
+            "reason": "essential-infra-pod recovery after node failure",  # ≥ 20 chars
+            "expires_at": "2099-01-01T00:00:00+00:00",  # future
             "covers_gates": ["essential-infra-pod"],
         },
     )
     assert r.status_code == 200
     assert "audit_id" in r.json()
+
+
+def test_break_glass_rejects_short_reason(client):
+    """W3-H: break_glass.rego requires reason ≥ 20 chars; the route now enforces it."""
+    r = client.post(
+        "/gate/break-glass",
+        json={
+            "actor": "ops",
+            "reason": "oops",  # too short
+            "expires_at": "2099-01-01T00:00:00+00:00",
+            "covers_gates": ["essential-infra-pod"],
+        },
+    )
+    assert r.status_code == 400
+    assert "20" in r.json()["detail"]
+
+
+def test_break_glass_rejects_expired_session(client):
+    """W3-H: an expired break-glass session must be refused."""
+    r = client.post(
+        "/gate/break-glass",
+        json={
+            "actor": "ops",
+            "reason": "essential-infra-pod recovery after node failure",
+            "expires_at": "2000-01-01T00:00:00+00:00",  # past
+            "covers_gates": ["essential-infra-pod"],
+        },
+    )
+    assert r.status_code == 400
+    assert "expired" in r.json()["detail"]
 
 
 # ─── health ──────────────────────────────────────────────────────────────
@@ -267,3 +297,19 @@ def test_opa_enabled_unmapped_gate_falls_back_to_stub(monkeypatch):
         )
     body = r.json()
     assert body["verdict"] == "PASS"  # stub passed; OPA not consulted for an unmapped gate
+
+
+def test_circuit_breaker_recovers_after_open_window_wall_clock():
+    """W3-G: opened_at is wall-clock (time.time), so OPEN→HALF_OPEN survives a restart
+    instead of being stuck OPEN forever on a stale monotonic timestamp."""
+    import time as _t
+
+    from engine.gate.circuit_breaker import OPEN_DURATION_S, CircuitBreaker, State
+
+    cb = CircuitBreaker(fakeredis.FakeRedis(), "g-w3g")
+    for _ in range(3):
+        cb.record_failure()
+    assert cb.check().state == State.OPEN
+    # backdate opened_at past the OPEN window (wall clock) → must promote to HALF_OPEN
+    cb._r.set(cb._key("opened_at"), str(_t.time() - OPEN_DURATION_S - 1))
+    assert cb.check().state == State.HALF_OPEN

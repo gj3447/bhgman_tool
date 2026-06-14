@@ -85,3 +85,13 @@ def test_code_realize_plans_dry_run_only():
     assert v.status == RealizeStatus.PLANNED  # 코드는 항상 dry-run
     assert v.plan.reversible and v.plan.undo
     assert "characterization test" in v.reason
+
+
+def test_realize_instance_of_excludes_abstractclass_member():
+    """W3-I: a member is an INSTANCE_OF the abstraction, never itself an AbstractClass —
+    the bare (o {name:m}) bound arbitrary same-named nodes."""
+    from engine.hades.hades import realize_kg_abstraction
+
+    v = realize_kg_abstraction("c", "ACCEPTED", ["x"])
+    op = next(o for o in v.plan.operations if "INSTANCE_OF" in o)
+    assert "WHERE NOT o:AbstractClass" in op

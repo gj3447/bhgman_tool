@@ -207,6 +207,18 @@ def break_glass(payload: BreakGlassRequest, req: Request):
             status_code=400,
             detail="break-glass는 allowlist gate에만 허용 (KG :BreakGlassAllowlist)",
         )
+    # break_glass.rego also requires a substantive reason + a live (non-expired) session;
+    # the route validated neither (W3-H). (Actor-allowlist enforcement is the OPA path,
+    # W1-C; replicated here are the two checks that don't change the allowlist semantics.)
+    if len(payload.reason.strip()) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail="break-glass override reason must be ≥ 20 chars (break_glass.rego E-SA-Drift-2)",
+        )
+    if payload.expires_at <= dt.datetime.now(dt.timezone.utc):
+        raise HTTPException(
+            status_code=400, detail="break-glass session expired (expires_at must be in the future)"
+        )
     audit_id = f"breakglass-{uuid.uuid4().hex[:12]}"
     _audit_break_glass(audit_id, payload)
     # TODO: Slack/PagerDuty webhook

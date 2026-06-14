@@ -37,7 +37,10 @@ from .jinja_env import build_env, UnresolvedMarkerError
 
 
 CFG_MARKER_RE = re.compile(r"\{\{\s*cfg\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}")
-INLINE_NUMBER_RE = re.compile(r"(?<![\w./])(\d{2,4})(?![\w./])")  # 2-4 digit, word boundary
+# 1-4 digit (was 2-4): 3 of the 5 core magic are single-digit (9/7/8) and were never even
+# captured, so validate() silently passed them through (W3-K). validate() filters matches to
+# the core-magic set, so other single digits (Step 1, 2026) are captured but not flagged.
+INLINE_NUMBER_RE = re.compile(r"(?<![\w./])(\d{1,4})(?![\w./])")
 PARENTHETICAL_HINT_RE = re.compile(r"\(\s*현재\s+\d+(?:[-~]\d+)?\s*\)")
 
 

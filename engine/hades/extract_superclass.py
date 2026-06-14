@@ -93,10 +93,10 @@ def _find_classdef(src: str, name: str) -> ast.ClassDef | None:
     except SyntaxError:
         return None
     named = [n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == name]
-    if named:
-        return named[0]
-    any_cls = [n for n in tree.body if isinstance(n, ast.ClassDef)]
-    return any_cls[0] if len(any_cls) == 1 else None
+    # name must match — the old single-class fallback returned the file's only class even
+    # when its name differed from the request (e.g. asking for "Cat" in a Dog-only file),
+    # binding the WRONG class under the requested key (W3-J).
+    return named[0] if named else None
 
 
 def _lifted(class_sources: dict[str, str]) -> tuple[dict[str, ast.ClassDef], list[str]] | None:

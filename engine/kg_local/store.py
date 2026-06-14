@@ -102,16 +102,25 @@ class LocalKgStore:
         node["props"].update(merged)
         return node
 
+    def _index_of(self, node: dict) -> int:
+        """Index of a node BY IDENTITY — list.index() uses == so two value-identical nodes
+        (e.g. empty {} or same-prop nodes) alias to the same index and edges bind the wrong
+        node (W3-M)."""
+        for i, n in enumerate(self.nodes):
+            if n is node:
+                return i
+        raise ValueError("node not in store (must be a store-owned node, by identity)")
+
     # ── edge ops ─────────────────────────────────────────────────────────
     def add_edge(self, src: dict, type_: str, dst: dict) -> None:
-        si, di = self.nodes.index(src), self.nodes.index(dst)
+        si, di = self._index_of(src), self._index_of(dst)
         e = {"src": si, "type": type_, "dst": di}
         if e not in self.edges:
             self.edges.append(e)
 
     def out_edges(self, node: dict) -> list[tuple[str, dict]]:
         """(rel_type, dst_node) 리스트."""
-        idx = self.nodes.index(node)
+        idx = self._index_of(node)
         return [(e["type"], self.nodes[e["dst"]]) for e in self.edges if e["src"] == idx]
 
 

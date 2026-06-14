@@ -151,3 +151,12 @@ def test_hades_realize_preserve_format_routes_to_cst():
     )
     assert v.applied is True
     assert "# important: keep this comment" in captured["base"]
+
+
+def test_find_classdef_no_single_class_fallback():
+    """W3-J: requesting an absent name must return None, not the file's only (wrong) class."""
+    from engine.hades.extract_superclass import _find_classdef
+
+    src = "class Dog:\n    def bark(self): ...\n"
+    assert _find_classdef(src, "Dog").name == "Dog"
+    assert _find_classdef(src, "Cat") is None

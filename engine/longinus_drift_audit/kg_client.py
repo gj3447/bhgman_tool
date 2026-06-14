@@ -12,6 +12,7 @@ Wave 6 (2026-05-14) extensions:
 from __future__ import annotations
 
 import json
+import re
 import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -513,7 +514,17 @@ class _McpResult:
         return self._rows
 
 
-_MCP_WRITE_TOKENS = ("MERGE", "CREATE", "SET ", "DELETE", "REMOVE", "DETACH", "DROP", " SET\n")
+# word-boundary write detection after stripping string literals — substring matching
+# (`"MERGE" in up`) misrouted legitimate READS to the write tool whenever a property
+# (n.createdAt), label (:MergedPR), or literal value contained a write keyword (W3-L).
+_MCP_WRITE_RE = re.compile(
+    r"\b(CREATE|MERGE|DELETE|REMOVE|SET|DROP|FOREACH|DETACH|LOAD\s+CSV)\b", re.IGNORECASE
+)
+_MCP_STRING_LIT = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"", re.DOTALL)
+
+
+def _is_write_cypher(cypher: str) -> bool:
+    return bool(_MCP_WRITE_RE.search(_MCP_STRING_LIT.sub("''", cypher)))
 
 
 def _mcp_exec(url: str, cypher: str, params: dict) -> list[dict]:
@@ -527,8 +538,7 @@ def _mcp_exec(url: str, cypher: str, params: dict) -> list[dict]:
     import json as _json
     import urllib.request as _ur
 
-    up = cypher.upper()
-    tool = "write_neo4j_cypher" if any(t in up for t in _MCP_WRITE_TOKENS) else "read_neo4j_cypher"
+    tool = "write_neo4j_cypher" if _is_write_cypher(cypher) else "read_neo4j_cypher"
     payload = {
         "jsonrpc": "2.0",
         "id": 1,

@@ -164,3 +164,12 @@ def test_strict_undefined_raises_on_missing():
     template = env.from_string("{{ cfg.never_defined }}")
     with pytest.raises(UnresolvedMarkerError):
         template.render(cfg={"only_this": 1})
+
+
+def test_inline_number_re_matches_single_digit_core_magic():
+    """W3-K: 3 of the 5 core magic are single-digit (9/7/8) — the regex must capture them."""
+    from engine.resolver.resolver import INLINE_NUMBER_RE
+
+    assert INLINE_NUMBER_RE.findall("lens count is 9 axes") == ["9"]
+    assert INLINE_NUMBER_RE.findall("max 200 lines") == ["200"]
+    assert INLINE_NUMBER_RE.findall("v2026 release") == []  # word-internal digits untouched

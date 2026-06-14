@@ -30,7 +30,7 @@ ST Cover Scope = `{{cfg.st_decision_areas}}` 영역 (현재 8) — AST/Workflow/
 
 ## Contract 기본 필드
 
-Contract DTO 기본 `{{cfg.contract_default_fields}}` 필드 (v2에서 9 canonical axis로 확장).
+Contract DTO 기본 `{{cfg.contract_default_fields}}` 필드 (v2에서 nine canonical axis로 확장).
 
 ---
 

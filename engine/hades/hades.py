@@ -68,7 +68,10 @@ def realize_kg_abstraction(
         "MERGE (a:AbstractClass {name:$concept}) SET a.status='CANONICAL', a.realizedBy='hades'",
         "UNWIND $members AS m "
         "MATCH (a:AbstractClass {name:$concept}) "
-        "MATCH (o {name:m}) "
+        # exclude AbstractClass: a member node is an INSTANCE_OF the abstraction, never
+        # itself an abstract class — bare (o {name:m}) bound arbitrary same-named nodes,
+        # including other AbstractClasses (W3-I).
+        "MATCH (o {name:m}) WHERE NOT o:AbstractClass "
         "MERGE (o)-[:INSTANCE_OF]->(a)",
     )
     undo = (

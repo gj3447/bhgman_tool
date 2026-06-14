@@ -56,3 +56,16 @@ def test_out_edges(tmp_path):
     s.add_edge(o, "ALIGNS_WITH_AXIS", v)
     edges = s.out_edges(o)
     assert edges == [("ALIGNS_WITH_AXIS", v)]
+
+
+def test_add_edge_uses_identity_not_value_equality(tmp_path):
+    """W3-M: two value-identical nodes must not alias to the same index — list.index() uses
+    == so edges bound the wrong node."""
+    from engine.kg_local.store import LocalKgStore
+
+    s = LocalKgStore(tmp_path / "kg.json")
+    n1 = {"labels": ["N"], "props": {"name": "x"}}
+    n2 = {"labels": ["N"], "props": {"name": "x"}}  # value-identical, distinct objects
+    s.nodes.extend([n1, n2])
+    s.add_edge(n1, "REL", n2)
+    assert s.edges == [{"src": 0, "type": "REL", "dst": 1}]  # not src==dst==0

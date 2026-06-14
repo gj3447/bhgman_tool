@@ -77,7 +77,7 @@ class CircuitBreaker:
                 self._reset()
                 return CircuitDecision(State.CLOSED, True, "corrupt OPEN reset")
             opened_at = float(_decode(opened_at_raw))
-            if time.monotonic() - opened_at >= OPEN_DURATION_S:
+            if time.time() - opened_at >= OPEN_DURATION_S:
                 # promote OPEN → HALF_OPEN
                 self._r.set(self._key("state"), State.HALF_OPEN.value)
                 return CircuitDecision(
@@ -86,7 +86,7 @@ class CircuitBreaker:
             return CircuitDecision(
                 State.OPEN,
                 False,
-                f"circuit OPEN (opened {time.monotonic() - opened_at:.1f}s ago)",
+                f"circuit OPEN (opened {time.time() - opened_at:.1f}s ago)",
             )
 
         # HALF_OPEN
@@ -101,8 +101,12 @@ class CircuitBreaker:
     def record_failure(self) -> State:
         count = self._r.incr(self._key("fail_count"))
         if count >= FAIL_THRESHOLD:
-            self._r.set(self._key("state"), State.OPEN.value)
-            self._r.set(self._key("opened_at"), str(time.monotonic()))
+            # wall clock (time.time), NOT time.monotonic: monotonic resets at boot, so a
+            # persisted monotonic opened_at left `time.x() - opened_at` negative after a
+            # restart → circuit stuck OPEN forever (W3-G). TTL backstops a leaked OPEN key.
+            ttl = int(OPEN_DURATION_S * 4)
+            self._r.set(self._key("state"), State.OPEN.value, ex=ttl)
+            self._r.set(self._key("opened_at"), str(time.time()), ex=ttl)
             return State.OPEN
         return State.CLOSED
 
