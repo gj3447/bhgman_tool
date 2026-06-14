@@ -44,6 +44,41 @@ def _verdict_dict(ctx: dict) -> dict:
     return dict(v) if isinstance(v, dict) else {}
 
 
+# W2-A: the runtime-resolved service-graph edge, persisted for provenance. Best-effort —
+# a backend that doesn't recognize it just drops it (the decision still lives in LegionRun).
+_DISPATCH_EVENT_MERGE = (
+    "MERGE (e:DispatchEvent {source_commander:$source_commander, "
+    "target_commander:$target_commander, metric_name:$metric_name, epoch:$epoch, "
+    "decided_at:$decided_at}) "
+    "SET e.metric_value=$metric_value, e.threshold=$threshold, e.reason=$reason, "
+    "e.depth=$depth, e.cycle_id=$cycle_id, e.hmac_signature=$hmac_signature "
+    "RETURN e.source_commander AS src"
+)
+
+
+def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list) -> None:
+    """Build the stage's measurement from the post-stage context, run decide_dispatch(),
+    collect the DispatchDecisions, and emit each as a :DispatchEvent (best-effort)."""
+    if stage.measure is None:
+        return
+    commander = stage.measure(ctx)
+    if commander is None:
+        return
+    try:
+        decisions = commander.decide_dispatch(cycle_id=ctx.get("cycle_id"))
+    except Exception:  # noqa: BLE001 — depth cap / measurement error → no decisions this stage
+        return
+    sink.extend(decisions)
+    wc = ctx.get("write_cypher")
+    if wc is None:
+        return
+    for d in decisions:
+        try:
+            wc(_DISPATCH_EVENT_MERGE, d.to_kg_event(cycle_id=ctx.get("cycle_id")))
+        except Exception:  # noqa: BLE001 — provenance is best-effort, never breaks the run
+            pass
+
+
 class Legion:
     """등록된 군단장 stage를 Contract-bound + gated 파이프라인으로 실행."""
 
@@ -62,6 +97,7 @@ class Legion:
         ctx = dict(context or {})
         have = set(ctx)
         outcomes: list[StageOutcome] = []
+        decisions: list = []  # W2-A: runtime measurement-driven dispatch decisions
 
         for stage in self._stages:
             missing = _missing_requires(stage, have)
@@ -70,6 +106,7 @@ class Legion:
                     outcomes=tuple(outcomes),
                     contract_violation=f"{stage.name} requires {list(missing)} not in context",
                     final_context_keys=tuple(have),
+                    dispatch_decisions=tuple(decisions),
                 )
 
             output = stage.run(dict(ctx))
@@ -79,11 +116,15 @@ class Legion:
                     outcomes=tuple(outcomes),
                     contract_violation=f"{stage.name} did not provide {list(lacks)}",
                     final_context_keys=tuple(have),
+                    dispatch_decisions=tuple(decisions),
                 )
 
             ctx.update(output)
             have |= set(output)
             outcomes.append(StageOutcome(stage.name, stage.verb, True, f"provided {list(output)}"))
+
+            # measure() + decide_dispatch() at runtime — the named essence (was never called).
+            _measure_and_dispatch(stage, ctx, decisions)
 
             if gate is not None:
                 passed, detail = gate(ctx)
@@ -94,6 +135,7 @@ class Legion:
                         gate_failure=f"oracle gate FAIL after {stage.name}: {detail}",
                         final_context_keys=tuple(have),
                         final_verdict=_verdict_dict(ctx),
+                        dispatch_decisions=tuple(decisions),
                     )
 
         return LegionRun(
@@ -101,4 +143,5 @@ class Legion:
             completed=True,
             final_context_keys=tuple(have),
             final_verdict=_verdict_dict(ctx),
+            dispatch_decisions=tuple(decisions),
         )

@@ -11,9 +11,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 # 군단장 stage: KG context(dict) → 새로 제공하는 키/값(dict). 순수 transform.
 StageFn = Callable[[dict], dict]
+# measurement-driven dispatch (W2-A): post-stage context → that commander's measurement
+# instance (duck-typed: exposes .decide_dispatch()). None = no runtime measurement wired.
+MeasureFn = Callable[[dict], "Any | None"]
 
 
 @dataclass(frozen=True)
@@ -25,6 +29,9 @@ class CommanderStage:
     requires: tuple[str, ...]
     provides: tuple[str, ...]
     run: StageFn
+    # W2-A: builds this commander's measurement from the post-stage context so run() can
+    # measure() + decide_dispatch() at RUNTIME (the named "measurement-driven dispatch").
+    measure: MeasureFn | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +55,11 @@ class LegionRun:
     # inspect its CONTENT (oracle / ensemble) — a stage can complete ok=True yet carry a
     # FAIL/REJECT verdict. Empty when no verify stage ran.
     final_verdict: dict = field(default_factory=dict)
+    # W2-A: DispatchDecision records produced at RUNTIME by each stage's measurement
+    # (measure() + decide_dispatch()). Empty when no stage carried a measurement that
+    # crossed a threshold. These are the runtime-resolved service-graph edges
+    # (7cmd-measurement-driven-conditional-dispatch), also emitted as :DispatchEvent.
+    dispatch_decisions: tuple[Any, ...] = field(default_factory=tuple)
 
     @property
     def ran(self) -> int:

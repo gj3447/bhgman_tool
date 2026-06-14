@@ -124,3 +124,86 @@ def test_full_forward_pipeline_terminates_in_realize():
     assert run.ran == 6
     assert [o.verb for o in run.outcomes] == ["획득", "연결", "창조", "정리", "검증", "실현"]
     assert run.outcomes[-1].verb == "실현"  # 종착 = 하데스
+
+
+# ── W2-A: runtime measurement-driven dispatch (measure() + decide_dispatch()) ──
+
+
+def test_runtime_measurement_emits_dispatch_decision():
+    """A stage carrying a measure factory now produces DispatchDecision records at RUNTIME
+    when a measured metric crosses its threshold (Legion.run() never called measure() before)."""
+    from engine.legion.commanders import _measure_prometheus
+
+    over = CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": {"mode": "kg-deterministic", "findings": 20}},
+        measure=_measure_prometheus,
+    )
+    run = Legion().register(over).run(context={})
+    assert run.completed
+    targets = {d.target_commander for d in run.dispatch_decisions}
+    assert "naesengmoon" in targets  # finding_count 20 > 16 → dispatch verification
+
+
+def test_below_threshold_emits_no_dispatch_decision():
+    from engine.legion.commanders import _measure_prometheus
+
+    under = CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": {"findings": 3}},
+        measure=_measure_prometheus,
+    )
+    run = Legion().register(under).run(context={})
+    assert run.dispatch_decisions == ()
+
+
+def test_stage_without_measure_factory_records_nothing():
+    stage = _stage("x", "획득", (), ("k",), {"k": "v"})  # no measure
+    assert Legion().register(stage).run(context={}).dispatch_decisions == ()
+
+
+def test_dispatch_decision_emitted_via_write_cypher():
+    from engine.legion.commanders import _measure_prometheus
+
+    calls: list = []
+
+    def wc(cypher, params):
+        calls.append((cypher, params))
+        return []
+
+    over = CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": {"findings": 20}},
+        measure=_measure_prometheus,
+    )
+    run = Legion().register(over).run(context={"write_cypher": wc})
+    assert run.dispatch_decisions  # ≥1 decision
+    assert any("DispatchEvent" in c for c, _ in calls)  # emitted as :DispatchEvent
+
+
+def test_dispatch_event_persisted_to_local_kg(tmp_path):
+    from engine.kg_local.runner import make_local_runner
+    from engine.kg_local.store import LocalKgStore
+    from engine.legion.commanders import _measure_prometheus
+
+    store = LocalKgStore(tmp_path / "kg.json")
+    runner = make_local_runner(store)
+    over = CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": {"findings": 20}},
+        measure=_measure_prometheus,
+    )
+    Legion().register(over).run(context={"write_cypher": runner})
+    assert store.find_nodes("DispatchEvent")  # the decision reached the KG

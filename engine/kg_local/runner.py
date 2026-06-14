@@ -105,6 +105,16 @@ def _hades_merge_concept(store: LocalKgStore, params: dict) -> list[dict]:
     return []
 
 
+def _dispatch_event_merge(store: LocalKgStore, params: dict) -> list[dict]:
+    """legion W2-A — MERGE a :DispatchEvent (runtime measurement-driven dispatch decision)."""
+    key = (
+        f"dispatch-{params.get('source_commander')}-{params.get('target_commander')}-"
+        f"{params.get('metric_name')}-{params.get('epoch')}"
+    )
+    store.merge_node("DispatchEvent", "name", key, {k: v for k, v in params.items()})
+    return [{"src": params.get("source_commander")}]
+
+
 def _eureka_persist_abstractclass(store: LocalKgStore, params: dict) -> list[dict]:
     """eureka stage_6 persist (W1-I) — MERGE an AbstractClass with the verdictStatus hades
     fetches on. Distinct from _hades_merge_concept (which marks status=CANONICAL on realize)."""
@@ -402,6 +412,7 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
         _eureka_persist_abstractclass,
         True,
     ),
+    (lambda c: "MERGE (e:DispatchEvent" in c, _dispatch_event_merge, True),
     (lambda c: "INSTANCE_OF" in c and "$members" in c, _hades_link_members, True),
     (lambda c: "UNWIND $rows" in c and "s.sha256" in c, _rebind_sha, True),
     # 재배맨 씨앗/계획-엣지 (write) + 분해 anchor 자식 (read).

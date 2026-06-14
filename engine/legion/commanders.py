@@ -287,9 +287,28 @@ def _run_realize(ctx: dict) -> dict:
         return _degraded("realized", f"hades failed: {e}")
 
 
+# ── measurement factories (W2-A) — derive a commander's metrics from its stage output ──
+# Only metrics the deterministic pipeline actually EXPOSES are wired (no fabricated values):
+# prometheus surfaces a finding count, so its research_finding_count → naesengmoon dispatch
+# threshold is measurable at runtime. The other commanders' metrics aren't exposed by the
+# current outputs (a follow-up to surface them); their stages carry no measure factory.
+def _measure_prometheus(ctx: dict):
+    from engine.legion.measurement import PrometheusMeasurement  # noqa: PLC0415
+
+    acquired = ctx.get("acquired") or {}
+    return PrometheusMeasurement(finding_count=int(acquired.get("findings", 0) or 0))
+
+
 # ── stage 빌더 + 기본 합성 ──────────────────────────────────────────────────
 _STAGES: tuple[CommanderStage, ...] = (
-    CommanderStage("prometheus", "획득", ("run_cypher",), ("acquired",), _run_acquire),
+    CommanderStage(
+        "prometheus",
+        "획득",
+        ("run_cypher",),
+        ("acquired",),
+        _run_acquire,
+        measure=_measure_prometheus,
+    ),
     CommanderStage("longinus", "연결", ("run_cypher",), ("bindings",), _run_bind),
     CommanderStage("eureka", "창조", ("run_cypher",), ("abstractions",), _run_induce),
     CommanderStage("occam", "정리", ("run_cypher",), ("hygiene",), _run_hygiene),
