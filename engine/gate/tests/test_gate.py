@@ -319,12 +319,21 @@ def test_circuit_breaker_recovers_after_open_window_wall_clock():
 
 
 def _kg_runner_client(monkeypatch, rows):
-    """gate TestClient whose _build_kg_runner returns a fake run_cypher (returns `rows`)."""
+    """gate TestClient whose _build_kg_runner returns a fake run_cypher (returns `rows`).
+
+    The sp_to_st lens sub-query gets a canned APPROVED 9-lens verdict so the leaf fixture
+    drives the verdict (the lensset check is exercised separately).
+    """
     monkeypatch.setenv("APT_GATE_MODE", "informational")
     from engine.gate import circuit_breaker, gate_endpoint
 
+    def _runner(cypher, _params):
+        if "taliban_verdict" in cypher:
+            return [{"taliban_verdict": "APPROVED", "taliban_lens_count": 9}]
+        return rows
+
     monkeypatch.setattr(circuit_breaker, "build_redis_client", lambda: fakeredis.FakeRedis())
-    monkeypatch.setattr(gate_endpoint, "_build_kg_runner", lambda: lambda _c, _p: rows)
+    monkeypatch.setattr(gate_endpoint, "_build_kg_runner", lambda: _runner)
     return TestClient(gate_endpoint.app)
 
 

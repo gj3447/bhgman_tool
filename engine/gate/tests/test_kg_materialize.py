@@ -21,6 +21,8 @@ class _FakeRunner:
 
     def __call__(self, cypher: str, params: dict) -> list[dict]:
         self.calls.append((cypher, params))
+        if "taliban_verdict" in cypher:  # _CYPHER_SP_LENS
+            return self.by_kind.get("lens", [])
         if "(leaf:Span" in cypher:
             return self.by_kind.get("leaves", [])
         if "(a:AtomicSpan" in cypher:
@@ -44,9 +46,15 @@ def test_sa_to_sp_pass_and_fail():
             "root_span_status": "open",
             "context_budget_total": 8000,
             "duplicate_anchor_count": 0,
+            "work_kind": "NEW",
+            "phase_activation_mode": "FULL",
         },
         "apt_progress": {"git_committed": True, "l1_span_count": 1},
     }
+    # A15 work_kind / phase_activation_mode are now enforced (rego parity)
+    assert (
+        evaluate_gate("sa_to_sp", {**ok_inp, "sa": {**ok_inp["sa"], "work_kind": None}})[0] is False
+    )
     assert evaluate_gate("sa_to_sp", ok_inp)[0] is True
     # break it three different ways
     bad = {**ok_inp, "sa": {**ok_inp["sa"], "status": "draft"}}
@@ -64,12 +72,23 @@ def _leaf(atomic=True, full=True):
     return f
 
 
+_LENS_OK = {"taliban_verdict": "APPROVED", "taliban_lens_count": 9}
+
+
 def test_sp_to_st_requires_all_atomic_with_full_cs():
-    assert evaluate_gate("sp_to_st", {"sp": {"leaves": [_leaf(), _leaf()]}})[0] is True
-    assert evaluate_gate("sp_to_st", {"sp": {"leaves": []}})[0] is False  # empty frontier
-    assert evaluate_gate("sp_to_st", {"sp": {"leaves": [_leaf(atomic=False)]}})[0] is False
-    r = evaluate_gate("sp_to_st", {"sp": {"leaves": [_leaf(full=False)]}})
+    ok = {"sp": {"leaves": [_leaf(), _leaf()]}, **_LENS_OK}
+    assert evaluate_gate("sp_to_st", ok)[0] is True
+    assert (
+        evaluate_gate("sp_to_st", {"sp": {"leaves": []}, **_LENS_OK})[0] is False
+    )  # empty frontier
+    assert (
+        evaluate_gate("sp_to_st", {"sp": {"leaves": [_leaf(atomic=False)]}, **_LENS_OK})[0] is False
+    )
+    r = evaluate_gate("sp_to_st", {"sp": {"leaves": [_leaf(full=False)]}, **_LENS_OK})
     assert r[0] is False and "C(S)" in r[1]
+    # lensset_complete now enforced: atomic + full C(S) but no 9-lens approval → deny
+    r2 = evaluate_gate("sp_to_st", {"sp": {"leaves": [_leaf()]}, "taliban_verdict": "PENDING"})
+    assert r2[0] is False and "LensSet" in r2[1]
 
 
 def test_st_to_scw_full_check():
@@ -78,8 +97,8 @@ def test_st_to_scw_full_check():
             "atoms": [{"has_twin": True}],
             "twins": [{"has_contract": True, "has_task": True}],
             "contracts": [{"status": "Active", "tau_check_pass": True, "field_count": 9}],
-            "tasks": [{"impact_tests": 3}],
-            "decision_areas_completed": 5,
+            "tasks": [{"impact_tests": ["t1", "t2", "t3"]}],
+            "decision_areas_completed": ["d1", "d2", "d3", "d4", "d5"],
         },
         "config": {"contract_default_fields": 7, "st_tier1_count": 5},
     }
@@ -93,28 +112,41 @@ def test_st_to_scw_full_check():
         },
     }
     assert evaluate_gate("st_to_scw", bad)[0] is False
-    # task without impact tests (TDAD)
-    bad2 = {**ok, "st": {**ok["st"], "tasks": [{"impact_tests": 0}]}}
+    # task with empty impact_tests list (TDAD)
+    bad2 = {**ok, "st": {**ok["st"], "tasks": [{"impact_tests": []}]}}
     assert evaluate_gate("st_to_scw", bad2)[0] is False
     # decision areas below tier1
-    bad3 = {**ok, "st": {**ok["st"], "decision_areas_completed": 2}}
+    bad3 = {**ok, "st": {**ok["st"], "decision_areas_completed": ["d1", "d2"]}}
     assert evaluate_gate("st_to_scw", bad3)[0] is False
 
 
 def test_fulfillment_full_check():
     ok = {
-        "test_run": {"passed": 10, "total_tests": 10, "failed": 0},
+        "test_run": {"passed": 10, "total_tests": 10, "failed": 0, "skipped": 0},
         "actual": {
             "output_type": "DTO",
             "kg_refs_in_source": "# KG: TASK_x CONTRACT_y",
             "lines": 120,
             "test_assertion_count": 5,
             "postcondition_verified": True,
+            "precondition_check_present": True,
+            "postcondition_check_present": True,
         },
         "contract": {"output_type": "DTO"},
         "config": {"complexity_threshold": 500},
     }
     assert evaluate_gate("fulfillment_gate", ok)[0] is True
+    # newly-enforced rego checks (parity): skipped!=0 and missing precondition presence → deny
+    assert (
+        evaluate_gate("fulfillment", {**ok, "test_run": {**ok["test_run"], "skipped": 1}})[0]
+        is False
+    )
+    assert (
+        evaluate_gate(
+            "fulfillment", {**ok, "actual": {**ok["actual"], "precondition_check_present": False}}
+        )[0]
+        is False
+    )
     assert (
         evaluate_gate(
             "fulfillment", {**ok, "test_run": {"passed": 8, "total_tests": 10, "failed": 2}}
@@ -175,7 +207,8 @@ def test_decide_gate_end_to_end_sp_to_st_pass():
                     "verification": "v2",
                     "c_s_predicate": "c2",
                 },
-            ]
+            ],
+            "lens": [{"taliban_verdict": "APPROVED", "taliban_lens_count": 9}],
         }
     )
     ok, reason = decide_gate("sp_to_st", "cyc-1", runner)
@@ -197,8 +230,8 @@ def test_decide_gate_end_to_end_st_to_scw_blocks_on_missing_contract():
                     "contract_status": None,
                     "tau_check_pass": False,
                     "field_count": 0,
-                    "impact_tests": 3,
-                    "decision_areas_completed": 5,
+                    "impact_tests": ["t1"],
+                    "decision_areas_completed": ["d1", "d2", "d3", "d4", "d5"],
                 },
             ]
         }

@@ -53,6 +53,13 @@ _CYPHER_SP_LEAVES = (
     "leaf.c_s_predicate AS c_s_predicate"
 )
 
+# lens verdict (taliban/naesengmoon constitutional 9-lens) for sp_to_st lensset_complete.
+_CYPHER_SP_LENS = (
+    "MATCH (sa:SemanticAnchor {cycle_id: $cycle_id}) "
+    "OPTIONAL MATCH (sa)-[:HAS_LENS_VERDICT|VALIDATED_BY]->(v) "
+    "RETURN v.verdict AS taliban_verdict, coalesce(v.lensCount, 0) AS taliban_lens_count LIMIT 1"
+)
+
 _CYPHER_ST = (
     "MATCH (a:AtomicSpan {cycle_id: $cycle_id}) "
     "OPTIONAL MATCH (a)-[:HAS_TWIN]->(tw:Twin) "
@@ -61,18 +68,22 @@ _CYPHER_ST = (
     "RETURN a.name AS atom, (tw IS NOT NULL) AS has_twin, "
     "(c IS NOT NULL) AS has_contract, (t IS NOT NULL) AS has_task, "
     "c.status AS contract_status, coalesce(c.tauCheckPass, false) AS tau_check_pass, "
-    "coalesce(c.fieldCount, 0) AS field_count, coalesce(t.impactTests, 0) AS impact_tests, "
-    "coalesce(a.decisionAreasCompleted, 0) AS decision_areas_completed"
+    "coalesce(c.fieldCount, 0) AS field_count, coalesce(t.impactTests, []) AS impact_tests, "
+    "coalesce(a.decisionAreasCompleted, []) AS decision_areas_completed"
 )
 
 _CYPHER_FULFILLMENT = (
     "MATCH (scw:SourceCodeNode {cycle_id: $cycle_id}) "
     "RETURN coalesce(scw.testsPassed, 0) AS passed, coalesce(scw.testsTotal, 0) AS total_tests, "
-    "coalesce(scw.testsFailed, 0) AS failed, scw.outputType AS actual_output_type, "
-    "scw.contractOutputType AS contract_output_type, "
+    "coalesce(scw.testsFailed, 0) AS failed, coalesce(scw.testsSkipped, 0) AS skipped, "
+    "scw.outputType AS actual_output_type, scw.contractOutputType AS contract_output_type, "
     "coalesce(scw.kgRefsInSource, '') AS kg_refs_in_source, "
     "coalesce(scw.lines, 0) AS lines, coalesce(scw.testAssertionCount, 0) AS test_assertion_count, "
-    "coalesce(scw.postconditionVerified, false) AS postcondition_verified "
+    "coalesce(scw.postconditionVerified, false) AS postcondition_verified, "
+    "coalesce(scw.preconditionCheckPresent, false) AS precondition_check_present, "
+    "coalesce(scw.postconditionCheckPresent, false) AS postcondition_check_present, "
+    "scw.latencyP99Ms AS latency_p99_ms, scw.nfrLatencyP99Ms AS nfr_latency_p99_ms, "
+    "scw.nfrMemoryMb AS nfr_memory_mb "
     "LIMIT 1"
 )
 
@@ -111,12 +122,15 @@ def materialize_gate_input(gate_name: str, cycle_id: str, run_cypher: CypherRunn
         }
     if g == "sp_to_st":
         leaves = run_cypher(_CYPHER_SP_LEAVES, {"cycle_id": cycle_id})
+        lens = _one(run_cypher(_CYPHER_SP_LENS, {"cycle_id": cycle_id}))
         return {
             "gate_name": gate_name,
             "cycle_id": cycle_id,
             "sp": {
                 "leaves": [{k: leaf.get(k) for k in ("is_atomic", *_C_S_FIELDS)} for leaf in leaves]
             },
+            "taliban_verdict": lens.get("taliban_verdict"),
+            "taliban_lens_count": int(lens.get("taliban_lens_count") or 0),
         }
     if g == "st_to_scw":
         rows = run_cypher(_CYPHER_ST, {"cycle_id": cycle_id})
@@ -142,12 +156,14 @@ def materialize_gate_input(gate_name: str, cycle_id: str, run_cypher: CypherRunn
                     if r.get("has_contract")
                 ],
                 "tasks": [
-                    {"impact_tests": int(r.get("impact_tests") or 0)}
+                    {"impact_tests": list(r.get("impact_tests") or [])}
                     for r in rows
                     if r.get("has_task")
                 ],
                 "decision_areas_completed": max(
-                    (int(r.get("decision_areas_completed") or 0) for r in rows), default=0
+                    (list(r.get("decision_areas_completed") or []) for r in rows),
+                    key=len,
+                    default=[],
                 ),
             },
             "config": {
@@ -164,6 +180,7 @@ def materialize_gate_input(gate_name: str, cycle_id: str, run_cypher: CypherRunn
                 "passed": int(row.get("passed") or 0),
                 "total_tests": int(row.get("total_tests") or 0),
                 "failed": int(row.get("failed") or 0),
+                "skipped": int(row.get("skipped") or 0),
             },
             "actual": {
                 "output_type": row.get("actual_output_type"),
@@ -171,8 +188,15 @@ def materialize_gate_input(gate_name: str, cycle_id: str, run_cypher: CypherRunn
                 "lines": int(row.get("lines") or 0),
                 "test_assertion_count": int(row.get("test_assertion_count") or 0),
                 "postcondition_verified": bool(row.get("postcondition_verified")),
+                "precondition_check_present": bool(row.get("precondition_check_present")),
+                "postcondition_check_present": bool(row.get("postcondition_check_present")),
+                "latency_p99_ms": row.get("latency_p99_ms"),
             },
-            "contract": {"output_type": row.get("contract_output_type")},
+            "contract": {
+                "output_type": row.get("contract_output_type"),
+                "nfr_latency_p99_ms": row.get("nfr_latency_p99_ms"),
+                "nfr_memory_mb": row.get("nfr_memory_mb"),
+            },
             "config": {"complexity_threshold": _DEFAULT_COMPLEXITY},
         }
     raise ValueError(
@@ -183,26 +207,30 @@ def materialize_gate_input(gate_name: str, cycle_id: str, run_cypher: CypherRunn
 # ── evaluators — pure Python mirror of the .rego decision rule ───────────────────────
 
 
+_A15_WORK_KINDS = frozenset({"NEW", "EXTEND", "MAINTENANCE"})
+_A15_MODES = frozenset({"FULL", "SHORT_CIRCUIT", "SKIP_TO_ST_DRIFT"})
+
+
 def _evaluate_sa_to_sp(inp: dict) -> tuple[bool, str]:
     sa = inp.get("sa") or {}
     prog = inp.get("apt_progress") or {}
-    fails = []
-    if not sa.get("name"):
-        fails.append("no SemanticAnchor")
-    if sa.get("status") != "active":
-        fails.append(f"sa.status={sa.get('status')} != active")
-    if not sa.get("root_span_name"):
-        fails.append("no Root Span (HAS_ROOT)")
-    elif sa.get("root_span_status") != "open":
-        fails.append(f"root_span.status={sa.get('root_span_status')} != open")
-    if not sa.get("context_budget_total"):
-        fails.append("context budget not allocated")
-    if int(sa.get("duplicate_anchor_count") or 0) != 0:
-        fails.append(f"{sa.get('duplicate_anchor_count')} duplicate anchors")
-    if int(prog.get("l1_span_count") or 0) <= 0:
-        fails.append("no L1 span (Progressive Disclosure)")
-    if not prog.get("git_committed"):
-        fails.append("not git-committed")
+    root_ok = bool(sa.get("root_span_name")) and sa.get("root_span_status") == "open"
+    checks = [
+        (not sa.get("name"), "no SemanticAnchor"),
+        (sa.get("status") != "active", f"sa.status={sa.get('status')} != active"),
+        (not root_ok, "no open Root Span (HAS_ROOT)"),
+        (not sa.get("context_budget_total"), "context budget not allocated"),
+        (int(sa.get("duplicate_anchor_count") or 0) != 0, "duplicate anchors"),
+        (int(prog.get("l1_span_count") or 0) <= 0, "no L1 span (Progressive Disclosure)"),
+        # v27 A15: work_kind + phase_activation_mode must be classified (sa_to_sp.rego)
+        (
+            sa.get("work_kind") not in _A15_WORK_KINDS,
+            f"A15 work_kind {sa.get('work_kind')} invalid",
+        ),
+        (sa.get("phase_activation_mode") not in _A15_MODES, "A15 phase_activation_mode not set"),
+        (not prog.get("git_committed"), "not git-committed"),
+    ]
+    fails = [msg for cond, msg in checks if cond]
     return (not fails, "SA→SP gate: " + ("PASS" if not fails else "; ".join(fails)))
 
 
@@ -218,7 +246,13 @@ def _evaluate_sp_to_st(inp: dict) -> tuple[bool, str]:
     ]
     if incomplete:
         return False, f"SP→ST gate: {len(incomplete)} leaf missing C(S) 5-predicate field(s)"
-    return True, f"SP→ST gate: PASS ({len(leaves)} atomic leaves, all C(S) fields present)"
+    # lensset_complete (sp_to_st.rego): constitutional 9-lens unanimous, no 3-lens shortcut.
+    if inp.get("taliban_verdict") != "APPROVED" or int(inp.get("taliban_lens_count") or 0) != 9:
+        return False, (
+            f"SP→ST gate: LensSet incomplete (taliban={inp.get('taliban_verdict')}, "
+            f"lens={inp.get('taliban_lens_count')}/9 — 3-lens shortcut?)"
+        )
+    return True, f"SP→ST gate: PASS ({len(leaves)} atomic leaves, C(S) + 9-lens complete)"
 
 
 def _contract_fails(contracts: list, field_min: int) -> list[str]:
@@ -248,17 +282,30 @@ def _evaluate_st_to_scw(inp: dict) -> tuple[bool, str]:
             "twin without Contract/Task",
         ),
         (
-            any(int(t.get("impact_tests") or 0) <= 0 for t in (st.get("tasks") or [])),
+            any(len(t.get("impact_tests") or []) == 0 for t in (st.get("tasks") or [])),
             "task without impact_tests (TDAD)",
         ),
         (
-            int(st.get("decision_areas_completed") or 0) < tier1,
-            f"decision_areas {st.get('decision_areas_completed')} < tier1 {tier1}",
+            len(st.get("decision_areas_completed") or []) < tier1,
+            f"decision_areas {len(st.get('decision_areas_completed') or [])} < tier1 {tier1}",
         ),
     ]
     fails = [msg for cond, msg in checks if cond]
     fails += _contract_fails(st.get("contracts") or [], field_min)
     return (not fails, "ST→SCW gate: " + ("PASS" if not fails else "; ".join(fails)))
+
+
+def _nfr_ok(con: dict, act: dict) -> bool:
+    """check_7 mirror: pass if no NFR set, else latency_p99 <= threshold (memory-only NFR can't pass)."""
+    nfr_lat = con.get("nfr_latency_p99_ms")
+    nfr_mem = con.get("nfr_memory_mb")
+    if nfr_lat is None and nfr_mem is None:
+        return True
+    if nfr_lat is None:  # only memory NFR set → rego check_7 has no passing branch
+        return False
+    lat = act.get("latency_p99_ms")
+    actual_lat = float(lat) if lat is not None else float("inf")
+    return actual_lat <= float(nfr_lat)
 
 
 def _evaluate_fulfillment(inp: dict) -> tuple[bool, str]:
@@ -269,20 +316,22 @@ def _evaluate_fulfillment(inp: dict) -> tuple[bool, str]:
     total = int(tr.get("total_tests") or 0)
     refs = act.get("kg_refs_in_source") or ""
     complexity_max = int(cfg.get("complexity_threshold") or _DEFAULT_COMPLEXITY)
+    green = total > 0 and int(tr.get("passed") or 0) == total and int(tr.get("failed") or 0) == 0
     checks = [
         (total <= 0, "no tests"),
-        (
-            total > 0 and (int(tr.get("passed") or 0) != total or int(tr.get("failed") or 0) != 0),
-            f"tests not all green ({tr.get('passed')}/{total}, {tr.get('failed')} failed)",
-        ),
+        (total > 0 and not green, "tests not all green"),
+        (int(tr.get("skipped") or 0) != 0, "tests skipped (check_1 skipped!=0)"),
         (
             bool(con.get("output_type")) and act.get("output_type") != con.get("output_type"),
             f"output_type {act.get('output_type')} != contract {con.get('output_type')}",
         ),
+        (not act.get("precondition_check_present"), "precondition check absent (check_3)"),
+        (not act.get("postcondition_check_present"), "postcondition check absent (check_3)"),
         ("TASK_" not in refs or "CONTRACT_" not in refs, "source missing TASK_/CONTRACT_ KG refs"),
         (int(act.get("lines") or 0) > complexity_max, f"lines {act.get('lines')} > threshold"),
-        (int(act.get("test_assertion_count") or 0) <= 0, "no test assertions"),
-        (not act.get("postcondition_verified"), "postcondition not verified"),
+        (int(act.get("test_assertion_count") or 0) <= 0, "no test assertions (check_6)"),
+        (not act.get("postcondition_verified"), "postcondition not verified (check_6)"),
+        (not _nfr_ok(con, act), "NFR latency_p99 over threshold (check_7)"),
     ]
     fails = [msg for cond, msg in checks if cond]
     return (not fails, "Fulfillment gate: " + ("PASS" if not fails else "; ".join(fails)))
