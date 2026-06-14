@@ -313,3 +313,57 @@ def test_circuit_breaker_recovers_after_open_window_wall_clock():
     # backdate opened_at past the OPEN window (wall clock) → must promote to HALF_OPEN
     cb._r.set(cb._key("opened_at"), str(_t.time() - OPEN_DURATION_S - 1))
     assert cb.check().state == State.HALF_OPEN
+
+
+# ─── Phase B: KG materializer wired into the gate (OPA off, real KG runner) ───
+
+
+def _kg_runner_client(monkeypatch, rows):
+    """gate TestClient whose _build_kg_runner returns a fake run_cypher (returns `rows`)."""
+    monkeypatch.setenv("APT_GATE_MODE", "informational")
+    from engine.gate import circuit_breaker, gate_endpoint
+
+    monkeypatch.setattr(circuit_breaker, "build_redis_client", lambda: fakeredis.FakeRedis())
+    monkeypatch.setattr(gate_endpoint, "_build_kg_runner", lambda: lambda _c, _p: rows)
+    return TestClient(gate_endpoint.app)
+
+
+def test_gate_uses_kg_materializer_for_apt_phase_gate_pass(monkeypatch):
+    """sp_to_st with atomic, full-C(S) leaves → PASS via the materializer, NOT the count-stub."""
+    leaves = [
+        {
+            "is_atomic": True,
+            "objective": "o",
+            "definition": "d",
+            "keyAssertion": "k",
+            "verification": "v",
+            "c_s_predicate": "c",
+        }
+    ]
+    with _kg_runner_client(monkeypatch, leaves) as client:
+        r = client.post(
+            "/gate/check",
+            json={"gate_name": "sp_to_st", "cycle_id": "c", "actor": "a", "context": {}},
+        )
+    body = r.json()
+    assert body["verdict"] == "PASS"
+    assert "SP→ST gate" in body["reason"]  # materializer decided it, not the count-stub
+
+
+def test_gate_materializer_blocks_non_atomic_leaf(monkeypatch):
+    leaves = [
+        {
+            "is_atomic": False,
+            "objective": "o",
+            "definition": "d",
+            "keyAssertion": "k",
+            "verification": "v",
+            "c_s_predicate": "c",
+        }
+    ]
+    with _kg_runner_client(monkeypatch, leaves) as client:
+        r = client.post(
+            "/gate/check",
+            json={"gate_name": "sp_to_st", "cycle_id": "c", "actor": "a", "context": {}},
+        )
+    assert r.json()["verdict"] == "WOULD_FAIL"

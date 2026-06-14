@@ -13,9 +13,15 @@ Absorbed from SYMPOSIUM/THEORY/APT/gate_endpoint_prototype/gate_endpoint.py
       allow/deny IS the verdict — authoritative, replacing the stub for that gate.
       The request carries the structured policy ``input`` as ``context`` (input.sa.*,
       input.apt_progress.* per the Rego). OPA unreachable ⇒ fail-closed (FAIL/WOULD_FAIL).
-    * The fallback verdict (OPA off, or gate with no mapped policy) — STILL A STUB.
-      ``_call_kg_with_retry`` does NOT query Neo4j; it only compares
-      ``context.expected_count`` vs ``context.actual_count``. Real KG Cypher = Sprint-3.
+    * The fallback verdict (OPA off):
+        - For the 4 APT phase gates (sa_to_sp / sp_to_st / st_to_scw / fulfillment) with a
+          KG runner configured (NEO4J_*), ``_decide`` now uses the REAL deterministic
+          ``kg_materialize.decide_gate`` — Cypher-projects the KG into the Rego input doc and
+          evaluates a Python mirror of the .rego. No live OPA sidecar needed (Phase B,
+          adr-apt-tpa-engine-substrate-scope-2026-06-14).
+        - For any other gate, OR when no KG runner is configured, it falls back to the legacy
+          ``_call_kg_with_retry`` count-compare stub (``context.expected_count`` vs
+          ``actual_count``) — still a stub, now the last resort only.
 
   Also stubbed: ``_audit`` is stderr print (no KG :GateAuditEntry yet); break-glass
   Slack/PagerDuty alert is a TODO. See engine/gate/README.md "상태" checklist.
@@ -90,12 +96,41 @@ class BreakGlassRequest(BaseModel):
 # ─── Composition Root ────────────────────────────────────────────────────
 
 
+def _build_kg_runner() -> Any:
+    """A run_cypher(cypher, params)->rows over Neo4j when NEO4J_* is set, else None
+    (gate then falls back to the count-stub). Graceful: missing driver/unreachable → None."""
+    uri = os.environ.get("NEO4J_URI")
+    if not uri:
+        return None
+    try:
+        from neo4j import GraphDatabase  # type: ignore  # noqa: PLC0415
+
+        driver = GraphDatabase.driver(
+            uri,
+            auth=(os.environ.get("NEO4J_USER", "neo4j"), os.environ.get("NEO4J_PASSWORD", "")),
+        )
+
+        def run_cypher(cypher: str, params: dict) -> list[dict]:
+            with driver.session() as s:
+                return [dict(r) for r in s.run(cypher, **params)]
+
+        return run_cypher
+    except Exception as e:  # noqa: BLE001 — no driver / unreachable → count-stub fallback
+        print(
+            f"[BOOT] KG runner unavailable ({type(e).__name__}); gate uses count-stub",
+            file=sys.stderr,
+        )
+        return None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 1. Redis
     redis = build_redis_client()
     app.state.redis = redis
-    # 2. Neo4j (실제 연결은 후속 sprint — 본 prototype은 stub)
+    # 2. Neo4j run_cypher for the Phase B KG materializer (real APT phase-gate decisions).
+    #    None when NEO4J_* is unset → _decide falls back to the legacy count-stub.
+    app.state.kg_runner = _build_kg_runner()
     # 3. Allowlist KG node 로드 (stub)
     app.state.allowlist = {"cluster-autoscaler", "essential-infra-pod"}
     # 4. Enforcement mode (KG slot, stub: env override 가능)
@@ -173,9 +208,12 @@ async def gate_check(payload: GateRequest, req: Request) -> GateResponse:
         _audit(audit_id, payload, verdict, decision.reason, mode)
         return _fail_response(verdict, decision.reason, audit_id, decision.state.value, mode)
 
-    # Resolve verdict: OPA policy (authoritative, opt-in) or the context sanity stub.
+    # Resolve verdict: OPA policy (authoritative, opt-in), else the real KG materializer
+    # for an APT phase gate (Phase B), else the context sanity stub.
     try:
-        ok, reason = await _decide(req.app.state.opa, payload)
+        ok, reason = await _decide(
+            req.app.state.opa, payload, getattr(req.app.state, "kg_runner", None)
+        )
     except Exception as e:  # noqa: BLE001 — fail-closed on any gate-backend error
         new_state = cb.record_failure()
         _audit(audit_id, payload, _fail_verdict(mode), f"gate backend error: {e}", mode)
@@ -300,12 +338,23 @@ async def _eval_opa(opa: Any, package: str, rule: str, context: dict) -> tuple[b
     return False, f"OPA {package}.{rule} deny: {'; '.join(deny) or '(no reason given)'}"
 
 
-async def _decide(opa: Any, payload: GateRequest) -> tuple[bool, str]:
-    """Gate verdict: OPA policy (authoritative) when enabled + mapped, else the KG sanity stub."""
+# the 4 APT phase gates the KG materializer (Phase B) can decide deterministically.
+_APT_PHASE_GATES = frozenset(
+    {"sa_to_sp", "sp_to_st", "st_to_scw", "fulfillment", "fulfillment_gate"}
+)
+
+
+async def _decide(opa: Any, payload: GateRequest, run_cypher: Any = None) -> tuple[bool, str]:
+    """Gate verdict: OPA policy (authoritative) when enabled + mapped; else the real KG
+    materializer for an APT phase gate (Phase B); else the legacy count-compare stub."""
     policy = _opa_policy_path(payload)
     if opa is not None and policy is not None:
         package, rule = policy
         return await _eval_opa(opa, package, rule, payload.context)
+    if run_cypher is not None and payload.gate_name in _APT_PHASE_GATES:
+        from engine.gate.kg_materialize import decide_gate  # noqa: PLC0415
+
+        return decide_gate(payload.gate_name, payload.cycle_id, run_cypher)
     return _call_kg_with_retry(payload)
 
 
