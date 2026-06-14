@@ -82,8 +82,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_apt.set_defaults(func=commands.cmd_apt)
 
-    p_tpa = sub.add_parser("tpa", help="TPA reverse cycle (TCW → ST → SP → TA).")
-    p_tpa.add_argument("path", nargs="+", help="Codebase path to reverse-engineer.")
+    p_tpa = sub.add_parser(
+        "tpa",
+        help="TPA reverse cycle (TCW → ST → SP → TA). --gated = run the engine/tpa reverse legion runtime.",
+    )
+    p_tpa.add_argument(
+        "path", nargs="*", help="Codebase path to reverse-engineer (skill route / --gated runtime)."
+    )
+    p_tpa.add_argument(
+        "--gated",
+        action="store_true",
+        help="Run the engine/tpa reverse legion runtime over <path>: TCW extract → ST/SP recover → "
+        "TA 5-drift (deterministic substrate; NOT a cognitive-quality claim).",
+    )
+    p_tpa.add_argument(
+        "--status",
+        action="store_true",
+        help="Reverse phase navigation: which TPA phase a recovery target is at + what runs next.",
+    )
+    p_tpa.add_argument("--target", help="(--status) TpaTarget recovery-cycle name to navigate.")
+    p_tpa.add_argument(
+        "--local", action="store_true", help="(--status) use the bundled neo4j-free local KG."
+    )
     p_tpa.set_defaults(func=commands.cmd_tpa)
 
     p_prom = sub.add_parser("prom", help="프로메테우스 리서치 (런타임 실행 / 없으면 skill route).")

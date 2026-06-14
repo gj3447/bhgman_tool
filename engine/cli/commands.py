@@ -318,11 +318,84 @@ def _cmd_apt_gated(args: argparse.Namespace) -> int:
 
 
 def cmd_tpa(args: argparse.Namespace) -> int:
-    """TPA reverse cycle (TCW → ST → SP → TA). Routes to skills/tpa/SKILL.md."""
+    """TPA reverse cycle. --status nav / --gated engine runtime / else skill route."""
+    if getattr(args, "status", False):
+        return _cmd_tpa_status(args)
+    if getattr(args, "gated", False):
+        return _cmd_tpa_gated(args)
     if not args.path:
-        print("usage: bhgman-tool tpa <path>", file=sys.stderr)
+        print(
+            "usage: bhgman-tool tpa <path>  |  tpa <path> --gated  |  "
+            "tpa --status --target <recovery-cycle>",
+            file=sys.stderr,
+        )
         return 2
     return _route_skill("tpa", args.path)
+
+
+def _cmd_tpa_gated(args: argparse.Namespace) -> int:
+    """Run the engine/tpa reverse legion loop over a path: TCW→ST→SP→TA (deterministic substrate).
+
+    OVER-CLAIM GUARD: no cognitive-quality claim. This composes existing engines (code_to_kg
+    extraction + longinus 5-drift) into the reversed Contract-bound loop; value is operational
+    (reproducible extraction + audited handoff), per adr-apt-tpa-engine-substrate-scope-2026-06-14.
+    """
+    from engine.tpa import build_tpa_legion  # noqa: PLC0415
+
+    if not args.path:
+        print("[tpa --gated] need a <path> to reverse-engineer.", file=sys.stderr)
+        return 2
+    root = args.path[0] if isinstance(args.path, list) else args.path
+    captured: dict = {}
+
+    def _capture(ctx: dict) -> tuple[bool, str]:
+        captured.update(ctx)
+        return True, "ok"
+
+    run = build_tpa_legion().run({"code_root": str(root)}, gate=_capture)
+    print(f"[tpa --gated] reverse loop over {root}")
+    for o in run.outcomes:
+        if o.verb == "검증":
+            continue  # the capture-gate's own bookkeeping row
+        print(f"  {'✓' if o.ok else '✗'} {o.stage} ({o.verb}): {o.detail}")
+    if run.contract_violation:
+        print(f"  CONTRACT VIOLATION: {run.contract_violation}", file=sys.stderr)
+        return 1
+    for key in ("tcw_result", "contracts", "patterns", "drift_report"):
+        node = captured.get(key) or {}
+        if node.get("summary"):
+            print(f"  · {node['summary']}")
+    print(
+        "  (deterministic substrate — reproducible extraction + audited handoff, NOT a quality claim)"
+    )
+    return 0 if run.completed else 1
+
+
+def _cmd_tpa_status(args: argparse.Namespace) -> int:
+    """Reverse phase navigation — which TPA phase a recovery target is at + what runs next."""
+    from engine.tpa import detect_reverse_phase  # noqa: PLC0415
+
+    target = getattr(args, "target", None)
+    if not target:
+        print("[tpa --status] need --target <recovery-cycle name>.", file=sys.stderr)
+        return 2
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[tpa --status] neo4j unavailable — set NEO4J_*, or run via parent Claude MCP.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, _write, close = runners
+    try:
+        status = detect_reverse_phase(target, run_cypher)
+    finally:
+        close()
+    print(f"[tpa --status] {target}")
+    print(f"  phase   : {status.phase}")
+    print(f"  next    : {status.next_skill}")
+    print(f"  evidence: {status.evidence}")
+    return 0 if status.phase != "UNKNOWN" else 1
 
 
 _BACKEND_HINT = (
