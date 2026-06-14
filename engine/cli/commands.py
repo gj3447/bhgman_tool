@@ -656,11 +656,14 @@ def _resolve_status_creds() -> tuple[str, str, str, float]:
         "NEO4J_URI", "bolt://100.64.0.3:7687"
     )
     user = os.environ.get("BHGMAN_STATUS_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
+    # No hard-coded default password (W4): shipping `neo4jpassword` is a weak default + it
+    # ended up on the cypher-shell argv (visible in `ps`). Empty → cypher-shell fails auth
+    # clearly; the password is passed via env (NEO4J_PASSWORD), never argv.
     password = (
         os.environ.get("BHGMAN_STATUS_NEO4J_PASSWORD")
         or os.environ.get("NEO4J_PASSWORD")
         or os.environ.get("SYMPOSIUM_KG_PASSWORD")
-        or "neo4jpassword"
+        or ""
     )
     timeout_s = float(os.environ.get("BHGMAN_STATUS_TIMEOUT", "10"))
     return uri, user, password, timeout_s
@@ -675,7 +678,9 @@ def _try_local_cypher_shell(uri: str, user: str, password: str, timeout_s: float
         )
         return None
     print(f"[bhgman-tool] cypher-shell {uri} — KG audit", file=sys.stderr)
-    cmd = [cypher_shell, "-a", uri, "-u", user, "-p", password, "--format", "plain"]
+    # password via env (NEO4J_PASSWORD), NOT `-p` on argv → not visible in `ps` (W4).
+    cmd = [cypher_shell, "-a", uri, "-u", user, "--format", "plain"]
+    env = {**os.environ, "NEO4J_PASSWORD": password}
     try:
         result = subprocess.run(
             cmd,
@@ -684,6 +689,7 @@ def _try_local_cypher_shell(uri: str, user: str, password: str, timeout_s: float
             text=True,
             timeout=timeout_s,
             check=False,
+            env=env,
         )
     except subprocess.TimeoutExpired:
         print(

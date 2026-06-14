@@ -94,6 +94,21 @@ jobs:
         # neo4j collapsed to Any). Now the full engine gate with all deps, exactly as local/pre-commit.
         run: uv run --all-extras mypy engine
 
+  deptry:
+    name: deptry (dependency drift)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        run: pip install uv
+      - name: deptry (declared-vs-imported dependency drift)
+        # was pre-push only → routinely bypassed with --no-verify (W4). Now a real CI gate,
+        # same as the local pre-commit hook.
+        run: uv run --all-extras deptry engine
+
   lean:
     name: lean build
     runs-on: ubuntu-latest

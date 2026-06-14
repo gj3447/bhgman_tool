@@ -70,7 +70,8 @@ def test_status_prefers_direct_cypher_shell(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert rc == 0
     assert calls[0][0][:3] == ["/bin/cypher-shell", "-a", "bolt://example:7687"]
-    assert calls[0][0][calls[0][0].index("-p") + 1] == "pw"
+    assert "-p" not in calls[0][0]  # W4: password not on argv (ps-visible)
+    assert calls[0][1]["env"]["NEO4J_PASSWORD"] == "pw"  # passed via env instead
     assert "cypher-shell bolt://example:7687" in captured.err
     assert "label, count" in captured.out
 
