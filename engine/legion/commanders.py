@@ -251,13 +251,16 @@ def _run_verify(ctx: dict) -> dict:
 
 # ── 실현 (하데스) ───────────────────────────────────────────────────────────
 def _run_realize(ctx: dict) -> dict:
-    """검증 통과한 ACCEPTED 추상을 KG에 실현 (CANONICAL+INSTANCE_OF). 나생문 oracle FAIL이면 skip."""
+    """검증 통과한 ACCEPTED 추상을 KG에 실현 (CANONICAL+INSTANCE_OF). 나생문 oracle FAIL
+    또는 ensemble REJECT/FAIL이면 skip (적대 검증이 거부한 산물은 실현하지 않는다)."""
     verdict = ctx.get("verdict") or {}
-    if verdict.get("oracle") == "FAIL":
+    oracle = verdict.get("oracle")
+    ensemble = verdict.get("ensemble")
+    if oracle == "FAIL" or ensemble in {"REJECT", "FAIL"}:
         return {
             "realized": {
                 "mode": "skipped",
-                "reason": f"oracle gate FAIL ({verdict.get('degraded_upstream')})",
+                "reason": f"verification gate not clean (oracle={oracle}, ensemble={ensemble})",
                 "summary": "hades: skipped — verification gate did not pass",
             }
         }

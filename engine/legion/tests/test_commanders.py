@@ -107,3 +107,17 @@ def test_realize_skips_when_oracle_gate_fails():
         {"run_cypher": _empty_rc, "verdict": {"oracle": "FAIL", "degraded_upstream": ["acquired"]}}
     )
     assert out["realized"]["mode"] == "skipped"
+
+
+def test_realize_skips_when_ensemble_rejects():
+    """W1-D: hades must not realize a product the adversary ensemble REJECTed, even if
+    the oracle leg passed."""
+    out = _run_realize(
+        {"run_cypher": _empty_rc, "verdict": {"oracle": "PASS", "ensemble": "REJECT"}}
+    )
+    assert out["realized"]["mode"] == "skipped"
+
+
+def test_realize_skips_when_ensemble_fails():
+    out = _run_realize({"run_cypher": _empty_rc, "verdict": {"oracle": "PASS", "ensemble": "FAIL"}})
+    assert out["realized"]["mode"] == "skipped"

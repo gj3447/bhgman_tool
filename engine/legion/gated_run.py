@@ -78,6 +78,12 @@ def eval_g1_artifact_exists(run: LegionRun) -> GateVerdict:
     )
 
 
+# verdict content that must NOT certify the adversary as "passed" (oracle hard-gate FAIL,
+# or the ensemble rejected/failed). 'REJECT' is defensive (verdict sources outside the
+# naesengmoon PASS/CONDITIONAL_PASS/FAIL vocabulary).
+_REJECTING_ENSEMBLE = frozenset({"REJECT", "FAIL"})
+
+
 def eval_g2_adversary_ran(run: LegionRun) -> GateVerdict:
     verify = [o for o in run.outcomes if o.verb == VERIFY_VERB]
     if not verify:
@@ -86,7 +92,22 @@ def eval_g2_adversary_ran(run: LegionRun) -> GateVerdict:
         )
     if not all(o.ok for o in verify):
         return GateVerdict("G2_ADVERSARY_RAN", "FAIL", "adversary stage ran but did not pass")
-    return GateVerdict("G2_ADVERSARY_RAN", "PASS", "naesengmoon 검증 ran and passed")
+    # A stage can be ok=True (it ran without error) yet carry a FAIL/REJECT verdict —
+    # inspect the verdict CONTENT, not just that the stage executed.
+    verdict = run.final_verdict or {}
+    oracle = verdict.get("oracle")
+    ensemble = verdict.get("ensemble")
+    if oracle == "FAIL" or ensemble in _REJECTING_ENSEMBLE:
+        return GateVerdict(
+            "G2_ADVERSARY_RAN",
+            "FAIL",
+            f"adversary ran but verdict not clean (oracle={oracle}, ensemble={ensemble})",
+        )
+    return GateVerdict(
+        "G2_ADVERSARY_RAN",
+        "PASS",
+        f"naesengmoon 검증 ran and passed (oracle={oracle}, ensemble={ensemble})",
+    )
 
 
 def eval_g3_ground_truth(

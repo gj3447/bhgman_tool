@@ -80,6 +80,35 @@ def test_g2_fail_when_verify_failed():
     assert eval_g2_adversary_ran(run).status == "FAIL"
 
 
+def test_g2_fail_when_ensemble_rejects_despite_ok_stage():
+    """W1-D: a stage that ran ok=True but carries ensemble=REJECT must NOT pass G2."""
+    run = LegionRun(
+        outcomes=(_outcome("naesengmoon", "검증"),),
+        completed=True,
+        final_verdict={"oracle": "PASS", "ensemble": "REJECT"},
+    )
+    v = eval_g2_adversary_ran(run)
+    assert v.status == "FAIL" and "ensemble=REJECT" in v.detail
+
+
+def test_g2_fail_when_oracle_fail_despite_ok_stage():
+    run = LegionRun(
+        outcomes=(_outcome("naesengmoon", "검증"),),
+        completed=True,
+        final_verdict={"oracle": "FAIL", "ensemble": "PASS"},
+    )
+    assert eval_g2_adversary_ran(run).status == "FAIL"
+
+
+def test_g2_pass_when_verdict_clean():
+    run = LegionRun(
+        outcomes=(_outcome("naesengmoon", "검증"),),
+        completed=True,
+        final_verdict={"oracle": "PASS", "ensemble": "PASS"},
+    )
+    assert eval_g2_adversary_ran(run).status == "PASS"
+
+
 # ---- G3 GROUND_TRUTH_GREEN ----
 def test_g3_pass_on_zero_exit():
     assert eval_g3_ground_truth("true").status == "PASS"

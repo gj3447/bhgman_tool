@@ -44,6 +44,10 @@ class LegionRun:
     contract_violation: str | None = None
     gate_failure: str | None = None
     final_context_keys: tuple[str, ...] = field(default_factory=tuple)
+    # The naesengmoon (검증) verdict from the final context, surfaced so run-level gates can
+    # inspect its CONTENT (oracle / ensemble) — a stage can complete ok=True yet carry a
+    # FAIL/REJECT verdict. Empty when no verify stage ran.
+    final_verdict: dict = field(default_factory=dict)
 
     @property
     def ran(self) -> int:

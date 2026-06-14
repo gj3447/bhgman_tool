@@ -37,6 +37,13 @@ def _missing_provides(stage: CommanderStage, output: dict) -> tuple[str, ...]:
     return tuple(k for k in stage.provides if k not in output)
 
 
+def _verdict_dict(ctx: dict) -> dict:
+    """The naesengmoon verdict from the context as a dict (run-level gates inspect its
+    oracle/ensemble content). Tolerates a non-dict / absent verdict → {}."""
+    v = ctx.get("verdict")
+    return dict(v) if isinstance(v, dict) else {}
+
+
 class Legion:
     """등록된 군단장 stage를 Contract-bound + gated 파이프라인으로 실행."""
 
@@ -86,10 +93,12 @@ class Legion:
                         outcomes=tuple(outcomes),
                         gate_failure=f"oracle gate FAIL after {stage.name}: {detail}",
                         final_context_keys=tuple(have),
+                        final_verdict=_verdict_dict(ctx),
                     )
 
         return LegionRun(
             outcomes=tuple(outcomes),
             completed=True,
             final_context_keys=tuple(have),
+            final_verdict=_verdict_dict(ctx),
         )
