@@ -241,47 +241,59 @@ def _call_kg_with_retry(payload: GateRequest) -> tuple[bool, str]:
 # ─── OPA policy decision (opt-in via APT_OPA_ENABLED) ─────────────────────
 
 # gate_name → Rego policy package. An explicit context["_policy"] overrides this.
-_GATE_POLICY: dict[str, str] = {
-    "sa_to_sp": "apt.phase_gates.sa_to_sp",
-    "sp_to_st": "apt.phase_gates.sp_to_st",
-    "st_to_scw": "apt.phase_gates.st_to_scw",
-    "fulfillment_gate": "apt.fulfillment_gate",
-    "fulfillment": "apt.fulfillment_gate",
-    "break_glass": "apt.break_glass",
-    "harness": "apt.harness.constrain",
-    "taliban": "apt.taliban.constitutional",
-    "naesengmoon": "apt.taliban.constitutional",
-    "kg_admission": "apt.kg.admission",
+# gate_name → (rego package, the rule name that signals allow). Different policies
+# decide via different rule names — reading only `allow` made break_glass /
+# kg_admission / taliban (allow_override / allow_mutation / approve) always DENY on
+# valid input.
+_GATE_POLICY: dict[str, tuple[str, str]] = {
+    "sa_to_sp": ("apt.phase_gates.sa_to_sp", "allow"),
+    "sp_to_st": ("apt.phase_gates.sp_to_st", "allow"),
+    "st_to_scw": ("apt.phase_gates.st_to_scw", "allow"),
+    "fulfillment_gate": ("apt.fulfillment_gate", "allow"),
+    "fulfillment": ("apt.fulfillment_gate", "allow"),
+    "break_glass": ("apt.break_glass", "allow_override"),
+    "harness": ("apt.harness.constrain", "allow"),
+    "taliban": ("apt.taliban.constitutional", "approve"),
+    "naesengmoon": ("apt.taliban.constitutional", "approve"),
+    "kg_admission": ("apt.kg.admission", "allow_mutation"),
 }
 
 
-def _opa_policy_path(payload: GateRequest) -> str | None:
-    """Resolve the Rego policy for a gate: explicit context['_policy'] wins, else the map."""
+def _opa_policy_path(payload: GateRequest) -> tuple[str, str] | None:
+    """Resolve (rego package, decision rule) for a gate.
+
+    Explicit ``context['_policy']`` wins (rule via ``context['_policy_rule']``, default
+    ``allow``); else the gate→policy map.
+    """
     explicit = payload.context.get("_policy")
     if isinstance(explicit, str) and explicit:
-        return explicit
+        rule = payload.context.get("_policy_rule")
+        return explicit, (rule if isinstance(rule, str) and rule else "allow")
     return _GATE_POLICY.get(payload.gate_name)
 
 
-async def _eval_opa(opa: Any, policy: str, context: dict) -> tuple[bool, str]:
-    """Evaluate a Rego policy → (allow, reason). Accepts both package and `.allow` query shapes."""
-    raw = await opa.eval(policy, context)
+async def _eval_opa(opa: Any, package: str, rule: str, context: dict) -> tuple[bool, str]:
+    """Evaluate a Rego policy → (allow, reason). Reads the policy's actual decision rule
+    (``allow`` / ``allow_override`` / ``approve`` / ``allow_mutation``), not a hardcoded
+    ``allow``. Accepts both package-result-dict and bare-bool query shapes."""
+    raw = await opa.eval(package, context)
     result = raw.get("result")
     if isinstance(result, bool):
-        return result, f"OPA {policy}: {'allow' if result else 'deny'}"
+        return result, f"OPA {package}: {'allow' if result else 'deny'}"
     result = result or {}
-    allow = bool(result.get("allow", False))
+    allow = bool(result.get(rule, False))
     deny = [str(d) for d in (result.get("deny") or [])]
     if allow:
-        return True, f"OPA {policy}: allow"
-    return False, f"OPA {policy} deny: {'; '.join(deny) or '(no reason given)'}"
+        return True, f"OPA {package}.{rule}: allow"
+    return False, f"OPA {package}.{rule} deny: {'; '.join(deny) or '(no reason given)'}"
 
 
 async def _decide(opa: Any, payload: GateRequest) -> tuple[bool, str]:
     """Gate verdict: OPA policy (authoritative) when enabled + mapped, else the KG sanity stub."""
     policy = _opa_policy_path(payload)
     if opa is not None and policy is not None:
-        return await _eval_opa(opa, policy, payload.context)
+        package, rule = policy
+        return await _eval_opa(opa, package, rule, payload.context)
     return _call_kg_with_retry(payload)
 
 

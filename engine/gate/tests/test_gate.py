@@ -145,9 +145,10 @@ def test_health_endpoint(client):
 class _FakeOPA:
     """Stand-in OPA sidecar — canned allow/deny, no httpx/process needed."""
 
-    def __init__(self, *, allow: bool = True, raise_on_eval: bool = False):
+    def __init__(self, *, allow: bool = True, raise_on_eval: bool = False, rule: str = "allow"):
         self._allow = allow
         self._raise = raise_on_eval
+        self._rule = rule  # the decision rule this policy signals allow through
 
     async def __aenter__(self):
         return self
@@ -161,7 +162,9 @@ class _FakeOPA:
     async def eval(self, policy_path, input_doc):
         if self._raise:
             raise RuntimeError("OPA sidecar down")
-        return {"result": {"allow": self._allow, "deny": [] if self._allow else ["V-SA3 NoRoot"]}}
+        return {
+            "result": {self._rule: self._allow, "deny": [] if self._allow else ["V-SA3 NoRoot"]}
+        }
 
 
 def _opa_client(monkeypatch, **kw):
@@ -215,6 +218,39 @@ def test_opa_unreachable_fails_closed(monkeypatch):
     body = r.json()
     assert body["verdict"] == "WOULD_FAIL"  # fail-closed, not a silent PASS
     assert "unreachable" in body["reason"].lower()
+
+
+@pytest.mark.parametrize(
+    "gate_name,package,rule",
+    [
+        ("break_glass", "apt.break_glass", "allow_override"),
+        ("kg_admission", "apt.kg.admission", "allow_mutation"),
+        ("taliban", "apt.taliban.constitutional", "approve"),
+        ("naesengmoon", "apt.taliban.constitutional", "approve"),
+    ],
+)
+def test_opa_non_allow_decision_rules_can_pass(monkeypatch, gate_name, package, rule):
+    """W1-C: break_glass / kg_admission / taliban decide via allow_override /
+    allow_mutation / approve. Reading only `allow` made them always DENY on valid input;
+    they must now be able to PASS when their actual rule is true."""
+    with _opa_client(monkeypatch, allow=True, rule=rule) as client:
+        r = client.post(
+            "/gate/check",
+            json={"gate_name": gate_name, "cycle_id": "c", "actor": "a", "context": {}},
+        )
+    body = r.json()
+    assert body["verdict"] == "PASS", body
+    assert package in body["reason"]
+
+
+def test_opa_non_allow_rule_false_would_fail(monkeypatch):
+    """And when the policy's real rule is false, the gate WOULD_FAIL (not silently pass)."""
+    with _opa_client(monkeypatch, allow=False, rule="allow_override") as client:
+        r = client.post(
+            "/gate/check",
+            json={"gate_name": "break_glass", "cycle_id": "c", "actor": "a", "context": {}},
+        )
+    assert r.json()["verdict"] == "WOULD_FAIL"
 
 
 def test_opa_enabled_unmapped_gate_falls_back_to_stub(monkeypatch):
