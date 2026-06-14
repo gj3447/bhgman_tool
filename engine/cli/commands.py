@@ -1099,6 +1099,13 @@ def cmd_hades(args: argparse.Namespace) -> int:
     return 0
 
 
+def _now_iso() -> str:
+    """ISO-8601 UTC timestamp for provenance (researched_at, etc.)."""
+    import datetime as _dt  # noqa: PLC0415
+
+    return _dt.datetime.now(_dt.timezone.utc).isoformat()
+
+
 def cmd_acquire(args: argparse.Namespace) -> int:
     """프로메테우스 결정론 엔진 — 경계축 ingest (gap→query→fetch→parse→ingest).
 
@@ -1117,13 +1124,26 @@ def cmd_acquire(args: argparse.Namespace) -> int:
         )
         return 2
     run_cypher, write_cypher, close = runners
+    fetcher = None
+    if getattr(args, "web", False):
+        from engine.prometheus import WebSearchFetcher  # noqa: PLC0415
+
+        fetcher = WebSearchFetcher()
+    if getattr(args, "apply", False) and fetcher is None:
+        print(
+            "[acquire] --apply ignored: no fetcher wired (nothing to ingest). Pass --web to "
+            "fetch real findings, or inject a fetcher programmatically.",
+            file=sys.stderr,
+        )
     try:
         report = run_acquire(
             run_cypher,
+            fetcher=fetcher,
             write_cypher=write_cypher,
             cycle_id=getattr(args, "cycle_id", None) or "acquire-cli",
             apply=getattr(args, "apply", False),
             gap_limit=getattr(args, "gap_limit", 50),
+            researched_at=_now_iso(),
         )
     finally:
         close()
@@ -1132,7 +1152,7 @@ def cmd_acquire(args: argparse.Namespace) -> int:
         print(f"  gap={q.gap_id} → query: {q.text}")
     if report.dry_run and report.planned_cyphers:
         print(
-            f"  (PROPOSE: {len(report.planned_cyphers)} planned MERGE — pass --apply + fetcher to write)"
+            f"  (PROPOSE: {len(report.planned_cyphers)} planned MERGE — pass --apply + --web to write)"
         )
     return 0
 
@@ -1162,7 +1182,12 @@ def cmd_legion(args: argparse.Namespace) -> int:
         "concept": getattr(args, "concept", None),
         "topic": " ".join(args.topic) if getattr(args, "topic", None) else None,
         "repo_root": None if getattr(args, "no_disk_scan", False) else str(_repo_root()),
+        "researched_at": _now_iso(),
     }
+    if getattr(args, "web", False):
+        from engine.prometheus import WebSearchFetcher  # noqa: PLC0415
+
+        ctx["fetcher"] = WebSearchFetcher()  # 결정론 획득 코어에 실제 웹 fetcher 주입
     close_g = lambda: None  # noqa: E731
     if getattr(args, "llm", False):
         agents, reason = _agent_runtime()

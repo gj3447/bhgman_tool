@@ -244,6 +244,43 @@ def test_occam_apply_writes_supersession(monkeypatch, capsys):
     assert "APPLIED 1" in out
 
 
+def test_acquire_web_injects_fetcher_and_ingests(monkeypatch, capsys):
+    """W2-B: --web wires a real fetcher into the deterministic acquire pipeline so it
+    actually fetches+ingests (was structurally dead — fetcher was always None)."""
+    import engine.prometheus as prom
+    from engine.prometheus import CallableFetcher
+    from engine.prometheus.models import FetchedDoc
+
+    read = _FakeRunner([{"id": "q1", "question": "Is X true", "kind": "OpenQuestion"}])
+    write = _FakeRunner([{"findingId": "x"}])
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
+    fake = CallableFetcher(
+        lambda _q: [
+            FetchedDoc(
+                "https://src/y",
+                "The claim under study holds to high empirical precision across many trials.",
+            )
+        ]
+    )
+    monkeypatch.setattr(prom, "WebSearchFetcher", lambda *a, **k: fake)
+
+    rc = cli(["acquire", "--web", "--apply"])
+    assert rc == 0
+    assert len(write.calls) >= 1  # ≥1 :ResearchFinding ingested (was always 0)
+
+
+def test_acquire_apply_without_web_warns_no_fetcher(monkeypatch, capsys):
+    """--apply with no fetcher ingests nothing → explicit warning, not a silent no-op."""
+    read = _FakeRunner([{"id": "q1", "question": "q", "kind": "OpenQuestion"}])
+    write = _FakeRunner()
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
+    rc = cli(["acquire", "--apply"])
+    err = capsys.readouterr().err
+    assert rc == 0
+    assert "--apply ignored: no fetcher wired" in err
+    assert write.calls == []
+
+
 def test_occam_degrades_when_no_neo4j(monkeypatch, capsys):
     monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: None)
     rc = cli(["occam", "--scope", "engine/occam"])

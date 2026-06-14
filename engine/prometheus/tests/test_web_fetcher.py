@@ -7,9 +7,16 @@ url_open 주입 시 결정론. 검색 페이지 파싱 → 결과 링크 → 문
 
 from __future__ import annotations
 
+import pytest
+
 from engine.prometheus import WebSearchFetcher, run_acquire
 from engine.prometheus.models import Query
-from engine.prometheus.web import _extract_result_links, _unwrap_ddg
+from engine.prometheus.web import (
+    _default_url_open,
+    _extract_result_links,
+    _is_http_url,
+    _unwrap_ddg,
+)
 
 _SEARCH_HTML = """
 <html><body>
@@ -63,3 +70,36 @@ def test_web_fetcher_drives_full_acquire_pipeline():
     report = run_acquire(gap_rc, fetcher=fetcher, cycle_id="cyc-web")
     assert len(report.findings) >= 1
     assert report.findings[0].citation_url.startswith("https://")
+
+
+# ── W2-B: SSRF / local-file-read guard (http(s) only) ────────────────────────
+
+
+def test_is_http_url_allows_http_https_blocks_others():
+    assert _is_http_url("https://example.com/x")
+    assert _is_http_url("http://example.com/x")
+    assert not _is_http_url("file:///etc/passwd")
+    assert not _is_http_url("ftp://host/x")
+    assert not _is_http_url("gopher://host")
+
+
+def test_default_url_open_refuses_non_http():
+    with pytest.raises(ValueError, match="non-http"):
+        _default_url_open("file:///etc/passwd")
+
+
+def test_web_fetcher_skips_file_scheme_result_link():
+    """A DDG result whose uddg= redirect unwraps to file:// must NOT be handed to url_open."""
+    html = (
+        '<html><body><a class="result__a" '
+        'href="/l/?uddg=file%3A%2F%2F%2Fetc%2Fpasswd">leak</a></body></html>'
+    )
+    opened: list[str] = []
+
+    def opener(url: str) -> str:
+        opened.append(url)
+        return html if "duckduckgo" in url else "doc body long enough to be a claim."
+
+    fetcher = WebSearchFetcher(url_open=opener, max_results=3)
+    fetcher.fetch(Query(gap_id="g", text="leak my files"))
+    assert not any(u.startswith("file://") for u in opened)

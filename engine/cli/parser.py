@@ -395,6 +395,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_lg.add_argument(
         "--no-ground", action="store_true", help="Skip KG grounding for LLM enrichment."
     )
+    p_lg.add_argument(
+        "--web",
+        action="store_true",
+        help="획득(prometheus) 결정론 코어에 실제 웹 fetcher 주입 (DDG → fetch → ingest). "
+        "없으면 gap+query PROPOSE만 (no network).",
+    )
     p_lg.set_defaults(func=commands.cmd_legion)
 
     p_na = sub.add_parser(
@@ -422,6 +428,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--gap-limit", type=int, default=50, help="Max gap nodes to scan (default 50)."
     )
     p_acq.add_argument("--cycle-id", help="cycleId for provenance (default: acquire-cli).")
+    p_acq.add_argument(
+        "--web",
+        action="store_true",
+        help="Inject the real web fetcher (DDG search → fetch → ingest). Omit = gap+query "
+        "PROPOSE only (no network). Required for --apply to actually ingest findings.",
+    )
     p_acq.set_defaults(func=commands.cmd_acquire)
 
     return p

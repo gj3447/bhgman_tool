@@ -20,10 +20,22 @@ from engine.prometheus.models import FetchedDoc, Query
 
 _DDG_HTML = "https://html.duckduckgo.com/html/?q={q}"
 _UA = "bhgman-tool/0.1 (+https://github.com/gj3447/bhgman_tool)"
+_ALLOWED_SCHEMES = ("http", "https")
+
+
+def _is_http_url(url: str) -> bool:
+    """Only http(s) — blocks the file:// / ftp:// / gopher:// SSRF + local-file-read
+    vectors a DDG `uddg=` redirect could inject once the fetcher is live."""
+    try:
+        return urlparse(url).scheme.lower() in _ALLOWED_SCHEMES
+    except ValueError:
+        return False
 
 
 def _default_url_open(url: str, *, timeout: float = 10.0) -> str:
     """stdlib urllib GET → text. 네트워크 호출(opt-in: WebSearchFetcher 사용 시에만)."""
+    if not _is_http_url(url):
+        raise ValueError(f"refusing non-http(s) URL (SSRF/file-read guard): {url!r}")
     import urllib.request  # noqa: PLC0415
 
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
@@ -91,6 +103,8 @@ class WebSearchFetcher:
             return []
         docs: list[FetchedDoc] = []
         for url in _extract_result_links(page, self._max):
+            if not _is_http_url(url):
+                continue  # SSRF/file-read guard — never hand a non-http(s) URL to url_open
             try:
                 docs.append(FetchedDoc(url, self._open(url)))
             except Exception:  # noqa: BLE001 — 개별 문서 실패는 skip

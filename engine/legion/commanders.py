@@ -72,6 +72,7 @@ def _run_acquire(ctx: dict) -> dict:
             write_cypher=ctx.get("write_cypher"),
             cycle_id=str(ctx.get("cycle_id", "legion-run")),
             apply=bool(ctx.get("apply", False)),
+            researched_at=str(ctx.get("researched_at", "")),
         )
         return {
             "acquired": {
