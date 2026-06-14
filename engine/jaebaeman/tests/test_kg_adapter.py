@@ -117,3 +117,56 @@ def test_kg_decompose_no_anchor_is_leaf():
 
     assert kg_decompose(run)(_Node()) == []
     assert run.calls == []  # anchor 없으면 KG 안 침
+
+
+# ── W1-H: DAG (diamond) / cycle KG → valid deduped plan, NOT a fail-closed block ──
+
+
+class _GraphRunner:
+    """fake CypherRunner over an adjacency dict {anchor: [child_name, ...]}."""
+
+    def __init__(self, adj):
+        self.adj = adj
+        self.calls = []
+
+    def __call__(self, cypher, params):
+        self.calls.append((cypher, params))
+        anchor = params.get("anchor")
+        return [{"child": c, "objective": c, "target_domain": ""} for c in self.adj.get(anchor, [])]
+
+
+def _node_names(seeds):
+    return [s.name.rsplit("-", 1)[-1] for s in seeds]
+
+
+def test_plan_diamond_dag_dedups_to_unique_seeds():
+    """Diamond A→B, A→C, B→D, C→D: D is reached via two paths but must yield ONE seed
+    (no DUP_SEED_NAME), so the runner does not fail-closed-block."""
+    from engine.jaebaeman.invariants import ViolationCode, validate_seed_invariants
+    from engine.jaebaeman.jaebaeman_models import Goal
+    from engine.jaebaeman.planner import plan, to_seeds
+
+    run = _GraphRunner({"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": []})
+    root = plan(Goal(name="A", objective="A", anchor="A"), kg_decompose(run), max_depth=5)
+    seeds = to_seeds(root, skill="prom")
+    names = _node_names(seeds)
+    assert sorted(set(names)) == ["A", "B", "C", "D"]
+    assert len(names) == len(set(names)), f"duplicate seeds: {names}"
+    dups = [v for v in validate_seed_invariants(seeds) if v.code == ViolationCode.DUP_SEED_NAME]
+    assert dups == []
+
+
+def test_plan_cycle_terminates_and_dedups():
+    """Cycle A→B→A: must terminate (not unfold to max_depth) and dedup to a unique set."""
+    from engine.jaebaeman.invariants import ViolationCode, validate_seed_invariants
+    from engine.jaebaeman.jaebaeman_models import Goal
+    from engine.jaebaeman.planner import plan, to_seeds
+
+    run = _GraphRunner({"A": ["B"], "B": ["A"]})
+    root = plan(Goal(name="A", objective="A", anchor="A"), kg_decompose(run), max_depth=10)
+    seeds = to_seeds(root, skill="prom")
+    names = _node_names(seeds)
+    assert sorted(set(names)) == ["A", "B"]
+    assert len(names) == len(set(names)), f"cycle produced duplicate seeds: {names}"
+    dups = [v for v in validate_seed_invariants(seeds) if v.code == ViolationCode.DUP_SEED_NAME]
+    assert dups == []

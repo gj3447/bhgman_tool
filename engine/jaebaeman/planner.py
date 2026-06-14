@@ -57,11 +57,19 @@ def plan(
     max_depth: int = MAX_DEPTH,
     _depth: int = 0,
     _method: GerminationMethod = GerminationMethod.SINGLETON,
+    _seen: set[str] | None = None,
 ) -> PlanNode:
     """Goal을 계획 트리로 unfold. decompose가 하위 목표를 주면 재귀, 빈 리스트면 잎.
 
-    max_depth에 닿으면 분해를 멈추고 잎으로 종료(하드 stop). _depth/_method는 내부 재귀용.
+    max_depth에 닿으면 분해를 멈추고 잎으로 종료(하드 stop). _depth/_method/_seen은 내부 재귀용.
+
+    _seen(by name)으로 *공유 노드는 한 번만 전개*한다: KG가 DAG(diamond)거나 cycle이면 같은
+    노드가 여러 경로로 재도달하는데, 재도달분을 잎으로 종료(재전개 안 함)해 cycle을 깨고 diamond
+    중복 전개를 막는다. 평탄화 단계(to_seeds)가 per-name-unique 씨앗으로 collapse하므로 downstream
+    MERGE(멱등)와 정합. (W1-H: 옛 동작은 cycle/diamond → 중복 씨앗 → DUP_SEED_NAME fail-closed BLOCK.)
     """
+    if _seen is None:
+        _seen = set()
     if _depth < 0 or _depth > max_depth:
         raise DepthInvariantViolation(
             f"depth={_depth} out of [0,{max_depth}] for '{goal.name}' "
@@ -70,6 +78,9 @@ def plan(
     node = _node_from_goal(goal, _depth, _method)
     if _depth >= max_depth:
         return node  # 하드 stop: 더 깊이 분해하지 않는다 (잎으로 종료)
+    if goal.name in _seen:
+        return node  # 이미 다른 경로에서 전개됨(diamond/cycle) → 잎으로 한 번만 emit, 재전개 금지
+    _seen.add(goal.name)
     subgoals = decompose(node)
     if not subgoals:
         return node  # 자연 잎 (분해 규칙이 더 쪼갤 게 없다고 판단)
@@ -80,6 +91,7 @@ def plan(
             max_depth=max_depth,
             _depth=_depth + 1,
             _method=GerminationMethod.DECOMPOSE,
+            _seen=_seen,
         )
         for sg in subgoals
     )
@@ -129,6 +141,7 @@ def _unfold_pairs(
     queue: deque[tuple[Goal, int, GerminationMethod, PlanNode | None]] = deque(
         [(goal, 0, GerminationMethod.SINGLETON, None)]
     )
+    seen: set[str] = set()  # W1-H: expand each node name once (DAG/cycle safety)
     produced = 0
     while queue:
         if fuel is not None and produced >= fuel:
@@ -141,7 +154,8 @@ def _unfold_pairs(
         node = _node_from_goal(g, depth, method)
         yield node, parent
         produced += 1
-        if depth < max_depth:
+        if depth < max_depth and g.name not in seen:
+            seen.add(g.name)  # re-reached (diamond/cycle) nodes are emitted but not re-expanded
             for sg in decompose(node):
                 queue.append((sg, depth + 1, GerminationMethod.DECOMPOSE, node))
 
@@ -217,8 +231,21 @@ def _seed_from_pair(
 def to_seeds_pairs(
     pairs: list[tuple[PlanNode, "PlanNode | None"]], skill: str, *, expected_outcome: str = ""
 ) -> list[SeedRecord]:
-    """(node, parent) 쌍 리스트 → SeedRecord 리스트. eager walk() / lazy plan_lazy_pairs 공용."""
-    return [_seed_from_pair(n, p, skill, expected_outcome) for n, p in pairs]
+    """(node, parent) 쌍 리스트 → SeedRecord 리스트. eager walk() / lazy plan_lazy_pairs 공용.
+
+    seed_name 기준 dedup — DAG(diamond)/cycle에서 같은 노드가 여러 경로로 도달해도 씨앗은 한 번만
+    (first/shallowest parent 보존). per-name-unique 씨앗 집합이라 DUP_SEED_NAME 불변식이 걸리지
+    않고, downstream MERGE가 멱등이라 collapse가 정합이다 (W1-H).
+    """
+    seeds: list[SeedRecord] = []
+    seen_names: set[str] = set()
+    for n, p in pairs:
+        sname = seed_name(n, skill)
+        if sname in seen_names:
+            continue
+        seen_names.add(sname)
+        seeds.append(_seed_from_pair(n, p, skill, expected_outcome))
+    return seeds
 
 
 def static_decompose(tree: dict[str, list[Goal]]) -> DecomposeFn:
