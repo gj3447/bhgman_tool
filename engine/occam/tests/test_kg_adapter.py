@@ -113,12 +113,37 @@ def test_apply_dry_run_default_does_not_write():
 
 def test_apply_with_write_executes_per_candidate():
     report = _dup_report()
-    runner = _RecordingRunner()
+    runner = _RecordingRunner([{"superseded": "old", "current": "new"}])  # cypher matched a row
     result = apply_supersessions(report, write_cypher=runner, dry_run=False)
     assert result.dry_run is False
     assert result.applied_count == 1
     assert len(runner.calls) == 1
     assert "old" in result.superseded
+
+
+def test_apply_counts_rows_not_candidates_on_no_match():
+    """W1-G: a planned supersession whose cypher matches 0 rows (node absent / already
+    superseded) must NOT be counted as applied — report planned vs actual honestly."""
+    report = _dup_report()
+    runner = _RecordingRunner(rows=[])  # cypher ran but matched nothing
+    result = apply_supersessions(report, write_cypher=runner, dry_run=False)
+    assert result.applied_count == 0
+    assert len(runner.calls) == 1  # it DID run the cypher (not an exact-dup)
+    assert any("0 rows" in n for n in result.notes)
+
+
+def test_apply_refuses_exact_duplicate_without_running_cypher():
+    """W1-G: identical (sourcePath, sha256) can't be distinguished by the supersede key —
+    refuse + flag rather than no-op-but-claim-applied or archive both twins."""
+    a = NodeRecord("urdna.py", "bhgman_tool/engine/urdna.py", "same", 190)
+    b = NodeRecord("urdna.py", "bhgman_tool/engine/urdna.py", "same", 190)
+    report = occam_pass([a, b])
+    assert report.candidates and report.candidates[0].reason  # occam flagged an exact dup
+    runner = _RecordingRunner([{"superseded": "x", "current": "y"}])
+    result = apply_supersessions(report, write_cypher=runner, dry_run=False)
+    assert result.applied_count == 0
+    assert runner.calls == []  # refused: the ambiguous cypher never ran
+    assert any("exact-duplicate" in n.lower() or "exact dup" in n.lower() for n in result.notes)
 
 
 def test_apply_no_write_cypher_forces_dry_run():

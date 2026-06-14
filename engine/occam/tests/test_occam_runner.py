@@ -38,7 +38,7 @@ def test_run_occam_dry_run_detects_but_does_not_write():
 
 def test_run_occam_apply_writes_supersession():
     read = _Runner(_DUP_ROWS)
-    write = _Runner()
+    write = _Runner([{"superseded": "old", "current": "new"}])  # cypher matches a row
     res = run_occam(read, write_cypher=write, apply=True)
     assert res.apply_result.applied_count == 1
     assert len(write.calls) == 1
@@ -56,7 +56,7 @@ _NONAME_DUP_ROWS = [
 
 def test_run_occam_apply_nameless_nodes_no_crash_path_fallback():
     read = _Runner(_NONAME_DUP_ROWS)
-    write = _Runner()
+    write = _Runner([{"superseded": "x", "current": "y"}])  # cypher matches a row
     res = run_occam(read, write_cypher=write, apply=True)
     assert res.apply_result.applied_count == 1
     # 표시 식별자가 None이 아니라 sourcePath로 폴백 (CLI join crash 차단)

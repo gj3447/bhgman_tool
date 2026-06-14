@@ -214,8 +214,13 @@ _DUP_ROWS = [
 ]
 
 
-def _patch_runners(monkeypatch, read_rows):
-    read, write = _FakeRunner(read_rows), _FakeRunner()
+def _patch_runners(monkeypatch, read_rows, write_rows=None):
+    # write runner returns a matched supersession row by default so applied_count (now
+    # derived from returned rows, W1-G) reflects a real archive. dry-run never calls it.
+    read = _FakeRunner(read_rows)
+    write = _FakeRunner(
+        write_rows if write_rows is not None else [{"superseded": "old", "current": "new"}]
+    )
     monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
     return read, write
 

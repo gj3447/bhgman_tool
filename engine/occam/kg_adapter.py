@@ -98,6 +98,15 @@ def _ident(node: NodeRecord) -> str:
     return node.name or node.source_path
 
 
+def _is_exact_dup(candidate: SupersessionCandidate) -> bool:
+    """True when stale and current share both sourcePath and sha256 — the supersede key
+    cannot distinguish them, so the write cannot safely pick a node to archive."""
+    return (
+        candidate.stale.source_path == candidate.current.source_path
+        and candidate.stale.sha256 == candidate.current.sha256
+    )
+
+
 def build_supersede(candidate: SupersessionCandidate) -> tuple[str, dict]:
     """supersede write cypher + params. covenant: 파괴적 토큰 부재를 assert로 강제."""
     cypher = _SUPERSEDE_CYPHER
@@ -152,15 +161,41 @@ def apply_supersessions(
         )
 
     applied: list[str] = []
+    refused: list[str] = []
+    no_match: list[str] = []
     for (cypher, params), cand in zip(plans, report.candidates):
-        write_cypher(cypher, params)
-        applied.append(_ident(cand.stale))
+        if _is_exact_dup(cand):
+            # identical (sourcePath, sha256) on both sides → the composite supersede key
+            # cannot pick which node to archive (the write is a no-op for a single node, or
+            # would archive BOTH distinct twins). Refuse + flag for manual review rather than
+            # no-op-but-claim-applied (the old code incremented applied_count regardless).
+            refused.append(_ident(cand.stale))
+            continue
+        rows = write_cypher(cypher, params) or []
+        if rows:
+            applied.append(_ident(cand.stale))
+        else:
+            no_match.append(_ident(cand.stale))
+
+    notes: list[str] = [
+        f"applied {len(applied)}/{len(plans)} supersession(s) — reversible via status+edge"
+    ]
+    if refused:
+        notes.append(
+            f"REFUSED {len(refused)} exact-duplicate(s) — identical sourcePath+sha256, "
+            f"indistinguishable by key, needs manual review: {refused}"
+        )
+    if no_match:
+        notes.append(
+            f"WARN {len(no_match)} planned supersession(s) matched 0 rows (node absent or "
+            f"already superseded) — NOT applied: {no_match}"
+        )
     return ApplyResult(
         superseded=tuple(applied),
         planned_cyphers=tuple(plans),
         dry_run=False,
         applied_count=len(applied),
-        notes=(f"applied {len(applied)} supersession(s) — reversible via status+edge",),
+        notes=tuple(notes),
     )
 
 
