@@ -232,3 +232,14 @@ def test_score_meta_redundancy_overridden_by_occam_dedup():
     # 신선+많이쓰임+낮은redundancy → σ 낮음 → KEEP (caller의 0.99가 반영됐다면 높았을 것)
     assert cand.score is not None and cand.score < 0.3
     assert cand.verdict == "KEEP"
+
+
+def test_pick_current_deterministic_on_line_count_tie():
+    """W3-A: equal line_count must not make occam_pass depend on input order."""
+    a = NodeRecord("a.py", "engine/dup.py", "sha_aaa", 100)
+    b = NodeRecord("b.py", "engine/dup.py", "sha_bbb", 100)  # same path+lines, diff sha
+    c1 = occam_pass([a, b]).candidates
+    c2 = occam_pass([b, a]).candidates
+    assert len(c1) == len(c2) == 1
+    assert c1[0].current.sha256 == c2[0].current.sha256  # order-independent
+    assert c1[0].stale.sha256 == c2[0].stale.sha256

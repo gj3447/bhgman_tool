@@ -153,8 +153,12 @@ def run_semantic_dedup(
         planned.append(cypher)
         if do_write:
             try:
-                write_cypher(cypher, params)  # type: ignore[misc]
-                applied += 1
+                rows = write_cypher(cypher, params)  # type: ignore[misc]
+                # count only writes that matched a node (the cypher RETURNs the superseded
+                # row). A nullable/non-unique key → 0 rows → not counted (W3-C: was always
+                # incremented, masking silent no-op writes — same lie W1-G fixed in kg_adapter).
+                if rows:
+                    applied += 1
             except Exception:  # noqa: BLE001 — 백엔드 미지원 시 PROPOSE로 degrade
                 pass
     return SemanticDedupReport(

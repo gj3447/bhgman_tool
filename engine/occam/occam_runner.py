@@ -11,6 +11,7 @@ disk sha 확정(HIGH)이 필요하면 호출자가 disk_truth를 occam_pass에 �
 
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,6 +68,29 @@ def scan_disk_paths(repo_root: str | Path) -> frozenset[str]:
     return frozenset(paths)
 
 
+def _compute_disk_truth(repo_root: str | Path, nodes: list) -> dict[str, str]:
+    """{normalize_path(source) → on-disk sha256} for node files that resolve on disk.
+
+    Enables the HIGH-confidence disk-sha arbiter in _pick_current, which was DEAD in
+    production: run_occam advertised disk-aware mode via repo_root but never built
+    disk_truth, so the line-count heuristic (MEDIUM) was the sole arbiter (W3-B). Purely
+    additive — files that don't resolve are skipped (MEDIUM fallback, unchanged behavior)."""
+    root = Path(repo_root)
+    out: dict[str, str] = {}
+    for n in nodes:
+        sp = getattr(n, "source_path", None)
+        if not sp:
+            continue
+        for cand in ((Path(sp) if Path(sp).is_absolute() else root / sp), Path(sp)):
+            if cand.is_file():
+                try:
+                    out[normalize_path(sp)] = hashlib.sha256(cand.read_bytes()).hexdigest()
+                except OSError:
+                    pass
+                break
+    return out
+
+
 @dataclass(frozen=True)
 class OccamRunResult:
     report: OccamReport
@@ -100,6 +124,8 @@ def run_occam(
     """
     nodes = fetch_source_nodes(run_cypher, scope)
     disk_paths = scan_disk_paths(repo_root) if repo_root is not None else None
+    if disk_truth is None and repo_root is not None:
+        disk_truth = _compute_disk_truth(repo_root, nodes)
     report = occam_pass(nodes, disk_truth=disk_truth, disk_paths=disk_paths)
     apply_result = apply_supersessions(report, write_cypher=write_cypher, dry_run=not apply)
     return OccamRunResult(report=report, apply_result=apply_result, scope=scope)

@@ -168,3 +168,25 @@ def test_run_occam_no_repo_root_is_disk_unaware(monkeypatch):
     read = _Runner(_MOVED_ROWS)
     res = run_occam(read)  # repo_root=None → mode-1만, 다른 경로라 후보 0
     assert res.report.superseded_count == 0
+
+
+def test_run_occam_computes_disk_truth_from_repo_root(tmp_path):
+    """W3-B: repo_root now builds disk_truth → the disk-sha node wins (HIGH), not the
+    bigger-line-count heuristic. The HIGH path was dead (disk_truth never built)."""
+    import hashlib
+
+    from engine.occam.occam_models import Confidence
+
+    f = tmp_path / "engine" / "x.py"
+    f.parent.mkdir(parents=True)
+    f.write_text("real disk content\n")
+    disk_sha = hashlib.sha256(f.read_bytes()).hexdigest()
+    rows = [
+        {"name": "x_disk", "source_path": "engine/x.py", "sha256": disk_sha, "line_count": 5},
+        {"name": "x_old", "source_path": "engine/x.py", "sha256": "OLDSHA", "line_count": 999},
+    ]
+    res = run_occam(_Runner(rows), repo_root=tmp_path)
+    cand = res.report.candidates[0]
+    assert cand.current.sha256 == disk_sha  # disk truth beats the line-count heuristic
+    assert cand.stale.sha256 == "OLDSHA"
+    assert cand.confidence is Confidence.HIGH

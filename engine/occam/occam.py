@@ -51,7 +51,12 @@ def _pick_current(group: list[NodeRecord], disk_sha: str | None) -> tuple[NodeRe
         for node in group:
             if node.sha256 == disk_sha:
                 return node, Confidence.HIGH
-    return max(group, key=lambda n: n.line_count), Confidence.MEDIUM
+    # deterministic on equal line_count ties (sha256 then path) — occam_pass must not depend
+    # on input order (W3-A).
+    return (
+        max(group, key=lambda n: (n.line_count, n.sha256 or "", n.source_path)),
+        Confidence.MEDIUM,
+    )
 
 
 def _reason(stale: NodeRecord, current: NodeRecord) -> str:

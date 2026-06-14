@@ -107,7 +107,7 @@ def test_run_semantic_dedup_apply_writes():
 
     def write(cypher, params):
         captured.append((params["stale_id"], params["current_id"]))
-        return []
+        return [{"superseded": params["stale_id"], "current": params["current_id"]}]
 
     items = [("f1", "Koide a"), ("f2", "Koide b")]
     report = run_semantic_dedup(
@@ -116,6 +116,20 @@ def test_run_semantic_dedup_apply_writes():
     assert report.dry_run is False
     assert report.applied == 1
     assert captured == [("f2", "f1")]  # f1 keep(작은 id), f2 drop
+
+
+def test_run_semantic_dedup_no_match_not_counted_applied():
+    """W3-C: a nullable/non-unique key that matches no node returns 0 rows — must NOT be
+    counted as applied (was always incremented, masking a silent no-op write)."""
+
+    def write(_cypher, _params):
+        return []  # cypher ran but matched nothing (e.g. key=name was null)
+
+    items = [("f1", "Koide a"), ("f2", "Koide b")]
+    report = run_semantic_dedup(
+        items, embed_fn=_fake_embed, threshold=0.9, key="name", write_cypher=write, apply=True
+    )
+    assert report.applied == 0
 
 
 def test_run_semantic_dedup_idempotent_proposal():
