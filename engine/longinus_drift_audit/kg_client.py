@@ -118,6 +118,12 @@ class KgClient(ABC):
         """
         raise NotImplementedError("run() not supported by this KgClient")
 
+    def merge_drift_check(self, record: dict[str, Any], *, reinduction: bool = False) -> None:
+        """MERGE a :DriftCheck node (the nightly L8 GED drift record); when ``reinduction``
+        also MERGE a :ReinductionTrigger for the next /prom 16 cycle. Default raises;
+        Mock/Neo4j override. Non-abstract so existing subclasses stay valid."""
+        raise NotImplementedError("merge_drift_check() not supported by this KgClient")
+
 
 class MockKgClient(KgClient):
     def __init__(
@@ -140,6 +146,8 @@ class MockKgClient(KgClient):
             for h in hubs:
                 self.hubs[h.name] = h
         self.drift_events: list[SourceCodeDriftEvent] = []
+        self.drift_checks: list[dict[str, Any]] = []
+        self.reinduction_triggers: list[str] = []
         self.other_nodes: set[str] = set()
         self.run_rows: list[dict[str, Any]] = []
 
@@ -180,6 +188,11 @@ class MockKgClient(KgClient):
 
     def emit_drift_event(self, event: SourceCodeDriftEvent) -> None:
         self.drift_events.append(event)
+
+    def merge_drift_check(self, record: dict[str, Any], *, reinduction: bool = False) -> None:
+        self.drift_checks.append(dict(record))
+        if reinduction:
+            self.reinduction_triggers.append(record.get("name", ""))
 
     def list_knowledge_hubs(self) -> list[KnowledgeHubRecord]:
         return list(self.hubs.values())
@@ -416,6 +429,29 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 kind=event.kind,
                 resolved=event.resolved,
             )
+
+    def merge_drift_check(self, record: dict[str, Any], *, reinduction: bool = False) -> None:
+        with self._driver.session() as s:
+            s.run(
+                """
+                MERGE (d:DriftCheck {name: $name})
+                SET d += $props
+                """,
+                name=record.get("name"),
+                props=record,
+            )
+            if reinduction:
+                s.run(
+                    """
+                    MATCH (d:DriftCheck {name: $name})
+                    MERGE (t:ReinductionTrigger {name: $trigger_name})
+                    ON CREATE SET t.created_at = $created_at, t.source_drift_check = $name
+                    MERGE (d)-[:TRIGGERS]->(t)
+                    """,
+                    name=record.get("name"),
+                    trigger_name=f"reinduction-{record.get('name')}",
+                    created_at=record.get("createdAt"),
+                )
 
     def list_knowledge_hubs(self) -> list[KnowledgeHubRecord]:
         with self._driver.session() as s:

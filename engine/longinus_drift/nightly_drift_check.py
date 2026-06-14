@@ -2,8 +2,9 @@
 
 Runs once per night via cron. Computes community hypergraph bipartite GED from the
 last snapshot, evaluates the 2-phase τ gate (cold-start absolute / steady-state q90),
-and emits a :DriftCheck record into the KG. If the gate fires, also emits a
-:ReinductionTrigger record for the next /prom 16 re-induction cycle.
+and emits a :DriftCheck record into the KG via an injected KgClient (NEO4J_* env at the
+cron entrypoint; absent → prints only, never silently claims a write). If the gate fires,
+also emits a :ReinductionTrigger for the next /prom 16 re-induction cycle.
 
 Cron snippet (install with `crontab -e`):
 
@@ -76,7 +77,35 @@ def emit_drift_check_record(
     }
 
 
-def main() -> int:
+def _persist(kg, record: dict) -> None:
+    """MERGE the :DriftCheck (+ :ReinductionTrigger when the gate fired) into the KG.
+    No-op when no kg client is wired (passive baseline collection / cron without creds)."""
+    if kg is None:
+        print("[drift-check] (no KG client wired — record not persisted)")
+        return
+    try:
+        kg.merge_drift_check(record, reinduction=bool(record.get("fire")))
+        print(f"[drift-check] persisted :DriftCheck {record['name']} (KG)")
+    except Exception as e:  # noqa: BLE001 — cron must not crash; surface + continue
+        print(f"[drift-check] WARN: KG persist failed ({type(e).__name__}: {e})")
+
+
+def _kg_from_env():
+    """Build a Neo4jKgClient from NEO4J_* env when configured, else None (print-only)."""
+    if not os.environ.get("NEO4J_URI"):
+        return None
+    try:
+        from engine.longinus_drift_audit.kg_client import Neo4jKgClient  # noqa: PLC0415
+
+        return Neo4jKgClient(
+            os.environ["NEO4J_URI"],
+            auth=(os.environ.get("NEO4J_USER", "neo4j"), os.environ.get("NEO4J_PASSWORD", "")),
+        )
+    except Exception:  # noqa: BLE001 — missing driver / unreachable → degrade to print-only
+        return None
+
+
+def main(kg=None) -> int:
     day = days_since_cold_start_anchor()
     signals = compute_community_signals()
 
@@ -84,6 +113,7 @@ def main() -> int:
         record = emit_drift_check_record(day, signals, decision=None)
         print(f"[drift-check] {record['name']} status={record['status']} day={day}")
         print(f"[drift-check] reason={record['reasons']}")
+        _persist(kg, record)
         return 0
 
     decision = evaluate_drift(
@@ -104,8 +134,9 @@ def main() -> int:
     if decision.fire:
         print("[drift-check] FIRE — emit :ReinductionTrigger for next /prom 16 cycle")
 
+    _persist(kg, record)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(_kg_from_env()))

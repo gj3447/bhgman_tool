@@ -14,12 +14,14 @@ Architecture:
 Each child WatcherProcess:
       ├── reads files in its repo
       ├── computes SHA-256 hash (TOCTOU-safe: read-bytes-once → hash → parse)
-      ├── compares with KG-stored baseline
-      ├── emits drift events on change
+      ├── compares against an in-memory per-process baseline (NOT the KG-stored baseline —
+      │   that comparison + :SourceCodeDriftEvent emission live in
+      │   sha256_baseline.verify_baseline; this watcher only detects in-process deltas)
+      ├── queues drift deltas on change (parent logs them; KG persistence deferred)
       └── self-exits on signal
 
-Skeleton — production hardening (signal handlers, log rotation, structured logging,
-metrics export, graceful shutdown semantics) deferred to future sprint.
+Skeleton — KG-backed baseline + drift-event emission, signal handlers, log rotation,
+structured logging, metrics export, graceful shutdown deferred to future sprint.
 """
 # KG: ATOM_Skill_longinus
 
