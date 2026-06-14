@@ -41,11 +41,20 @@ from pydantic import BaseModel, Field
 
 
 class Capability(str, enum.Enum):
-    """The three legs of the lethal trifecta (Willison 2025)."""
+    """Tool capability tags.
+
+    The first three are the legs of the lethal trifecta (Willison 2025) — an
+    exfiltration/injection risk that is *compositional* across a toolset.
+    ``MUTATES_DATA`` is a distinct *integrity* axis (a single tool that can
+    write/destroy the KG), orthogonal to the trifecta and not part of
+    :func:`has_lethal_trifecta`; it exists so a write-capable tool is not
+    mislabeled read-only.
+    """
 
     READS_PRIVATE_DATA = "reads_private_data"
     FETCHES_UNTRUSTED = "fetches_untrusted_content"
     CAN_EXFILTRATE = "can_exfiltrate"
+    MUTATES_DATA = "mutates_data"
 
 
 # Per-tool capability tags for the registered MCP toolset. Conservative + honest:
@@ -60,7 +69,8 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "taliban_lens_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "tpa_drift_audit": frozenset({Capability.READS_PRIVATE_DATA}),
     "prometheus_research": frozenset({Capability.READS_PRIVATE_DATA}),
-    "kg_query": frozenset({Capability.READS_PRIVATE_DATA}),
+    # kg_query can write/destroy the KG when called with mutate=true → integrity axis.
+    "kg_query": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
     "gate_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "seed_germinate": frozenset({Capability.READS_PRIVATE_DATA}),
     # apt_dispatch spawns subagents that may pull web / untrusted content.

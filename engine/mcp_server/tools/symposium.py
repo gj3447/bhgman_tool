@@ -35,6 +35,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shlex
 import subprocess
 from dataclasses import dataclass, field
@@ -209,11 +210,48 @@ def _apt_dispatch_impl(req: APTDispatchRequest) -> dict[str, Any]:
     }
 
 
+# ─── write-clause detection (data-loss guard) ─────────────────────────────
+#
+# The read-only guard MUST NOT let a `mutate=false` query mutate the KG. The old
+# guard only substring-matched CREATE|MERGE|DELETE|REMOVE — so SET / DROP / FOREACH /
+# LOAD CSV and apoc/db write procedures slipped through as "reads" (silent data loss),
+# while benign reads referencing CREATEDBY / DELETED / MERGED_PR as identifiers were
+# wrongly blocked. We detect write *clauses* at word boundaries AFTER stripping string
+# literals + comments (so identifiers/literals don't false-positive), plus apoc/db write
+# procedures by name (their inner write query is hidden inside a string arg, so a
+# literal-stripped keyword scan alone would miss apoc.periodic.* writes).
+
+_CYPHER_WRITE_CLAUSE = re.compile(
+    r"\b(CREATE|MERGE|DELETE|REMOVE|SET|DROP|FOREACH|LOAD\s+CSV)\b",
+    re.IGNORECASE,
+)
+_CYPHER_WRITE_PROC = re.compile(
+    r"\bCALL\s+(apoc\.(create|merge|refactor|periodic|trigger|atomic|nodes\.link|"
+    r"cypher\.runMany|cypher\.doIt|cypher\.runWrite)|db\.(create|index\.|constraints))",
+    re.IGNORECASE,
+)
+_CYPHER_STRING_LITERAL = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"", re.DOTALL)
+_CYPHER_LINE_COMMENT = re.compile(r"//[^\n]*")
+_CYPHER_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+
+def _strip_cypher_noise(cypher: str) -> str:
+    """Remove block/line comments and string literals so write-keyword detection
+    only sees structural clauses, not identifiers or literal text."""
+    s = _CYPHER_BLOCK_COMMENT.sub(" ", cypher)
+    s = _CYPHER_LINE_COMMENT.sub(" ", s)
+    return _CYPHER_STRING_LITERAL.sub("''", s)
+
+
+def _cypher_has_write(cypher: str) -> bool:
+    """True if the cypher contains any write clause or apoc/db write procedure."""
+    stripped = _strip_cypher_noise(cypher)
+    return bool(_CYPHER_WRITE_CLAUSE.search(stripped) or _CYPHER_WRITE_PROC.search(stripped))
+
+
 def _kg_query_impl(req: KGQueryRequest) -> dict[str, Any]:
-    """Cypher pass-through with fail-open + write-keyword guard."""
-    has_write_keyword = any(
-        kw in req.cypher.upper() for kw in ("CREATE", "MERGE", "DELETE", "REMOVE")
-    )
+    """Cypher pass-through with fail-open + word-boundary write-clause guard."""
+    has_write_keyword = _cypher_has_write(req.cypher)
     if req.mutate and not has_write_keyword:
         return {"ok": False, "reason": "mutate=true but no write keyword in cypher"}
     if not req.mutate and has_write_keyword:

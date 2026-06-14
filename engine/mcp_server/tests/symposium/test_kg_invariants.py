@@ -98,6 +98,42 @@ class TestWriteSafety:
         out = _kg_query_impl(req)
         assert out["ok"] is True
 
+    @pytest.mark.parametrize(
+        "cypher",
+        [
+            "MATCH (n) SET n.x = 1",
+            "DROP CONSTRAINT foo IF EXISTS",
+            "MATCH (n) DETACH DELETE n",
+            "LOAD CSV FROM 'file:///x.csv' AS row CREATE (n)",
+            "CALL apoc.periodic.iterate('MATCH (n) RETURN n', 'DELETE n', {})",
+            "CALL apoc.refactor.mergeNodes([n])",
+            "FOREACH (x IN [1,2] | CREATE (:N {v:x}))",
+        ],
+    )
+    def test_extended_write_clauses_blocked_in_read_mode(self, cypher):
+        """SET / DROP / DETACH DELETE / LOAD CSV / FOREACH / apoc write procs must
+        NOT slip through the read-only guard (the old substring guard missed them all)."""
+        out = _kg_query_impl(KGQueryRequest(cypher=cypher, mutate=False))
+        assert out["ok"] is False
+        assert "write keyword detected" in out["reason"]
+
+    @pytest.mark.parametrize(
+        "cypher",
+        [
+            "MATCH (n) WHERE n.createdBy = 'CREATE' RETURN n",
+            "MATCH (n {status:'DELETED'}) RETURN n.mergedAt",
+            "MATCH (n)-[:MERGED_PR]->(m) RETURN n, m",
+            "MATCH (n) RETURN n.preset, n.asset, n.subset",
+            "// CREATE is only mentioned in this comment\nMATCH (n) RETURN n",
+            "MATCH (n) WHERE n.note = 'please DELETE the ticket' RETURN n",
+        ],
+    )
+    def test_benign_reads_with_write_words_as_literals_allowed(self, cypher, mock_kg):
+        """Reads referencing write keywords as identifiers / props / literals / comments
+        (CREATEDBY, DELETED, MERGED_PR, preset, …) must be allowed in read mode."""
+        out = _kg_query_impl(KGQueryRequest(cypher=cypher, mutate=False))
+        assert out["ok"] is True
+
 
 class TestFailOpen:
     """When ssh/cypher-shell is unreachable, return degraded dict, never raise."""
