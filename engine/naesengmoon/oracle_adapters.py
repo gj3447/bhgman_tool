@@ -29,6 +29,42 @@ _LEAN_DECL = re.compile(r"^(theorem|lemma|example)\b", re.MULTILINE)
 _LEAN_HOLE = re.compile(r"\b(sorry|admit)\b")
 
 
+def _strip_lean_comments(src: str) -> str:
+    """Remove Lean line comments (``-- … EOL``) and nested block comments (``/- … -/``)
+    before counting holes/decls.
+
+    A ``sorry``/``admit`` written in a comment is NOT an open goal — counting it as one
+    underreports closed goals behind a passing ``lean`` compile. axiom_audit.py already
+    excludes comment-position sorry; this keeps the oracle consistent. Block comments may
+    nest in Lean, so a regex won't do — scan with a depth counter. Newlines are preserved
+    so line-anchored ``_LEAN_DECL`` matches are unaffected.
+    """
+    out: list[str] = []
+    i, n, depth = 0, len(src), 0
+    while i < n:
+        two = src[i : i + 2]
+        if depth == 0 and two == "--":
+            j = src.find("\n", i)
+            if j == -1:
+                break
+            i = j  # keep the newline, drop the comment body
+            continue
+        if two == "/-":
+            depth += 1
+            i += 2
+            continue
+        if depth > 0 and two == "-/":
+            depth -= 1
+            i += 2
+            continue
+        if depth == 0:
+            out.append(src[i])
+        elif src[i] == "\n":
+            out.append("\n")  # preserve line structure inside block comments
+        i += 1
+    return "".join(out)
+
+
 def lean_goals_oracle(lean_dir: str | Path = ".", timeout_s: int = 240) -> ScalarOracle:
     """Lean proof-search oracle. score(lean_filename) = closed goals if `lean` exits 0, else −1000.
 
@@ -54,7 +90,7 @@ def lean_goals_oracle(lean_dir: str | Path = ".", timeout_s: int = 240) -> Scala
             return -1000.0
         if proc.returncode != 0:
             return -1000.0
-        src = path.read_text()
+        src = _strip_lean_comments(path.read_text())
         return float(len(_LEAN_DECL.findall(src)) - len(_LEAN_HOLE.findall(src)))
 
     return ScalarOracle(name="lean", kind="lean-goals", score=_score)
