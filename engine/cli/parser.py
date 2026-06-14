@@ -215,6 +215,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_orc.add_argument("--code-root", default=".", help="drift-recount: 코드 루트.")
     p_orc.add_argument("--scope", help="occam-twins: sourcePath CONTAINS 필터.")
     p_orc.add_argument("--local", action="store_true", help="drift/occam: 로컬 neo4j-free KG.")
+    p_orc.add_argument(
+        "--no-disk-scan",
+        action="store_true",
+        help="occam-twins: KG-only (skip disk sha scan → same-path dups only, mode-1).",
+    )
     p_orc.add_argument("--json", action="store_true", help="JSON verdict 출력.")
     p_orc.set_defaults(func=commands.cmd_oracle)
 

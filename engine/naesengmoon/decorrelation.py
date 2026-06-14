@@ -107,14 +107,23 @@ def _bigrams(text: str) -> set[tuple[str, str]]:
     return {(toks[i], toks[i + 1]) for i in range(len(toks) - 1)}
 
 
+_MIN_HINT_BIGRAMS = (
+    3  # below this a hint is too short to reliably distinguish echo from coincidence
+)
+
+
 def prompt_echo_score(executor_hint: str, critic_reasoning: str) -> float:
     """Overlap coefficient of bigrams — fraction of the executor's framing echoed by the critic.
 
     High ⇒ the critic likely inherited the executor's hypothesis rather than verifying
-    independently (the 1st-naesengmoon prompt-echo REFUTE → steelman PASS flip, this session)."""
+    independently (the 1st-naesengmoon prompt-echo REFUTE → steelman PASS flip, this session).
+
+    A short hint (< _MIN_HINT_BIGRAMS) scores 0.0: with only a bigram or two, ANY critic that
+    happens to use those words trivially saturates the overlap coefficient to 1.0 and falsely
+    flags an independent critic as an echo (W3-N)."""
     hb = _bigrams(executor_hint)
     cb = _bigrams(critic_reasoning)
-    if not hb or not cb:
+    if len(hb) < _MIN_HINT_BIGRAMS or not cb:
         return 0.0
     return len(hb & cb) / len(hb)
 
@@ -140,10 +149,13 @@ def _verdict_label(
 ) -> str:
     if oracle_fail:
         return "FAIL"  # oracle hard-gate — judgment critics cannot override
+    # No oracle + low effective n (≤ a lone or correlated judgment) can NEVER be a clean
+    # PASS. This guard MUST precede the all_pass shortcut: a single judgment critic sits at
+    # n_eff=1.0 with adjusted=1.0 and was reaching PASS through it (W3-D).
+    if n_eff < 1.5 and n_oracle == 0:
+        return "CONDITIONAL_PASS"  # correlated/lone judgment only → capped, never a clean PASS
     if all_pass and adjusted >= 0.90:
         return "PASS"
-    if n_eff < 1.5 and n_oracle == 0:
-        return "CONDITIONAL_PASS"  # correlated judgment only → capped, never a clean PASS
     if raw >= 0.60:
         return "CONDITIONAL_PASS"
     return "FAIL"

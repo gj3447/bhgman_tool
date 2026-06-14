@@ -119,3 +119,27 @@ def test_echo_suspect_excluded_from_tally():
 def test_summary_reports_neff_honestly():
     res = aggregate([_j("a", True), _j("b", True), _j("c", True)], rho=0.85)
     assert "3 critics" in res.summary and "n_eff≈1.11" in res.summary  # 3/(1+2·0.85)
+
+
+def test_lone_judgment_critic_capped_at_conditional_pass():
+    """W3-D: a single judgment critic sits at n_eff=1.0 with adjusted=1.0 and was reaching a
+    clean PASS through the all_pass shortcut — no oracle + low n_eff must cap it."""
+    res = aggregate([_j("solid", True)])
+    assert res.verdict == "CONDITIONAL_PASS"
+    assert res.n_oracle == 0
+
+
+def test_oracle_plus_judgment_can_still_pass():
+    res = aggregate([_o("compiler", True), _j("solid", True)])
+    assert res.verdict == "PASS"  # an oracle present → clean PASS still reachable
+
+
+def test_short_hint_does_not_trivially_flag_echo():
+    """W3-N: a 1-bigram hint must not saturate the overlap coefficient to 1.0 just because
+    the critic happens to use those two words amid lots of independent reasoning."""
+    score = prompt_echo_score(
+        "attack circularity",
+        "the attack on circularity is unfounded because merrill 2024 shows non diagonal "
+        "transitions escape the class entirely per theorem five two of the paper",
+    )
+    assert score == 0.0  # hint too short to reliably distinguish echo

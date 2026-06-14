@@ -45,6 +45,7 @@ def verify(
     kg: Any = None,
     run_cypher: Any = None,
     scope: str | None = None,
+    repo_root: str | None = None,
 ) -> Verdict:
     """artifact를 kind에 맞는 외부 결정론 oracle로 검증 → Verdict.
 
@@ -64,7 +65,9 @@ def verify(
         passed = score == 0.0
         detail = f"{int(-score)} KG↔code drift(s)"
     elif kind == "occam-twins":
-        score = occam_twins_oracle(run_cypher, scope).evaluate(None).value
+        # repo_root activates disk-truth (mode-2/3); without it only same-path dups (mode-1)
+        # are seen (W3-F: repo_root was dropped, so disk-aware detection never ran).
+        score = occam_twins_oracle(run_cypher, scope, repo_root=repo_root).evaluate(None).value
         passed = score == 0.0
         detail = f"{int(score)} stale duplicate node(s) supersedable"
     else:

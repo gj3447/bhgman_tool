@@ -945,7 +945,10 @@ def cmd_oracle(args: argparse.Namespace) -> int:
             )
             return 2
         run_cypher, _w, close = runners
-        kwargs = {"run_cypher": run_cypher, "scope": args.scope}
+        # repo_root enables disk-aware (mode-2/3) twin detection (W3-F); default to the
+        # repo unless --no-disk-scan.
+        repo_root = None if getattr(args, "no_disk_scan", False) else str(_repo_root())
+        kwargs = {"run_cypher": run_cypher, "scope": args.scope, "repo_root": repo_root}
 
     try:
         v = verify(kind, args.target, **kwargs)

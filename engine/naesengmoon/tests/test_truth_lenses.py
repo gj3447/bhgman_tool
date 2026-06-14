@@ -89,3 +89,11 @@ def test_classify_empirical_default_routes_external():
     c = classify("LangGraph is a tier-2 instance of the harness model")
     assert c.truth_apt is True
     assert "referent" in c.oracle.lower() or "reproduction" in c.oracle.lower()
+
+
+def test_axiom_audit_taints_through_dotted_import(tmp_path):
+    """W3-E: a namespaced `import Foo.Bar.Base` must propagate taint by its final segment."""
+    _write(tmp_path, "Base.lean", "axiom FOO : Type\ntheorem t1 : True := trivial\n")
+    _write(tmp_path, "Mid.lean", "import Foo.Bar.Base\ntheorem t2 : True := trivial\n")
+    r = audit_lean_dir(tmp_path)
+    assert r.axiom_resting_theorems == 2  # Base + Mid (dotted import resolved to stem Base)

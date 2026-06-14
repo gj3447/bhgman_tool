@@ -45,7 +45,10 @@ def _profile_file(path: Path) -> FileAxiomProfile:
         opaques=tuple(_OPAQUE.findall(text)),
         theorems=len(_THEOREM.findall(text)),
         sorry_in_proof=len(_SORRY.findall(text)),
-        sibling_imports=tuple(_IMPORT.findall(text)),
+        # final module segment only — taint propagation keys files by stem, so a dotted
+        # `import Foo.Bar.Base` must reduce to `Base` to match (W3-E: was stored whole, so
+        # `"Foo.Bar.Base" in by_stem` never hit and namespaced imports never propagated taint).
+        sibling_imports=tuple(m.rsplit(".", 1)[-1] for m in _IMPORT.findall(text)),
     )
 
 

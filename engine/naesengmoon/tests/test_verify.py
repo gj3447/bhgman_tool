@@ -48,3 +48,27 @@ def test_verify_unknown_kind_raises():
 
 def test_kinds_complete():
     assert set(KINDS) == {"lean-goals", "pytest-ratio", "drift-recount", "occam-twins"}
+
+
+def test_verify_occam_twins_passes_repo_root(monkeypatch):
+    """W3-F: verify() must thread repo_root into occam_twins_oracle (mode-2/3 disk-truth)."""
+    from engine.naesengmoon import verify as vmod
+
+    captured = {}
+
+    def fake_oracle(run_cypher, scope=None, repo_root=None):
+        captured["repo_root"] = repo_root
+
+        class _O:
+            def evaluate(self, _):
+                class _S:
+                    value = 0.0
+
+                return _S()
+
+        return _O()
+
+    monkeypatch.setattr(vmod, "occam_twins_oracle", fake_oracle)
+    v = vmod.verify("occam-twins", run_cypher=lambda *a: [], repo_root="/myroot")
+    assert captured["repo_root"] == "/myroot"
+    assert v.passed
