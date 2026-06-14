@@ -282,7 +282,15 @@ def _gate_check_impl(req: GateCheckRequest) -> dict[str, Any]:
             "audit_id": f"audit_{req.cycle_id}_{req.gate_name}",
         }
     except subprocess.TimeoutExpired:
-        return {"verdict": "WOULD_FAIL", "reason": "timeout (Resilience4j 500ms exceeded)"}
+        return {
+            "verdict": "WOULD_FAIL",
+            "reason": "gate-check timeout (10s exceeded)",
+            "degraded": True,
+        }
+    except OSError as e:
+        # non-executable / exec failure must fail-open (degraded dict), never raise out of the
+        # MCP tool — the docstring promises graceful degradation but only TimeoutExpired was caught.
+        return {"verdict": "WOULD_FAIL", "reason": f"gate-check exec failed: {e}", "degraded": True}
 
 
 def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:

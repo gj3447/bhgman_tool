@@ -3,8 +3,10 @@
 KG: span-mcp-tool-longinus-audit-2026-05-13 (:AtomicSpan)
 
 Exposes Longinus drift detection as a Claude-Code-callable MCP tool.
-Uses the simulated KG audit logic from the worked example (worked/01-longinus-simple/run.py)
-plus the production Pydantic models from `longinus_drift_audit` package.
+Uses the simulated KG audit logic from the worked example (worked/01-longinus-simple/run.py).
+NOTE (H7): this thin wrapper does NOT import the production Pydantic models from
+`longinus_drift_audit` — it returns a hand-shaped dict (the AuditReport subset documented
+below). For the real typed audit, call engine.longinus_drift_audit.audit_runner directly.
 """
 
 from __future__ import annotations

@@ -16,7 +16,6 @@ from __future__ import annotations
 import csv
 import dataclasses as dc
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -75,12 +74,6 @@ def _triples_to_tsv(triples: Iterable[tuple[str, str, str]], dst: Path) -> int:
             writer.writerow([str(s), str(p), str(o)])
             count += 1
     return count
-
-
-_RULE_HEADER_PAT = re.compile(
-    r"^Rule\s+Head Coverage\s+Std Confidence\s+PCA Confidence",
-    flags=re.IGNORECASE,
-)
 
 
 def _parse_rules(stdout: str) -> list[HornRule]:
