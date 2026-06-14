@@ -75,6 +75,12 @@ class PipelineConfig:
     fidelity_runner: Optional[CypherRunner] = None
     fidelity_cfg: Optional[FidelityConfig] = None
 
+    # stage_6 KG persist (W1-I). None → pipeline stays read-only (dry-run default, like
+    # occam/hades). Injected → gated ACs are MERGEd so hades can realize them. persist_accept
+    # is the explicit PROPOSED→ACCEPTED transition (writes verdictStatus='ACCEPTED' only then).
+    persist_cypher: Optional[CypherRunner] = None
+    persist_accept: bool = False
+
     def resolve_stage_community(self) -> Stage:
         return self.stage_community or NotImplementedStage(
             "2-community",
@@ -303,6 +309,52 @@ def stage_5_naesengmoon_gate(abstract_classes: list[AbstractClass]) -> list[Abst
     ]
 
 
+# eureka→KG persist. Sets `verdictStatus` — the field hades filters on to realize
+# (`a.verdictStatus = 'ACCEPTED'`). Distinct shape from the hades self-MERGE route
+# (`{name:$concept}` no space) so the local backend routes it separately. (W1-I)
+_PERSIST_AC_CYPHER = (
+    "MERGE (a:AbstractClass {name: $name}) "
+    "SET a.verdictStatus = $verdictStatus, a.status = $status, a.summary = $summary, "
+    "a.inductionMethod = $inductionMethod, a.cycleId = $cycleId, "
+    "a.extent = $extent, a.intent = $intent, a.stabilityScore = $stabilityScore "
+    "RETURN a.name AS name"
+)
+
+
+def stage_6_persist(
+    gated_acs: list[AbstractClass], persist_cypher: CypherRunner, *, accept: bool
+) -> int:
+    """Persist gated AbstractClass nodes to the KG so hades can fetch + realize them.
+
+    Closes the dead producer→consumer seam: hades reads `verdictStatus='ACCEPTED'` but
+    eureka never wrote it. The PROPOSED→ACCEPTED transition is GATED on an explicit
+    ``accept`` signal — a VERDICT_PENDING concept is written ACCEPTED only when the
+    operator/oracle accepts the in-pipeline gate chain; otherwise it persists as
+    VERDICT_PENDING (visible, not yet realizable). REJECTED concepts are never persisted
+    as realizable. Returns the number of nodes written. (W1-I)
+    """
+    written = 0
+    for ac in gated_acs:
+        if ac.status is AbstractClassStatus.REJECTED:
+            continue
+        persist_cypher(
+            _PERSIST_AC_CYPHER,
+            {
+                "name": ac.name,
+                "verdictStatus": "ACCEPTED" if accept else "VERDICT_PENDING",
+                "status": ac.status.value,
+                "summary": ac.summary,
+                "inductionMethod": ac.inductionMethod,
+                "cycleId": ac.cycleId,
+                "extent": ac.extent or [],
+                "intent": ac.intent or [],
+                "stabilityScore": ac.stabilityScore,
+            },
+        )
+        written += 1
+    return written
+
+
 def _try_run_stage(stage: Stage, context: dict[str, Any], record_to: PipelineRun) -> bool:
     """Run an injectable stage. Returns True if it ran successfully, False if
     explicitly NotImplemented (recorded but not fatal)."""
@@ -381,6 +433,21 @@ def run(
     except Exception as e:
         pr.record("5.5-pre-merge-validator", False, error=str(e))
         return pr
+
+    # 6 KG persist (W1-I) — write the gated ACs so hades can fetch + realize them. Off
+    # unless a persist_cypher is injected (read-only by default, like occam/hades dry-run).
+    if config.persist_cypher is not None:
+        try:
+            n_persisted = stage_6_persist(
+                gated_acs, config.persist_cypher, accept=config.persist_accept
+            )
+            pr.record(
+                "6-persist",
+                True,
+                payload={"persisted": n_persisted, "accepted": config.persist_accept},
+            )
+        except Exception as e:  # noqa: BLE001 — persist failure must not crash the pipeline
+            pr.record("6-persist", False, error=str(e))
 
     _try_run_stage(config.resolve_stage_hybrid_retrieval(), ctx, pr)
     _try_run_stage(config.resolve_stage_drift_loop(), ctx, pr)

@@ -105,6 +105,27 @@ def _hades_merge_concept(store: LocalKgStore, params: dict) -> list[dict]:
     return []
 
 
+def _eureka_persist_abstractclass(store: LocalKgStore, params: dict) -> list[dict]:
+    """eureka stage_6 persist (W1-I) — MERGE an AbstractClass with the verdictStatus hades
+    fetches on. Distinct from _hades_merge_concept (which marks status=CANONICAL on realize)."""
+    store.merge_node(
+        "AbstractClass",
+        "name",
+        params["name"],
+        {
+            "verdictStatus": params.get("verdictStatus"),
+            "status": params.get("status"),
+            "summary": params.get("summary"),
+            "inductionMethod": params.get("inductionMethod"),
+            "cycleId": params.get("cycleId"),
+            "extent": list(params.get("extent") or []),
+            "intent": list(params.get("intent") or []),
+            "stabilityScore": params.get("stabilityScore"),
+        },
+    )
+    return [{"name": params["name"]}]
+
+
 def _hades_link_members(store: LocalKgStore, params: dict) -> list[dict]:
     ac = store.find_one("name", params["concept"], "AbstractClass")
     if ac is None:
@@ -376,6 +397,11 @@ def _jaebaeman_children(store: LocalKgStore, params: dict) -> list[dict]:
 _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     (lambda c: "stale.status = 'SUPERSEDED'" in c, _occam_supersede, True),
     (lambda c: "MERGE (a:AbstractClass {name:$concept})" in c, _hades_merge_concept, True),
+    (
+        lambda c: "MERGE (a:AbstractClass {name: $name})" in c and "SET a.verdictStatus" in c,
+        _eureka_persist_abstractclass,
+        True,
+    ),
     (lambda c: "INSTANCE_OF" in c and "$members" in c, _hades_link_members, True),
     (lambda c: "UNWIND $rows" in c and "s.sha256" in c, _rebind_sha, True),
     # 재배맨 씨앗/계획-엣지 (write) + 분해 anchor 자식 (read).

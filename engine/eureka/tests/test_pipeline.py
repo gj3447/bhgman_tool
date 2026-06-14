@@ -39,6 +39,55 @@ def test_pipeline_empty_input_no_crash():
     assert extract.payload["count"] == 0
 
 
+_COHESIVE_CONTEXT = {
+    "node_a": frozenset({"axis_x", "axis_y"}),
+    "node_b": frozenset({"axis_x", "axis_y"}),
+    "node_c": frozenset({"axis_x", "axis_y"}),
+}
+
+
+def test_eureka_persist_to_hades_realization_roundtrip(tmp_path):
+    """W1-I: eureka persists ACCEPTED AbstractClass nodes to a (local) KG and hades
+    fetches+realizes them — NO hand-built fixture. Closes the dead producer→consumer seam
+    (hades reads verdictStatus='ACCEPTED', which eureka never wrote before)."""
+    from engine.hades.hades_runner import run_hades
+    from engine.kg_local.runner import make_local_runner
+    from engine.kg_local.store import LocalKgStore
+
+    store = LocalKgStore(tmp_path / "kg.json")
+    runner = make_local_runner(store)
+    cfg = PipelineConfig(cycle_id="roundtrip", persist_cypher=runner, persist_accept=True)
+    result = run(reference_sites=[], formal_context=_COHESIVE_CONTEXT, config=cfg)
+
+    persist = next(s for s in result.stages if s.stage == "6-persist")
+    assert persist.ok and persist.payload["persisted"] >= 1
+
+    # hades fetches exactly what eureka wrote — no hand-built fixture
+    res = run_hades(runner, concept=None)
+    assert len(res.verdicts) >= 1
+
+
+def test_eureka_persist_without_accept_is_not_hades_realizable(tmp_path):
+    """The PROPOSED→ACCEPTED transition gate holds: without persist_accept, concepts persist
+    as VERDICT_PENDING and hades does NOT pick them up."""
+    from engine.hades.hades_runner import run_hades
+    from engine.kg_local.runner import make_local_runner
+    from engine.kg_local.store import LocalKgStore
+
+    store = LocalKgStore(tmp_path / "kg.json")
+    runner = make_local_runner(store)
+    cfg = PipelineConfig(cycle_id="pending", persist_cypher=runner, persist_accept=False)
+    run(reference_sites=[], formal_context=_COHESIVE_CONTEXT, config=cfg)
+    assert run_hades(runner, concept=None).verdicts == ()
+
+
+def test_eureka_no_persist_cypher_stays_read_only():
+    """No persist_cypher injected → no 6-persist stage (read-only default, like dry-run)."""
+    cfg = PipelineConfig(cycle_id="ro")
+    result = run(reference_sites=[], formal_context=_COHESIVE_CONTEXT, config=cfg)
+    assert "6-persist" not in [s.stage for s in result.stages]
+
+
 def test_notimplemented_stages_recorded_explicit():
     cfg = PipelineConfig(cycle_id="explicit-stub-test")
     result = run(reference_sites=[], formal_context={}, config=cfg)
