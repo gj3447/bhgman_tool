@@ -11,5 +11,11 @@
 export BHGMAN_LLM_BASE_URL="http://100.64.0.3:8000/v1"
 export BHGMAN_LLM_MODEL="qwen3.6-27b"
 export BHGMAN_LLM_API_KEY="EMPTY"
-# reasoning 모델은 로딩/사고가 느려 기본 120s 로는 부족할 수 있어 상향
-export BHGMAN_LLM_TIMEOUT="180"
+# GB10(~4tok/s)은 느려서 라운드당 여유 필요 — 상향
+export BHGMAN_LLM_TIMEOUT="300"
+# Qwen reasoning(think) 끄기 — 느린 GPU에서 ReAct 멀티라운드 think 토큰 폭발 방지 (속도+SEARCH 신호 명확)
+export BHGMAN_LLM_NO_THINK="1"
+# 로컬 웹검색 (SearXNG self-host @ dgx, 키 0). 설정 시 openai-compat 경로가 ReAct 검색 루프 활성.
+# 검색은 *우리 인프라*가 실행 → vLLM agent 가 SEARCH: 신호로 호출. (Anthropic server-side web_search 와 무관)
+export BHGMAN_SEARXNG_URL="http://100.64.0.3:8888"
+export BHGMAN_LLM_SEARCH_ROUNDS="4"

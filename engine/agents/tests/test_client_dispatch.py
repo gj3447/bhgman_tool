@@ -108,3 +108,57 @@ def test_dispatch_parallel_preserves_order_and_isolates_failure():
 def test_dispatch_empty():
     c = AgentClient(client=FakeAnthropic(lambda s, u, m: "x"))
     assert dispatch_parallel([], c) == []
+
+
+def test_openai_react_web_search_loop(monkeypatch):
+    """로컬 LLM: SEARCH 신호 → SearXNG 검색 → 결과 주입 → 종합. 토큰 누적."""
+    monkeypatch.setenv("BHGMAN_LLM_MODEL", "qwen3.6-27b")
+    monkeypatch.setenv("BHGMAN_SEARXNG_URL", "http://searxng.local")
+    from engine.agents import web_search_local
+
+    monkeypatch.setattr(
+        web_search_local,
+        "searxng_search",
+        lambda q, **k: [{"title": "vLLM", "url": "http://gh/vllm", "snippet": "v0.22.0"}],
+    )
+    calls: list = []
+
+    def fake_post(url, payload, headers, timeout):
+        calls.append(payload["messages"])
+        if len(calls) == 1:
+            return {
+                "choices": [
+                    {"message": {"content": "SEARCH: vllm latest version"}, "finish_reason": "stop"}
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+            }
+        return {
+            "choices": [
+                {"message": {"content": "최신 버전은 0.22.0 (http://gh/vllm)"}, "finish_reason": "stop"}
+            ],
+            "usage": {"prompt_tokens": 20, "completion_tokens": 8},
+        }
+
+    c = AgentClient(http_post=fake_post)
+    out = c.complete(system="S", user="vllm 최신?", model="x", web_search=True)
+    assert "0.22.0" in out.text and len(calls) == 2  # SEARCH → 검색 → 종합
+    assert out.input_tokens == 30 and out.output_tokens == 13  # 라운드 누적
+    assert any("검색 결과" in m["content"] for m in calls[1] if m["role"] == "user")
+
+
+def test_openai_web_search_noop_without_searxng(monkeypatch):
+    """SearXNG 미설정이면 web_search=True 여도 ReAct 안 돎(단발) — SEARCH 텍스트도 그대로 반환."""
+    monkeypatch.setenv("BHGMAN_LLM_MODEL", "qwen3.6-27b")
+    monkeypatch.delenv("BHGMAN_SEARXNG_URL", raising=False)
+    calls: list = []
+
+    def fake_post(url, payload, headers, timeout):
+        calls.append(payload["messages"])
+        return {
+            "choices": [{"message": {"content": "SEARCH: x"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 2},
+        }
+
+    c = AgentClient(http_post=fake_post)
+    out = c.complete(system="S", user="u", model="x", web_search=True)
+    assert len(calls) == 1 and out.text == "SEARCH: x"

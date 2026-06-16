@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -25,6 +26,8 @@ from engine.agents.agent_models import EFFORT_CAPABLE
 
 DEFAULT_MAX_TOKENS = 4096
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}
+# openai-compat ReAct: 모델이 검색을 요청하는 한 줄 신호 (server-side tool 없는 로컬 LLM용)
+_SEARCH_RE = re.compile(r"(?m)^\s*SEARCH:\s*(.+?)\s*$")
 
 
 class AgentRuntimeUnavailable(RuntimeError):
@@ -117,15 +120,18 @@ class AgentClient:
     ) -> Completion:
         """1회 호출. openai-compat면 로컬 모델로(web_search/effort 무시), anthropic이면 full."""
         if self._mode == "openai":
-            return self._complete_openai(system, user, max_tokens)
+            return self._complete_openai(system, user, max_tokens, web_search)
         return self._complete_anthropic(system, user, model, max_tokens, effort, web_search)
 
-    def _complete_openai(self, system: str, user: str, max_tokens: int) -> Completion:
-        payload = {
-            "model": self._model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-            "max_tokens": max_tokens,
-        }
+    def _openai_post(self, messages: list[dict], max_tokens: int) -> Completion:
+        """openai-compat /chat/completions 단발 호출 (멀티턴 messages 그대로 POST).
+
+        BHGMAN_LLM_NO_THINK 설정 시 Qwen reasoning(think)을 끈다(chat_template_kwargs).
+        느린 로컬 GPU(GB10 ~4tok/s)에서 ReAct 멀티라운드의 think 토큰 폭발을 막아 실용 속도 확보.
+        """
+        payload: dict = {"model": self._model, "messages": messages, "max_tokens": max_tokens}
+        if os.environ.get("BHGMAN_LLM_NO_THINK"):
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
         headers = {"Authorization": f"Bearer {self._key}"}
         timeout = float(
             os.environ.get("BHGMAN_LLM_TIMEOUT", "120")
@@ -140,6 +146,76 @@ class AgentClient:
             input_tokens=usage.get("prompt_tokens", 0) or 0,
             output_tokens=usage.get("completion_tokens", 0) or 0,
             stop_reason=choice.get("finish_reason", "") or "",
+        )
+
+    def _complete_openai(
+        self, system: str, user: str, max_tokens: int, web_search: bool = False
+    ) -> Completion:
+        """openai-compat. web_search=True + BHGMAN_SEARXNG_URL 이면 ReAct 검색 루프.
+
+        로컬 LLM 엔 server-side web_search 가 없으므로, 모델이 `SEARCH: <쿼리>` 를 출력하면
+        우리(SearXNG self-host)가 검색을 실행해 결과를 다시 주입하는 client-side tool 루프.
+        토큰 사용량은 전 라운드 누적해서 반환.
+        """
+        from engine.agents import web_search_local as _ws  # noqa: PLC0415
+
+        if not (web_search and _ws.searxng_url()):
+            return self._openai_post(
+                [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                max_tokens,
+            )
+
+        instr = (
+            "\n\n[웹검색 도구] 외부·최신 정보가 필요하면, 설명 없이 한 줄에 정확히 "
+            "`SEARCH: <검색어>` 한 개만 출력하고 멈춰라. 그러면 검색 결과를 받는다. "
+            "결과가 충분하면 최종 답을 작성하고, 검색이 불필요하면 바로 답하라."
+        )
+        messages: list[dict] = [
+            {"role": "system", "content": system + instr},
+            {"role": "user", "content": user},
+        ]
+        rounds = int(os.environ.get("BHGMAN_LLM_SEARCH_ROUNDS", "4"))
+        tin = tout = 0
+        last = self._openai_post(messages, max_tokens)
+        tin, tout = tin + last.input_tokens, tout + last.output_tokens
+        for _ in range(rounds):
+            m = _SEARCH_RE.search(last.text or "")
+            if not m:
+                break
+            query = m.group(1).strip().strip('"').strip("`").strip()
+            try:
+                obs = _ws.format_results(_ws.searxng_search(query))
+            except Exception as e:  # noqa: BLE001 — 검색 실패해도 모델이 degrade 답
+                obs = f"(검색 실패: {e})"
+            messages.append({"role": "assistant", "content": last.text})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"`{query}` 검색 결과:\n{obs}\n\n"
+                    "이 결과로 최종 답을 작성하거나, 더 필요하면 다시 SEARCH 하라.",
+                }
+            )
+            last = self._openai_post(messages, max_tokens)
+            tin, tout = tin + last.input_tokens, tout + last.output_tokens
+        if _SEARCH_RE.search(last.text or ""):  # rounds 소진 후에도 검색 요청 → 강제 종합
+            messages.append({"role": "assistant", "content": last.text})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "검색 한도 도달. 더 검색하지 말고 지금까지 결과로 최종 답을 작성하라.",
+                }
+            )
+            last = self._openai_post(messages, max_tokens)
+            tin, tout = tin + last.input_tokens, tout + last.output_tokens
+        return Completion(
+            text=last.text,
+            model=last.model,
+            input_tokens=tin,
+            output_tokens=tout,
+            stop_reason=last.stop_reason,
         )
 
     def _complete_anthropic(
