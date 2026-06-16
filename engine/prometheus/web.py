@@ -112,4 +112,49 @@ class WebSearchFetcher:
         return docs
 
 
-__all__ = ["WebSearchFetcher"]
+class SearXNGFetcher:
+    """SearXNG self-host(키 0) 검색 → top-K URL fetch → FetchedDoc.
+
+    DDG HTML 스크래핑(WebSearchFetcher)보다 안정적 — 검색을 우리 인프라(dgx SearXNG)가 실행.
+    동일 인터페이스(fetch(query)->list[FetchedDoc])라 legion --web 에 drop-in 교체.
+    """
+
+    def __init__(
+        self,
+        base: str,
+        *,
+        url_open: Callable[[str], str] = _default_url_open,
+        max_results: int = 3,
+    ) -> None:
+        self._base = base.rstrip("/")
+        self._open = url_open
+        self._max = max_results
+
+    def fetch(self, query: Query) -> list[FetchedDoc]:
+        from engine.agents.web_search_local import searxng_search  # noqa: PLC0415
+
+        try:
+            results = searxng_search(query.text, n=self._max, base=self._base)
+        except Exception:  # noqa: BLE001 — 검색 실패 → 빈 결과 (거짓 결과 금지)
+            return []
+        docs: list[FetchedDoc] = []
+        for r in results:
+            url = r.get("url", "")
+            if not _is_http_url(url):
+                continue
+            try:
+                docs.append(FetchedDoc(url, self._open(url)))
+            except Exception:  # noqa: BLE001 — 개별 문서 실패는 skip
+                continue
+        return docs
+
+
+def make_web_fetcher() -> WebSearchFetcher | SearXNGFetcher:
+    """BHGMAN_SEARXNG_URL 있으면 SearXNGFetcher(self-host, 안정), 없으면 DDG WebSearchFetcher."""
+    import os  # noqa: PLC0415
+
+    base = os.environ.get("BHGMAN_SEARXNG_URL")
+    return SearXNGFetcher(base) if base else WebSearchFetcher()
+
+
+__all__ = ["SearXNGFetcher", "WebSearchFetcher", "make_web_fetcher"]

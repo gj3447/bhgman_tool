@@ -435,6 +435,37 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_lg.set_defaults(func=commands.cmd_legion)
 
+    p_bot = sub.add_parser(
+        "bot",
+        help="bhgman 봇 — legion 닫힌루프 백그라운드 자율 데몬 (vLLM 추론 + KG + SearXNG + 하네스).",
+    )
+    p_bot.add_argument(
+        "--interval", type=float, default=300, help="tick 간 sleep 초 (default 300)."
+    )
+    p_bot.add_argument(
+        "--once", action="store_true", help="1 tick 만 실행하고 종료 (검증용)."
+    )
+    p_bot.add_argument(
+        "--max-ticks", type=int, default=None, help="N tick 후 종료 (default 무한)."
+    )
+    p_bot.add_argument(
+        "--topics", nargs="*", help="tick rotation topic 큐 (없으면 KG 에서 일감 pull)."
+    )
+    p_bot.add_argument("--local", action="store_true", help="번들 neo4j-free local KG 사용.")
+    p_bot.add_argument(
+        "--apply", action="store_true", help="KG write (occam supersede + hades). 생략=dry-run."
+    )
+    p_bot.add_argument("--scope", help="occam scope filter (sourcePath CONTAINS).")
+    p_bot.add_argument("--no-disk-scan", action="store_true", help="occam KG-only.")
+    p_bot.add_argument(
+        "--llm", action="store_true", help="vLLM enrichment (획득/검증). 생략=결정론 코어."
+    )
+    p_bot.add_argument("--no-ground", action="store_true", help="LLM grounding skip.")
+    p_bot.add_argument(
+        "--web", action="store_true", help="실제 웹 fetcher 주입 (SearXNG self-host 우선, 없으면 DDG)."
+    )
+    p_bot.set_defaults(func=commands.cmd_bot)
+
     p_na = sub.add_parser(
         "naesengmoon-audit",
         help="나생문 truth-렌즈 (결정론): axiom-audit(일관성 vs 참 간극) + falsifiability routing.",

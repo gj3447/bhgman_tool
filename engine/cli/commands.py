@@ -1267,9 +1267,10 @@ def cmd_legion(args: argparse.Namespace) -> int:
         "researched_at": _now_iso(),
     }
     if getattr(args, "web", False):
-        from engine.prometheus import WebSearchFetcher  # noqa: PLC0415
+        from engine.prometheus.web import make_web_fetcher  # noqa: PLC0415
 
-        ctx["fetcher"] = WebSearchFetcher()  # 결정론 획득 코어에 실제 웹 fetcher 주입
+        # SearXNG self-host(BHGMAN_SEARXNG_URL) 있으면 그것, 없으면 DDG fallback
+        ctx["fetcher"] = make_web_fetcher()
     close_g = lambda: None  # noqa: E731
     if getattr(args, "llm", False):
         agents, reason = _agent_runtime()
@@ -1314,6 +1315,100 @@ def cmd_legion(args: argparse.Namespace) -> int:
         f"collected={lc.collected} failed={lc.failed} (planner→lifecycle→record)"
     )
     return 0 if run.completed else 1
+
+
+def cmd_bot(args: argparse.Namespace) -> int:
+    """bhgman 봇 — legion 닫힌루프 백그라운드 자율 데몬 (vLLM 추론 + KG + SearXNG + 하네스).
+
+    moltbot 류 self-hosted 자율 에이전트의 bhgman 판. 각 tick = topic 선택 → legion run
+    (획득→연결→창조→정리→검증→실현) → KG read/write. 하네스 = legion Contract+oracle gate.
+    --once 검증 / --interval N 주기 / --max-ticks N / --topics rot / --llm vLLM / --web SearXNG.
+    # KG: bhgman-bot-daemon-2026-06-16
+    """
+    from engine.legion.daemon import BotConfig, run_bot  # noqa: PLC0415
+
+    runners = _resolve_kg_runners(args)
+    if runners is None:
+        print(
+            "[bot] neo4j unavailable (set NEO4J_*, or --local). 봇은 KG 기반이라 KG 필수.",
+            file=sys.stderr,
+        )
+        return 2
+    run_cypher, write_cypher, close = runners
+
+    fetcher = None
+    agents = client = grounding = None
+    close_g = lambda: None  # noqa: E731
+    if getattr(args, "web", False):
+        from engine.prometheus.web import make_web_fetcher  # noqa: PLC0415
+
+        fetcher = make_web_fetcher()  # SearXNG(self-host) 우선, 없으면 DDG
+    if getattr(args, "llm", False):
+        agents, reason = _agent_runtime()
+        if agents is None:
+            print(
+                f"[bot] --llm 요청했으나 LLM runtime 불가 ({reason}) → 결정론 코어로 진행.",
+                file=sys.stderr,
+            )
+        else:
+            grounding, close_g = _grounding_source(args)
+            client = agents.AgentClient()
+
+    import datetime as _dt  # noqa: PLC0415
+
+    from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
+
+    apply = getattr(args, "apply", False)
+
+    def build_ctx(topic: str) -> dict:
+        ctx: dict = {
+            "run_cypher": run_cypher,
+            "write_cypher": write_cypher,
+            "apply": apply,
+            "scope": getattr(args, "scope", None),
+            "concept": None,
+            "topic": topic,
+            "repo_root": None if getattr(args, "no_disk_scan", False) else str(_repo_root()),
+            "researched_at": _now_iso(),
+        }
+        if fetcher is not None:
+            ctx["fetcher"] = fetcher
+        if agents is not None and client is not None:
+            ctx.update(agents=agents, client=client, grounding=grounding)
+        return ctx
+
+    def run_tick(ctx: dict, _topic: str) -> dict:
+        run_id = "bot-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+        return run_legion_via_jaebaeman(ctx, run_id=run_id, write_cypher=write_cypher, apply=apply)
+
+    def pick_work() -> str | None:
+        try:
+            rows = run_cypher(
+                "MATCH (n) WHERE n.name IS NOT NULL "
+                "AND (n:OpenQuestion OR n:Concept OR n:OntologyClass) "
+                "RETURN n.name AS topic ORDER BY coalesce(n.created_at,'') DESC LIMIT 1",
+                {},
+            )
+        except Exception:  # noqa: BLE001 — pick 실패 → idle
+            return None
+        if rows and isinstance(rows, list) and isinstance(rows[0], dict):
+            return rows[0].get("topic")
+        return None
+
+    cfg = BotConfig(
+        interval=float(getattr(args, "interval", 300)),
+        max_ticks=1 if getattr(args, "once", False) else getattr(args, "max_ticks", None),
+        topics=tuple(getattr(args, "topics", None) or ()),
+        apply=apply,
+    )
+    try:
+        results = run_bot(build_ctx=build_ctx, run_tick=run_tick, cfg=cfg, pick_work=pick_work)
+    finally:
+        close()
+        close_g()
+    completed = sum(1 for r in results if r.completed)
+    print(f"[bot] done — {completed}/{len(results)} ticks completed")
+    return 0
 
 
 def _resolve_cycle_id(args: argparse.Namespace) -> str:
