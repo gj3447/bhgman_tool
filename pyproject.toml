@@ -118,6 +118,7 @@ memory = [
 resolver-test = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "testcontainers[neo4j]>=4.0",
 ]
 gate-test = [
     "pytest>=8.0",
@@ -288,6 +289,9 @@ known_first_party = [
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
 [tool.deptry.package_module_name_map]
 python-frontmatter = "frontmatter"
+python-igraph = "igraph"
+sentence-transformers = "sentence_transformers"
+hnswlib = "hnswlib"
 
 # Optional/extra deps used via importorskip or conditional import (test-only or feature-gated).
 # These do exist in pyproject [project.optional-dependencies] but deptry's default scan flags them.
