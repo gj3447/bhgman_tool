@@ -17,6 +17,7 @@ uv.lock
 
 # Pytest / coverage
 .pytest_cache/
+.hypothesis/
 .coverage
 htmlcov/
 .tox/

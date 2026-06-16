@@ -32,12 +32,17 @@ class Embedder:
         self.dim = dim
         self._model: Any = None
         self._is_real = False
+        self.fallback_reason: str | None = None
         try:
             from sentence_transformers import SentenceTransformer
 
             self._model = SentenceTransformer(model_name)
             self._is_real = True
         except ImportError:
+            self.fallback_reason = "sentence-transformers not installed"
+            self._model = None  # use hash fallback
+        except Exception as exc:  # noqa: BLE001 - optional model init can fail on offline/rate-limited CI
+            self.fallback_reason = f"sentence-transformers unavailable: {exc}"
             self._model = None  # use hash fallback
 
     @property

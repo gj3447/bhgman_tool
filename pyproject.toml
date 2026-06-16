@@ -41,6 +41,7 @@ dev = [
     "mypy>=1.10",
     "build>=1.2",
     "twine>=5.1",
+    "deptry>=0.23",
     "pre-commit>=4.0",  # wave11 — 4-ratchet local gate (lesson-bhgman-tool-quality-ratchet-drift-2026-05-17)
     "hypothesis>=6.0",  # property-based testing (test_delta_lens_properties.py); moved from DEP001 ignore 2026-05-21 per vr-bhgman-442702e L2-F2
 ]
@@ -118,6 +119,7 @@ memory = [
 resolver-test = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "testcontainers[neo4j]>=4.0",
 ]
 gate-test = [
     "pytest>=8.0",
@@ -288,6 +290,9 @@ known_first_party = [
 # python-frontmatter PyPI package exposes `frontmatter` module name (PEP 503 name mismatch).
 [tool.deptry.package_module_name_map]
 python-frontmatter = "frontmatter"
+python-igraph = "igraph"
+sentence-transformers = "sentence_transformers"
+hnswlib = "hnswlib"
 
 # Optional/extra deps used via importorskip or conditional import (test-only or feature-gated).
 # These do exist in pyproject [project.optional-dependencies] but deptry's default scan flags them.
@@ -307,6 +312,7 @@ DEP002 = [
   "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)
   "ruff",             # uvx-invoked lint tool (no Python import)
   "mypy",             # uvx-invoked type checker (no Python import)
+  "deptry",           # CI dependency drift checker (no Python import)
   "build",            # PEP 517 packaging frontend
   "twine",            # PyPI upload tool
   "pytest-asyncio",   # pytest plugin (registered via marker, no import)
