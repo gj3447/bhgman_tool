@@ -41,6 +41,7 @@ dev = [
     "mypy>=1.10",
     "build>=1.2",
     "twine>=5.1",
+    "deptry>=0.23",
     "pre-commit>=4.0",  # wave11 — 4-ratchet local gate (lesson-bhgman-tool-quality-ratchet-drift-2026-05-17)
     "hypothesis>=6.0",  # property-based testing (test_delta_lens_properties.py); moved from DEP001 ignore 2026-05-21 per vr-bhgman-442702e L2-F2
 ]
@@ -311,6 +312,7 @@ DEP002 = [
   "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)
   "ruff",             # uvx-invoked lint tool (no Python import)
   "mypy",             # uvx-invoked type checker (no Python import)
+  "deptry",           # CI dependency drift checker (no Python import)
   "build",            # PEP 517 packaging frontend
   "twine",            # PyPI upload tool
   "pytest-asyncio",   # pytest plugin (registered via marker, no import)

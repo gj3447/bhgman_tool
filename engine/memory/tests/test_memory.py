@@ -7,6 +7,7 @@ APT v26.1 Phase 2 SCW verification gate.
 from __future__ import annotations
 
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,22 @@ def test_embedder_class_is_callable():
     emb = Embedder()
     vec = emb.encode("test text")
     assert len(vec) == emb.dim
+
+
+def test_embedder_falls_back_when_sentence_transformer_init_fails(monkeypatch):
+    class BrokenSentenceTransformer:
+        def __init__(self, _model_name):
+            raise OSError("offline")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        types.SimpleNamespace(SentenceTransformer=BrokenSentenceTransformer),
+    )
+    emb = Embedder()
+    assert emb.is_real_model is False
+    assert emb.fallback_reason is not None
+    assert len(emb.encode("offline fallback")) == emb.dim
 
 
 # ─── VectorStore ────────────────────────────────────────────────────────
