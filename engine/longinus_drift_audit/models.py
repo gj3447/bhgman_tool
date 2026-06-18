@@ -187,7 +187,37 @@ class ReferenceSite(BaseModel):
         description="Repository this site belongs to (e.g. 'bhgman'). The dgx Neo4j is shared "
         "across repos; audit/materialize scope to one repo_tag so a single code-root audit "
         "does not false-flag another repo's ReferenceSites as Orphan/sha256-drift. "
-        "None = unscoped (backward compat: matches all).",
+        "None = unscoped (backward compat: matches all). Human alias; repo_id is the strong key.",
+    )
+
+    # ── 2026-06-18 — git-anchored, clone-portable binding (repo_identity + repo_registry) ──
+    # The site addresses code by (repo_id + repo_relpath + blob_oid) — never an absolute path.
+    # repo_id is the machine-independent join key; the machine-local registry maps it to a
+    # local checkout, so the same anchor resolves on any clone. All Optional => backward compat.
+    repo_id: Optional[str] = Field(
+        default=None,
+        description="Portable repo identity (machine-independent): '.longinus/repo.toml' id, "
+        "else normalized origin remote ('github.com/owner/repo'), else 'rootcommit:<sha>'. "
+        "Paired with the machine-local repo registry to resolve an absolute path.",
+    )
+    repo_relpath: Optional[str] = Field(
+        default=None,
+        description="POSIX path relative to the git toplevel (no machine prefix). With repo_id "
+        "this fully addresses the file portably; sourcePath retains the :line range / legacy form.",
+    )
+    commit: Optional[str] = Field(
+        default=None,
+        description="Git commit the baseline was validated at (git rev-parse HEAD).",
+    )
+    blob_oid: Optional[str] = Field(
+        default=None,
+        description="git hash-object of the working-tree file — content-addressed, "
+        "machine-independent. The drift signal of record.",
+    )
+    blob_oid_baseline: Optional[str] = Field(
+        default=None,
+        description="Frozen blob_oid baseline; mismatch with blob_oid = drift. Preferred over "
+        "the sha256 baseline when present (git-native, reproducible across clones).",
     )
 
     @field_validator("sourceId")
