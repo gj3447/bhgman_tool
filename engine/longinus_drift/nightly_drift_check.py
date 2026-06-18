@@ -9,7 +9,8 @@ also emits a :ReinductionTrigger for the next /prom 16 re-induction cycle.
 Cron snippet (install with `crontab -e`):
 
     # GED drift check — nightly 03:17 KST (eureka-l8-rectification split: drift→longinus_drift)
-    17 3 * * * cd /Users/lagyeongjun/CD/bhgman_tool/engine/longinus_drift && \\
+    # Set BHGMAN_ROOT to your checkout (portable across machines, not a hardcoded home).
+    17 3 * * * cd "$BHGMAN_ROOT/engine/longinus_drift" && \\
         /usr/bin/env python3 nightly_drift_check.py >> ~/.bhgman/l8_drift.log 2>&1
 
 Until GDS is installed on the Neo4j VM, the community-detection inputs (nGED, NMI,

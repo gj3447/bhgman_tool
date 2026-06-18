@@ -27,6 +27,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import os
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional
@@ -46,16 +47,57 @@ logger = logging.getLogger(__name__)
 # ─── Path resolution chain ────────────────────────────────────────────────
 
 
-DEFAULT_FS_BASE_CHAIN: tuple[str, ...] = (
-    "/Users/lagyeongjun/CD/SERVER",
-    "/Users/lagyeongjun/CD/SYMPOSIUM",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/METAHUMOTONIC",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/THEORY",
-    "/Users/lagyeongjun/CD/MIND",
-    "/Users/lagyeongjun/CD/bhgman_tool",
-    "/Users/lagyeongjun/CD",
-)
+def _git_toplevel(cwd: str) -> Optional[str]:
+    """Repo root of ``cwd`` via ``git rev-parse --show-toplevel``; ``None`` if not a repo
+    or git is unavailable. Best-effort — never raises."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", cwd, "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() or None if out.returncode == 0 else None
+
+
+def _default_base_chain() -> tuple[str, ...]:
+    """Build the path-resolution chain from the *environment*, never a hardcoded home dir.
+
+    Resolution order (first hit wins in ``resolve_path``):
+      1. ``$LONGINUS_FS_BASE_CHAIN`` — ``os.pathsep``-separated explicit roots
+      2. ``$CD_ROOT`` — the workspace root, if exported
+      3. the git toplevel of the current directory
+      4. the current working directory
+
+    Entries are expanded, absolutised, de-duplicated (order-preserving), and empties
+    dropped. This keeps the resolver clone-portable — it works on whatever machine
+    checked the repo out — instead of binding to one developer's ``/Users/<name>/CD``.
+    Callers can still pass an explicit ``base_chain=`` to ``resolve_path`` to override.
+    """
+    raw: list[str] = []
+    env_chain = os.environ.get("LONGINUS_FS_BASE_CHAIN", "")
+    if env_chain:
+        raw.extend(p for p in env_chain.split(os.pathsep) if p)
+    cd_root = os.environ.get("CD_ROOT")
+    if cd_root:
+        raw.append(cd_root)
+    top = _git_toplevel(os.getcwd())
+    if top:
+        raw.append(top)
+    raw.append(os.getcwd())
+    out: list[str] = []
+    seen: set[str] = set()
+    for p in raw:
+        ap = os.path.abspath(os.path.expanduser(p))
+        if ap not in seen:
+            seen.add(ap)
+            out.append(ap)
+    return tuple(out)
+
+
+# Computed at import from the environment/git/CWD (see _default_base_chain). Recompute via
+# _default_base_chain() if the environment changes at runtime, or pass base_chain= explicitly.
+DEFAULT_FS_BASE_CHAIN: tuple[str, ...] = _default_base_chain()
 
 
 @dataclass(frozen=True)
