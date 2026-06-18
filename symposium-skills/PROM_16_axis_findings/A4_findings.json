@@ -1,0 +1,126 @@
+{
+  "findings": [
+    {
+      "findingId": "finding_prom16_skillver_a4_s1",
+      "agentId": "prom16-a4-haiku-2026-04-29",
+      "axis": "A4",
+      "subAxis": "S1",
+      "title": "Provenance & Supply Chain Integrity — 정전 이론 grounding",
+      "summary": "SLSA (slsa.dev), in-toto (in-toto.io), sigstore (sigstore.dev), NTIA SBOM Minimum Elements (2021), Reproducible Builds (reproducible-builds.org), Solarwinds 2020/Codecov 2021 lessons, Merkle (1979) — 모두 verified canonical refs. SYMPOSIUM/SKILLS attestation.json은 in-toto Statement v1 + SLSA Provenance v1 schema 정확 conformance 확인 (predicateType=https://slsa.dev/provenance/v1, _type=https://in-toto.io/Statement/v1).",
+      "claims": [
+        {"claim": "SLSA v1.0 Build Track levels: L0 (no provenance), L1 (provenance exists, forgeable), L2 (signed provenance, hosted builder), L3 (hardened isolated build platform). L4 was deprecated in v1.0.", "source": "https://slsa.dev/spec/v1.0/levels", "verified": true},
+        {"claim": "in-toto Attestation Framework has 3 layers: Statement (binds attestation to subject + predicateType) / Predicate (type-specific payload) / Envelope (DSSE signing wrapper). SLSA Provenance is one predicateType.", "source": "https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md", "verified": true},
+        {"claim": "Sigstore keyless signing: OIDC token → Fulcio short-lived (10-min) cert → ephemeral keypair signs artifact → Rekor transparency log records signature → key discarded. No long-lived signing key.", "source": "https://docs.sigstore.dev/cosign/signing/overview/", "verified": true},
+        {"claim": "NTIA SBOM Minimum Elements (July 2021, pursuant to EO 14028): Data Fields + Automation Support + Practices/Processes. Accepts SPDX, CycloneDX, SWID as standard machine-readable formats.", "source": "https://www.ntia.gov/report/2021/minimum-elements-software-bill-materials-sbom", "verified": true},
+        {"claim": "Reproducible Builds definition: 'Given the same source code, build environment and build instructions, any party can recreate bit-by-bit identical copies of all specified artifacts.' Tools: diffoscope, repro-build. Requires SOURCE_DATE_EPOCH-based timestamp normalization.", "source": "https://reproducible-builds.org/docs/definition/", "verified": true},
+        {"claim": "Solarwinds SUNBURST (Dec 2020): build pipeline compromise inserted malicious code into ~18,000 Orion installations. Drove EO 14028 (May 2021), NIST SSDF SP 800-218, SLSA framework adoption. Mandiant 2021 reported supply-chain compromise rose to 17% of intrusions vs <1% in 2020.", "source": "https://cloud.google.com/blog/products/identity-security/how-solarwinds-still-affects-supply-chain-threats-two-years-later", "verified": true},
+        {"claim": "Merkle tree (Ralph Merkle, 1979 Stanford PhD thesis): tampering of any leaf changes root hash; logarithmic verification path. SYMPOSIUM/SKILLS MANIFEST.json.merkle_root applies this for drift detection across 27 skills.", "source": "https://en.wikipedia.org/wiki/Merkle_tree", "verified": true}
+      ],
+      "current_state_observation": {
+        "symposium_skills_attestation_present": true,
+        "attestation_path": ".well-known/skills/attestation.json",
+        "in_toto_statement_v1_conformant": true,
+        "slsa_provenance_v1_predicateType": "https://slsa.dev/provenance/v1",
+        "signature_status": "UNSIGNED",
+        "implied_slsa_level": "L1 borderline (provenance exists, unsigned)",
+        "merkle_root": "d8c62efd4d88ee58b70d2335d93907d7c6a606db0ba62b4a9ed7f9e69b28b7dd"
+      },
+      "verified": true,
+      "gate_passed": true,
+      "kg_ref_suggested": "ResearchFinding_prom16_a4_s1_provenance_canonical_2026-04-29"
+    },
+    {
+      "findingId": "finding_prom16_skillver_a4_s2",
+      "agentId": "prom16-a4-haiku-2026-04-29",
+      "axis": "A4",
+      "subAxis": "S2",
+      "title": "산업 표준 / RFC — CycloneDX 1.6/1.7, SPDX 3.0.1 (ISO/IEC 5962:2021), in-toto predicates, OCI/ORAS, TUF, NIST SSDF",
+      "summary": "CycloneDX v1.6 ratified as ECMA-424 (June 2024) — adds CBOM + Attestations capabilities. SYMPOSIUM/SKILLS uses 1.5 (upgrade trivial). SPDX 3.0.1 = ISO/IEC 5962:2021. SLSA Provenance v1 schema (buildDefinition.{buildType, externalParameters, internalParameters, resolvedDependencies}, runDetails.{builder, metadata, byproducts}) — SYMPOSIUM/SKILLS attestation conforms.",
+      "claims": [
+        {"claim": "CycloneDX v1.6 ratified as ECMA-424, 1st Edition by Ecma International (June 2024). Added Cryptographic BOM (CBOM) — first open standard for cryptographic asset inventory — and Attestations capability for declarative claims+evidence.", "source": "https://cyclonedx.org/news/cyclonedx-v1.6-released/", "verified": true},
+        {"claim": "CycloneDX v1.7 (current latest) extends v1.6 with advanced cryptography support, intellectual property declarations, and data provenance transparency.", "source": "https://cyclonedx.org/news/cyclonedx-v1.7-released/", "verified": true},
+        {"claim": "SPDX Specification 3.0.1 — System Package Data Exchange — open standard for SBOMs. SPDX is ISO/IEC 5962:2021 since 2021. Major restructure from 2.x to profile-based architecture (Software, Security, Build, AI, Dataset, Licensing, Lite).", "source": "https://spdx.github.io/spdx-spec/v3.0.1/", "verified": true},
+        {"claim": "SLSA Provenance v1 schema fields: buildDefinition.buildType (URI), buildDefinition.externalParameters (REQUIRED L1), buildDefinition.internalParameters, buildDefinition.resolvedDependencies (array of ResourceDescriptor with uri+digest), runDetails.builder.id (URI), runDetails.metadata.{invocationId, startedOn, finishedOn}, runDetails.byproducts.", "source": "https://slsa.dev/spec/v1.0/provenance", "verified": true},
+        {"claim": "in-toto attestation predicate registry includes: https://slsa.dev/provenance/v1, https://in-toto.io/attestation/link/v0.3, https://in-toto.io/attestation/test-result/v0.1, https://in-toto.io/attestation/vulns/v0.1, https://spdx.dev/Document, https://cyclonedx.org/bom — SBOMs themselves can be wrapped as predicates.", "source": "https://github.com/in-toto/attestation/blob/main/spec/predicates/", "verified": true},
+        {"claim": "OCI Image Manifest v1.1 added artifactType field allowing non-image artifacts (SBOMs, attestations, signatures). subject field links one artifact to another. ORAS (oras.land) is the canonical CLI for pushing/pulling OCI artifacts to any OCI Distribution v1.1 registry.", "source": "https://oras.land/docs/concepts/artifact/", "verified": true},
+        {"claim": "TUF (CNCF Graduated) defines top-level roles: root (root of trust, lists keys for other roles, offline keys), targets (signs file metadata), snapshot (consistent metadata view, prevents mix-and-match), timestamp (freshness, prevents freeze attacks). Used by PyPI, Docker Notary, sigstore root, RustUp.", "source": "https://theupdateframework.io/docs/metadata/", "verified": true},
+        {"claim": "NIST SSDF (SP 800-218 v1.1, Feb 2022) practice groups: Prepare Organization (PO), Protect Software (PS), Produce Well-Secured Software (PW), Respond to Vulnerabilities (RV). SBOM-relevant tasks: PS.3.2 (collect provenance), PO.1.3 (third-party requirements), PW.4.1 (well-secured components).", "source": "https://csrc.nist.gov/publications/detail/sp/800-218/final", "verified": true},
+        {"claim": "Cosign 2.0 (2023) canonical signature wrapping: DSSE (Dead Simple Signing Envelope) wraps in-toto Statement. .sigstore Bundle format combines DSSE signature + Fulcio cert chain + Rekor inclusion proof in single file. Verification: cosign verify-attestation --certificate-identity --certificate-oidc-issuer.", "source": "https://blog.sigstore.dev/cosign-2-0-released/", "verified": true}
+      ],
+      "verified": true,
+      "gate_passed": true,
+      "kg_ref_suggested": "ResearchFinding_prom16_a4_s2_industry_standards_2026-04-29"
+    },
+    {
+      "findingId": "finding_prom16_skillver_a4_s3",
+      "agentId": "prom16-a4-haiku-2026-04-29",
+      "axis": "A4",
+      "subAxis": "S3",
+      "title": "함정 / Anti-pattern — SBOM theater, unsigned attestation, single trust point, SLSA L0, dependency confusion, typosquatting, prompt injection via skill content",
+      "summary": "SYMPOSIUM/SKILLS는 SBOM/MANIFEST/attestation 형식은 갖췄으나 (a) 서명 없음, (b) 소비자 검증 path 없음 → SBOM theater 위험. Anthropic 공식 anthropics/skills는 SLSA L0 baseline (no SBOM, no attestation). Skill 내용물이 LLM context에 주입되므로 supply-chain 침해 = 직접 prompt injection — 일반 코드보다 위험도 더 높음.",
+      "claims": [
+        {"claim": "SBOM theater anti-pattern: SBOM produced for compliance checkbox without integration into vulnerability management or verification workflow. Symptom: SBOM exists in artifact storage but no automated cosign verify-attestation in deployment.", "source": "https://www.cisa.gov/news-events/news/breaking-down-supply-chain-security-mythology", "verified": true},
+        {"claim": "Unsigned attestation = forgeable narrative. Provides traceability log but zero non-repudiation. SYMPOSIUM/SKILLS attestation.json explicitly marks _signature.status=UNSIGNED — SLSA L1 only (provenance exists, but trivial to bypass/forge).", "source": "https://slsa.dev/spec/v1.0/levels", "verified": true},
+        {"claim": "Single point of trust failure (e.g., NotPetya 2017 M.E.Doc reused signing key) → key compromise = total trust collapse. Mitigations: keyless signing (sigstore — no long-lived keys), TUF threshold signatures + key rotation, transparency log (Rekor) for tamper-evident audit.", "source": "https://docs.sigstore.dev/about/security/", "verified": true},
+        {"claim": "SLSA L0 = no provenance baseline. Most npm/PyPI default packages here. Anthropic anthropics/skills mirror inspection (2026-04-29): 18 skills, no SBOM, no MANIFEST, no .well-known, no attestation. Users have no verification capability beyond raw git commit hash trust.", "source": "https://github.com/anthropics/skills", "verified": true},
+        {"claim": "Dependency confusion (Alex Birsan 2021-02-09): Internal-only package name registered on public registry → misconfigured package manager prefers higher version → fetches malicious public package. Bounty: ~$130K across 35+ companies including Apple, Microsoft, Tesla, Yelp.", "source": "https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610", "verified": true},
+        {"claim": "Typosquatting: requests vs reqeusts/requestz. Sonatype caught 63,000+ suspicious packages across npm/PyPI. Distinct from dependency confusion (typosquatting relies on user typo; dep-confusion uses exact same name).", "source": "https://blog.gitguardian.com/protecting-your-software-supply-chain-understanding-typosquatting-and-dependency-confusion-attacks/", "verified": true},
+        {"claim": "Reproducibility-less trust = SolarWinds-class attack remains possible. User can verify 'vendor signed it' but not 'source corresponds to binary.' Counter: reproducible build + diverse independent rebuilders.", "source": "https://reproducible-builds.org/docs/why/", "verified": true},
+        {"claim": "Skill-specific anti-pattern (SYMPOSIUM-relevant): skill content loads directly into Claude's context as prompt. Supply-chain compromise of skill repo = direct prompt injection at install time, with model's full agency. Higher impact than traditional code (no sandbox, no compilation gate).", "source": "https://github.com/anthropics/skills (skill loading model)", "verified": true}
+      ],
+      "current_state_gaps": {
+        "no_consumer_verify_script": true,
+        "unsigned_attestation": true,
+        "no_reproducible_build_assertion": true,
+        "no_oci_artifact_distribution": true,
+        "no_tuf_root_metadata": true,
+        "implicit_slsa_level": "L1 borderline (would be L2 with cosign signature added)"
+      },
+      "verified": true,
+      "gate_passed": true,
+      "kg_ref_suggested": "ResearchFinding_prom16_a4_s3_antipatterns_2026-04-29"
+    },
+    {
+      "findingId": "finding_prom16_skillver_a4_s4",
+      "agentId": "prom16-a4-haiku-2026-04-29",
+      "axis": "A4",
+      "subAxis": "S4",
+      "title": "2026 trends + AI agent context — Anthropic skill marketplace gap, AI-generated code provenance, LLM-generated SBOM, agent skill supply chain risk, SBOM+KG binding (Longinus)",
+      "summary": "Anthropic 공식 anthropics/skills 는 attestation/SBOM 부재 (SLSA L0) — SYMPOSIUM/SKILLS가 supply-chain 측면에서 공식 대비 앞서있음 (CLAUDE.md 'external canonical referent underrate 금지' 원칙 따라 명료히 기록). AI-generated code provenance, LLM-generated SBOM 검증, agent skill 의 prompt-injection 위협 모델, SBOM+KG 바인딩(Longinus)이 2026 신흥 영역. SYMPOSIUM/SKILLS의 properties.kg:ref 패턴은 industry-novel SBOM+semantic-anchor 결합.",
+      "claims": [
+        {"claim": "Anthropic anthropics/skills repository (verified inspection 2026-04-29 via _external/anthropics/ mirror, 18 skills): no SBOM.json, no MANIFEST.json, no .well-known, no signing infrastructure. Only SKILL.md per skill + repo-level THIRD_PARTY_NOTICES.md. Currently SLSA L0.", "source": "https://github.com/anthropics/skills", "verified": true},
+        {"claim": "Agent Skills released as open standard December 2025. OpenAI adopted same format for Codex CLI and ChatGPT. Cross-vendor interop achieved at format level, but cross-vendor attestation/provenance standards not yet established.", "source": "https://github.com/anthropics/skills", "verified": true},
+        {"claim": "SYMPOSIUM/SKILLS exceeds Anthropic's own bar in supply-chain rigor: CycloneDX 1.5 SBOM (27 components with kg:ref properties), MANIFEST with merkle_root drift sentinel, in-toto Statement v1 + SLSA Provenance v1 attestation, .well-known/skills/{attestation,index}.json. CLAUDE.md guidance: external canonical referent underrate forbidden — record this gap clearly.", "source": "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS/SBOM.json + MANIFEST.json + .well-known/skills/attestation.json (file inspection 2026-04-29)", "verified": true},
+        {"claim": "AI-generated code provenance is emerging concern (2025-2026): no standard yet for tagging AI-generated components in SBOMs. CycloneDX 1.7 introduced 'data provenance transparency' — early scaffold but not AI-specific. Custom property route: ai:generator, ai:promptHash extensions.", "source": "https://cyclonedx.org/news/cyclonedx-v1.7-released/", "verified": true},
+        {"claim": "LLM-generated SBOM trend (2025-2026): Claude/GPT analyzes codebases to generate SPDX/CycloneDX faster than syft/cdxgen for legacy codebases without package manager metadata. Risk: hallucinated dependencies — needs ground-truth cross-validation by deterministic tooling.", "source": "https://cyclonedx.org/capabilities/sbom/", "verified": true},
+        {"claim": "Agent skill supply chain risk distinct from traditional code: skill content loads into LLM context, not compiled or sandboxed. Compromise = direct prompt injection at install time with model's full agency. Threat model: malicious PR with hidden instruction → unwitting maintainer merge → all downstream users hijacked.", "source": "https://github.com/anthropics/skills (skill execution model)", "verified": true},
+        {"claim": "SYMPOSIUM/SKILLS SBOM+KG binding (Longinus 7-Layer Reference Model applied at supply-chain): each component has properties.kg:ref → Neo4j ATOM_Skill_X node ID, plus git_tree_sha for cryptographic identity, plus MANIFEST.merkle_root for drift detection. Layer 0 (KG semantic) ↔ Layer N (deployed bytes). Industry-novel — exceeds in-toto subject.digest by adding semantic anchor.", "source": "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS/SBOM.json properties.kg:ref + ATOM_Skill_* nodes in KG", "verified": true},
+        {"claim": "2026 industry direction: U.S. federal procurement OMB M-22-18 enforcing SSDF self-attestation; EU CRA (Cyber Resilience Act, effective 2027) requires SBOMs and vulnerability management for all 'products with digital elements'; GitHub Actions slsa-github-generator achieves SLSA L3 turnkey; npm provenance (since 2023) sigstore-backed; Cosign 2.0 GA (2023) makes keyless signing turnkey for OSS.", "source": "https://slsa.dev/blog/2023/08/bring-your-own-builder-github", "verified": true}
+      ],
+      "recommendations": {
+        "immediate_low_effort": [
+          "Upgrade SBOM.json from CycloneDX 1.5 to 1.6 (additive, ECMA-424 conformance, native Attestations object)",
+          "Add verify-skill.sh: recompute merkle_root from current tree, compare against MANIFEST, validate SBOM digest against attestation subject — closes SBOM-theater gap",
+          "Document SLSA Build Level self-assessment in .well-known/skills/index.json (currently L0/L1 borderline)"
+        ],
+        "medium_term_2_3_weeks": [
+          "Cosign keyless signing of attestation.json via GitHub Actions OIDC: cosign sign-blob --bundle attestation.bundle attestation.json → moves _signature.status from UNSIGNED to DSSE+Fulcio+Rekor proof → achieves SLSA Build L2",
+          "Reproducible build of MANIFEST/SBOM: pin tool versions, use SOURCE_DATE_EPOCH timestamp normalization, CI rebuilds and asserts byte-equality"
+        ],
+        "longer_term": [
+          "OCI artifact push via ORAS: oras push ghcr.io/<org>/symposium-skills:v26.0.1 with --artifact-type application/vnd.symposium.skill-bundle.v1+json (skeleton already in bin/)",
+          "TUF root.json for key management — only if external distribution begins; keyless sigstore sufficient for solo project",
+          "Anthropic upstream contribution: PR adding SBOM/MANIFEST/attestation pattern to anthropics/skills as reference implementation (open question whether Anthropic wants this)"
+        ]
+      },
+      "open_questions": [
+        "Is pkg:claude-skill a registered purl type? Currently informal — github.com/package-url/purl-spec is registry authority",
+        "Per-skill attestation vs bundle-level only? Bundle is current; per-skill enables selective install verification",
+        "Should NUMEROLOGY_HOLD pattern (science-feedback-loop) apply to SBOM claims? Possible: SBOM-claimed deps not verified by syft/cdxgen scanning = numerology until grounded by independent tooling"
+      ],
+      "verified": true,
+      "gate_passed": true,
+      "kg_ref_suggested": "ResearchFinding_prom16_a4_s4_2026_trends_ai_agent_2026-04-29"
+    }
+  ]
+}

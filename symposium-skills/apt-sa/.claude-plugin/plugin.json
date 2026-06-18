@@ -1,0 +1,25 @@
+{
+  "name": "apt-sa",
+  "version": "27.1.0",
+  "description": "APT SemanticAnchor (SA) phase 1/5 — project identity bootstrap. 5 core fields (objective/definition/keyAssertion/C_S/contextBudget). Progressive Disclosure + KG-first exploration. Dispatch-only (parent /apt orchestrator).",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/apt-sa",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/apt-sa"
+  },
+  "license": "MIT",
+  "keywords": ["apt-sa", "semantic-anchor", "apt-phase-1", "dispatch-only", "claude-code"],
+  "category": "axis-apt",
+  "kg_ref": "ATOM_Skill_apt_sa",
+  "skill_source": "./SKILL.md",
+  "channel": "stable",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "dispatchOnly": true,
+  "parent": "apt-methodology"
+}

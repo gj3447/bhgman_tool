@@ -1,0 +1,25 @@
+{
+  "name": "apt-st",
+  "version": "27.1.0",
+  "description": "APT SemanticTwin (ST) phase 3/5 — Contract + Task + 8 ST Decision Areas crystallization (AST / Workflow / DesignPattern / ProjectStructure / DataFlow / Algorithm / Store / ClassDesign). Dispatch-only.",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/apt-st",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/apt-st"
+  },
+  "license": "MIT",
+  "keywords": ["apt-st", "semantic-twin", "apt-phase-3", "contract", "8-decision-areas", "dispatch-only"],
+  "category": "axis-apt",
+  "kg_ref": "ATOM_Skill_apt_st",
+  "skill_source": "./SKILL.md",
+  "channel": "stable",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "dispatchOnly": true,
+  "parent": "apt-methodology"
+}

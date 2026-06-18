@@ -1,0 +1,226 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "MANIFEST.json",
+      "digest": {
+        "sha256": "3c87c318ba9d882e5fd54132f041ef7afe732e1a890c75ff028ae43502d254ac"
+      }
+    },
+    {
+      "name": "SBOM.json",
+      "digest": {
+        "sha256": "61d7257b28beba23ad4d164cc588277fe12e1a07a780676778cc8a71484a73b2"
+      }
+    },
+    {
+      "name": ".well-known/skills/index.json",
+      "digest": {
+        "sha256": "30a85bd5327f33c52e9ab82caf966c2f148475b76a31363f27367fdeafad3a9e"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://symposium.local/skill-build/v1",
+      "externalParameters": {
+        "git_head_commit": "2ca6d68ada33c478756f6d8d553f654f8a2dfbb8",
+        "git_latest_tag": "v26.0.0",
+        "canonical_path": "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS"
+      },
+      "internalParameters": {
+        "merkle_root": "d8c62efd4d88ee58b70d2335d93907d7c6a606db0ba62b4a9ed7f9e69b28b7dd",
+        "skills_count": 27
+      },
+      "resolvedDependencies": [
+        {
+          "uri": "pkg:claude-skill/88-taliban@3",
+          "digest": {
+            "sha1": "29421b8fe03575fbe5617405fbb6ca59d5ca8ea7"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/apt@26",
+          "digest": {
+            "sha1": "8b8a4bf4d0a50177e124a9295b860e7c9d73db0a"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/apt-meta-review@2",
+          "digest": {
+            "sha1": "91e35ce397faa5640e19c99927fec9500ddacfb9"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/apt-sa@26",
+          "digest": {
+            "sha1": "382b0a76424ccd8b1453c6083b553254fc1aacb9"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/apt-scw@26",
+          "digest": {
+            "sha1": "28cb779e60fe9945c55e09d8716155b895494414"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/apt-sp@26",
+          "digest": {
+            "sha1": "4841712886381d0f522047a3db5ad71ce1fb6f95"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/apt-st@26",
+          "digest": {
+            "sha1": "65a226f7be0d139d20dde410e89f4c03bb535203"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/backup@1",
+          "digest": {
+            "sha1": "40c241e609bef4e7bc3929cf5cc66923ff69492b"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/db-query@1",
+          "digest": {
+            "sha1": "169ce127fabcd688884633a804628d5ba1bdd5d0"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/deploy@1",
+          "digest": {
+            "sha1": "cd2bcee0703373b18aef54bd69d3d3490596bef8"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/docker-logs@1",
+          "digest": {
+            "sha1": "015ad71d83eca75cbf896047e7f0c48ba0a2a72a"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/harness@2",
+          "digest": {
+            "sha1": "cf5e69d6cbf6ef070c93c4474aab28c62f45d797"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/jaebaeman@2",
+          "digest": {
+            "sha1": "028fb8475152cc946a987c1675e77a4b3f58ab95"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/kafka-manage@1",
+          "digest": {
+            "sha1": "4110e5e5f1219acbc40d34327a327ee418beee5f"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/longinus@3.1",
+          "digest": {
+            "sha1": "2f5a330283f6faf65283e42d5cc229a90511de93"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/prom@3",
+          "digest": {
+            "sha1": "16a1c76ec935ee99af7c32213455c09bb496c3c0"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/prometheus@5",
+          "digest": {
+            "sha1": "5f50f5c21736737ab473a92c9093c49ccec14fc6"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/server-status@1",
+          "digest": {
+            "sha1": "64c62b278d33faee580c8dfa0899cd7da9cada1f"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/skill-creator@1",
+          "digest": {
+            "sha1": "308859482bc5b356a5d00b35e9e075da44dc47f1"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/solve@2",
+          "digest": {
+            "sha1": "4ea8ccaa8b8f1784b5ac7e844f5ddec18a73d8ac"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/taliban@3",
+          "digest": {
+            "sha1": "e85a69b9fe93c488c918bdb9eef8c353792002eb"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/tlb@2",
+          "digest": {
+            "sha1": "6808dbdf0f218cd75538cc05958eba55020c85d0"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/tpa@1.0",
+          "digest": {
+            "sha1": "33b6514bd2e62103abd956a8db82b12ee0b206a4"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/tpa-ta@1.0",
+          "digest": {
+            "sha1": "a1e87aee84cdd90a1e3043e7779724f541b39880"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/tpa-tcw@1.0",
+          "digest": {
+            "sha1": "635ca417e616a86b67bdeb86cc5e77f041c480e0"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/tpa-tp@1.0",
+          "digest": {
+            "sha1": "e857c686c34bbea886bdbb46fbed90d3124b04dd"
+          }
+        },
+        {
+          "uri": "pkg:claude-skill/tpa-tt@1.0",
+          "digest": {
+            "sha1": "1b9e3798eb3227f5b73c936c06e97334df4eb824"
+          }
+        }
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://symposium.local/builders/skill-build@v1"
+      },
+      "metadata": {
+        "invocationId": "d8c62efd4d88ee58b70d2335d93907d7c6a606db0ba62b4a9ed7f9e69b28b7dd",
+        "startedOn": "2026-04-26T17:33:59+09:00",
+        "finishedOn": "2026-04-26T17:33:59+09:00"
+      },
+      "byproducts": [
+        {
+          "name": "MANIFEST.json",
+          "uri": "MANIFEST.json"
+        },
+        {
+          "name": "SBOM.json",
+          "uri": "SBOM.json"
+        }
+      ]
+    }
+  },
+  "_signature": {
+    "status": "UNSIGNED",
+    "reason": "Plan-3 phase 2 lite — sigstore Cosign integration deferred to phase 3-N (5-6주 effort, GitHub remote + OIDC required)"
+  }
+}

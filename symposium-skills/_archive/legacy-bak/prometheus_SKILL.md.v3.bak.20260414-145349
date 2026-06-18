@@ -1,0 +1,552 @@
+---
+name: prometheus
+version: 3
+description: >
+  프로메테우스 방법론 — 지식이 행동에 선행한다. "바로 고치지 마, 먼저 불(지식) 훔쳐와."
+  사용법: `/prometheus <N> <problem>` (N=subagent 수, 생략 시 auto_estimate).
+  예: `/prometheus 16 "docker vs k8s"`, `/prometheus "n8n 에러"`.
+  Invoke when: 문제 발생 시, 모르는 기술/개념 만났을 때, 오답노트(Lesson) 해결 시,
+  리서치가 필요한 의사결정 시, 새 도메인 진입 시.
+  Enforces: 8단계 사이클 (Step 0 arg 파싱 → 발견 → 환경조사 → 병렬리서치 →
+  KG구축(합의/충돌) → 계획수립 → 실행 → 검증), haiku 병렬 subagent (arg 첫 토큰 N, 최대 100),
+  JSON 계약 강제(FullFindingRecord), 부모 UNWIND 배치 write, W3C PROV provenance, 4단계 검증.
+  재배맨 SubagentTaskSpec 기반 자동 출격 지원.
+  v3 변경: arg 기반 N-파라미터화, subagent 출력 계약 강제, 부모 UNWIND 단일 경로,
+  Step 4 충돌탐지 재정의, ResearchFinding provenance 속성.
+  # KG: ATOM_Skill_prometheus, SA_prometheus_auto_kg_logging_refactor
+---
+
+## 🔗 MIC Binding (SOLID-DIP)
+
+**IS slot**: `ResearchProvider` (MIC_v1.currentConcrete = "Prometheus")
+**USES slots**: SubagentSeeder (haiku 병렬 리서치 taskspec)
+
+**역할 대체 가능성 (L 원칙)**: 미래에 다른 리서치 메커니즘으로 교체 시 `MIC_v1.ResearchProvider.currentConcrete` SET만.
+
+# KG: MIC_v1, MethodologySlot:ResearchProvider, lesson-apt-not-truly-jaebaeman-2026-04-14
+
+---
+
+# /prometheus — 프로메테우스 방법론: 불(지식)을 먼저 훔쳐와라
+
+> **프로메테우스(Prometheus) = 그리스어 "먼저 생각하는 자(先見者)".**
+> 신에게서 불(지식)을 훔쳐 인간에게 준 타이탄.
+> 행동 전에 지식을 확보하는 것이 본 방법론의 핵심.
+
+---
+
+## 왜 프로메테우스인가
+
+문제를 만났을 때 **바로 고치려는 충동**이 가장 큰 적이다.
+
+```
+나쁜 패턴:  문제 발생 → 즉시 삽질 → 실패 → 더 삽질 → 시간 낭비
+좋은 패턴:  문제 발생 → 기록 → 조사 → 리서치 → KG 구축 → 계획 → 실행 → 검증
+```
+
+프로메테우스는 **Step 3(병렬 리서치)**이 핵심이다.
+haiku subagent N개를 동시에 풀어서 인터넷 전체에서 지식을 긁어온다.
+그리고 그 지식을 **KG에 구조화**한 뒤, 그 위에서 판단한다.
+
+---
+
+## 사이클 개요 (Step 0~7)
+
+```
+Step 0: 호출 파싱 (/prom<N>)              ← v3 신설, 선행 파싱
+   ↓
+Step 1: 발견 (불씨 포착)
+   ↓
+Step 2: 환경조사 (올림포스 정찰)
+   ↓
+Step 3: 병렬 리서치 (불 훔치기) ← 핵심
+   ↓
+Step 3.5: 부모 UNWIND 배치 write        ← v3 신설, D1 concurrency 해결
+   ↓
+Step 4: 집계/합의/충돌 탐지 (v3 재정의)
+   ↓
+Step 5: 계획 수립 (횃불 경로 설계)
+   ↓
+Step 6: 실행 (불 밝히기)
+   ↓
+Step 7: 검증 (불이 꺼지지 않는지 확인)
+   ↓ (실패 시)
+Step 2로 피드백 루프
+```
+
+---
+
+### Step 0: 호출 파싱 — N 파라미터화
+
+<!-- # KG: SPAN_L1_n_parser, CONTRACT_SPAN_L1_n_parser, CONTRACT_SharedType_NValue -->
+
+`$ARGUMENTS`의 **첫 토큰이 정수이면 N으로 사용**, 아니면 `auto_estimate`.
+v3 TOE-스케일 대응 (최대 N=100) 핵심.
+
+**사용법:**
+
+```
+/prometheus <N> <problem>       # N 명시 (예: /prometheus 16 "문제")
+/prometheus <problem>           # N 없음 → auto_estimate
+```
+
+**파싱 규칙:**
+
+```
+match = re.match(r'^\s*(\d+)\s+(.+)$', $ARGUMENTS)
+if match:
+    N = int(match.group(1))
+    problem = match.group(2)
+else:
+    problem = $ARGUMENTS
+    N = auto_estimate(problem)
+```
+
+**예시:**
+
+| 입력 | 파싱 결과 |
+|---|---|
+| `/prometheus 16 "docker vs k8s"` | N=16, problem="docker vs k8s" |
+| `/prometheus 100 "TOE 아키텍처"` | N=100, problem="TOE 아키텍처" |
+| `/prometheus "n8n 에러"` | auto_estimate → N∈[3,5] (단일 서비스) |
+| `/prometheus 3 간단히` | N=3, problem="간단히" |
+
+**auto_estimate:**
+
+| 문제 규모 | N | 판정 기준 |
+|---|---|---|
+| 소 | 3~5 | 단일 서비스/API/컨테이너 |
+| 중 | 6~11 | 다중 서비스 상호작용 |
+| 대 | 12~20 | 아키텍처/TOE/다층 분석 |
+
+**상한: N ≤ 100.** 초과 시 경고 후 N=100으로 clamp.
+
+**도메인 생성 전략:**
+
+| N | 전략 |
+|---|---|
+| N ≤ 5 | 수동 템플릿 (원인분석 / 공식문서 / 커뮤니티) |
+| 6 ≤ N ≤ 11 | 프리셋 (네트워크 / 스토리지 / 앱 / 인증 / 모니터링 / 보안 / 성능 / 운영 …) |
+| N ≥ 12 | **axis × sub-axis 교차표** |
+
+**axis × sub-axis 교차표 (N ≥ 12):**
+
+- **axis**: 네트워크 / 스토리지 / 앱 / 인증 / 모니터링 / 보안 / 성능 / 운영 …
+- **sub-axis**: 공식문서 / 커뮤니티사례 / 벤치마크 / 대안기술 / 함정패턴 / 최신트렌드 …
+
+N=16 → 4 axis × 4 sub-axis = 16 도메인. N=100 → 10×10 (필요 시 축 확장).
+
+---
+
+### Step 1: 발견 — Lesson 즉시 기록
+
+문제를 인지한 순간, **기억에 의존하지 않고 즉시 KG에 기록**.
+
+```cypher
+MERGE (l:AbstractNode:Lesson {name: $lesson_name})
+SET l.category = $category,
+    l.problem = $problem,
+    l.wrongAssumption = $wrong_assumption,
+    l.truth = $truth,
+    l.solution = null,          // 아직 모름
+    l.severity = $severity,     // CRITICAL / HIGH / MEDIUM / LOW
+    l.resolved = false,
+    l.createdAt = datetime()
+RETURN l.name
+```
+
+**severity 기준:**
+- CRITICAL: 서비스 다운, 데이터 손실 위험
+- HIGH: 기능 장애, 외부 접근 불가
+- MEDIUM: 성능 저하, 부분 기능 이상
+- LOW: 개선 사항, 비기능적 문제
+
+---
+
+### Step 2: 환경조사 — 현재 상태 파악
+
+**해결 시도 전에 반드시** 현재 환경을 이해한다.
+
+```bash
+# 서비스 상태
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# 설정 파일 확인
+cat docker-compose.yml | grep -A5 $SERVICE
+
+# 로그 확인
+docker logs --tail 50 $CONTAINER
+
+# 네트워크 상태
+docker network ls && docker network inspect $NETWORK
+```
+
+**원칙**: 환경 조사 없이 해결 시도 금지. "고쳐봤는데 안 돼요"가 아니라 "현재 상태가 이런데, 원인이 뭘까요"가 올바른 순서.
+
+---
+
+### Step 3: 병렬 리서치 — 불 훔치기 (핵심)
+
+<!-- # KG: SPAN_L1_subagent_prompt, CONTRACT_SPAN_L1_subagent_prompt, CONTRACT_SharedType_FullFindingRecord -->
+
+Step 0에서 결정한 **N개 haiku subagent**를 도메인별로 분리해 병렬 투입. N은 `/prom<N>`에서 파싱되거나 auto_estimate 결과.
+
+**도메인 분배** (Step 0 axis×sub-axis 결과 활용):
+
+| N 범위 | 분배 전략 |
+|---|---|
+| N ≤ 5 | 수동 도메인 템플릿 (원인분석 / 공식문서 / 커뮤니티 / 대안 / 함정) |
+| 6 ≤ N ≤ 11 | 프리셋 도메인 (네트워크 / 스토리지 / 앱 / 인증 / 모니터링 / 보안 / 성능 …) |
+| N ≥ 12 | axis × sub-axis 교차표 (Step 0 생성) |
+
+---
+
+#### Subagent 출력 계약 — FullFindingRecord JSON (필수)
+
+**각 subagent는 반드시 단일 JSON 블록을 반환한다.** 다른 출력 금지.
+
+```json
+{
+  "findingId": "finding_<16자 해시>",
+  "domain": "<배정된 도메인>",
+  "rootCause": "<근본 원인, 200자 이내>",
+  "recommendation": "<권장 해결법, 300자 이내>",
+  "alternatives": ["<대안1>", "<대안2>"],
+  "references": ["<URL1>", "<URL2>"],
+  "caveats": "<주의사항, 200자 이내>",
+  "confidence": "HIGH" | "MEDIUM" | "LOW",
+  "oneLineSummary": "<부모가 읽을 한 문장, 300자 이내>",
+  "agentId": "D<idx>",
+  "researchedAt": "<ISO8601 datetime>",
+  "sourceKgBindings": ["<관련 KG 노드 이름들>"]
+}
+```
+
+#### findingId 결정적 해시 (멱등 MERGE 보장)
+
+```
+findingId = "finding_" + sha256(problem + "::" + domain + "::" + str(idx))[:16]
+```
+
+동일 (problem, domain, idx) → 동일 findingId. 재실행 시 중복 노드 생성 안 함.
+
+#### 단일 경로 원칙 — KG write는 **부모만**
+
+- **subagent는 KG에 직접 write 하지 않는다** (JSON 반환만).
+- 이유:
+  1. Claude Code Agent tool subagent는 MCP 자동 상속 ✗ (GH #13605, #34935)
+  2. N개 동시 KG write 시 Lesson 노드 lock 경합 (Neo4j 5.x deadlock)
+- 부모가 Step 3.5에서 **UNWIND 단일 트랜잭션**으로 배치 MERGE.
+
+#### 병렬 호출 패턴 (일반화)
+
+```
+for idx in 0..N-1:
+    Agent(model=haiku, run_in_background=true, prompt="""
+      역할: 프로메테우스 도메인 리서처 (agentId=D{idx}).
+
+      문제: {problem}
+      도메인: {domains[idx]}
+      findingId: finding_{sha256(problem + "::" + domains[idx] + "::" + str(idx))[:16]}
+
+      수집 항목:
+      1. Root cause
+      2. 권장 해결법
+      3. 대안 (최소 2개)
+      4. 참고 링크
+      5. 주의사항
+
+      하계 먼저: KG (mcp__neo4j__read_neo4j_cypher), 로컬 파일.
+      상계 나중: WebSearch, 공식 문서.
+
+      **출력 형식**: FullFindingRecord JSON 단일 블록만.
+      (findingId, domain, rootCause, recommendation, alternatives[],
+       references[], caveats, confidence, oneLineSummary, agentId,
+       researchedAt, sourceKgBindings[])
+      300단어 이내.
+    """)
+```
+
+부모는 N개 subagent의 JSON을 수집 후 **Step 3.5 UNWIND**로 일괄 KG write.
+
+---
+
+### Step 3.5: 부모 UNWIND 배치 write
+
+<!-- # KG: SPAN_L1_parent_batch_write, CONTRACT_SPAN_L1_parent_batch_write -->
+
+N개 FullFindingRecord를 **단일 Cypher 트랜잭션**으로 KG에 MERGE. D1 동시성 해결 + D5 W3C PROV provenance.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})
+UNWIND $findings AS f
+MERGE (r:AbstractNode:ResearchFinding {name: f.findingId})
+SET r.domain          = f.domain,
+    r.rootCause       = f.rootCause,
+    r.recommendation  = f.recommendation,
+    r.alternatives    = f.alternatives,
+    r.references      = f.references,
+    r.caveats         = f.caveats,
+    r.confidence      = f.confidence,
+    r.oneLineSummary  = f.oneLineSummary,
+    // --- W3C PROV provenance (v3 신설) ---
+    r.agentId         = f.agentId,
+    r.researchedAt    = datetime(f.researchedAt),
+    r.sourceKgBindings = f.sourceKgBindings,
+    r.provenance      = 'haiku-subagent-parallel-' + toString(size($findings)),
+    r.status          = 'RESEARCHED'
+MERGE (l)-[:HAS_RESEARCH]->(r)
+RETURN count(r) AS writtenCount
+```
+
+**동시성**: 32/100개 findings도 단일 트랜잭션이라 Lesson 노드 lock 1회만 획득. findingId UNIQUE로 멱등.
+
+**DeadlockDetected 대응**: Neo4j 5.x auto-retry x3. 추가 실패 시 exponential backoff (1s→2s→4s) 3회.
+
+**N=100 상한 주의**: 단일 트랜잭션 100 MERGE는 이론적 한계. 실측 timeout 발생 시 N=50씩 2배치로 쪼갬.
+
+---
+
+### Step 4: 집계/합의/충돌 탐지
+
+<!-- # KG: SPAN_L1_conflict_detection, CONTRACT_SPAN_L1_conflict_detection -->
+
+Step 3.5에서 KG에 이미 적재된 N개 ResearchFinding을 **집계**한다. v2의 "수동 수집"은 폐기 — v3는 **자동 합의/충돌 탐지**.
+
+**출력**: ConsensusReport
+```
+{
+  consensus:  [<공통 결론 finding 그룹>],     // 3개 이상이 동의 → 높은 신뢰도
+  conflicts:  [<상반 결론 pair>],              // 2vs2 이상 → 추가 리서치 필요
+  singletons: [<단독 결론 finding>],           // 1건 → 신뢰도 주의 태그
+  summary: {consensusCount, conflictCount, singletonCount, totalFindings}
+}
+```
+
+#### 4-1. 합의 탐지 (consensus)
+
+공통 recommendation 키워드가 3개 이상 finding에 등장 → 높은 신뢰 그룹.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})-[:HAS_RESEARCH]->(r:ResearchFinding)
+WITH l, r.recommendation AS rec, collect(r.name) AS findings
+WHERE size(findings) >= 3
+RETURN rec AS consensusRecommendation, findings AS consensusFindings, size(findings) AS agreeCount
+ORDER BY agreeCount DESC
+```
+
+(단순 문자열 매칭 한계 시 → KARMA-style LLM 토론 fallback)
+
+#### 4-2. 충돌 탐지 (conflict)
+
+두 findings의 recommendation이 의미적으로 상반 → 충돌 pair.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})-[:HAS_RESEARCH]->(r1:ResearchFinding)
+MATCH (l)-[:HAS_RESEARCH]->(r2:ResearchFinding)
+WHERE r1.name < r2.name  // 중복 pair 제거
+  AND toLower(r1.recommendation) <> toLower(r2.recommendation)
+  AND r1.confidence IN ['HIGH', 'MEDIUM'] AND r2.confidence IN ['HIGH', 'MEDIUM']
+RETURN r1.name AS findingA, r1.recommendation AS recA,
+       r2.name AS findingB, r2.recommendation AS recB,
+       r1.agentId + ' vs ' + r2.agentId AS agents
+LIMIT 20
+```
+
+상반 여부 판정은 LLM(부모 Claude)가 pair 단위로 재검토. 충돌이 확정되면 → 추가 리서치 또는 실험 필요 (ActionPlan에 반영).
+
+#### 4-3. 단독 탐지 (singleton)
+
+1개 finding만 있는 domain → low-confidence 태그.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})-[:HAS_RESEARCH]->(r:ResearchFinding)
+WITH l, r.domain AS domain, collect(r) AS findings
+WHERE size(findings) = 1
+RETURN domain, findings[0].name AS singletonFinding, findings[0].confidence AS currentConfidence
+```
+
+단독 finding은 ActionPlan에 반영 시 "저신뢰 근거" 플래그를 명시.
+
+#### 4-4. LLM 토론 fallback (KARMA-style)
+
+문자열 매칭으로 합의/충돌이 모호할 때, 부모 Claude가 findings을 읽고 토론식 판정:
+- 3개 finding이 "UNWIND 배칭" vs "Redis Stream"처럼 **대안 관계**인가 **상반 관계**인가
+- 판정을 KG ConflictResolution 노드로 기록
+
+---
+
+### Step 5: 계획 수립 — ActionPlan 생성
+
+**계획 없이 실행 금지.** KG에 구축된 지식 위에서 판단.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})
+MERGE (p:AbstractNode:ActionPlan {name: $plan_name})
+SET p.phase = $phase,              // ACTION / FUTURE / MAINTAIN / DONE
+    p.priority = $priority,        // HIGH / MEDIUM / LOW / RESOLVED
+    p.action = $action,            // 구체적 실행 방법
+    p.dependencies = $dependencies, // 선행 조건 list
+    p.estimatedEffort = $effort,   // 예상 소요
+    p.rollback = $rollback,        // 롤백 방법
+    p.createdAt = datetime()
+MERGE (l)-[:HAS_PLAN]->(p)
+RETURN p.name
+```
+
+**phase 분류:**
+| Phase | 의미 | 언제 |
+|-------|------|------|
+| ACTION | 지금 실행 | 긴급 + 준비 완료 |
+| FUTURE | 나중 실행 | 선행 조건 미충족 |
+| MAINTAIN | 현상 유지 | 현재로 충분 |
+| MONITOR | 관찰 중 | 추이 지켜보기 |
+| DONE | 완료 | 실행 + 검증 끝 |
+
+---
+
+### Step 6: 실행 — 계획대로
+
+```cypher
+// 실행 시작 — plan phase 업데이트
+MATCH (p:ActionPlan {name: $plan_name})
+SET p.phase = 'ACTION', p.startedAt = datetime()
+
+// 실행 완료 — lesson resolved
+MATCH (l:Lesson {name: $lesson_name})
+SET l.resolved = true,
+    l.resolvedAt = datetime(),
+    l.resolvedBy = $resolution_description
+MATCH (p:ActionPlan {name: $plan_name})
+SET p.phase = 'DONE'
+```
+
+---
+
+### Step 7: 검증 — 4단계
+
+| # | 단계 | 방법 | 신뢰도 |
+|---|------|------|--------|
+| 1 | 내부 테스트 | localhost, docker exec | 최저 |
+| 2 | 외부 테스트 | MacBook(다른 네트워크), Tailscale SSH | 중간 |
+| 3 | 스트레스 테스트 | hey/curl 부하, Pod 삭제 복원력 | 높음 |
+| 4 | 글로벌 테스트 | check-host.net (30+ 서버) | 최고 |
+
+```bash
+# Level 4: 글로벌 검증 (가장 확실)
+rid=$(curl -s "https://check-host.net/check-http?host=http://bhgman.iptime.org/$PATH&max_nodes=5" \
+  -H "Accept: application/json" | python3 -c "import json,sys; print(json.load(sys.stdin)['request_id'])")
+sleep 8
+curl -s "https://check-host.net/check-result/$rid" -H "Accept: application/json"
+```
+
+**검증 실패 시** → Step 2(환경조사)로 피드백 루프. 새로운 정보로 리서치 보강.
+
+---
+
+## 기존 오답노트 조회
+
+```cypher
+// 미해결 CRITICAL/HIGH
+MATCH (l:Lesson)
+WHERE (l.resolved IS NULL OR l.resolved = false)
+  AND l.severity IN ['CRITICAL', 'HIGH']
+RETURN l.name, l.problem, l.severity
+ORDER BY l.severity
+
+// 리서치 + 계획 포함 전체
+MATCH (l:Lesson)
+OPTIONAL MATCH (l)-[:HAS_RESEARCH]->(r:ResearchFinding)
+OPTIONAL MATCH (l)-[:HAS_PLAN]->(p:ActionPlan)
+RETURN l.name, l.severity, l.resolved,
+       r.recommendation, p.phase, p.priority
+ORDER BY l.severity
+
+// 실행 대기 계획만
+MATCH (l:Lesson)-[:HAS_PLAN]->(p:ActionPlan)
+WHERE p.phase = 'ACTION'
+RETURN l.name, l.problem, p.action, p.priority
+```
+
+---
+
+## 다른 방법론과의 관계
+
+```
+프로메테우스 (지식 획득 사이클)
+  ├── 하네스의 Inform + Correct 축 담당
+  ├── 탈레반: Taliban finding → Lesson 생성 → 프로메테우스 발동
+  ├── 롱기누스: 프로메테우스가 구축한 KG를 코드까지 관통
+  └── APT: 모든 Phase에서 횡단적으로 발동 가능
+```
+
+---
+
+## What NOT To Do
+
+| 금지 | 이유 | 대안 |
+|------|------|------|
+| 리서치 없이 바로 고치기 | 무지한 삽질 | Step 3 먼저 |
+| 단일 에이전트만 리서치 | 편향된 관점 | 도메인별 병렬 |
+| 리서치 결과를 채팅에만 남기기 | 다음 세션에서 소실 | KG에 ResearchFinding |
+| 계획 없이 실행 | 삽질 재발 | Step 5 ActionPlan 필수 |
+| 내부 테스트만으로 "해결" 선언 | NAT hairpinning은 외부 아님 | 4단계 검증 필수 |
+| Lesson 기록 안 하기 | 같은 실수 반복 | Step 1 즉시 기록 |
+
+---
+
+*프로메테우스는 코카서스 산에 묶여 매일 간을 쪼이는 벌을 받았다.
+그래도 불을 훔쳐온 것은 후회하지 않았다. 지식의 가치는 그만한 값어치가 있다.*
+
+---
+
+## 🌱 재배맨 바인딩 (KG-first Subagent 재배)
+
+> **원칙**: SKILL.md는 **얇은 엔트리**. 긴 로직은 KG의 `SubagentTaskSpec`이 씨앗으로 보관.
+> Subagent에 SKILL.md 전체를 주입 금지(Anti-Context-Rot). KG 조회 → 97% 컨텍스트 절감.
+
+### 세션 진입 시 (자동 로드)
+```cypher
+// 이어서 작업 시 WorkBuffer 자동 로드
+MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
+// 이 skill의 READY 씨앗 목록
+MATCH (ts:SubagentTaskSpec {skill:'prometheus'})
+WHERE ts.status STARTS WITH 'READY' OR ts.status STARTS WITH 'BLOCKED'
+RETURN ts.name, ts.displayName, ts.priority ORDER BY ts.priority DESC
+```
+
+### Subagent 출격 템플릿 (3줄 prompt — KG가 본체)
+```
+역할: {ts.displayName}  (agentId=D<idx>)
+TaskSpec 조회: MATCH (ts:SubagentTaskSpec {name:'<spec_name>'}) RETURN ts.description, ts.checkItems, ts.cypherQueries, ts.expectedOutcome, ts.targetDomain
+Target: $TARGET.  출력: FullFindingRecord JSON (provenance='재배맨-prometheus', sourceKgBindings=[ts.name]).
+```
+
+- Subagent가 KG에서 **자기 TaskSpec 조회** → 상세 로직·체크항목 읽기
+- 부모는 결과 UNWIND 단일 트랜잭션으로 KG merge
+- SKILL.md 본문 복제 금지 — 중복은 drift 유발
+
+### 새 씨앗 심기 (TaskSpec 템플릿)
+```cypher
+MERGE (ts:SubagentTaskSpec {name:$name})
+SET ts.skill='prometheus',
+    ts.displayName=$display, ts.description=$desc,
+    ts.checkItems=$checks, ts.cypherQueries=$queries,
+    ts.expectedOutcome=$outcome,
+    ts.model=$model, ts.priority=$priority,
+    ts.targetDomain=$target,
+    ts.status='READY', ts.createdAt=datetime(),
+    ts.sourcePath=$path, ts.sourceId='prometheus-subagent-spec'
+```
+
+### 세션 종료 시 (연속성 보장)
+```cypher
+// 이전 WorkBuffer ARCHIVED
+MATCH (w:WorkBuffer) WHERE w.status='CURRENT' SET w.status='ARCHIVED', w.archived_at=datetime()
+// 새 CURRENT 생성 — 다음 세션이 바로 복원 가능
+MERGE (wb:WorkBuffer {name:$name})
+SET wb.status='CURRENT', wb.phase=$phase, wb.pending=$pending,
+    wb.recent_fix=$fix, wb.updated_at=datetime()
+```
+
+# KG: ATOM_재배맨_autoboot_prometheus

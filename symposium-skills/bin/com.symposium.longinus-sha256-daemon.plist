@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd plist for Longinus sha256 verification daemon.
+
+  Install:
+    cp bin/com.symposium.longinus-sha256-daemon.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.symposium.longinus-sha256-daemon.plist
+
+  Uninstall:
+    launchctl bootout gui/$(id -u)/com.symposium.longinus-sha256-daemon
+    rm ~/Library/LaunchAgents/com.symposium.longinus-sha256-daemon.plist
+
+  Status:
+    launchctl print gui/$(id -u)/com.symposium.longinus-sha256-daemon
+
+  Logs:
+    tail -f /tmp/longinus-sha256-daemon.{log,err}
+
+  KG: longinus-sha256-daemon-canonical-2026-05-06,
+      fw-longinus-sha256-daemon-2026-05-06
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.symposium.longinus-sha256-daemon</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS/bin/longinus_sha256_daemon.py</string>
+        <string>--verify</string>
+    </array>
+
+    <!-- Run every 3600 seconds (1 hour) -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <!-- Run once at load to seed initial verify -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/longinus-sha256-daemon.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/longinus-sha256-daemon.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/local/bin</string>
+    </dict>
+</dict>
+</plist>

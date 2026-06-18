@@ -1,0 +1,348 @@
+---
+name: taliban
+version: 2
+description: >
+  탈레반 방법론 — APT의 면역 시스템. 적대적 검증 (Adversarial Validation).
+  Invoke when: Span 검증, Contract 검증, 코드 리뷰, Phase 게이트 통과 판정,
+  품질 감사(audit), 고무도장 방지, 기존 산출물 재검증 시.
+  Enforces: 헌법 9-lens + 능동 N-lens, GAN 원리 (Design=G, Taliban=D),
+  동시 출격, 만장일치 PASS, Anti-Rubber-Stamp (RTI/FVR).
+  재배맨 SubagentTaskSpec 기반 자동 출격 지원.
+  # KG: ATOM_Skill_taliban
+---
+
+## 🔗 MIC Binding (SOLID-DIP)
+
+**IS slot**: `AdversarialValidator` (MIC_v1.currentConcrete = "Taliban")
+**USES slots**: SubagentSeeder (9-lens 병렬 출격 via taskspec)
+
+**역할 대체 가능성 (L 원칙)**: 미래에 Taliban 대신 다른 적대적 검증기로 교체 시 `MIC_v1.AdversarialValidator.currentConcrete` SET 만.
+
+# KG: MIC_v1, MethodologySlot:AdversarialValidator, lesson-apt-not-truly-jaebaeman-2026-04-14
+
+---
+
+# /taliban — 탈레반 방법론: "이거 진짜 맞아?"
+
+> **다른 방법론들이 "잘 만들자"라면, 탈레반만 "이거 틀렸어"라고 말하는 놈이다.**
+> Design = Generator, Taliban = Discriminator. GAN의 적대적 협력.
+
+---
+
+## 탈레반이란 무엇인가
+
+APT의 **유일한 적대적(adversarial) 역할**. 만드는 쪽이 아니라 **부수는 쪽**.
+
+- Design이 Span을 분해하면 → Taliban이 "이 분해 맞아?" 공격
+- Design이 Contract를 쓰면 → Taliban이 "이 명세 허술해" 공격
+- Design이 코드를 짜면 → Taliban이 "이 테스트 부족해" 공격
+
+**GAN 원리**: Taliban의 엄격도 ∝ 산출물의 정교도. 서로 강해진다.
+**종료 조건**: Nash 균형 — 더 이상 새로운 맹점을 못 찾을 때.
+
+---
+
+## 2계층 구조
+
+### 계층 1: 헌법 탈레반 (Constitutional 9-lens) — 고정
+
+**모든 프로젝트에 동일 적용.** APT 방법론 자체의 규칙.
+
+| # | Lens | 검증 대상 | 핵심 질문 |
+|---|------|-----------|-----------|
+| 1 | **Structure** | 트리/필드/A2 | 구조가 올바른가? |
+| 2 | **Dependency** | A3 형제독립, 수직종속 | 불법 의존성 있나? |
+| 3 | **Semantic** | sigma 완전성, 의미 일치 | 이름과 내용이 맞나? |
+| 4 | **Occam** | bloat, merge 후보 | 불필요한 복잡성 있나? |
+| 5 | **Evidence** | 외부 근거, 출처 다양성 | 근거 없는 설계인가? |
+| 6 | **Process** | phase gate, 건너뛰기 | 절차를 생략했나? |
+| 7 | **Depth** | layer 충분성, atomic 진실성 | 충분히 깊이 파고들었나? |
+| 8 | **Consistency** | Contract↔Span, SharedType | 내부 모순 있나? |
+| 9 | **Coverage** | siblings MECE, gap | 빠진 부분 있나? |
+
+### 계층 2: 능동 탈레반 (Local N-lens) — 동적
+
+**프로젝트가 채택한 아키텍처/패턴/규칙에서 동적 생성.**
+
+```cypher
+// 프로젝트의 ADOPTS_VALIDATOR 조회 → 동적 lens 생성
+MATCH (anchor:SemanticAnchor {name: $project})-[:ADOPTS_VALIDATOR]->(v)
+RETURN v.name AS validator, v.rules AS rules, v.lens_count AS lenses
+```
+
+예시:
+- MinecraftWASM → ADOPTS ECS + WASM + WebGL = **+3 lens = 12 lens**
+- 333 Platform → ADOPTS CRDT + P2P + DHT = **+3 lens = 12 lens**
+
+---
+
+## 출격 프로토콜
+
+### Step 1: 검증 대상 로드
+
+```cypher
+// 검증 대상 Span 또는 Contract 로드
+MATCH (target {name: $target_name})
+WHERE target:AptSpan OR target:AtomicSpan OR target:AptContract OR target:SemanticTwin
+RETURN target.name, labels(target), properties(target)
+```
+
+### Step 2: 헌법 9-lens 동시 출격
+
+**모든 lens를 동시에 실행.** 순차 아님.
+
+각 lens는 독립 에이전트(haiku)로 실행 가능:
+
+```
+Agent(model=haiku) × 9 (병렬)
+- lens_1_structure: 구조 검증
+- lens_2_dependency: 의존성 검증
+- lens_3_semantic: 의미 검증
+- lens_4_occam: 검약성 검증
+- lens_5_evidence: 근거 검증
+- lens_6_process: 절차 검증
+- lens_7_depth: 깊이 검증
+- lens_8_consistency: 일관성 검증
+- lens_9_coverage: 커버리지 검증
+```
+
+### Step 3: 능동 lens 추가 출격
+
+```cypher
+// 프로젝트 로컬 validator 로드
+MATCH (anchor:SemanticAnchor {name: $project})-[:ADOPTS_VALIDATOR]->(v)
+RETURN v.name, v.rules, v.check_template
+```
+
+각 ADOPTS된 validator에 대해 추가 lens 실행.
+
+### Step 4: 결과 집계 — 만장일치 규칙
+
+```
+IF ANY lens returns REJECTED:
+    → 전체 REJECTED (만장일치 필수)
+    → REJECTED 사유 + 수정 지침 반환
+ELIF ALL lenses return APPROVED:
+    → 전체 APPROVED
+    → 다음 Phase 진행 가능
+```
+
+### Step 5: KG에 검증 결과 기록
+
+```cypher
+MERGE (vr:ValidationResult {name: 'VR_' + $target + '_' + $timestamp})
+SET vr.verdict = $verdict,           // 'APPROVED' or 'REJECTED'
+    vr.findings = $findings,          // list of finding strings
+    vr.lens_results = $lens_results,  // {lens_name: verdict} map
+    vr.rejected_by = $rejected_lenses, // 거부한 lens 목록
+    vr.project = $project,
+    vr.validated_at = datetime()
+MERGE (target)-[:HAS_VALIDATION]->(vr)
+```
+
+---
+
+## Anti-Rubber-Stamp (고무도장 방지)
+
+Taliban이 무조건 APPROVED 찍으면 의미 없다. 방지 메커니즘:
+
+### RTI (Review Thoroughness Index)
+
+```
+RTI = findings_count / target_complexity
+- RTI < 0.1 → 의심: 검증이 너무 피상적
+- RTI 0.1~0.5 → 정상 범위
+- RTI > 0.5 → 산출물이 심각하게 문제있거나 검증이 과도
+```
+
+### FVR (Finding Validation Rate)
+
+```
+FVR = valid_findings / total_findings
+- FVR < 0.3 → 의심: finding이 대부분 거짓양성
+- FVR 0.3~0.8 → 정상
+- FVR > 0.8 → 대부분 진짜 문제 = 산출물 품질 낮음
+```
+
+### Defect Injection
+
+의도적으로 알려진 결함을 산출물에 삽입 → Taliban이 찾는지 확인.
+못 찾으면 → 해당 Taliban lens 신뢰도 하락 → 재교정 필요.
+
+---
+
+## 9-lens 상세 검증 규칙
+
+### Lens 1: Structure (구조)
+```
+- Span tree 구조 올바른가? (parent-child 관계)
+- 필수 필드 누락 없나?
+- A2 (Infinite Recursion) 준수? (분해는 무한 반복 가능)
+```
+
+### Lens 2: Dependency (의존성)
+```
+- A3 (Sibling Independence) 준수? 형제 간 의존 금지
+- 수직 종속만 허용 (parent→child)
+- Deletion test: 자식 제거해도 형제 영향 없는가?
+- SharedType 참조 방향 올바른가?
+```
+
+### Lens 3: Semantic (의미)
+```
+- sigma 완전성: 단일 책임인가?
+- 이름과 설명이 실제 내용과 일치하는가?
+- 구현 가능한 수준으로 구체적인가?
+- 가장 깊은 분석 필요 (sonnet 권장)
+```
+
+### Lens 4: Occam (검약)
+```
+- bloat 감지: 불필요한 중간 레이어?
+- merge 후보: 합칠 수 있는 형제?
+- 프로세스 오버헤드: 204% overhead = BLOATED
+```
+
+### Lens 5: Evidence (근거)
+```
+- 외부 근거 존재? (paper, impl, doc, experiment)
+- 출처 다양성: INFORMED_BY 밀도
+- 자체 발명 vs 근거 있는 설계 구분
+```
+
+### Lens 6: Process (절차)
+```
+- Phase gate 준수했나?
+- 건너뛰기 감지 (특히 ST 건너뛰기 주의)
+- sigma_oracle 셀프 승인 감지
+```
+
+### Lens 7: Depth (깊이)
+```
+- Layer 충분성: 350줄 5개 책임 = NOT atomic
+- AtomicSpan의 진짜 원자성 검증
+- complexity_threshold 초과 여부
+```
+
+### Lens 8: Consistency (일관성)
+```
+- Contract ↔ Span 정합성
+- SharedType 참조 일관성
+- 이름/타입 충돌 감지
+```
+
+### Lens 9: Coverage (커버리지)
+```
+- Siblings가 parent 100% 커버?
+- Gap 감지: 빠진 부분?
+- MECE (Mutually Exclusive, Collectively Exhaustive) 확인
+```
+
+---
+
+## D20 적대적 라운드 (4단계)
+
+모든 APT 게이트에 필수인 적대적 검증 프로세스:
+
+```
+1. Design agent 제안      → "이렇게 분해/명세/구현했다"
+2. Critic agent 공격      → 다른 모델, 최소 3개 finding 필수
+3. Ground truth 확인      → 테스트 실행, 실제 검증
+4. sigma_oracle(인간) 판정 → 양쪽 보고서 보고 최종 결정
+```
+
+**규칙:**
+- Critic은 **반드시 다른 모델** (같은 모델 = 같은 맹점, D22 증명)
+- Critic은 최소 **3개 finding** 필수 (0개 = rubber stamp 의심)
+- executor ≠ reviewer (자기 승인 금지)
+
+---
+
+## 다른 방법론과의 관계
+
+```
+탈레반 (면역 시스템)
+  ├── 하네스의 Verify 축 실체
+  ├── 프로메테우스: Taliban finding이 Lesson 생성 촉발 가능
+  ├── 롱기누스: Consistency lens가 sourceId/sourcePath drift 탐지
+  └── APT: 매 Phase 게이트마다 Taliban 통과 필수
+```
+
+---
+
+## 88-Lens 메타 검증 (별도 스킬)
+
+88개 수학적 렌즈로 **APT 방법론 자체**를 검증하는 것은 `/taliban`이 아니라 별도 스킬의 영역.
+9-lens = APT 산출물 검증, 88-lens = APT 메타 검증. 레벨이 다르다.
+
+→ 88-lens 메타 검증은 `/meta-verify` 스킬 참조.
+
+---
+
+## What NOT To Do
+
+| 금지 | 이유 | 대안 |
+|------|------|------|
+| 일부 lens만 실행 | 부분 검증 = 맹점 | 9-lens 전부 + Local |
+| 다수결로 PASS | 8/9 APPROVED여도 1 REJECTED면 실패 | 만장일치 |
+| 같은 모델로 Critic | 같은 맹점 공유 (D22) | 다른 모델 필수 |
+| 0개 finding으로 APPROVED | 고무도장 | 최소 3개 finding |
+| finding 무시하고 진행 | 면역 결핍 | 모든 finding 처리 후 재검증 |
+| executor가 reviewer 겸임 | 자기 승인 = 면역 무력화 | 분리 의무 |
+
+---
+
+*Taliban은 적이 아니다. 적이 들어오기 전에 약점을 찾아주는 내부 면역 시스템이다.*
+
+---
+
+## 🌱 재배맨 바인딩 (KG-first Subagent 재배)
+
+> **원칙**: SKILL.md는 **얇은 엔트리**. 긴 로직은 KG의 `SubagentTaskSpec`이 씨앗으로 보관.
+> Subagent에 SKILL.md 전체를 주입 금지(Anti-Context-Rot). KG 조회 → 97% 컨텍스트 절감.
+
+### 세션 진입 시 (자동 로드)
+```cypher
+// 이어서 작업 시 WorkBuffer 자동 로드
+MATCH (wb:WorkBuffer {status:'CURRENT'}) RETURN wb
+// 이 skill의 READY 씨앗 목록
+MATCH (ts:SubagentTaskSpec {skill:'taliban'})
+WHERE ts.status STARTS WITH 'READY' OR ts.status STARTS WITH 'BLOCKED'
+RETURN ts.name, ts.displayName, ts.priority ORDER BY ts.priority DESC
+```
+
+### Subagent 출격 템플릿 (3줄 prompt — KG가 본체)
+```
+역할: {ts.displayName}  (agentId=D<idx>)
+TaskSpec 조회: MATCH (ts:SubagentTaskSpec {name:'<spec_name>'}) RETURN ts.description, ts.checkItems, ts.cypherQueries, ts.expectedOutcome, ts.targetDomain
+Target: $TARGET.  출력: FullFindingRecord JSON (provenance='재배맨-taliban', sourceKgBindings=[ts.name]).
+```
+
+- Subagent가 KG에서 **자기 TaskSpec 조회** → 상세 로직·체크항목 읽기
+- 부모는 결과 UNWIND 단일 트랜잭션으로 KG merge
+- SKILL.md 본문 복제 금지 — 중복은 drift 유발
+
+### 새 씨앗 심기 (TaskSpec 템플릿)
+```cypher
+MERGE (ts:SubagentTaskSpec {name:$name})
+SET ts.skill='taliban',
+    ts.displayName=$display, ts.description=$desc,
+    ts.checkItems=$checks, ts.cypherQueries=$queries,
+    ts.expectedOutcome=$outcome,
+    ts.model=$model, ts.priority=$priority,
+    ts.targetDomain=$target,
+    ts.status='READY', ts.createdAt=datetime(),
+    ts.sourcePath=$path, ts.sourceId='taliban-subagent-spec'
+```
+
+### 세션 종료 시 (연속성 보장)
+```cypher
+// 이전 WorkBuffer ARCHIVED
+MATCH (w:WorkBuffer) WHERE w.status='CURRENT' SET w.status='ARCHIVED', w.archived_at=datetime()
+// 새 CURRENT 생성 — 다음 세션이 바로 복원 가능
+MERGE (wb:WorkBuffer {name:$name})
+SET wb.status='CURRENT', wb.phase=$phase, wb.pending=$pending,
+    wb.recent_fix=$fix, wb.updated_at=datetime()
+```
+
+# KG: ATOM_재배맨_autoboot_taliban

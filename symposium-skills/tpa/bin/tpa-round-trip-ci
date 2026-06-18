@@ -1,0 +1,303 @@
+#!/usr/bin/env python3
+"""
+tpa-round-trip-ci — TPA Round-Trip CI prototype runtime.
+
+Implements THEORY/TPA/ROUND_TRIP_CI_SPEC.md v1.0 (closed 2026-05-02).
+
+Computes the TRTS 4-tuple per commit:
+  TRTS_t = (coverage_ratio, drift_5tuple, essential_residual, lakatos_verdict)
+
+Reads:
+  --forward FILE   APT-side spec JSON (output of apt-st phase): {contracts: [{axes...}]}
+  --reverse FILE   TPA-side spec' JSON (output of tpa-ta phase): same shape
+  --history FILE   prior TRTS history JSON (list of 4-tuples for sliding window)
+  --thresholds FILE  optional JSON override for lakatos_thresholds_v1
+
+Writes:
+  stdout: JSON {trts, verdict, ci_pass, breakdown}
+  exit code: 0 = pass, 1 = degenerating window, 2 = input error
+
+Used by:
+  - .git/hooks/pre-commit (Mode A in spec §5)
+  - .github/workflows/tpa_round_trip.yml (Mode B)
+  - Stop-hook KG writer (Mode C)
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Defaults from KG MethodologyConfig:lakatos_thresholds_v1
+# ──────────────────────────────────────────────────────────────────────────────
+
+DEFAULT_THRESHOLDS = {
+    "delta_coverage_min": -0.02,
+    "delta_drift_max": 5,
+    "delta_residual_max": 0.05,
+    "window_size": 10,
+    "degenerating_consecutive": 3,
+}
+
+# Per-axis tolerance from MethodologyConfig:tpa_axis_tolerance_v1
+AXIS_TOLERANCE = {
+    "pre": 0.0,
+    "post": 0.0,
+    "invariant": 0.0,
+    "access_rights": 0.0,
+    "data_axis": 0.1,
+    "interaction_axis": 0.05,
+    "lifecycle_axis": 0.0,
+    "consistency_axis": 0.0,
+    "temporal_axis": 0.0,
+}
+
+CONTRACT_AXES = list(AXIS_TOLERANCE.keys())  # 9 canonical v26 axes
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Core TRTS computation
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def levenshtein(a: str, b: str) -> int:
+    """Plain Levenshtein for data_axis / interaction_axis tolerance comparison."""
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(cur[-1] + 1, prev[j] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def axis_diff(forward_value: Any, reverse_value: Any, axis_name: str) -> float:
+    """
+    Returns 0.0 if axes are within tolerance, else fraction of mismatch in [0, 1].
+    """
+    fv = "" if forward_value is None else str(forward_value)
+    rv = "" if reverse_value is None else str(reverse_value)
+    if fv == rv:
+        return 0.0
+    tol = AXIS_TOLERANCE.get(axis_name, 0.0)
+    if tol == 0.0:
+        return 1.0  # any difference counts when tolerance is exact-match
+    max_len = max(len(fv), len(rv), 1)
+    edit_frac = levenshtein(fv, rv) / max_len
+    return 0.0 if edit_frac <= tol else edit_frac
+
+
+def align_contract(forward_c: dict, reverse_c: dict) -> float:
+    """
+    Returns alignment score in [0, 1]; 1.0 = perfect match across all 9 axes.
+    """
+    matched = 0
+    for axis in CONTRACT_AXES:
+        if axis_diff(forward_c.get(axis), reverse_c.get(axis), axis) == 0.0:
+            matched += 1
+    return matched / len(CONTRACT_AXES)
+
+
+def best_match_pairing(
+    forward_contracts: list, reverse_contracts: list
+) -> list:
+    """
+    Greedy best-match pairing by name (or contract_id), falling back to index.
+    Returns list of (forward_c, reverse_c | None) tuples. Reverse-only contracts
+    appear at the end as (None, reverse_c).
+    """
+    by_name_rev = {c.get("name") or c.get("id") or str(i): c for i, c in enumerate(reverse_contracts)}
+    paired = []
+    used_keys = set()
+    for fc in forward_contracts:
+        key = fc.get("name") or fc.get("id")
+        rc = by_name_rev.get(key) if key else None
+        if rc is not None and key not in used_keys:
+            paired.append((fc, rc))
+            used_keys.add(key)
+        else:
+            paired.append((fc, None))
+    for k, rc in by_name_rev.items():
+        if k not in used_keys:
+            paired.append((None, rc))
+    return paired
+
+
+def compute_trts(forward_spec: dict, reverse_spec: dict) -> dict:
+    """
+    forward_spec = {"contracts": [...]} — output of APT ST/SCW
+    reverse_spec = {"contracts": [...]} — output of TPA TA
+    Returns TRTS 4-tuple as dict.
+    """
+    fcs = forward_spec.get("contracts", [])
+    rcs = reverse_spec.get("contracts", [])
+    pairs = best_match_pairing(fcs, rcs)
+
+    # coverage_ratio (matched / total)
+    matched = sum(1 for f, r in pairs if f is not None and r is not None)
+    total = max(len(fcs), 1)
+    coverage = matched / total
+
+    # 5-drift count
+    missing = sum(1 for f, r in pairs if f is not None and r is None)        # KG node, code absent
+    orphan = sum(1 for f, r in pairs if f is None and r is not None)         # code, KG absent
+    sig_mismatch = 0
+    pattern_div = 0
+    label_rot = 0
+    for f, r in pairs:
+        if f is None or r is None:
+            continue
+        # SigMismatch: pre/post/invariant axis diff
+        if any(axis_diff(f.get(a), r.get(a), a) > 0 for a in ("pre", "post", "invariant")):
+            sig_mismatch += 1
+        # PatternDiv: claimed pattern (interaction_axis label) vs actual
+        if axis_diff(f.get("interaction_axis"), r.get("interaction_axis"), "interaction_axis") > 0:
+            pattern_div += 1
+        # LabelRot: name drift (suffix language carryover, deprecated naming)
+        fn, rn = (f.get("name") or "").lower(), (r.get("name") or "").lower()
+        if fn and rn and fn != rn:
+            label_rot += 1
+    drift_5tuple = [missing, orphan, sig_mismatch, pattern_div, label_rot]
+
+    # essential_residual
+    residual = 0.0
+    for f, r in pairs:
+        if f is None or r is None:
+            residual += 1.0  # entire contract missing or orphan
+        else:
+            residual += 1.0 - align_contract(f, r)
+
+    return {
+        "coverage_ratio": round(coverage, 4),
+        "drift_5tuple": drift_5tuple,
+        "drift_total": sum(drift_5tuple),
+        "essential_residual": round(residual, 4),
+        "spec_size_forward": len(fcs),
+        "spec_size_reverse": len(rcs),
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Lakatos verdict over sliding window
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def _unwrap(entry: dict) -> dict:
+    """History entries may be raw TRTS dicts or {trts, verdict} wrappers."""
+    if "trts" in entry and isinstance(entry["trts"], dict):
+        return entry["trts"]
+    return entry
+
+
+def lakatos_verdict(history: list, current: dict, thresholds: dict) -> str:
+    """
+    Per-commit verdict comparing current TRTS to immediate predecessor.
+    """
+    if not history:
+        return "first_commit"
+    prev = _unwrap(history[-1])
+    delta_cov = current["coverage_ratio"] - prev["coverage_ratio"]
+    delta_drift = current["drift_total"] - prev["drift_total"]
+    delta_res = current["essential_residual"] - prev["essential_residual"]
+    spec_size = max(current["spec_size_forward"], 1)
+    if (
+        delta_cov > 0
+        and delta_drift <= 0
+        and delta_res <= 0
+    ):
+        return "progressive"
+    if (
+        delta_cov < thresholds["delta_coverage_min"]
+        or delta_drift > thresholds["delta_drift_max"]
+        or delta_res > thresholds["delta_residual_max"] * spec_size
+    ):
+        return "degenerating"
+    return "essential_constant"
+
+
+def window_verdict(history: list, current: dict, thresholds: dict) -> str:
+    """
+    Sliding-window verdict — N *trailing* consecutive degenerating in last W triggers block.
+    Recovery (one non-degenerating commit) clears the block immediately, since the spec
+    invariant is "currently in a degenerating shift" rather than "ever was".
+    """
+    full = history + [{"trts": current, "verdict": lakatos_verdict(history, current, thresholds)}]
+    window = full[-thresholds["window_size"] :]
+    trailing = 0
+    for entry in reversed(window):
+        v = entry.get("verdict") if isinstance(entry, dict) else None
+        if v == "degenerating":
+            trailing += 1
+        else:
+            break
+    if trailing >= thresholds["degenerating_consecutive"]:
+        return f"degenerating_{trailing}_of_{len(window)}"
+    return "ok"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CLI
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def load_json(path: Path) -> Any:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError as e:
+        print(f"error: invalid JSON in {path}: {e}", file=sys.stderr)
+        sys.exit(2)
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(
+        prog="tpa-round-trip-ci",
+        description="TPA Round-Trip CI v1.0 — TRTS metric per commit",
+    )
+    p.add_argument("--forward", required=True, type=Path, help="APT spec JSON")
+    p.add_argument("--reverse", required=True, type=Path, help="TPA spec' JSON")
+    p.add_argument("--history", type=Path, default=None, help="prior TRTS history JSON (list)")
+    p.add_argument("--thresholds", type=Path, default=None, help="override lakatos_thresholds_v1")
+    p.add_argument("--output", type=Path, default=None, help="write history-extended JSON to file")
+    p.add_argument("--quiet", action="store_true", help="suppress stdout JSON")
+    args = p.parse_args()
+
+    forward = load_json(args.forward) or {}
+    reverse = load_json(args.reverse) or {}
+    history = load_json(args.history) or [] if args.history else []
+    thresholds = dict(DEFAULT_THRESHOLDS)
+    if args.thresholds:
+        thresholds.update(load_json(args.thresholds) or {})
+
+    trts = compute_trts(forward, reverse)
+    per_commit = lakatos_verdict(history, trts, thresholds)
+    win_verdict = window_verdict(history, trts, thresholds)
+
+    output = {
+        "trts": trts,
+        "lakatos_verdict": per_commit,
+        "lakatos_verdict_window": win_verdict,
+        "ci_pass": not win_verdict.startswith("degenerating_"),
+        "thresholds": thresholds,
+    }
+
+    if not args.quiet:
+        print(json.dumps(output, indent=2))
+
+    if args.output:
+        # Append to history file for next run
+        history_extended = history + [{"trts": trts, "verdict": per_commit}]
+        args.output.write_text(json.dumps(history_extended, indent=2))
+
+    return 0 if output["ci_pass"] else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

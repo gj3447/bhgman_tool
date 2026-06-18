@@ -1,0 +1,25 @@
+{
+  "name": "apt-meta-review",
+  "version": "27.1.0",
+  "description": "APT MetaReview phase 5/5 — feedback-loop closure. Lesson distillation → SKILL.md slot patch → MATERIALIZES update → Taliban Gate. Terminates SA→SP→ST→SCW→MetaReview chain. Self-application forbidden (max_depth=1).",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/apt-meta-review",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/apt-meta-review"
+  },
+  "license": "MIT",
+  "keywords": ["apt-meta-review", "apt-phase-5", "feedback-loop", "lesson", "dispatch-only"],
+  "category": "axis-apt",
+  "kg_ref": "ATOM_Skill_apt_meta_review",
+  "skill_source": "./SKILL.md",
+  "channel": "stable",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "dispatchOnly": true,
+  "parent": "apt-methodology"
+}

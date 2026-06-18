@@ -1,0 +1,291 @@
+---
+name: prometheus
+version: 2
+description: >
+  프로메테우스 방법론 — 지식이 행동에 선행한다. "바로 고치지 마, 먼저 불(지식) 훔쳐와."
+  Invoke when: 문제 발생 시, 모르는 기술/개념 만났을 때, 오답노트(Lesson) 해결 시,
+  리서치가 필요한 의사결정 시, 새 도메인 진입 시.
+  Enforces: 7단계 사이클 (발견→환경조사→병렬리서치→KG구축→계획수립→실행→검증),
+  haiku 병렬 subagent, ResearchFinding/ActionPlan KG 기록, 4단계 검증.
+  재배맨 SubagentTaskSpec 기반 자동 출격 지원.
+  # KG: ATOM_Skill_prometheus
+---
+
+# /prometheus — 프로메테우스 방법론: 불(지식)을 먼저 훔쳐와라
+
+> **프로메테우스(Prometheus) = 그리스어 "먼저 생각하는 자(先見者)".**
+> 신에게서 불(지식)을 훔쳐 인간에게 준 타이탄.
+> 행동 전에 지식을 확보하는 것이 본 방법론의 핵심.
+
+---
+
+## 왜 프로메테우스인가
+
+문제를 만났을 때 **바로 고치려는 충동**이 가장 큰 적이다.
+
+```
+나쁜 패턴:  문제 발생 → 즉시 삽질 → 실패 → 더 삽질 → 시간 낭비
+좋은 패턴:  문제 발생 → 기록 → 조사 → 리서치 → KG 구축 → 계획 → 실행 → 검증
+```
+
+프로메테우스는 **Step 3(병렬 리서치)**이 핵심이다.
+haiku subagent N개를 동시에 풀어서 인터넷 전체에서 지식을 긁어온다.
+그리고 그 지식을 **KG에 구조화**한 뒤, 그 위에서 판단한다.
+
+---
+
+## 7단계 사이클
+
+```
+Step 1: 발견 (불씨 포착)
+   ↓
+Step 2: 환경조사 (올림포스 정찰)
+   ↓
+Step 3: 병렬 리서치 (불 훔치기) ← 핵심
+   ↓
+Step 4: KG 구축 (인간에게 불 전달)
+   ↓
+Step 5: 계획 수립 (횃불 경로 설계)
+   ↓
+Step 6: 실행 (불 밝히기)
+   ↓
+Step 7: 검증 (불이 꺼지지 않는지 확인)
+   ↓ (실패 시)
+Step 2로 피드백 루프
+```
+
+---
+
+### Step 1: 발견 — Lesson 즉시 기록
+
+문제를 인지한 순간, **기억에 의존하지 않고 즉시 KG에 기록**.
+
+```cypher
+MERGE (l:AbstractNode:Lesson {name: $lesson_name})
+SET l.category = $category,
+    l.problem = $problem,
+    l.wrongAssumption = $wrong_assumption,
+    l.truth = $truth,
+    l.solution = null,          // 아직 모름
+    l.severity = $severity,     // CRITICAL / HIGH / MEDIUM / LOW
+    l.resolved = false,
+    l.createdAt = datetime()
+RETURN l.name
+```
+
+**severity 기준:**
+- CRITICAL: 서비스 다운, 데이터 손실 위험
+- HIGH: 기능 장애, 외부 접근 불가
+- MEDIUM: 성능 저하, 부분 기능 이상
+- LOW: 개선 사항, 비기능적 문제
+
+---
+
+### Step 2: 환경조사 — 현재 상태 파악
+
+**해결 시도 전에 반드시** 현재 환경을 이해한다.
+
+```bash
+# 서비스 상태
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# 설정 파일 확인
+cat docker-compose.yml | grep -A5 $SERVICE
+
+# 로그 확인
+docker logs --tail 50 $CONTAINER
+
+# 네트워크 상태
+docker network ls && docker network inspect $NETWORK
+```
+
+**원칙**: 환경 조사 없이 해결 시도 금지. "고쳐봤는데 안 돼요"가 아니라 "현재 상태가 이런데, 원인이 뭘까요"가 올바른 순서.
+
+---
+
+### Step 3: 병렬 리서치 — 불 훔치기 (핵심)
+
+haiku subagent를 **도메인별로 분리**하여 병렬 투입.
+
+**에이전트 수 가이드:**
+| 문제 규모 | 에이전트 수 | 도메인 분리 예시 |
+|-----------|------------|----------------|
+| 소 (단일 서비스) | 3~5 | 원인분석 / 공식문서 / 커뮤니티 |
+| 중 (다중 서비스) | 6~10 | 네트워크 / 스토리지 / 앱 / 인증 / 모니터링 |
+| 대 (아키텍처) | 12~20 | 위 + 대안기술 / 벤치마크 / 마이그레이션 사례 |
+
+**각 에이전트 수집 항목:**
+1. Root cause (근본 원인)
+2. 권장 해결법
+3. 대안 (최소 2개)
+4. 참고 링크 / 공식 문서
+5. 주의사항 / 알려진 함정
+
+```
+// 병렬 리서치 실행 예시
+Agent(model=haiku, run_in_background=true, prompt="
+  문제: {$problem}
+  도메인: 네트워크
+  수집: root cause, 권장 해결법, 대안 2+, 참고링크, 주의사항
+  출력: 구조화된 JSON
+")
+
+Agent(model=haiku, run_in_background=true, prompt="
+  문제: {$problem}
+  도메인: 스토리지/인프라
+  수집: root cause, 권장 해결법, 대안 2+, 참고링크, 주의사항
+  출력: 구조화된 JSON
+")
+
+// ... N개 병렬
+```
+
+---
+
+### Step 4: KG 구축 — ResearchFinding 기록
+
+리서치 결과를 **채팅 로그에 묻히지 않게** KG에 구조화.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})
+MERGE (r:AbstractNode:ResearchFinding {name: $research_name})
+SET r.rootCause = $root_cause,
+    r.recommendation = $recommendation,
+    r.alternatives = $alternatives,     // list
+    r.references = $references,         // list of URLs
+    r.caveats = $caveats,              // 주의사항
+    r.domain = $domain,                 // 리서치 도메인
+    r.status = 'RESEARCHED',
+    r.researchedAt = datetime()
+MERGE (l)-[:HAS_RESEARCH]->(r)
+RETURN r.name
+```
+
+**여러 에이전트의 결과가 충돌할 때:**
+- 공통 결론 → 높은 신뢰도
+- 상반 결론 → 추가 리서치 또는 실험으로 검증
+- 단독 결론 → 신뢰도 표기 후 계획에 반영
+
+---
+
+### Step 5: 계획 수립 — ActionPlan 생성
+
+**계획 없이 실행 금지.** KG에 구축된 지식 위에서 판단.
+
+```cypher
+MATCH (l:Lesson {name: $lesson_name})
+MERGE (p:AbstractNode:ActionPlan {name: $plan_name})
+SET p.phase = $phase,              // ACTION / FUTURE / MAINTAIN / DONE
+    p.priority = $priority,        // HIGH / MEDIUM / LOW / RESOLVED
+    p.action = $action,            // 구체적 실행 방법
+    p.dependencies = $dependencies, // 선행 조건 list
+    p.estimatedEffort = $effort,   // 예상 소요
+    p.rollback = $rollback,        // 롤백 방법
+    p.createdAt = datetime()
+MERGE (l)-[:HAS_PLAN]->(p)
+RETURN p.name
+```
+
+**phase 분류:**
+| Phase | 의미 | 언제 |
+|-------|------|------|
+| ACTION | 지금 실행 | 긴급 + 준비 완료 |
+| FUTURE | 나중 실행 | 선행 조건 미충족 |
+| MAINTAIN | 현상 유지 | 현재로 충분 |
+| MONITOR | 관찰 중 | 추이 지켜보기 |
+| DONE | 완료 | 실행 + 검증 끝 |
+
+---
+
+### Step 6: 실행 — 계획대로
+
+```cypher
+// 실행 시작 — plan phase 업데이트
+MATCH (p:ActionPlan {name: $plan_name})
+SET p.phase = 'ACTION', p.startedAt = datetime()
+
+// 실행 완료 — lesson resolved
+MATCH (l:Lesson {name: $lesson_name})
+SET l.resolved = true,
+    l.resolvedAt = datetime(),
+    l.resolvedBy = $resolution_description
+MATCH (p:ActionPlan {name: $plan_name})
+SET p.phase = 'DONE'
+```
+
+---
+
+### Step 7: 검증 — 4단계
+
+| # | 단계 | 방법 | 신뢰도 |
+|---|------|------|--------|
+| 1 | 내부 테스트 | localhost, docker exec | 최저 |
+| 2 | 외부 테스트 | MacBook(다른 네트워크), Tailscale SSH | 중간 |
+| 3 | 스트레스 테스트 | hey/curl 부하, Pod 삭제 복원력 | 높음 |
+| 4 | 글로벌 테스트 | check-host.net (30+ 서버) | 최고 |
+
+```bash
+# Level 4: 글로벌 검증 (가장 확실)
+rid=$(curl -s "https://check-host.net/check-http?host=http://bhgman.iptime.org/$PATH&max_nodes=5" \
+  -H "Accept: application/json" | python3 -c "import json,sys; print(json.load(sys.stdin)['request_id'])")
+sleep 8
+curl -s "https://check-host.net/check-result/$rid" -H "Accept: application/json"
+```
+
+**검증 실패 시** → Step 2(환경조사)로 피드백 루프. 새로운 정보로 리서치 보강.
+
+---
+
+## 기존 오답노트 조회
+
+```cypher
+// 미해결 CRITICAL/HIGH
+MATCH (l:Lesson)
+WHERE (l.resolved IS NULL OR l.resolved = false)
+  AND l.severity IN ['CRITICAL', 'HIGH']
+RETURN l.name, l.problem, l.severity
+ORDER BY l.severity
+
+// 리서치 + 계획 포함 전체
+MATCH (l:Lesson)
+OPTIONAL MATCH (l)-[:HAS_RESEARCH]->(r:ResearchFinding)
+OPTIONAL MATCH (l)-[:HAS_PLAN]->(p:ActionPlan)
+RETURN l.name, l.severity, l.resolved,
+       r.recommendation, p.phase, p.priority
+ORDER BY l.severity
+
+// 실행 대기 계획만
+MATCH (l:Lesson)-[:HAS_PLAN]->(p:ActionPlan)
+WHERE p.phase = 'ACTION'
+RETURN l.name, l.problem, p.action, p.priority
+```
+
+---
+
+## 다른 방법론과의 관계
+
+```
+프로메테우스 (지식 획득 사이클)
+  ├── 하네스의 Inform + Correct 축 담당
+  ├── 탈레반: Taliban finding → Lesson 생성 → 프로메테우스 발동
+  ├── 롱기누스: 프로메테우스가 구축한 KG를 코드까지 관통
+  └── APT: 모든 Phase에서 횡단적으로 발동 가능
+```
+
+---
+
+## What NOT To Do
+
+| 금지 | 이유 | 대안 |
+|------|------|------|
+| 리서치 없이 바로 고치기 | 무지한 삽질 | Step 3 먼저 |
+| 단일 에이전트만 리서치 | 편향된 관점 | 도메인별 병렬 |
+| 리서치 결과를 채팅에만 남기기 | 다음 세션에서 소실 | KG에 ResearchFinding |
+| 계획 없이 실행 | 삽질 재발 | Step 5 ActionPlan 필수 |
+| 내부 테스트만으로 "해결" 선언 | NAT hairpinning은 외부 아님 | 4단계 검증 필수 |
+| Lesson 기록 안 하기 | 같은 실수 반복 | Step 1 즉시 기록 |
+
+---
+
+*프로메테우스는 코카서스 산에 묶여 매일 간을 쪼이는 벌을 받았다.
+그래도 불을 훔쳐온 것은 후회하지 않았다. 지식의 가치는 그만한 값어치가 있다.*

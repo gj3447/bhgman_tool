@@ -1,0 +1,176 @@
+{
+  "$schema": "https://docs.claude.com/schemas/claude-plugin-marketplace-v1.json",
+  "name": "symposium-skills",
+  "displayName": "SYMPOSIUM Skills",
+  "description": "Engineering canon: 5 weapons (apt/harness/longinus/taliban/jaebaeman/prometheus) + APT/TPA cycles + ops bundle. Constitutionally governed via CODEOWNERS, drift-gated via Merkle MANIFEST, supply-chain hardened via in-toto + Cosign keyless.",
+  "publisher": "SYMPOSIUM",
+  "version": "31.0.0",
+  "version_change_log_2026-05-09": "v30.0.0 → v30.1.0 → v30.2.0: BHGMAN iter1-iter6 누적. 109+ verified Lean theorems (9 files Mathlib-free 0 sorry: Taliban / SpaceGirl / Liquest / ICE / HOH / 공리 / Lakatos / Apt_MM / Longinus). 98 axes 학문 정전 grounding. 60 DesignPattern null=0. 6 외부 TPA dogfood Lakatos PROGRESSIVE_CONFIRMED. 17+ :VerdictProposal PRELIMINARY (D1-D7 + 초공동의용사). KG: bhgman-iter1-iter6-grand-overview-2026-05-09.",
+  "homepage": "file:///Users/lagyeongjun/CD/SYMPOSIUM/SKILLS",
+  "registry": {
+    "kind": "local",
+    "canonicalPath": "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS",
+    "ociArtifactType": "application/vnd.symposium.claude-skills.v1+json",
+    "futureRemote": "ghcr.io/<TBD-org>/symposium-skills"
+  },
+  "manifest": {
+    "path": "MANIFEST.json",
+    "discovery": ".well-known/skills/index.json",
+    "attestation": ".well-known/skills/attestation.json",
+    "sbom": "SBOM.json"
+  },
+  "drift": {
+    "merkleField": "merkle_root",
+    "checker": "bin/skill-merkle-check.py",
+    "interval": "12m"
+  },
+  "channels": [
+    "stable",
+    "beta",
+    "experimental"
+  ],
+  "skillCount": 28,
+  "skills": [
+    {
+      "name": "apt",
+      "kg_ref": "ATOM_Skill_apt_orchestrator",
+      "tier": "essence"
+    },
+    {
+      "name": "harness",
+      "kg_ref": "ATOM_Skill_harness",
+      "tier": "essence"
+    },
+    {
+      "name": "longinus",
+      "kg_ref": "ATOM_Skill_longinus",
+      "tier": "essence"
+    },
+    {
+      "name": "taliban",
+      "kg_ref": "ATOM_Skill_taliban",
+      "tier": "essence"
+    },
+    {
+      "name": "jaebaeman",
+      "kg_ref": "ATOM_Skill_jaebaeman",
+      "tier": "essence"
+    },
+    {
+      "name": "prometheus",
+      "kg_ref": "ATOM_Skill_prometheus",
+      "tier": "essence"
+    },
+    {
+      "name": "88-taliban",
+      "kg_ref": "ATOM_Skill_88taliban",
+      "tier": "alias"
+    },
+    {
+      "name": "tlb",
+      "kg_ref": "ATOM_Skill_tlb_alias",
+      "tier": "alias"
+    },
+    {
+      "name": "prom",
+      "kg_ref": "ATOM_Skill_prom_alias",
+      "tier": "alias"
+    },
+    {
+      "name": "apt-sa",
+      "kg_ref": "ATOM_Skill_apt_sa",
+      "tier": "phase"
+    },
+    {
+      "name": "apt-sp",
+      "kg_ref": "ATOM_Skill_apt_sp",
+      "tier": "phase"
+    },
+    {
+      "name": "apt-st",
+      "kg_ref": "ATOM_Skill_apt_st",
+      "tier": "phase"
+    },
+    {
+      "name": "apt-scw",
+      "kg_ref": "ATOM_Skill_apt_scw",
+      "tier": "phase"
+    },
+    {
+      "name": "apt-meta-review",
+      "kg_ref": "ATOM_Skill_apt_meta_review",
+      "tier": "phase"
+    },
+    {
+      "name": "apt-cleanup",
+      "kg_ref": "ATOM_Skill_apt_cleanup",
+      "tier": "phase"
+    },
+    {
+      "name": "tpa",
+      "kg_ref": "ATOM_Skill_tpa_orchestrator_v10",
+      "tier": "tpa"
+    },
+    {
+      "name": "tpa-tcw",
+      "kg_ref": "ATOM_Skill_tpa_tcw",
+      "tier": "tpa"
+    },
+    {
+      "name": "tpa-st",
+      "kg_ref": "ATOM_Skill_tpa_st",
+      "tier": "tpa"
+    },
+    {
+      "name": "tpa-sp",
+      "kg_ref": "ATOM_Skill_tpa_sp",
+      "tier": "tpa"
+    },
+    {
+      "name": "tpa-ta",
+      "kg_ref": "ATOM_Skill_tpa_ta",
+      "tier": "tpa"
+    },
+    {
+      "name": "solve",
+      "kg_ref": "ATOM_Skill_solve",
+      "tier": "meta"
+    },
+    {
+      "name": "skill-creator",
+      "kg_ref": "ATOM_Skill_skill_creator",
+      "tier": "meta"
+    },
+    {
+      "name": "db-query",
+      "kg_ref": "ATOM_Skill_db_query",
+      "tier": "ops"
+    },
+    {
+      "name": "docker-logs",
+      "kg_ref": "ATOM_Skill_docker_logs",
+      "tier": "ops"
+    },
+    {
+      "name": "kafka-manage",
+      "kg_ref": "ATOM_Skill_kafka_manage",
+      "tier": "ops"
+    },
+    {
+      "name": "server-status",
+      "kg_ref": "ATOM_Skill_server_status",
+      "tier": "ops"
+    },
+    {
+      "name": "deploy",
+      "kg_ref": "ATOM_Skill_deploy",
+      "tier": "ops"
+    },
+    {
+      "name": "backup",
+      "kg_ref": "ATOM_Skill_backup",
+      "tier": "ops"
+    }
+  ],
+  "version_change_log_2026-05-10": "v30.2.0 → v31.0.0 — PROM 16 Harness BHGMAN grounding reinforcement (16/16 STRONG, 5→17 axes, +24 Lean theorems 0 sorry, 5 NovelPattern, 12 OQ, HR20 ErrorPattern, MCP multi-grounding protocol+OHS+PL+MOP+Cherns_P5). 10-Layer Propagation Invariant compliance — manifest v31 + MANIFEST.json + SBOM.json sync."
+}

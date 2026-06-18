@@ -1,0 +1,25 @@
+{
+  "name": "design-agent",
+  "version": "0.1.0-draft",
+  "description": "W9/APT18 DesignAgent (draft) — specialist subagent for Span decomposition + draft Contract crystallization. Sibling of /apt-sp + /apt-st. Reactivates Orchestrator≠Designer split. EXPERIMENTAL draft channel.",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/design-agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/design-agent"
+  },
+  "license": "MIT",
+  "keywords": ["design-agent", "w9", "apt18", "subagent-architecture", "draft", "experimental"],
+  "category": "axis-w9",
+  "kg_ref": "ATOM_Skill_design_agent_v28",
+  "skill_source": "./SKILL.md",
+  "channel": "draft",
+  "status": "PRELIMINARY",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "parent": "apt-methodology"
+}

@@ -1,0 +1,631 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:507e3856-36e7-5191-bb73-8055a1ae035d",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-04-26T17:33:59+09:00",
+    "tools": [
+      {
+        "vendor": "SYMPOSIUM",
+        "name": "skill-build-sbom.py",
+        "version": "1"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "SYMPOSIUM/SKILLS",
+      "version": "v29.0.0",
+      "properties": [
+        {
+          "name": "git:head",
+          "value": "2ca6d68ada33c478756f6d8d553f654f8a2dfbb8"
+        },
+        {
+          "name": "manifest:merkle_root",
+          "value": "d8c62efd4d88ee58b70d2335d93907d7c6a606db0ba62b4a9ed7f9e69b28b7dd"
+        },
+        {
+          "name": "manifest:skills_count",
+          "value": "28"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/88-taliban@3",
+      "name": "88-taliban",
+      "version": "3",
+      "scope": "required",
+      "purl": "pkg:claude-skill/88-taliban@3?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_88taliban"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "29421b8fe03575fbe5617405fbb6ca59d5ca8ea7"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/apt@26",
+      "name": "apt",
+      "version": "26",
+      "scope": "required",
+      "purl": "pkg:claude-skill/apt@26?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_apt_orchestrator"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "8b8a4bf4d0a50177e124a9295b860e7c9d73db0a"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/apt-meta-review@2",
+      "name": "apt-meta-review",
+      "version": "2",
+      "scope": "required",
+      "purl": "pkg:claude-skill/apt-meta-review@2?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_apt_meta_review"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "91e35ce397faa5640e19c99927fec9500ddacfb9"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/apt-sa@26",
+      "name": "apt-sa",
+      "version": "26",
+      "scope": "required",
+      "purl": "pkg:claude-skill/apt-sa@26?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_apt_sa"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "382b0a76424ccd8b1453c6083b553254fc1aacb9"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/apt-scw@26",
+      "name": "apt-scw",
+      "version": "26",
+      "scope": "required",
+      "purl": "pkg:claude-skill/apt-scw@26?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_apt_scw"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "28cb779e60fe9945c55e09d8716155b895494414"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/apt-sp@26",
+      "name": "apt-sp",
+      "version": "26",
+      "scope": "required",
+      "purl": "pkg:claude-skill/apt-sp@26?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_apt_sp"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "4841712886381d0f522047a3db5ad71ce1fb6f95"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/apt-st@26",
+      "name": "apt-st",
+      "version": "26",
+      "scope": "required",
+      "purl": "pkg:claude-skill/apt-st@26?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_apt_st"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "65a226f7be0d139d20dde410e89f4c03bb535203"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/backup@1",
+      "name": "backup",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/backup@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_backup"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "40c241e609bef4e7bc3929cf5cc66923ff69492b"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/db-query@1",
+      "name": "db-query",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/db-query@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_db_query"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "169ce127fabcd688884633a804628d5ba1bdd5d0"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/deploy@1",
+      "name": "deploy",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/deploy@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_deploy"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "cd2bcee0703373b18aef54bd69d3d3490596bef8"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/docker-logs@1",
+      "name": "docker-logs",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/docker-logs@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_docker_logs"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "015ad71d83eca75cbf896047e7f0c48ba0a2a72a"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/harness@2",
+      "name": "harness",
+      "version": "2",
+      "scope": "required",
+      "purl": "pkg:claude-skill/harness@2?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_harness"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "cf5e69d6cbf6ef070c93c4474aab28c62f45d797"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/jaebaeman@2",
+      "name": "jaebaeman",
+      "version": "2",
+      "scope": "required",
+      "purl": "pkg:claude-skill/jaebaeman@2?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_jaebaeman"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "028fb8475152cc946a987c1675e77a4b3f58ab95"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/kafka-manage@1",
+      "name": "kafka-manage",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/kafka-manage@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_kafka_manage"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "4110e5e5f1219acbc40d34327a327ee418beee5f"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/longinus@3.1",
+      "name": "longinus",
+      "version": "3.1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/longinus@3.1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_longinus"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "2f5a330283f6faf65283e42d5cc229a90511de93"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/prom@3",
+      "name": "prom",
+      "version": "3",
+      "scope": "required",
+      "purl": "pkg:claude-skill/prom@3?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_prom_alias"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "16a1c76ec935ee99af7c32213455c09bb496c3c0"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/prometheus@5",
+      "name": "prometheus",
+      "version": "5",
+      "scope": "required",
+      "purl": "pkg:claude-skill/prometheus@5?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_prometheus"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "5f50f5c21736737ab473a92c9093c49ccec14fc6"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/server-status@1",
+      "name": "server-status",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/server-status@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_server_status"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "64c62b278d33faee580c8dfa0899cd7da9cada1f"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/skill-creator@1",
+      "name": "skill-creator",
+      "version": "1",
+      "scope": "required",
+      "purl": "pkg:claude-skill/skill-creator@1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_skill_creator"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "308859482bc5b356a5d00b35e9e075da44dc47f1"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/solve@2",
+      "name": "solve",
+      "version": "2",
+      "scope": "required",
+      "purl": "pkg:claude-skill/solve@2?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_solve"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "4ea8ccaa8b8f1784b5ac7e844f5ddec18a73d8ac"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/taliban@3",
+      "name": "taliban",
+      "version": "3",
+      "scope": "required",
+      "purl": "pkg:claude-skill/taliban@3?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_taliban"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "e85a69b9fe93c488c918bdb9eef8c353792002eb"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/tlb@2",
+      "name": "tlb",
+      "version": "2",
+      "scope": "required",
+      "purl": "pkg:claude-skill/tlb@2?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_tlb_alias"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "6808dbdf0f218cd75538cc05958eba55020c85d0"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/tpa@1.0",
+      "name": "tpa",
+      "version": "1.0",
+      "scope": "required",
+      "purl": "pkg:claude-skill/tpa@1.0?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_tpa_orchestrator_v10"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "33b6514bd2e62103abd956a8db82b12ee0b206a4"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/tpa-ta@1.0",
+      "name": "tpa-ta",
+      "version": "1.0",
+      "scope": "required",
+      "purl": "pkg:claude-skill/tpa-ta@1.0?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_tpa_ta"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "a1e87aee84cdd90a1e3043e7779724f541b39880"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/tpa-tcw@1.0",
+      "name": "tpa-tcw",
+      "version": "1.0",
+      "scope": "required",
+      "purl": "pkg:claude-skill/tpa-tcw@1.0?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_tpa_tcw"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "635ca417e616a86b67bdeb86cc5e77f041c480e0"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/tpa-sp@1.1",
+      "name": "tpa-sp",
+      "version": "1.0",
+      "scope": "required",
+      "purl": "pkg:claude-skill/tpa-sp@1.1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_tpa_sp"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "e857c686c34bbea886bdbb46fbed90d3124b04dd"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:claude-skill/tpa-st@1.1",
+      "name": "tpa-st",
+      "version": "1.0",
+      "scope": "required",
+      "purl": "pkg:claude-skill/tpa-st@1.1?channel=stable",
+      "properties": [
+        {
+          "name": "kg:ref",
+          "value": "ATOM_Skill_tpa_st"
+        },
+        {
+          "name": "git:tree_sha",
+          "value": "1b9e3798eb3227f5b73c936c06e97334df4eb824"
+        },
+        {
+          "name": "claude-skill:channel",
+          "value": "stable"
+        }
+      ]
+    }
+  ]
+}

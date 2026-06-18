@@ -1,0 +1,151 @@
+{
+  "axis": "A1_SCM",
+  "axis_summary": "Software Configuration Management 학문 grounding. SYMPOSIUM/SKILLS는 SCM canon(IEEE 828/ISO 10007/SemVer/Conventional Commits/SLSA/in-toto)의 약 70%를 이미 채택. CHANGELOG.md + 각 SKILL.md ## History + KG :SkillVersion 노드 3종 도입으로 Lehman 5법칙(Conservation of Familiarity)과 8법칙(Feedback System) 충족하면 agent-driven SCM reference implementation이 된다. 16 commit, 3 tag(v26.0.0~v26.0.2), 27 stable skills 실태 기반 분석.",
+  "cells": [
+    {
+      "findingId": "finding_prom16_skillver_a1_s1",
+      "domain": "A1_SCM::S1_TheoreticalCanon",
+      "rootCause": "SCM 학문 정전(Rochkind 1975 SCCS, Tichy 1985 RCS, Lehman 1974/1980/1996 8법칙, Estublier 2005 TOSEM impact survey, Git internals)이 50+년 축적되어 5W(Who/What/When/Where/Why) + delta storage + DAG content-addressable + 8 evolution laws + 5 impact dimensions의 정전 모형 확립. SYMPOSIUM/SKILLS의 git log/MANIFEST/merkle_root는 이 정전을 자연스럽게 따르나, Lehman 5법칙(Conservation of Familiarity) 측면에서 per-skill `## History` 부재로 사용자 mastery 유지가 위협받음.",
+      "recommendation": "각 SKILL.md에 표준 ## History section (Version/Date/Changes/KG Lesson 4-column table) 추가. 27 skill 일괄 적용. Estublier 5 dimensions 중 'Process support' 약점은 channel 전환 자동화 스크립트로 보강. Git의 content-addressable principle을 이미 lift한 merkle_root를 SkillVersion KG 노드의 manifest_merkle_root 필드로 연결.",
+      "alternatives": [
+        "(a) ## History 대신 CHANGELOG.md 한 곳 집중: 단순하지만 per-skill granularity 손실",
+        "(b) git log 자체를 정전으로 간주, 별도 history section 부재: Lehman V 위반",
+        "(c) Estublier 5 dimensions 모두 충족 시도 (workspace/process/version/system/components): 과도, MVP는 Versioning + Components만"
+      ],
+      "references": [
+        "https://dl.acm.org/doi/10.1109/TSE.1975.6312866",
+        "https://onlinelibrary.wiley.com/doi/abs/10.1002/spe.4380150703",
+        "https://www.gnu.org/software/rcs/tichy-paper.pdf",
+        "https://users.ece.utexas.edu/~perry/education/SE-Intro/lehman.pdf",
+        "https://gwern.net/doc/cs/1996-lehman.pdf",
+        "https://en.wikipedia.org/wiki/Lehman%27s_laws_of_software_evolution",
+        "https://dl.acm.org/doi/10.1145/1101815.1101817",
+        "http://www0.cs.ucl.ac.uk/staff/a.finkelstein/fose/finalestublier.pdf",
+        "https://git-scm.com/book/en/v2",
+        "https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"
+      ],
+      "caveats": "Lehman 4법칙(Organisational Stability) + 6법칙(Continuing Growth)은 single-dev repo에서 직접 검증 불가 — 외부 contributor 영입 시 재평가. Rochkind SCCS 5W는 git log가 자동 충족하나, 'Why' 필드는 commit message quality에 종속(Conventional Commits만으로는 부족, body section 활용 필요).",
+      "confidence": "HIGH",
+      "oneLineSummary": "SCM 정전 50+년(SCCS 1975 → RCS 1985 → Lehman 8법칙 → Estublier 2005 → Git DAG)의 70% 채택 완료. ## History section 추가가 Lehman V/VIII 충족의 last-mile.",
+      "agentId": "prom16-a1-haiku-2026-04-29",
+      "researchedAt": "2026-04-29T00:00:00+09:00",
+      "sourceKgBindings": [
+        "ATOM_SymposiumSkillsRepo",
+        "MANIFEST_v1_2026-04-26",
+        "CHANNELS_v1_2026-04-26"
+      ]
+    },
+    {
+      "findingId": "finding_prom16_skillver_a1_s2",
+      "domain": "A1_SCM::S2_IndustryStandards",
+      "rootCause": "IEEE 828-2012 + ISO 10007:2017 + SemVer 2.0.0 + Conventional Commits 1.0.0 + Keep a Changelog 1.1.0 + in-toto/SLSA가 SCM 표준 stack을 형성. SYMPOSIUM/SKILLS는 Conventional Commits 100%(16/16), SemVer tag 형식 준수, MANIFEST identification 우수, in-toto attestation 보유 — 그러나 IEEE 828 §5.2.1.3 'Configuration Status Accounting'에 해당하는 CHANGELOG.md가 부재. 외부 consumer가 보는 변천사 1차 surface가 missing.",
+      "recommendation": "CHANGELOG.md (Keep a Changelog 1.1.0 형식) 즉시 생성. Conventional Commits → CHANGELOG 자동 변환은 git-cliff 도입(deterministic, LLM 비의존). v26.0.0/v26.0.1/v26.0.2 entries를 16 commit에서 backfill. SLSA Build Level 명시(현재 in-toto attestation 보유 → L2 candidate). collection tag(v26.0.0)와 per-skill version(MANIFEST)의 mapping 룰 정식화.",
+      "alternatives": [
+        "(a) release-please (Google GH Action) 사용: GitHub-tied, vendor lock-in",
+        "(b) LLM 직접 생성 changelog: 사용자 lesson 'fitting 금지' 위반 위험, deterministic 우선",
+        "(c) Common Changelog 형식 채택(common-changelog.org): Keep a Changelog의 strict variant, 더 엄격하나 학습 곡선",
+        "(d) Conventional Commits 폐기, 자유 형식: 현 100% 준수율 손실, 명백한 regression"
+      ],
+      "references": [
+        "https://standards.ieee.org/standard/828-2012.html",
+        "https://ieeexplore.ieee.org/document/6170935",
+        "https://www.iso.org/standard/70400.html",
+        "https://semver.org/",
+        "https://www.conventionalcommits.org/en/v1.0.0/",
+        "https://keepachangelog.com/en/1.1.0/",
+        "https://github.com/in-toto/attestation",
+        "https://slsa.dev/spec/v1.1/",
+        "https://slsa.dev/spec/v0.1/provenance",
+        "https://git-cliff.org/"
+      ],
+      "caveats": "v26.0.x tag의 '26'이 collection version인지 APT methodology revision인지 currently ambiguous — APT skill 자체가 v26 사용중. 분리 권장: collection은 별도 namespace (e.g. symposium-skills-2026.04.0). IEEE 828은 minimum requirements만 정의, 구체적 implementation은 reader 자유 — 즉 형식 충족 ≠ 품질 보장.",
+      "confidence": "HIGH",
+      "oneLineSummary": "IEEE 828/ISO 10007/SemVer/Conventional Commits/SLSA stack의 5/6 충족. 마지막 1조각 = Keep a Changelog 1.1.0 CHANGELOG.md.",
+      "agentId": "prom16-a1-haiku-2026-04-29",
+      "researchedAt": "2026-04-29T00:00:00+09:00",
+      "sourceKgBindings": [
+        "MANIFEST_v1_2026-04-26",
+        "ATOM_SkillsChannelPolicy_v1",
+        "cg-skillver-trunk-feature-flag-progressive-2026-04-26"
+      ]
+    },
+    {
+      "findingId": "finding_prom16_skillver_a1_s3",
+      "domain": "A1_SCM::S3_AntiPatterns",
+      "rootCause": "Software entropy(Lehman 자기 인용 'change introduces disorder'), big-bang merge, diverging branches, continuous broken master, lock-step monolithic versioning, RUBBER_STAMP changelog가 SCM 6대 함정. SYMPOSIUM/SKILLS는 single-dev/single-main이라 (b)(c) 자동 회피, CHANNELS.md kill-switch로 (d) 회피, per-skill version으로 (e) 회피. 잠재 위험: (a) entropy(MANIFEST kg_ref drift commit 4b9a3f7이 증거), (f) RUBBER_STAMP CHANGELOG 도입 시 무의미 entry 생성.",
+      "recommendation": "Entropy 대응: merkle_root drift detection을 CI에서 강제(이미 skill-validator.sh --manifest-check 존재, GH Actions 통합 확인 필요). RUBBER_STAMP 방지: generative changelog 도입 시 deterministic baseline(git-cliff) + LLM 보강 hybrid 패턴, 절대 LLM-only 금지. 외부 contributor 영입 시: trunk-based development + feature flag(channel experimental) 패턴 유지, long-lived branch 금지.",
+      "alternatives": [
+        "(a) entropy 감지 무시, manual rebuild: 4b9a3f7 같은 후행 fix 반복 위험",
+        "(b) generative changelog 100% LLM-only: hallucination + RUBBER_STAMP 위험",
+        "(c) channel 무시, 모두 stable: experimental 단계 isolation 손실",
+        "(d) lock-step versioning 도입(모든 skill 같은 v 강제): false signal 폭증, currently 회피하고 있는 좋은 패턴 역행"
+      ],
+      "references": [
+        "https://en.wikipedia.org/wiki/Software_entropy",
+        "https://en.wikipedia.org/wiki/Technical_debt",
+        "https://trunkbaseddevelopment.com/",
+        "https://www.atlassian.com/continuous-delivery/continuous-integration/trunk-based-development",
+        "https://martinfowler.com/articles/feature-toggles.html",
+        "https://gist.github.com/MangaD/3e1a3eed14b87d8184a8ecb47d3342a8"
+      ],
+      "caveats": "함정 식별은 negative confirmation이라 false negative 위험 — 'currently 발생 안 함' ≠ '안전'. 사용자의 RUBBER_STAMP lesson(memory: feedback_loop_is_agent_core)을 SCM context로 전이 적용한 것이라 over-application 가능성 있음.",
+      "confidence": "MEDIUM",
+      "oneLineSummary": "6대 SCM 함정 중 4개 자동 회피, 2개(entropy/RUBBER_STAMP)는 잠재 위협 — drift detection CI + deterministic-first changelog로 대응.",
+      "agentId": "prom16-a1-haiku-2026-04-29",
+      "researchedAt": "2026-04-29T00:00:00+09:00",
+      "sourceKgBindings": [
+        "lesson-rubber-stamp-prevention",
+        "agent-feedback-loop-canonical-2026-04-27",
+        "MT_RubberStampVerdict"
+      ]
+    },
+    {
+      "findingId": "finding_prom16_skillver_a1_s4",
+      "domain": "A1_SCM::S4_2026AIAgentContext",
+      "rootCause": "2025-12-18 Anthropic Agent Skills open standard 출시 → 2026-03 32 tools 채택. AGENTS.md(Google+OpenAI+Cursor 공동, 2025) cross-tool standard 동시 등장. Generative changelog(LLM) + agent-driven git workflow + skill drift detection이 2026 신흥 패턴. SYMPOSIUM/SKILLS는 이미 SKILL.md(27/27) + AGENTS.md + merkle_root drift detection 보유 — selectively ahead of curve. 부족: KG :SkillVersion 노드 미도입(IEEE 828 §5.2 Status Accounting을 KG로 lift하지 못함), _external/ 8 collection cross-ref 약함.",
+      "recommendation": "(1) :SkillVersion KG 노드 schema 도입: {id, skill_name, version, channel, git_tree_sha, released_at, changelog_entries, breaking_changes, predecessor, manifest_merkle_root} + [:SUPERSEDES][:DEFINED_BY][:RELEASED_IN] relations. MANIFEST.json 갱신 시 KG 동기 write. (2) _external/INDEX.md 확장: 7 collection (anthropics, davepoon, hesreallyhim, iannuttall, obra-superpowers, VoltAgent, wshobson) → SYMPOSIUM skill mapping 표. 외부 정전 referent underrate 금지(memory). (3) apt-meta-review skill을 changelog auto-generation까지 확장. (4) frontmatter non-standard fields(kg_ref, channel) ↔ 향후 SKILL.md spec 변화 호환성 모니터링.",
+      "alternatives": [
+        "(a) SkillVersion KG 노드 미도입, MANIFEST.json만 정전: KG ↔ git tag binding 부재 지속",
+        "(b) AGENTS.md 폐기, CLAUDE.md only: cross-tool 호환성 손실",
+        "(c) generative changelog full automation(LLM): RUBBER_STAMP risk(S3 cell 참조)",
+        "(d) _external/ vendoring 대신 git submodule: 8 collection의 upstream drift 추적 부담 vs 자유도 trade-off"
+      ],
+      "references": [
+        "https://github.com/anthropics/skills",
+        "https://code.claude.com/docs/en/skills",
+        "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills",
+        "https://claude.com/blog/skills",
+        "https://agents.md/",
+        "https://github.com/agentsmd/agents.md",
+        "https://www.agensi.io/learn/agent-skills-open-standard",
+        "https://www.paperclipped.de/en/blog/agent-skills-open-standard-interoperability/",
+        "https://thenewstack.io/agent-skills-anthropics-next-bid-to-define-ai-standards/",
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview"
+      ],
+      "caveats": "Anthropic Agent Skills spec은 active evolution(2025-12 출시, 5개월 경과) — kg_ref/channel 같은 non-standard frontmatter field가 향후 spec과 충돌 시 backward incompatibility 위험. 32 tools 채택 통계는 2026-03 시점, 2026-04 현재 변동 가능. AGENTS.md vs SKILL.md vs CLAUDE.md 3-stack 동시 유지 비용 vs 호환성 이득 trade-off는 long-term 재평가 필요.",
+      "confidence": "MEDIUM",
+      "oneLineSummary": "Agent Skills open standard 32 tools 채택의 reference 후보 — :SkillVersion KG 노드 + _external cross-ref 도입이 last-mile.",
+      "agentId": "prom16-a1-haiku-2026-04-29",
+      "researchedAt": "2026-04-29T00:00:00+09:00",
+      "sourceKgBindings": [
+        "ATOM_AnthropicAgentSkillsStandard_2025-12-18",
+        "ATOM_AGENTS_md_CrossToolStandard",
+        "ATOM_SymposiumSkillsRepo",
+        "feedback_external_canonical_referent"
+      ]
+    }
+  ],
+  "consensus_themes": [
+    "C1 (S1+S2+S4): SCM 정전(50+년) + 산업 표준 + 2026 AI agent context 모두 'configuration item identification + status accounting + change control'을 핵심으로 지목 — SYMPOSIUM/SKILLS의 MANIFEST.json + merkle_root + in-toto attestation이 identification/control은 충족, status accounting(CHANGELOG/History/SkillVersion KG)이 last-mile gap.",
+    "C2 (S1+S3): Lehman 8법칙 중 II(Increasing Complexity) + V(Conservation of Familiarity)가 entropy/code rot anti-pattern과 동전의 양면 — 명시적 refactor + 가시화된 history 둘 다 필요. ## History section + CHANGELOG.md가 동시에 두 법칙 만족.",
+    "C3 (S2+S4): Conventional Commits 1.0.0 + Keep a Changelog 1.1.0 + Anthropic Agent Skills standard가 '기계 가독 + 인간 가독 + agent 가독' 3-tier를 이루며, SYMPOSIUM은 첫째와 셋째 보유, 둘째 누락 — 보강 시 3-tier 완성.",
+    "C4 (S3+S4): RUBBER_STAMP 방지(S3) ↔ generative changelog(S4)가 직접 충돌 — deterministic baseline(git-cliff) + 선택적 LLM 보강 hybrid가 사용자 lesson 'fitting 금지' 정전과 정합."
+  ],
+  "open_questions": [
+    "Q1: collection version(v26.0.x) vs per-skill version(MANIFEST.json) mapping 룰 — 둘 다 SemVer이나 의미 layer 다름. 분리 namespace 권장 vs 단순화 trade-off?",
+    "Q2: CHANGELOG.md(repo-level) + 각 SKILL.md ## History(per-skill) + KG :SkillVersion 노드(structured) 3중 도입 시 single source of truth는 어디? 자동 동기화 스크립트 필요?",
+    "Q3: Anthropic SKILL.md spec이 active evolution 중 — non-standard frontmatter(kg_ref, channel) 향후 spec과 충돌 시 마이그레이션 전략?",
+    "Q4: SLSA Build Level 명시(L1/L2/L3) — 현재 in-toto attestation 보유는 L2 candidate이나 'hardened build platform'(L3) 요건 충족 여부?",
+    "Q5: _external/ 8 collection vendoring 정책 — 현재 디렉터리 복사? git submodule? 외부 정전 referent의 upstream drift 추적 메커니즘?"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "contracts": [
+    {
+      "name": "UserService",
+      "pre": "valid_id",
+      "post": "user_returned",
+      "interaction_axis": "Repository",
+      "data_axis": "User",
+      "invariant": "unique_id"
+    },
+    {
+      "name": "OrderService",
+      "pre": "valid_user",
+      "post": "order_created",
+      "interaction_axis": "Strategy",
+      "data_axis": "Order",
+      "invariant": "non_negative_total"
+    },
+    {
+      "name": "PaymentService",
+      "pre": "valid_order",
+      "post": "payment_processed",
+      "interaction_axis": "Adapter",
+      "data_axis": "Payment"
+    }
+  ]
+}

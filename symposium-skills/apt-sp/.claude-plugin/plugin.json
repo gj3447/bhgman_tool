@@ -1,0 +1,25 @@
+{
+  "name": "apt-sp",
+  "version": "27.1.0",
+  "description": "APT SemanticPyramid (SP) phase 2/5 — recursive Span DAG decomposition. D(S) recurrence until all leaves satisfy C(S) 5-predicate (AtomicSpan). LensSet completeness gate enforced via Cypher. Dispatch-only.",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/apt-sp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/apt-sp"
+  },
+  "license": "MIT",
+  "keywords": ["apt-sp", "semantic-pyramid", "apt-phase-2", "dispatch-only", "atomic-span", "claude-code"],
+  "category": "axis-apt",
+  "kg_ref": "ATOM_Skill_apt_sp",
+  "skill_source": "./SKILL.md",
+  "channel": "stable",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "dispatchOnly": true,
+  "parent": "apt-methodology"
+}

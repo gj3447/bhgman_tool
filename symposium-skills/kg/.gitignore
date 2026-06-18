@@ -1,0 +1,4 @@
+# By default, snapshot.cypher is gitignored — it can leak entire KG.
+# Remove this line (or `git add -f kg/snapshot.cypher`) to commit + distribute.
+snapshot.cypher
+.snapshot.tmp.cypher

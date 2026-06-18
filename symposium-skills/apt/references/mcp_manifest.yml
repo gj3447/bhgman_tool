@@ -1,0 +1,274 @@
+# SYMPOSIUM APT — MCP Server Manifest (defer_loading recommendations)
+#
+# Purpose:
+#   Document all MCP servers visible to Claude Code in this environment,
+#   estimate per-server token footprint, and assign defer_loading recommendation.
+#
+# Grounding:
+#   - rf-prom16-cc-eng-E3-S3-toolsearch-deferred-2026-05-14 (UNDERUTILIZED 0 reference)
+#   - seed-prom16-cceng-gap-E3.3 (MEDIUM, this remediation)
+#   - PROM_16 audit §2-C E3.3 (THEORY/APT/PROM_16_CLAUDE_CODE_ENGINEERING_AUDIT_2026-05-14.md)
+#
+# Methodology:
+#   tool_count estimate via deferred-tools enumeration in current session reminder.
+#   Token estimate = tool_count × ~150 tokens/tool (Anthropic JSONSchema avg).
+#   defer_loading recommendation:
+#     - REQUIRED  : >500 tokens, rarely-used outside specific trigger.
+#     - SUGGESTED : 200-500 tokens, occasional use.
+#     - OPTIONAL  : <200 tokens, light overhead, frequent default need.
+#     - KEEP_LOADED : critical backbone (Neo4j KG canonical).
+#
+# Last updated: 2026-05-14
+
+version: 1
+generated_by: seed-prom16-cceng-gap-E3.3
+canonical_lesson: lesson-prom16-claude-code-engineering-audit-2026-05-14
+
+# ============================================================
+# 1. Per-server categorization
+# ============================================================
+
+servers:
+
+  mongodb:
+    tool_count: 32        # mcp__mongodb__* visible in deferred list
+    est_tokens: 4800      # 32 × 150
+    defer_loading: REQUIRED
+    rationale: >
+      Largest MCP footprint. SYMPOSIUM uses Mongo rarely (mostly KG = Neo4j).
+      Trigger: when user explicitly asks for Mongo schema / aggregation.
+    common_triggers:
+      - "MongoDB schema 보여줘"
+      - "컬렉션 통계"
+      - "aggregation pipeline"
+    eager_subset: []       # none — fully deferred
+
+  redis:
+    tool_count: 40        # mcp__redis__* visible (largest single-server)
+    est_tokens: 6000      # 40 × 150
+    defer_loading: REQUIRED
+    rationale: >
+      Largest MCP footprint. Redis used for ad-hoc cache inspection only.
+      Vector search / hybrid_search subset is specialized — rarely needed.
+    common_triggers:
+      - "Redis 키 확인"
+      - "캐시 inspection"
+      - "vector search hash"
+    eager_subset: []
+
+  postgres:
+    tool_count: 9
+    est_tokens: 1350      # 9 × 150
+    defer_loading: SUGGESTED
+    rationale: >
+      Mid-size. n8n + maindb workflow inspection occasional.
+      execute_sql / explain_query 측 2개만 자주 사용.
+    common_triggers:
+      - "Postgres 쿼리 실행"
+      - "n8n workflow inspection"
+    eager_subset:
+      - mcp__postgres__execute_sql        # default workhorse
+      - mcp__postgres__explain_query
+
+  neo4j:
+    tool_count: 3         # read/write/schema
+    est_tokens: 450
+    defer_loading: KEEP_LOADED   # exception
+    rationale: >
+      APT KG canonical store. Gate Check Hook (apt-gate-check.sh) 가 매 phase 호출.
+      defer_loading 하면 첫 phase entry 마다 ToolSearch resolve overhead.
+      Small footprint — keep loaded as default.
+    common_triggers:
+      - any APT/TPA phase entry
+      - lesson/finding KG write
+    eager_subset:
+      - mcp__neo4j__read_neo4j_cypher
+      - mcp__neo4j__write_neo4j_cypher
+      - mcp__neo4j__get_neo4j_schema
+
+  claude_ai_Gmail:
+    tool_count: 12
+    est_tokens: 1800
+    defer_loading: REQUIRED
+    rationale: >
+      Email workflow — disjoint from SYMPOSIUM 11-paper / ICE calc workload.
+      Only triggered when user explicitly asks for mail check.
+    common_triggers:
+      - "gmail 확인"
+      - "이메일 draft"
+    eager_subset: []
+
+  claude_ai_Google_Calendar:
+    tool_count: 8
+    est_tokens: 1200
+    defer_loading: REQUIRED
+    rationale: >
+      Calendar workflow — disjoint from APT cycles.
+    common_triggers:
+      - "캘린더 이벤트"
+      - "일정 추가"
+    eager_subset: []
+
+  claude_ai_Google_Drive:
+    tool_count: 2
+    est_tokens: 300
+    defer_loading: SUGGESTED
+    rationale: >
+      Authentication-only stubs. Skip unless Drive needed.
+    common_triggers:
+      - "Drive 인증"
+    eager_subset: []
+
+  filesystem:
+    tool_count: 12
+    est_tokens: 1800
+    defer_loading: SUGGESTED
+    rationale: >
+      Overlaps with built-in Read/Edit/Write. Most calls covered by built-ins.
+      Mainly useful for cross-volume operations or batch read_multiple_files.
+    common_triggers:
+      - "여러 파일 한 번에 읽기"
+      - "디렉터리 tree 조사"
+    eager_subset:
+      - mcp__filesystem__read_multiple_files
+
+  memory:
+    tool_count: 8
+    est_tokens: 1200
+    defer_loading: SUGGESTED
+    rationale: >
+      Local memory graph — overlaps with KG (Neo4j) for SYMPOSIUM.
+      Used for short-term scratchpad; SYMPOSIUM canonical store = Neo4j.
+    common_triggers:
+      - "memory graph 조회"
+      - "short-term 메모리"
+    eager_subset: []
+
+  sequential-thinking:
+    tool_count: 1
+    est_tokens: 150
+    defer_loading: OPTIONAL
+    rationale: >
+      Single tool, lightweight. Keep available for stepwise reasoning prompts.
+    common_triggers:
+      - "단계별 사고"
+      - "step by step reasoning"
+    eager_subset:
+      - mcp__sequential-thinking__sequentialthinking
+
+  fetch:
+    tool_count: 1
+    est_tokens: 150
+    defer_loading: OPTIONAL
+    rationale: >
+      Single web-fetch tool. Lightweight, often-used for external research.
+    common_triggers:
+      - "fetch URL"
+      - "외부 페이지 가져와"
+    eager_subset:
+      - mcp__fetch__fetch
+
+  ide:
+    tool_count: 2
+    est_tokens: 300
+    defer_loading: SUGGESTED
+    rationale: >
+      IDE bridge (executeCode / getDiagnostics). Useful in dev sessions,
+      not in pure design/research sessions.
+    common_triggers:
+      - "IDE diagnostics"
+      - "executeCode jupyter"
+    eager_subset: []
+
+# ============================================================
+# 2. Aggregate estimate
+# ============================================================
+
+aggregate:
+  total_tools_visible: 130            # rough — varies session-by-session
+  total_tokens_if_all_loaded: 19500   # ≈ 130 × 150
+  baseline_loaded_floor: 9000         # before this manifest (best-guess subset)
+  target_after_manifest: 2100         # neo4j(450) + fetch(150) + seqthink(150) + light eager_subset
+  estimated_savings_kb: "7-10"        # matches PROM_16 §2-C estimate
+  measurement_method: >
+    tool_count × 150 token/tool (avg JSONSchema in Anthropic SDK).
+    Actual savings depend on user session pattern — measured via cumulative
+    `usage.input_tokens` in transcript jsonl (see autoloop cost guard §4.4).
+
+# ============================================================
+# 3. Loading policy decision tree
+# ============================================================
+
+policy:
+  step_1: >
+    Session start — load only servers with defer_loading=KEEP_LOADED or OPTIONAL
+    + eager_subset of SUGGESTED servers.
+  step_2: >
+    User trigger keyword matches `common_triggers` of a REQUIRED/SUGGESTED server
+    → invoke ToolSearch with `select:<tool_name>` (exact) or `+<keyword>` (fuzzy).
+  step_3: >
+    Loaded tool schemas persist for the conversation thread — no need to re-resolve.
+  step_4: >
+    Skill subagent dispatch (jaebaeman SOP) — child agents do NOT inherit MCP tools
+    (GH#13605 not a bug, protocol enforcement). Child re-resolves via ToolSearch
+    from its own deferred list if needed.
+
+# ============================================================
+# 4. ToolSearch usage examples
+# ============================================================
+
+toolsearch_examples:
+  - description: "MongoDB schema inspection request"
+    query: "select:mcp__mongodb__collection-schema,mcp__mongodb__list-collections"
+    loads: 2 tools (~300 tokens) instead of all 32 mongodb tools (~4800)
+
+  - description: "User asks for Redis vector search"
+    query: "+redis vector"
+    max_results: 3
+    loads: 3 best-match redis vector tools
+
+  - description: "APT Gate Check Hook fallback (see §5)"
+    query: "select:mcp__neo4j__read_neo4j_cypher"
+    loads: 1 tool — Cypher read for gate query
+
+# ============================================================
+# 5. APT Gate Check Hook ToolSearch fallback (recommended)
+# ============================================================
+
+apt_gate_check_fallback:
+  file: /Users/lagyeongjun/CD/SERVER/.claude/hooks/apt-gate-check.sh
+  current_behavior: >
+    Hook attempts `docker exec neo4j cypher-shell ...` (Bash subprocess).
+    If Neo4j container unreachable (cf. lesson-apt-hook-neo4j-unreachable-2026-04-15),
+    hook fails open / fails closed depending on env.
+  recommended_comment_patch: |
+    # ToolSearch fallback (E3.3 manifest 2026-05-14):
+    #   If docker exec fails AND running inside Claude Code session (CLAUDE_AGENT_ENV=true),
+    #   the calling agent should fall back to:
+    #     ToolSearch(query="select:mcp__neo4j__read_neo4j_cypher")
+    #     → mcp__neo4j__read_neo4j_cypher(query=$CYPHER, params={...})
+    #   This avoids the docker socket dependency for hook-side validation.
+    #   NOTE: shell hook itself cannot invoke ToolSearch (Claude-side tool only).
+    #   Recommendation = surface the fallback hint in stderr so the parent agent retries.
+  proposed_stderr_hint: |
+    [apt-gate-check] ToolSearch fallback hint: agent may retry via
+    mcp__neo4j__read_neo4j_cypher (after defer_loading resolve).
+  status: ADVISORY_COMMENT_ONLY
+  rationale: >
+    Hook is shell-side, cannot call ToolSearch directly. Patch limited to
+    comment + stderr hint that *parent agent* can act on. Actual switch
+    requires hook-agent IPC (out of scope for E3.3 MEDIUM patch).
+
+# ============================================================
+# 6. Cross-ref
+# ============================================================
+
+cross_ref:
+  upstream_audit: /Users/lagyeongjun/CD/SYMPOSIUM/THEORY/APT/PROM_16_CLAUDE_CODE_ENGINEERING_AUDIT_2026-05-14.md
+  related_skill: /Users/lagyeongjun/CD/SYMPOSIUM/SKILLS/db-query/SKILL.md
+  related_hook: /Users/lagyeongjun/CD/SERVER/.claude/hooks/apt-gate-check.sh
+  jaebaeman_subagent_mcp_non_inherit: rf-prom16-cc-eng-E2-S1 (CRITICAL, child agents must re-resolve)
+  kg_canonical:
+    - rf-prom16-cc-eng-E3-S3-toolsearch-deferred-2026-05-14
+    - seed-prom16-cceng-gap-E3.3
+    - ap-prom16-cceng-7gap-followup-2026-05-14

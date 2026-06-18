@@ -1,0 +1,36 @@
+# SYMPOSIUM/SKILLS CODEOWNERS
+#
+# Status: PLACEHOLDER — local-only repo, GitHub remote not yet configured.
+# Activates automatically once `git remote add origin <github-url>` is set
+# AND repository is pushed (GitHub PR review enforcement triggers).
+#
+# Plan-3 phase 1 (consensus seed cg-skillver-slsa-sigstore-attestation-2026-04-26):
+# 5 essence (apt + harness/longinus/taliban/jaebaeman/prometheus) require explicit owner review
+# in line with constitutional governance lens (D63 cost asymmetry inversion).
+#
+# Replace @TBD-owner with GitHub username when remote is added.
+
+# Default owner (catch-all)
+* @TBD-owner
+
+# 5 essence — extra review for any change
+/apt/                @TBD-owner
+/apt-meta-review/    @TBD-owner
+/apt-sa/             @TBD-owner
+/apt-sp/             @TBD-owner
+/apt-st/             @TBD-owner
+/apt-scw/            @TBD-owner
+/harness/            @TBD-owner
+/longinus/           @TBD-owner
+/jaebaeman/          @TBD-owner
+/prometheus/         @TBD-owner
+/taliban/            @TBD-owner
+
+# Aliases of essence (drift sensitive)
+/88-taliban/         @TBD-owner
+/tlb/                @TBD-owner
+/prom/               @TBD-owner
+
+# Critical infrastructure metadata
+/MANIFEST.json       @TBD-owner
+/CODEOWNERS          @TBD-owner

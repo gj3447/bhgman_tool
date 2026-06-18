@@ -1,0 +1,25 @@
+{
+  "name": "fix-agent",
+  "version": "0.1.0-draft",
+  "description": "W9/APT18 FixAgent (draft) — consumes :BlockerFinding from TalibanSquad, proposes :ProposedPatch, re-dispatches until verdict≠REJECT. Implements UserPrinciple_SelfCorrecting_APT (user σ_oracle at final exit only). EXPERIMENTAL.",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/fix-agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/fix-agent"
+  },
+  "license": "MIT",
+  "keywords": ["fix-agent", "w9", "apt18", "subagent-architecture", "self-correcting", "draft", "experimental"],
+  "category": "axis-w9",
+  "kg_ref": "ATOM_Skill_fix_agent_v28",
+  "skill_source": "./SKILL.md",
+  "channel": "draft",
+  "status": "PRELIMINARY",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "parent": "apt-methodology"
+}

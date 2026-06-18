@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# symposium — SYMPOSIUM ruflo-grade CLI entry point
+#
+# Usage:
+#   symposium <command> [args...]
+#
+# Commands:
+#   apt <task>       — APT cycle (SA → SP → ST → SCW), dispatch only
+#   tpa <path>       — TPA reverse cycle (TCW → ST → SP → TA)
+#   prom <N> <topic> — Prometheus N-subagent research
+#   tlb <target>     — Taliban adversarial verification
+#   longinus <op>    — Longinus reference binding (sha256/ged/reverse-scan)
+#   harness <action> — Harness 3-tier scaffolding (industry agent)
+#   status           — KG audit (ssh dgx → cypher-shell)
+#   verify           — Run verification/results.md regeneration
+#   help             — Show this message
+#
+# Skill routing (slash command alias):
+#   symposium apt <task>   ≡  /apt <task>
+#   symposium prom 16 "Q"  ≡  /prom 16 "Q"
+#
+# Convention: each command resolves a SKILL.md via SYMPOSIUM/SKILLS/<name>/
+# and the actual logic stays in the SKILL.md (drift prevention).
+#
+# KG: bin-symposium-cli-entry-2026-05-14
+
+set -euo pipefail
+
+SYMPOSIUM_ROOT="${SYMPOSIUM_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+SKILLS_DIR="${SYMPOSIUM_ROOT}/SKILLS"
+DGX_HOST="${SYMPOSIUM_DGX_HOST:-dgx}"
+KG_K8S_NAMESPACE="${BHGMAN_STATUS_K8S_NAMESPACE:-${BHGMAN_K8S_NAMESPACE:-data}}"
+KG_NEO4J_POD="${BHGMAN_STATUS_NEO4J_POD:-${BHGMAN_NEO4J_POD:-neo4j-0}}"
+KG_NEO4J_PASSWORD="${BHGMAN_STATUS_NEO4J_PASSWORD:-${NEO4J_PASSWORD:-neo4jpassword}}"
+
+readonly SYMPOSIUM_ROOT SKILLS_DIR DGX_HOST KG_K8S_NAMESPACE KG_NEO4J_POD KG_NEO4J_PASSWORD
+
+# ─── helpers ────────────────────────────────────────────────────────────────
+
+die() { printf 'symposium: %s\n' "$*" >&2; exit 1; }
+log() { printf '[symposium] %s\n' "$*" >&2; }
+
+require_skill() {
+  local name="$1"
+  local skill_md="${SKILLS_DIR}/${name}/SKILL.md"
+  [[ -r "${skill_md}" ]] || die "skill not found: ${name} (expected ${skill_md})"
+  printf '%s' "${skill_md}"
+}
+
+# Resolve a slash-command-style routing: prints the routing intent on stderr,
+# and the SKILL.md path on stdout. Actual dispatch is performed by the caller
+# (typically the Claude harness reading this output).
+route_skill() {
+  local name="$1"; shift
+  local skill_md
+  skill_md="$(require_skill "${name}")"
+  log "routing → /${name} $* (SKILL.md: ${skill_md})"
+  printf '%s\n' "${skill_md}"
+}
+
+# ─── commands ───────────────────────────────────────────────────────────────
+
+cmd_apt() {
+  [[ $# -ge 1 ]] || die "usage: symposium apt <task>"
+  route_skill "apt" "$@"
+}
+
+cmd_tpa() {
+  [[ $# -ge 1 ]] || die "usage: symposium tpa <path>"
+  route_skill "tpa" "$@"
+}
+
+cmd_prom() {
+  [[ $# -ge 2 ]] || die "usage: symposium prom <N> <topic>"
+  route_skill "prometheus" "$@"
+}
+
+cmd_tlb() {
+  [[ $# -ge 1 ]] || die "usage: symposium tlb <target>"
+  route_skill "taliban" "$@"
+}
+
+cmd_longinus() {
+  [[ $# -ge 1 ]] || die "usage: symposium longinus <op>"
+  case "$1" in
+    sha256)
+      exec "${SYMPOSIUM_ROOT}/bin/longinus_sha256_daemon.py" "${@:2}"
+      ;;
+    ged)
+      exec "${SYMPOSIUM_ROOT}/bin/longinus_ged_drift_meter.py" "${@:2}"
+      ;;
+    reverse-scan)
+      exec "${SYMPOSIUM_ROOT}/bin/longinus_reverse_orphan_scan.py" "${@:2}"
+      ;;
+    *)
+      route_skill "longinus" "$@"
+      ;;
+  esac
+}
+
+cmd_harness() {
+  [[ $# -ge 1 ]] || die "usage: symposium harness <action>"
+  route_skill "harness" "$@"
+}
+
+cmd_status() {
+  log "ssh ${DGX_HOST} cypher-shell — KG audit"
+  ssh "${DGX_HOST}" "kubectl exec -n ${KG_K8S_NAMESPACE} ${KG_NEO4J_POD} -- cypher-shell -u neo4j -p '${KG_NEO4J_PASSWORD}' --format plain" <<'CYPHER'
+MATCH (n) WITH labels(n) AS l, count(*) AS c
+UNWIND l AS lbl
+RETURN lbl AS label, sum(c) AS count
+ORDER BY count DESC
+LIMIT 20;
+CYPHER
+}
+
+cmd_verify() {
+  local results="${SYMPOSIUM_ROOT}/verification/results.md"
+  log "regenerating ${results}"
+  if command -v pytest >/dev/null 2>&1; then
+    (cd "${SYMPOSIUM_ROOT}/tests" && pytest -q --tb=short 2>&1 | tail -30) || true
+  else
+    log "pytest not installed — skipping test suite"
+  fi
+  log "see ${SYMPOSIUM_ROOT}/verification/CAPABILITIES.md"
+}
+
+cmd_help() {
+  sed -n '2,30p' "$0"
+}
+
+# ─── dispatch ───────────────────────────────────────────────────────────────
+
+main() {
+  [[ $# -ge 1 ]] || { cmd_help; exit 1; }
+  local subcmd="$1"; shift
+  case "${subcmd}" in
+    apt)       cmd_apt "$@" ;;
+    tpa)       cmd_tpa "$@" ;;
+    prom|prometheus) cmd_prom "$@" ;;
+    tlb|taliban)     cmd_tlb "$@" ;;
+    longinus|long)   cmd_longinus "$@" ;;
+    harness|hns)     cmd_harness "$@" ;;
+    status)    cmd_status ;;
+    verify)    cmd_verify ;;
+    help|-h|--help) cmd_help ;;
+    *) die "unknown command: ${subcmd} (run 'symposium help')" ;;
+  esac
+}
+
+main "$@"

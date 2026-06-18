@@ -1,0 +1,21 @@
+# SYMPOSIUM/SKILLS .gitignore
+
+# 외부 클론 — 참조용/연구용. version drift 추적 별도, _external/INDEX.md 만 commit
+_external/
+
+# OS / IDE
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Build / signing 산출물 (workflow 가 생성, commit 금지)
+*.sig
+*.pem
+*.tar.gz
+*.tar.zst

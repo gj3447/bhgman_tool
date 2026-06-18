@@ -1,0 +1,25 @@
+{
+  "name": "apt-scw",
+  "version": "27.1.0",
+  "description": "APT SourceCodeWorld (SCW) phase 4/5 — TDD implementation. Contract → Test(RED) → Code(GREEN) → Refactor. Longinus L5-L7 forward binding + Taliban FulfillmentGate 7-check + 4-tool ratchet. Dispatch-only.",
+  "author": {
+    "name": "SYMPOSIUM project",
+    "email": "gira@airobotics.im",
+    "url": "https://github.com/gj3447/symposium"
+  },
+  "homepage": "https://github.com/gj3447/symposium/tree/main/SKILLS/apt-scw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gj3447/symposium.git",
+    "directory": "SKILLS/apt-scw"
+  },
+  "license": "MIT",
+  "keywords": ["apt-scw", "source-code-world", "apt-phase-4", "tdd", "longinus-binding", "fulfillment-gate"],
+  "category": "axis-apt",
+  "kg_ref": "ATOM_Skill_apt_scw",
+  "skill_source": "./SKILL.md",
+  "channel": "stable",
+  "engines": { "claudeCode": ">=2.0.0" },
+  "dispatchOnly": true,
+  "parent": "apt-methodology"
+}
