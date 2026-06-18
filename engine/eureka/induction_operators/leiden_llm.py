@@ -171,6 +171,7 @@ def induce_leiden_llm(
     min_stability: float = 0.0,
     max_nodes: int = MAX_NODES,
 ) -> FcaResult:
+    # KG: eureka-canonical-2026-05-26
     """formal context → resolution-parameterized community induction → FcaResult(FormalConcept).
 
     FCA/AMIE3와 동일 출력 shape → pipeline `_concepts_to_acs`로 AbstractClass 직결.
@@ -201,6 +202,7 @@ def assemble_fca(
     min_extent: int,
     min_stability: float,
 ) -> FcaResult:
+    # KG: eureka-canonical-2026-05-26
     """communities → FcaResult(FormalConcept), pruning + deterministic sort.
 
     Shared by the CNM (induce_leiden_llm) and true-Leiden (induce_leiden_true)

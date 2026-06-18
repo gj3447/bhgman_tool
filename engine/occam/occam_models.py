@@ -10,12 +10,14 @@ from enum import Enum
 
 
 class Confidence(str, Enum):
+    # KG: occam-kam-canonical-2026-05-26
     HIGH = "HIGH"  # disk sha가 현재 lineage를 확정
     MEDIUM = "MEDIUM"  # disk 진실 부재, line_count 휴리스틱으로 추정
 
 
 @dataclass(frozen=True)
 class NodeRecord:
+    # KG: occam-kam-canonical-2026-05-26
     """KG SourceCodeNode 한 개의 식별 정보."""
 
     name: str
@@ -26,6 +28,7 @@ class NodeRecord:
 
 @dataclass(frozen=True)
 class SupersessionCandidate:
+    # KG: occam-kam-canonical-2026-05-26
     """대체된 낡은 노드 → 현재 노드. covenant: supersede(archive)지 delete 아님."""
 
     stale: NodeRecord
@@ -41,6 +44,7 @@ class SupersessionCandidate:
 
 @dataclass(frozen=True)
 class OccamReport:
+    # KG: occam-kam-canonical-2026-05-26
     """오캄 pass 결과. delete 필드 없음 (covenant).
 
     orphans = 디스크에서 사라진 경로의 노드 중 *동일 sha live twin 부재*인 것.

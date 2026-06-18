@@ -31,6 +31,7 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 
 @dataclass(frozen=True)
 class DecomposeMethod:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """한 compound task를 분해하는 한 가지 방법. precondition으로 guard (GTPyhop method).
 
     cost = 충돌(다중 applicable) 시 정렬 키 (낮을수록 우선, SHOP3 method ordering). 동률은 name.
@@ -52,16 +53,19 @@ KeyOf = Callable[[PlanNode], str]
 
 
 def applicable_methods(node: PlanNode, methods: list[DecomposeMethod]) -> list[DecomposeMethod]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """precondition 통과한 method들 (충돌 = len>1). selector가 이 중 하나를 고른다."""
     return [m for m in methods if m.applicable(node)]
 
 
 def first_applicable(node: PlanNode, methods: list[DecomposeMethod]) -> DecomposeMethod | None:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """precondition 통과하는 첫 method (등록 순서 = 우선순위). HTN 기본 selection (naive)."""
     return next(iter(applicable_methods(node, methods)), None)
 
 
 def min_cost(node: PlanNode, methods: list[DecomposeMethod]) -> DecomposeMethod | None:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """충돌 해소 고도화 — applicable 중 최소 cost (동률은 name 사전순). 결정론 tie-break."""
     applicable = applicable_methods(node, methods)
     return min(applicable, key=lambda m: (m.cost, m.name)) if applicable else None
@@ -73,6 +77,7 @@ def static_method(
     precondition: PreconditionFn | None = None,
     cost: float = 1.0,
 ) -> DecomposeMethod:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """정적 subgoal 리스트를 method로 — expand가 항상 같은 subgoals 반환 (간편 생성자)."""
     frozen = tuple(subgoals)
     return DecomposeMethod(
@@ -86,6 +91,7 @@ def method_decompose(
     key_of: KeyOf | None = None,
     selector: MethodSelector = first_applicable,
 ) -> DecomposeFn:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """method registry로부터 DecomposeFn 생산. method 없으면/적용 불가면 잎([]).
 
     key_of: task 식별 (default node.name). type 기반 reuse 시 task_type 등으로 교체.
@@ -113,10 +119,12 @@ _FETCH_METHODS = (
 
 
 def methods_cypher(task: str) -> tuple[str, dict]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     return _FETCH_METHODS, {"task": task}
 
 
 def kg_method_decompose(run_cypher: CypherRunner, *, task_type: str = "research") -> DecomposeFn:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """KG HAS_METHOD/DECOMPOSES_TO에서 method 로드 → ord 순 첫 non-empty method 선택.
 
     precondition은 KG 측 ord(우선순위)로 단순화 (rich precondition은 in-memory method_decompose).

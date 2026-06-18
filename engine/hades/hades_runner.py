@@ -33,6 +33,7 @@ _FETCH_ONE = (
 
 
 def fetch_accepted_cypher(concept: str | None) -> tuple[str, dict]:
+    # KG: hades-canonical-2026-05-27
     """실현 대상(ACCEPTED, 미실현) 추상 조회 cypher. concept 주면 한 개만."""
     if concept:
         return _FETCH_ONE, {"concept": concept}
@@ -41,6 +42,7 @@ def fetch_accepted_cypher(concept: str | None) -> tuple[str, dict]:
 
 @dataclass(frozen=True)
 class HadesRunResult:
+    # KG: hades-canonical-2026-05-27
     verdicts: tuple[RealizeVerdict, ...] = ()
     dry_run: bool = True
     applied_count: int = 0
@@ -61,6 +63,7 @@ def run_hades(
     concept: str | None = None,
     apply: bool = False,
 ) -> HadesRunResult:
+    # KG: hades-canonical-2026-05-27
     """ACCEPTED 추상을 KG에 실현. apply=False(기본) → PLANNED만, write 없음.
 
     apply=True여도 apply_cypher 없으면 write 불가 → PLANNED 유지 (c6 위험 차단).

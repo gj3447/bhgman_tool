@@ -36,6 +36,7 @@ B = TypeVar("B", contravariant=True)  # focused-element after update
 
 @runtime_checkable
 class LensProto(Protocol, Generic[S, T, A, B]):
+    # KG: ATOM_Skill_longinus
     """Lens interface contract — single-focus get/put (Foster style, 1:1).
 
     `view` extracts the focus; `update` writes back with the new value.
@@ -50,6 +51,7 @@ class LensProto(Protocol, Generic[S, T, A, B]):
 
 @runtime_checkable
 class TraversalProto(Protocol, Generic[S, T, A, B]):
+    # KG: ATOM_Skill_longinus
     """Traversal interface contract — natively handles 1:N (multiple foci).
 
     `modify_each` applies a transformation `f: A -> B` to every focus inside

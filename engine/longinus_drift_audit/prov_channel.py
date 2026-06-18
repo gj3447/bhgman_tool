@@ -40,6 +40,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ProvActivity(BaseModel):
+    # KG: ATOM_Skill_longinus
     """W3C PROV-DM 2013 Activity record.
 
     Minimal projection: when (timestamp), who (agent), what (action verb on
@@ -57,6 +58,7 @@ class ProvActivity(BaseModel):
 
 
 class ProvDriftReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Output of L3 PROV-based causal-flow drift comparison."""
 
     activity_count: int = Field(ge=0)
@@ -219,6 +221,7 @@ def compute_prov_drift(
     multi_author_threshold_ratio: float = 3.0,
     rollback_storm_threshold: int = 5,
 ) -> ProvDriftReport:
+    # KG: ATOM_Skill_longinus
     """Compute L3 PROV-DM causal-flow drift.
 
     Args:

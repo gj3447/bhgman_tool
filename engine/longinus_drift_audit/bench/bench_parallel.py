@@ -68,6 +68,7 @@ def _time(fn) -> float:
 
 
 def bench_synthetic(file_counts: list[int], runs: int = 3) -> list[dict]:
+    # KG: ATOM_Skill_longinus
     results = []
     for n in file_counts:
         with tempfile.TemporaryDirectory() as td:
@@ -118,6 +119,7 @@ def bench_synthetic(file_counts: list[int], runs: int = 3) -> list[dict]:
 
 def bench_real_repo(root: Path, runs: int = 3) -> dict:
     # Warm-up
+    # KG: ATOM_Skill_longinus
     LonginusAudit(kg=MockKgClient(), code_root=root, parallel=False).run_full()
     seq = min(
         _time(lambda: LonginusAudit(kg=MockKgClient(), code_root=root, parallel=False).run_full())
@@ -139,6 +141,7 @@ def bench_real_repo(root: Path, runs: int = 3) -> dict:
 
 
 def main() -> int:
+    # KG: ATOM_Skill_longinus
     parser = argparse.ArgumentParser(prog="bench_parallel")
     parser.add_argument(
         "--counts",

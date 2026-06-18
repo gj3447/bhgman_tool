@@ -75,6 +75,7 @@ _UNFALSIFIABLE_HINTS = (
 
 @dataclass(frozen=True)
 class ClaimRouting:
+    # KG: naesengmoon-canonical-2026-05-19
     claim: str
     claim_class: str  # empirical | efficacy | consistency-only | unfalsifiable
     truth_apt: bool  # 외부에서 거짓일 수 있나
@@ -88,6 +89,7 @@ def _has(text: str, hints: tuple[str, ...]) -> bool:
 
 
 def classify(claim: str) -> ClaimRouting:
+    # KG: naesengmoon-canonical-2026-05-19
     """주장 → 라우팅. 우선순위: unfalsifiable > consistency > efficacy > empirical (보수적)."""
     if _has(claim, _UNFALSIFIABLE_HINTS):
         return ClaimRouting(

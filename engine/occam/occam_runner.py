@@ -41,6 +41,7 @@ _SKIP_DIRS = {
 
 
 def scan_disk_paths(repo_root: str | Path) -> frozenset[str]:
+    # KG: occam-kam-canonical-2026-05-26
     """repo_root 하위 실존 파일의 normalize_path 집합. occam_pass(disk_paths=)에 주입.
 
     normalize_path와 동일 정규화 → KG 노드 경로(abs/rel 둘 다)와 join 가능.
@@ -93,6 +94,7 @@ def _compute_disk_truth(repo_root: str | Path, nodes: list) -> dict[str, str]:
 
 @dataclass(frozen=True)
 class OccamRunResult:
+    # KG: occam-kam-canonical-2026-05-26
     report: OccamReport
     apply_result: ApplyResult
     scope: str | None = None
@@ -117,6 +119,7 @@ def run_occam(
     disk_truth: dict[str, str] | None = None,
     repo_root: str | Path | None = None,
 ) -> OccamRunResult:
+    # KG: occam-kam-canonical-2026-05-26
     """KG SourceCodeNode dedup pass. apply=False(기본) → dry-run, supersede write 없음.
 
     repo_root 주면 디스크를 스캔해 disk_paths 도출 → sha-이동/disk-orphan(mode-2/3) 탐지 활성.

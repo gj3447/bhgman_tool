@@ -46,6 +46,7 @@ def _coerce_enum(value, enum_cls):
 
 class KgClient(ABC):
     @abstractmethod
+    # KG: ATOM_Skill_longinus
     def list_reference_sites(self, repo_tag: str | None = None) -> list[KgRefRecord]: ...
 
     @abstractmethod
@@ -127,6 +128,7 @@ class KgClient(ABC):
 
 
 class MockKgClient(KgClient):
+    # KG: ATOM_Skill_longinus
     def __init__(
         self,
         *,
@@ -217,6 +219,7 @@ class MockKgClient(KgClient):
 
 
 class Neo4jKgClient(KgClient):  # pragma: no cover
+    # KG: ATOM_Skill_longinus
     def __init__(self, uri: str, auth: tuple[str, str]):
         from neo4j import GraphDatabase  # type: ignore
 
@@ -599,6 +602,7 @@ class _McpDriver:
 
 
 class McpKgClient(Neo4jKgClient):  # pragma: no cover
+    # KG: ATOM_Skill_longinus
     """KgClient over the mcp-neo4j-cypher HTTP gateway (bolt-firewalled KG).
 
     Reuses every Neo4jKgClient method verbatim by swapping the bolt driver for an
@@ -649,6 +653,7 @@ class McpKgClient(Neo4jKgClient):  # pragma: no cover
 
 
 class JsonFileKgClient(MockKgClient):
+    # KG: ATOM_Skill_longinus
     """Neo4j-free local backend — MockKgClient persisted to a JSON file.
 
     Lets `longinus-audit --kg local` record + audit signature/drift baselines

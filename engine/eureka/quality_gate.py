@@ -25,6 +25,7 @@ GOODHART_CAP = 0.95
 
 @dataclass(frozen=True)
 class QualityReport:
+    # KG: eureka-canonical-2026-05-26
     silhouette: Optional[float]
     modularity: Optional[float]
     fca_stability: Optional[float]
@@ -39,6 +40,7 @@ def evaluate(
     fca_stability: Optional[float] = None,
     ami: Optional[float] = None,
 ) -> QualityReport:
+    # KG: eureka-canonical-2026-05-26
     reasons: list[str] = []
     passed = True
 

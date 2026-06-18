@@ -32,6 +32,7 @@ _REPO_MARKER = "bhgman_tool/"
 
 
 def normalize_path(path: str) -> str:
+    # KG: occam-kam-canonical-2026-05-26
     """abs/rel lineage 통합: repo marker 이후만 남김. marker 없으면 원본."""
     idx = path.rfind(_REPO_MARKER)
     if idx == -1:
@@ -175,6 +176,7 @@ def occam_pass(
     score_meta: dict[str, NodeScoreMeta] | None = None,
     scoring_config: ScoringConfig | None = None,
 ) -> OccamReport:
+    # KG: occam-kam-canonical-2026-05-26
     """하계 node-dedup pass. covenant: supersede 후보만 반환, 삭제 없음.
 
     disk_paths(정규화된 디스크 실존 경로 집합) 주면 sha-이동(mode-2)+disk-orphan(mode-3) 추가 탐지.

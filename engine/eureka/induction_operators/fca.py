@@ -30,6 +30,7 @@ MAX_BATCH = 500
 
 @dataclass(frozen=True)
 class FormalConcept:
+    # KG: eureka-canonical-2026-05-26
     extent: frozenset[str]
     intent: frozenset[str]
     stability: float
@@ -37,6 +38,7 @@ class FormalConcept:
 
 @dataclass(frozen=True)
 class FcaResult:
+    # KG: eureka-canonical-2026-05-26
     concepts: tuple[FormalConcept, ...]
     pruned: int
     fallback_reason: str | None
@@ -101,6 +103,7 @@ def induce_fca(
     min_extent: int = 2,
     min_stability: float = 0.5,
 ) -> FcaResult:
+    # KG: eureka-canonical-2026-05-26
     """Induce formal concepts from a binary context {object → attribute set}.
 
     Returns concepts with extent ≥ min_extent AND stability ≥ min_stability.

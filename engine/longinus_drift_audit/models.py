@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class DriftType(str, Enum):
+    # KG: ATOM_Skill_longinus
     MISSING = "Missing"  # PutGet violation: 코드 존재 ∧ KG ref 부재
     ORPHAN = "Orphan"  # GetPut violation: KG ref 존재 ∧ 코드 부재
     SIG_MISMATCH = "SigMismatch"  # PutGet violation: ref ↔ 시그니처 불일치
@@ -23,6 +24,7 @@ class DriftType(str, Enum):
 
 
 class ReferenceLayer(str, Enum):
+    # KG: ATOM_Skill_longinus
     L1_ADDRESS = "L1_AddressIndirection"
     L2_LIFETIME = "L2_Lifetime"
     L3_TYPE = "L3_TypePermission"
@@ -33,6 +35,7 @@ class ReferenceLayer(str, Enum):
 
 
 class Confidence(str, Enum):
+    # KG: ATOM_Skill_longinus
     """3-tier confidence enum absorbed from graphify ARCHITECTURE.md (2026-05-13).
 
     KG: longinus-confidence-schema-3tier-2026-05-13 (:ConfidenceSchema:Canonical).
@@ -45,16 +48,19 @@ class Confidence(str, Enum):
 
 
 def requires_human_verdict(c: Confidence) -> bool:
+    # KG: ATOM_Skill_longinus
     """T1 Lean mirror: AMBIGUOUS is the unique human-gate tier."""
     return c == Confidence.AMBIGUOUS
 
 
 def trust_level(c: Confidence) -> int:
+    # KG: ATOM_Skill_longinus
     """T3 Lean mirror: EXTRACTED (2) > INFERRED (1) > AMBIGUOUS (0)."""
     return {Confidence.EXTRACTED: 2, Confidence.INFERRED: 1, Confidence.AMBIGUOUS: 0}[c]
 
 
 def any_ambiguous(sites: "list[ReferenceSite]") -> bool:
+    # KG: ATOM_Skill_longinus
     """T6 Lean mirror: AMBIGUOUS contagion in aggregates.
     If any site is AMBIGUOUS, the aggregate requires :PRELIMINARY label."""
     return any(s.confidence == Confidence.AMBIGUOUS for s in sites)
@@ -82,6 +88,7 @@ Added 2026-05-19 (lesson-bhgman-tool-sha256-baseline-already-covered-2026-05-19)
 
 
 class GuaranteeLevel(str, Enum):
+    # KG: ATOM_Skill_longinus
     """v3.4 (2026-05-24 user RATIFY) — hermeticity spectrum tagging.
 
     Binary hermetic flag is insufficient — toolchain leaks, --remote_local_fallback,
@@ -97,6 +104,7 @@ class GuaranteeLevel(str, Enum):
 
 
 class Sha256Status(str, Enum):
+    # KG: ATOM_Skill_longinus
     """SYMPOSIUM Wave 6 absorbed (2026-05-14) — sha256 baseline lifecycle.
 
     KG: longinus-sha256-daemon-canonical-2026-05-06 + Wave 6 LONGINUS_BINDING.md.
@@ -111,6 +119,7 @@ class Sha256Status(str, Enum):
 
 
 class ReferenceSite(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Frege Sinn (sourceId) + Bedeutung (sourcePath) bundle.
 
     SKILL.md 의 *7-layer 관통 통일 entity*. ``# KG: xxx`` 한 줄이 이 객체 1개에 대응.
@@ -235,6 +244,7 @@ class ReferenceSite(BaseModel):
 
 
 class DriftRecord(BaseModel):
+    # KG: ATOM_Skill_longinus
     drift_type: DriftType
     sourceId: str
     sourcePath: Optional[str] = None
@@ -249,6 +259,7 @@ class DriftRecord(BaseModel):
 
 
 class CodeSymbol(BaseModel):
+    # KG: ATOM_Skill_longinus
     sourcePath: str  # file:line
     name: str  # symbol/function/class name
     kind: str = "unknown"  # function | class | module | const
@@ -260,6 +271,7 @@ class CodeSymbol(BaseModel):
 
 
 class KgRefRecord(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Mirror of `(:ReferenceSite)` KG node."""
 
     sourceId: str
@@ -276,6 +288,7 @@ class KgRefRecord(BaseModel):
 
 
 class KnowledgeHubRecord(BaseModel):
+    # KG: ATOM_Skill_longinus
     """SYMPOSIUM Wave 6 (2026-05-14) — :KnowledgeHub KG node mirror.
 
     Forward Orphan = KG hub node lacking ``package_path`` (KG → FS direction blind-spot).
@@ -300,6 +313,7 @@ class KnowledgeHubRecord(BaseModel):
 
 
 class ForwardOrphanRecord(BaseModel):
+    # KG: ATOM_Skill_longinus
     """A KG :KnowledgeHub node missing ``package_path`` or ``source_file``.
 
     Wave 6 (2026-05-14): 7 hubs resolved (apt/tpa/jaebaeman/taliban/prometheus/longinus/harness).
@@ -316,6 +330,7 @@ class ForwardOrphanRecord(BaseModel):
 
 
 class SourceCodeDriftEvent(BaseModel):
+    # KG: ATOM_Skill_longinus
     """SYMPOSIUM Wave 6 (2026-05-14) — :SourceCodeDriftEvent KG node mirror.
 
     Emitted by sha256 baseline daemon on mismatch. PROV evidence trail.
@@ -336,6 +351,7 @@ class SourceCodeDriftEvent(BaseModel):
 
 
 class LensVerification(BaseModel):
+    # KG: ATOM_Skill_longinus
     get_put: bool = True
     put_get: bool = True
     put_put: bool = True
@@ -346,6 +362,7 @@ class LensVerification(BaseModel):
 
 
 class GedReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     kg_node_count: int
     code_node_count: int
     insertions: int
@@ -359,6 +376,7 @@ class GedReport(BaseModel):
 
 
 class LayerCoverage(BaseModel):
+    # KG: ATOM_Skill_longinus
     L1_address: float = 1.0
     L2_lifetime: float = 1.0
     L3_type: float = 1.0
@@ -369,6 +387,7 @@ class LayerCoverage(BaseModel):
 
 
 class AuditReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     audit_id: str
     drifts_by_type: dict[str, int] = Field(default_factory=dict)
     drift_records: list[DriftRecord] = Field(default_factory=list)

@@ -75,6 +75,7 @@ def induce_leiden_true(
     max_nodes: int = MAX_NODES,
     seed: int = 42,
 ) -> FcaResult:
+    # KG: eureka-canonical-2026-05-26
     """formal context → genuine Leiden community induction → FcaResult(FormalConcept).
 
     Drop-in for induce_leiden_llm; same pruning/sort. >max_nodes → gds.leiden fallback.

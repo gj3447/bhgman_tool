@@ -66,6 +66,7 @@ def _strip_lean_comments(src: str) -> str:
 
 
 def lean_goals_oracle(lean_dir: str | Path = ".", timeout_s: int = 240) -> ScalarOracle:
+    # KG: naesengmoon-canonical-2026-05-19
     """Lean proof-search oracle. score(lean_filename) = closed goals if `lean` exits 0, else −1000.
 
     Self-contained files only (no non-prelude imports — cross-import needs a lakefile the repo root
@@ -97,6 +98,7 @@ def lean_goals_oracle(lean_dir: str | Path = ".", timeout_s: int = 240) -> Scala
 
 
 def pytest_ratio_oracle(timeout_s: int = 120) -> ScalarOracle:
+    # KG: naesengmoon-canonical-2026-05-19
     """pytest pass-ratio oracle. score(test_target) = passed/(passed+failed+errors). collect-fail → 0."""
 
     def _score(test_target: Any) -> float:
@@ -135,6 +137,7 @@ def pytest_ratio_oracle(timeout_s: int = 120) -> ScalarOracle:
 
 
 def drift_recount_oracle(code_root: str | Path, kg: Any) -> ScalarOracle:
+    # KG: naesengmoon-canonical-2026-05-19
     """longinus KG↔code drift oracle. score = −total_drifts (0 = clean = best). candidate ignored.
 
     kg MUST be a populated client (JsonFileKgClient / Neo4j-backed). A MockKgClient returns 0 drift
@@ -153,6 +156,7 @@ def drift_recount_oracle(code_root: str | Path, kg: Any) -> ScalarOracle:
 def occam_twins_oracle(
     run_cypher: Any, scope: str | None = None, repo_root: str | Path | None = None
 ) -> ScalarOracle:
+    # KG: naesengmoon-canonical-2026-05-19
     """occam supersession oracle. score = superseded_count (lossless dead-node removals, twin-backed
     only — disk-orphans excluded per the no-delete covenant). candidate ignored (measures KG state)."""
 

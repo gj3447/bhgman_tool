@@ -45,6 +45,7 @@ def realize_kg_abstraction(
     dry_run: bool = True,
     apply_cypher: CypherRunner | None = None,
 ) -> RealizeVerdict:
+    # KG: hades-canonical-2026-05-27
     """KG 추상 실현: concept를 CANONICAL로 승격 + 멤버 INSTANCE_OF. dry_run 기본.
 
     가드: verdict_status='ACCEPTED'만 (PROVISIONAL/REJECTED 거부). undo=supersede(reversible).
@@ -99,6 +100,7 @@ def realize_code_template(
     max_sites: int = 5,
     dry_run: bool = True,
 ) -> RealizeVerdict:
+    # KG: hades-canonical-2026-05-27
     """코드 추상 실현: LGG 템플릿 → Extract Superclass/shared-fn refactor. **PLANNED만(dry-run)**.
 
     가드: ≤max_sites 점진 rollout (분산장애 차단). 실제 apply는 characterization test gate 후 별도.
@@ -135,6 +137,7 @@ def realize_code_extract_superclass(
     writer: CodeWriter | None = None,
     preserve_format: bool = False,
 ) -> RealizeVerdict:
+    # KG: hades-canonical-2026-05-27
     """진짜 Extract-Superclass 실현 — ast로 실 코드 생성 (문자열 plan 아님).
 
     가드 (하데스 covenant): ACCEPTED 후보만 / ≤max_sites 점진 rollout / dry-run 기본 /

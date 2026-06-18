@@ -27,6 +27,7 @@ KINDS = ("lean-goals", "pytest-ratio", "drift-recount", "occam-twins")
 
 @dataclass(frozen=True)
 class Verdict:
+    # KG: naesengmoon-canonical-2026-05-19
     """결정론 검증 결과. score=연속 fitness(높을수록 좋음), passed=건전 게이트, detail=진단."""
 
     kind: str
@@ -47,6 +48,7 @@ def verify(
     scope: str | None = None,
     repo_root: str | None = None,
 ) -> Verdict:
+    # KG: naesengmoon-canonical-2026-05-19
     """artifact를 kind에 맞는 외부 결정론 oracle로 검증 → Verdict.
 
     lean-goals: target=자족 .lean 파일 / pytest-ratio: target=pytest 대상 /

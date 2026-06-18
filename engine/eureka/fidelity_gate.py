@@ -35,6 +35,7 @@ DEFAULT_WITNESS_RELS: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class FidelityConfig:
+    # KG: eureka-canonical-2026-05-26
     witness_rels: tuple[str, ...] = DEFAULT_WITNESS_RELS
     min_top_share: float = 0.30  # per-witness coherence 임계
     min_witnesses_passing: int = 2  # ensemble k (≥2 독립 신호 cohere = Whewell)
@@ -42,6 +43,7 @@ class FidelityConfig:
 
 @dataclass(frozen=True)
 class FidelityVerdict:
+    # KG: eureka-canonical-2026-05-26
     concept: str
     extent: int
     witness_top_share: dict[str, float]
@@ -51,6 +53,7 @@ class FidelityVerdict:
 
 
 def fidelity_witness_cypher(concept_name: str, cfg: FidelityConfig) -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """concept의 INSTANCE_OF 멤버에 대해 witness별 top_share 계산 cypher."""
     query = """
     MATCH (ca {name:$concept})<-[:INSTANCE_OF]-(o)
@@ -69,6 +72,7 @@ def fidelity_witness_cypher(concept_name: str, cfg: FidelityConfig) -> tuple[str
 
 
 def fidelity_members_cypher(member_names: list[str], cfg: FidelityConfig) -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """pre-materialize 모드: extent 멤버명 직접 받아 witness top_share 계산 (INSTANCE_OF 불필요).
 
     pipeline stage용 — induce_fca 직후 ac.extent(멤버명)로 fidelity 측정.
@@ -94,6 +98,7 @@ def fidelity_members_cypher(member_names: list[str], cfg: FidelityConfig) -> tup
 def assess_fidelity(
     concept: str, rows: list[dict], cfg: FidelityConfig | None = None
 ) -> FidelityVerdict:
+    # KG: eureka-canonical-2026-05-26
     """witness rows({witness, top_shared, extent}) → FidelityVerdict. 순수 함수."""
     cfg = cfg or FidelityConfig()
     extent = max((r.get("extent") or 0 for r in rows), default=0)
@@ -122,6 +127,7 @@ def assess_fidelity(
 def run_fidelity_gate(
     concept_name: str, run_cypher: CypherRunner, cfg: FidelityConfig | None = None
 ) -> FidelityVerdict:
+    # KG: eureka-canonical-2026-05-26
     """concept의 fidelity 측정 (stage_4.7). run_cypher 주입(실전=Neo4j, 테스트=fake)."""
     cfg = cfg or FidelityConfig()
     query, params = fidelity_witness_cypher(concept_name, cfg)
@@ -135,6 +141,7 @@ def run_fidelity_for_members(
     run_cypher: CypherRunner,
     cfg: FidelityConfig | None = None,
 ) -> FidelityVerdict:
+    # KG: eureka-canonical-2026-05-26
     """pre-materialize fidelity (pipeline stage용) — 멤버명으로 측정."""
     cfg = cfg or FidelityConfig()
     if not member_names:

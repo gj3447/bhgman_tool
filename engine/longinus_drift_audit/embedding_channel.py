@@ -76,6 +76,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LonginusEmbeddingOptInRequired(RuntimeError):
+    # KG: ATOM_Skill_longinus
     """Raised when L5 is invoked without explicit opt_in=True.
 
     L5 defeats Longinus' provenance principle if used alone (A4S4 caveat).
@@ -85,6 +86,7 @@ class LonginusEmbeddingOptInRequired(RuntimeError):
 
 
 class NodeEmbedding(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Pre-trained vector embedding for a single KG node.
 
     Vector stored as ``tuple[float, ...]`` for Pydantic immutability +
@@ -99,6 +101,7 @@ class NodeEmbedding(BaseModel):
 
 
 class EmbeddingDriftReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Output of L5 embedding cosine drift comparison.
 
     The ``preliminary_longinus_novel`` field follows the L2 pattern: ``True``
@@ -250,6 +253,7 @@ def compute_embedding_drift(
     per_node_high_drift_threshold: float = 0.40,
     high_drift_ratio_threshold: float = 0.05,
 ) -> EmbeddingDriftReport:
+    # KG: ATOM_Skill_longinus
     """Compute L5 embedding cosine drift between two KG snapshots.
 
     Args:

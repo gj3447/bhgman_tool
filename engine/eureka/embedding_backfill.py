@@ -27,12 +27,14 @@ TEXT_FIELDS: dict[str, list[str]] = {
 
 
 def node_text(name: str, vals: list) -> str:
+    # KG: eureka-canonical-2026-05-26
     """노드 name + 텍스트 필드 값들을 임베딩용 단일 텍스트로. 빈/None 필드 skip."""
     parts = [str(v) for v in vals if v]
     return " ".join(parts) if parts else str(name)
 
 
 def fetch_unembedded_cypher(label: str) -> str:
+    # KG: eureka-canonical-2026-05-26
     """embedding 없는 노드 + 텍스트 필드 조회. label allowlist 검증(주입 차단), 필드는 $fields 동적 접근."""
     if label not in TEXT_FIELDS:
         raise ValueError(f"label not in allowlist: {label} (allowed: {sorted(TEXT_FIELDS)})")
@@ -43,6 +45,7 @@ def fetch_unembedded_cypher(label: str) -> str:
 
 
 def set_embeddings_cypher(label: str) -> str:
+    # KG: eureka-canonical-2026-05-26
     """배치 SET n.embedding. label allowlist 검증, name+emb는 $rows param."""
     if label not in TEXT_FIELDS:
         raise ValueError(f"label not in allowlist: {label}")
@@ -55,6 +58,7 @@ def set_embeddings_cypher(label: str) -> str:
 
 @dataclass(frozen=True)
 class BackfillReport:
+    # KG: eureka-canonical-2026-05-26
     label: str
     embedded: int = 0
     batches: int = 0
@@ -75,6 +79,7 @@ def backfill(
     max_nodes: int | None = None,
     dry_run: bool = True,
 ) -> BackfillReport:
+    # KG: eureka-canonical-2026-05-26
     """label 노드의 빈 embedding을 채운다. dry_run=True면 첫 배치 후보 수만 보고(write 없음).
 
     apply 시 fetch(empty)→embed→SET 루프 (SET 후 더는 NULL 아니라 다음 배치 진행, 멱등).
@@ -144,6 +149,7 @@ def _neo4j_runners():
 
 
 def main() -> None:
+    # KG: eureka-canonical-2026-05-26
     import argparse  # noqa: PLC0415
 
     ap = argparse.ArgumentParser(

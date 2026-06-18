@@ -68,6 +68,7 @@ def _default_verifier(payload: bytes, signature: str, signer: str) -> bool:
 
 
 class IntotoAttestation(BaseModel):
+    # KG: ATOM_Skill_longinus
     """One in-toto-style attestation over a KG mutation.
 
     Loosely follows the in-toto v1 statement schema
@@ -88,6 +89,7 @@ class IntotoAttestation(BaseModel):
 
 
 class AttestationChainResult(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Output of L4 in-toto attestation chain verification."""
 
     total_mutations: int = Field(ge=0)
@@ -192,6 +194,7 @@ def verify_chain(
     *,
     signature_verifier: SignatureVerifier = _default_verifier,
 ) -> AttestationChainResult:
+    # KG: ATOM_Skill_longinus
     """Verify a stream of in-toto attestations against expected mutations.
 
     Args:

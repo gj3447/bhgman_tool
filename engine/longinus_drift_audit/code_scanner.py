@@ -64,6 +64,7 @@ def _clean_ref(part: str) -> str | None:
 
 
 def iter_files(root: Path, *, suffixes: Iterable[str] = (".py",)) -> Iterator[Path]:
+    # KG: ATOM_Skill_longinus
     """root 아래 surface files (build/cache 디렉토리 제외)."""
     skip_parts = {".pytest_cache", "__pycache__", ".lake", ".venv", "node_modules", "GIT"}
     for p in root.rglob("*"):
@@ -76,6 +77,7 @@ def iter_files(root: Path, *, suffixes: Iterable[str] = (".py",)) -> Iterator[Pa
 
 
 def scan_kg_refs(file_path: Path) -> list[tuple[int, list[str]]]:
+    # KG: ATOM_Skill_longinus
     """Per-line `# KG: ...` reference extraction.
 
     Returns: list of (line_number, [kg_ref, ...]).
@@ -230,6 +232,7 @@ def _symbols_via_regex(
 
 
 def scan_python_symbols(file_path: Path) -> list[CodeSymbol]:
+    # KG: ATOM_Skill_longinus
     """Top-level def/class symbols with real AST signatures (regex fallback)."""
     try:
         content = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -260,6 +263,7 @@ def scan_root(
     max_workers: int | None = None,
     threshold: int | None = None,
 ) -> tuple[list[CodeSymbol], list[tuple[Path, int, str]]]:
+    # KG: ATOM_Skill_longinus
     """Returns (symbols, all_kg_refs_with_location).
 
     all_kg_refs: [(file, line, kg_ref_name)] flattened. line-level granular.

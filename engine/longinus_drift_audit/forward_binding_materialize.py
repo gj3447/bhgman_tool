@@ -35,6 +35,7 @@ from engine.longinus_drift_audit.models import ReferenceLayer, ReferenceSite
 
 @dataclass
 class MaterializeResult:
+    # KG: ATOM_Skill_longinus
     bound: int = 0
     modules: int = 0
     public_api: int = 0
@@ -79,6 +80,7 @@ def _file_citations(fp: Path) -> tuple[list[tuple[str, str, str | None, str]], i
 
 
 def collect_candidates(code_root: Path) -> tuple[dict[str, tuple[str, str | None, str]], int]:
+    # KG: ATOM_Skill_longinus
     """ref → (sourcePath, signature, kind) for module + public-API citations.
 
     First citation of a ref wins (node-centric). Returns (candidates, skipped_private).
@@ -96,6 +98,7 @@ def collect_candidates(code_root: Path) -> tuple[dict[str, tuple[str, str | None
 
 
 def materialize(kg: KgClient, code_root: Path, *, repo_tag: str = "bhgman") -> MaterializeResult:
+    # KG: ATOM_Skill_longinus
     """Scan code-root and MERGE a bound ReferenceSite per module/public-API `# KG:` ref."""
     code_root = Path(code_root).resolve()
     candidates, skipped_private = collect_candidates(code_root)

@@ -24,6 +24,7 @@ from engine.eureka.induction_operators.registry import is_automated, is_register
 
 
 class InductionMethod(str, Enum):
+    # KG: eureka-canonical-2026-05-26
     FCA = "fca"
     AMIE3 = "amie3"
     LEIDEN_LLM = "leiden-llm"
@@ -33,6 +34,7 @@ class InductionMethod(str, Enum):
 
 
 class AbstractClassStatus(str, Enum):
+    # KG: eureka-canonical-2026-05-26
     PROPOSED = "PROPOSED"
     VERDICT_PENDING = "VerdictPending"
     CANONICAL = "CANONICAL"
@@ -41,6 +43,7 @@ class AbstractClassStatus(str, Enum):
 
 
 class AbstractClass(BaseModel):
+    # KG: eureka-canonical-2026-05-26
     """L8-induced abstract category over L1-L7 ReferenceSite member nodes."""
 
     name: str = Field(..., min_length=1, max_length=128)
@@ -105,6 +108,7 @@ class AbstractClass(BaseModel):
 
 
 class GeneralizesEdge(BaseModel):
+    # KG: eureka-canonical-2026-05-26
     """(AbstractClass)-[:GENERALIZES]->(member) edge properties.
 
     Direction = option A: src=AbstractClass (general), tgt=member (specific).

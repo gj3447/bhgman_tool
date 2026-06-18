@@ -47,6 +47,7 @@ def run_jaebaeman(
     coinductive: bool = False,
     fuel: int | None = None,
 ) -> PlanResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """목표를 계획 트리로 unfold하고 씨앗으로 심는다. apply=False(기본) → planned만, write 없음.
 
     decompose 명시 주입(static_decompose 등) > anchor+run_cypher 기반 kg_decompose > singleton.
@@ -114,6 +115,7 @@ def germinate_ready_seeds(
     apply: bool = False,
     limit: int | None = None,
 ) -> LifecycleResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗→발아→동작 핸드오프: KG의 READY 씨앗을 read-back → dispatcher 출격 → status write.
 
     run_jaebaeman(plan→plant, Phase 0~1)의 다음 단계(Phase 2~4). plant_seeds로 심긴 READY

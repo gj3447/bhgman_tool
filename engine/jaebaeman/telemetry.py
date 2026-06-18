@@ -21,6 +21,7 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 
 @dataclass(frozen=True)
 class RunRecord:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """한 재배맨 실행의 감사 레코드 (plan + 선택적 lifecycle 결과 요약)."""
 
     run_id: str
@@ -38,6 +39,7 @@ class RunRecord:
 def from_results(
     run_id: str, plan_result, lifecycle_result=None, *, created_at: str = ""
 ) -> RunRecord:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """PlanResult (+ 선택 LifecycleResult) → RunRecord. 두 단계 결과를 한 감사 레코드로."""
     lc = lifecycle_result
     return RunRecord(
@@ -65,6 +67,7 @@ _RUN_MERGE = (
 
 
 def build_run_merge(rec: RunRecord) -> tuple[str, dict]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """run-record MERGE cypher + params (covenant: SET/MERGE만, 파괴 없음)."""
     return _RUN_MERGE, {
         "run_id": rec.run_id,
@@ -81,6 +84,7 @@ def build_run_merge(rec: RunRecord) -> tuple[str, dict]:
 
 
 def record_to_kg(rec: RunRecord, write_cypher: CypherRunner) -> str:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """:JaebaemanRun 감사 노드 write. Longinus drift-event 기록의 재배맨 대응."""
     cypher, params = build_run_merge(rec)
     write_cypher(cypher, params)
@@ -89,6 +93,7 @@ def record_to_kg(rec: RunRecord, write_cypher: CypherRunner) -> str:
 
 # ── (2) OTel span attributes (hard dep 없음 — dict만) ────────────────────────
 def to_otel_attributes(rec: RunRecord) -> dict:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """OTel span attribute dict (otel SDK 없어도 동작). orchestration 관측 표면."""
     return {
         "jaebaeman.run_id": rec.run_id,
@@ -105,6 +110,7 @@ def to_otel_attributes(rec: RunRecord) -> dict:
 
 # ── (3) W3C PROV-O export (graceful — prov optional extra) ───────────────────
 def to_prov(rec: RunRecord, fmt: str = "turtle") -> str | None:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """plan/lifecycle 실행을 PROV-O로. prov 라이브러리 없으면 None (graceful).
 
     plan = prov:Activity, 각 씨앗 = prov:Entity wasGeneratedBy plan, lifecycle = prov:Activity used.

@@ -25,6 +25,7 @@ def _tree_stats(tree) -> dict:
 def compare_decompose(
     goal: Goal, arm_a: DecomposeFn, arm_b: DecomposeFn, *, max_depth: int = MAX_DEPTH
 ) -> dict:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """두 분해 전략의 계획 트리 구조 발산 (공정: 같은 goal/max_depth). raw 비교 dict, 단일점수 없음."""
     sa = _tree_stats(plan(goal, arm_a, max_depth=max_depth))
     sb = _tree_stats(plan(goal, arm_b, max_depth=max_depth))

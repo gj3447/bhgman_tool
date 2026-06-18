@@ -35,6 +35,7 @@ DecomposeFn = Callable[[PlanNode], "list[Goal]"]
 
 
 class DepthInvariantViolation(ValueError):
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """depth가 [0, MAX_DEPTH]를 벗어남 (SKILL.md E4). fractal 무한 증식 차단."""
 
 
@@ -59,6 +60,7 @@ def plan(
     _method: GerminationMethod = GerminationMethod.SINGLETON,
     _seen: set[str] | None = None,
 ) -> PlanNode:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """Goal을 계획 트리로 unfold. decompose가 하위 목표를 주면 재귀, 빈 리스트면 잎.
 
     max_depth에 닿으면 분해를 멈추고 잎으로 종료(하드 stop). _depth/_method/_seen은 내부 재귀용.
@@ -105,6 +107,7 @@ def plan_lazy(
     fuel: int | None = None,
     max_depth: int = MAX_DEPTH,
 ) -> Iterator[PlanNode]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """ν(coinductive) 모드 — productive corecursive unfold. 소비한 만큼만 전개(lazy).
 
     eager ``plan()``이 트리 전체를 즉시 build하는 μ 모드라면, 이건 frontier를 BFS로 yield하며
@@ -122,6 +125,7 @@ def plan_lazy(
 
 
 def take_n(it: Iterator[PlanNode], n: int) -> tuple[PlanNode, ...]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """lazy generator의 유한 prefix n개만 관찰(observation budget). islice 래퍼."""
     return tuple(islice(it, n))
 
@@ -167,6 +171,7 @@ def plan_lazy_pairs(
     fuel: int | None = None,
     max_depth: int = MAX_DEPTH,
 ) -> list[tuple[PlanNode, "PlanNode | None"]]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """_unfold_pairs를 즉시 materialize (eager list). coinductive 심기용(parent=DECOMPOSES_TO).
 
     ⚠ eager — fuel=None + 무한 decompose면 폭주. 호출자가 fuel 또는 bounded max_depth 보장
@@ -177,6 +182,7 @@ def plan_lazy_pairs(
 
 
 def walk(node: PlanNode):
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """계획 트리 pre-order 순회 — (node, parent) 튜플 yield. 루트의 parent=None."""
 
     def _rec(n: PlanNode, parent: PlanNode | None):
@@ -188,19 +194,23 @@ def walk(node: PlanNode):
 
 
 def depth_max(node: PlanNode) -> int:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     return max(n.depth for n, _ in walk(node))
 
 
 def leaf_count(node: PlanNode) -> int:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     return sum(1 for n, _ in walk(node) if n.is_leaf)
 
 
 def seed_name(plan_node: PlanNode, skill: str) -> str:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗의 결정론 PK. 트리 위치(name)로 안정 — 같은 계획 재실행 시 MERGE로 멱등."""
     return f"seed-{skill}-{plan_node.name}"
 
 
 def to_seeds(root: PlanNode, skill: str, *, expected_outcome: str = "") -> list[SeedRecord]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """계획 트리를 평탄화 → SeedRecord 리스트 (materialize 입력).
 
     sourceId(FK) = anchor가 있으면 anchor, 없으면 자기 name(self-anchored root). 1:1 invariant는
@@ -231,6 +241,7 @@ def _seed_from_pair(
 def to_seeds_pairs(
     pairs: list[tuple[PlanNode, "PlanNode | None"]], skill: str, *, expected_outcome: str = ""
 ) -> list[SeedRecord]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """(node, parent) 쌍 리스트 → SeedRecord 리스트. eager walk() / lazy plan_lazy_pairs 공용.
 
     seed_name 기준 dedup — DAG(diamond)/cycle에서 같은 노드가 여러 경로로 도달해도 씨앗은 한 번만
@@ -249,6 +260,7 @@ def to_seeds_pairs(
 
 
 def static_decompose(tree: dict[str, list[Goal]]) -> DecomposeFn:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """정적 분해 규칙 — {parent_goal_name: [child Goal, ...]}. KG 없이 계획을 직접 줄 때.
 
     AI가 짠 연쇄 계획(메타-플랜)을 dict로 넘기면 그대로 트리화. 미지 name → 잎.

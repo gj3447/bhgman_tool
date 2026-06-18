@@ -60,6 +60,7 @@ DEFAULT_FS_BASE_CHAIN: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class PathResolution:
+    # KG: ATOM_Skill_longinus
     """Resolved (status, abs_path) for a sourcePath candidate."""
 
     status: str  # 'FILE' | 'DIRECTORY' | 'MISSING'
@@ -71,6 +72,7 @@ def resolve_path(
     *,
     base_chain: Iterable[str] = DEFAULT_FS_BASE_CHAIN,
 ) -> PathResolution:
+    # KG: ATOM_Skill_longinus
     """Resolve a `sourcePath` (possibly relative) to a real disk location.
 
     Tries: absolute → ~ expansion → each base_chain entry.
@@ -98,6 +100,7 @@ def resolve_path(
 
 @dataclass
 class InitResult:
+    # KG: ATOM_Skill_longinus
     """Aggregated stats from `init_baseline`."""
 
     populated: int = 0  # FILE → sha256_baseline written
@@ -109,6 +112,7 @@ class InitResult:
 
 @dataclass
 class VerifyResult:
+    # KG: ATOM_Skill_longinus
     """Aggregated stats from `verify_baseline`."""
 
     ok: int = 0  # current sha256 == baseline
@@ -139,6 +143,7 @@ def init_baseline(
     sites: Iterable[ReferenceSite],
     base_chain: Iterable[str] = DEFAULT_FS_BASE_CHAIN,
 ) -> InitResult:
+    # KG: ATOM_Skill_longinus
     """Populate `sha256_baseline` for every site that lacks it.
 
     Idempotent — sites with `sha256_baseline` already set are skipped.
@@ -236,6 +241,7 @@ def verify_baseline(
     base_chain: Iterable[str] = DEFAULT_FS_BASE_CHAIN,
     emit_events: bool = True,
 ) -> VerifyResult:
+    # KG: ATOM_Skill_longinus
     """Recompute current sha256 and compare to baseline.
 
     Emits :SourceCodeDriftEvent for every mismatch (PROV evidence trail).
@@ -315,6 +321,7 @@ def make_reference_site_7tuple(
     layer: ReferenceLayer = ReferenceLayer.L4_SEMIOTIC,
     drift_score: float = 0.0,
 ) -> ReferenceSite:
+    # KG: ATOM_Skill_longinus
     """Build a Wave 6 7-tuple ReferenceSite ready for KG MERGE.
 
     Schema (LONGINUS_BINDING.md §"7-tuple ReferenceSite"):

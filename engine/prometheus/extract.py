@@ -41,6 +41,7 @@ class _TextExtractor(HTMLParser):
 
 
 def html_to_text(s: str) -> str:
+    # KG: ATOM_Skill_prometheus
     """HTML/plain → 텍스트. 태그 없으면 원문 그대로."""
     parser = _TextExtractor()
     try:
@@ -62,6 +63,7 @@ def extract_findings(
     min_len: int = 40,
     researched_at: str = "",
 ) -> list[Finding]:
+    # KG: ATOM_Skill_prometheus
     """문서별 substantive 문장 max_per_doc개 → Finding (citation_url + content sha256)."""
     out: list[Finding] = []
     for doc in docs:

@@ -24,6 +24,7 @@ _GAP_CYPHER = (
 
 
 def scan_gaps(run_cypher: CypherRunner, *, limit: int = 50) -> list[Gap]:
+    # KG: ATOM_Skill_prometheus
     """gap 노드 → Gap 리스트. 백엔드가 임의 MATCH 미지원(local 등)이면 [] (graceful)."""
     try:
         rows = run_cypher(_GAP_CYPHER, {"limit": limit})

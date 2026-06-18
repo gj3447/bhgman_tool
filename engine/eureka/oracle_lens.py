@@ -29,6 +29,7 @@ from engine.naesengmoon.oracle_lens import (
 
 
 def default_eureka_lenses(target: str = ".") -> tuple[OracleLens, ...]:
+    # KG: eureka-canonical-2026-05-26
     """CODE backend 기본 checkable 렌즈: 추상이 lint + test 통과해야.
 
     **주의**: 이건 *코드* materialize 경로용(Extract Superclass 등). KG induction 경로엔
@@ -47,6 +48,7 @@ def kg_oracle_gate(
     min_extent: int = 2,
     min_stability: float = 0.5,
 ) -> tuple[bool, list[OracleVerdict]]:
+    # KG: eureka-canonical-2026-05-26
     """KG backend 컴파일러나생문 — concept 후보의 결정론 *불변식* 검증 (HARD GATE).
 
     checkable only (의미 판단 X — 그건 stage_5 판단렌즈 + semantic-fidelity proxy 몫):

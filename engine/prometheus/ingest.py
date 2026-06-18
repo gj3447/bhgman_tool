@@ -24,6 +24,7 @@ _MERGE = (
 
 
 def plan_cypher(f: Finding) -> tuple[str, dict]:
+    # KG: ATOM_Skill_prometheus
     return _MERGE, {
         "findingId": f.finding_id,
         "claim": f.claim,
@@ -41,6 +42,7 @@ def ingest_findings(
     write_cypher: CypherRunner | None = None,
     apply: bool = False,
 ) -> tuple[int, tuple[str, ...]]:
+    # KG: ATOM_Skill_prometheus
     """(written_count, planned_cyphers). apply+write_cypher 일 때만 실제 write."""
     planned: list[str] = []
     written = 0

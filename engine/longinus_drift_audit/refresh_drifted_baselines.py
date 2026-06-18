@@ -26,6 +26,7 @@ from engine.longinus_drift_audit.kg_client import Neo4jKgClient
 
 
 def main() -> int:
+    # KG: ATOM_Skill_longinus
     report_path = sys.argv[1] if len(sys.argv) > 1 else "/tmp/longinus_report.json"
     report = json.load(open(report_path))
     # unique drifted FILE paths (collapse the corpus-label / duplicate-node fan-out)

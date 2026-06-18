@@ -43,6 +43,7 @@ def _find_java() -> str:
 
 @dc.dataclass(frozen=True)
 class HornRule:
+    # KG: eureka-canonical-2026-05-26
     """A single Horn rule emitted by AMIE.
 
     body and head are stored as raw AMIE atom strings (e.g. "?a livesIn ?b").
@@ -60,6 +61,7 @@ class HornRule:
 
 @dc.dataclass(frozen=True)
 class Amie3Result:
+    # KG: eureka-canonical-2026-05-26
     rules: tuple[HornRule, ...]
     triples_input: int
     raw_stdout_lines: tuple[str, ...]
@@ -128,6 +130,7 @@ def induce_amie3(
     timeout_sec: float = 300.0,
     extra_args: Optional[list[str]] = None,
 ) -> Amie3Result:
+    # KG: eureka-canonical-2026-05-26
     """Run AMIE 3.5.1 over typed triples. Returns parsed Horn rules.
 
     Parameters

@@ -27,6 +27,7 @@ CommandRunner = Callable[[Sequence[str]], "tuple[int, str]"]
 
 
 def subprocess_runner(cmd: Sequence[str]) -> tuple[int, str]:
+    # KG: naesengmoon-canonical-2026-05-19
     """기본 runner — 실제 subprocess. cwd/env는 호출자 책임."""
     proc = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # noqa: S603
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
@@ -34,6 +35,7 @@ def subprocess_runner(cmd: Sequence[str]) -> tuple[int, str]:
 
 @dataclass(frozen=True)
 class OracleVerdict:
+    # KG: naesengmoon-canonical-2026-05-19
     """결정론 검증 결과. hard_gate=True면 FAIL이 전체 reject."""
 
     lens: str
@@ -50,6 +52,7 @@ class OracleVerdict:
 
 @dataclass(frozen=True)
 class OracleLens:
+    # KG: naesengmoon-canonical-2026-05-19
     """컴파일러나생문 한 개. C=gcc/clang, Python=ruff/mypy/pytest, Lean=lake build."""
 
     name: str
@@ -66,6 +69,7 @@ class OracleLens:
 def run_oracle_gate(
     lenses: Sequence[OracleLens], runner: CommandRunner = subprocess_runner
 ) -> tuple[bool, list[OracleVerdict]]:
+    # KG: naesengmoon-canonical-2026-05-19
     """oracle 렌즈들을 순서대로 hard-gate 실행. 첫 FAIL에서 short-circuit.
 
     반환: (gate_passed, verdicts). gate_passed=False면 판단 렌즈(LLM) 진입 차단.
@@ -93,6 +97,7 @@ ScoreFn = Callable[[Any], float]
 
 @dataclass(frozen=True)
 class OracleScore:
+    # KG: naesengmoon-canonical-2026-05-19
     """연속 fitness 결과. value 높을수록 좋음 (minimize 지표는 음수화하여 등록)."""
 
     lens: str
@@ -102,6 +107,7 @@ class OracleScore:
 
 @dataclass(frozen=True)
 class ScalarOracle:
+    # KG: naesengmoon-canonical-2026-05-19
     """연속 fitness oracle. binary OracleLens 의 scalar 확장.
 
     FunSearch/AlphaEvolve 가 maximize 할 외부 결정론 metric. 점수원이 *외부 도구 실행*
@@ -118,6 +124,7 @@ class ScalarOracle:
 
 
 def scalar_from_lens(lens: OracleLens, runner: CommandRunner = subprocess_runner) -> ScalarOracle:
+    # KG: naesengmoon-canonical-2026-05-19
     """binary 컴파일러나생문 → {0.0, 1.0} fitness 어댑터 (gate→scalar).
 
     candidate 는 무시(렌즈의 command 가 고정)하므로 gate-as-fitness 용도. 연속 gradient

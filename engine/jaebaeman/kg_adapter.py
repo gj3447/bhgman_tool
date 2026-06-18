@@ -38,10 +38,12 @@ _CHILDREN_CYPHER = (
 
 
 def children_cypher(anchor: str) -> tuple[str, dict]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     return _CHILDREN_CYPHER, {"anchor": anchor}
 
 
 def kg_decompose(run_cypher: CypherRunner, *, task_type: str = "research"):
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """KG 구조 기반 분해 규칙 — anchor 밑 자식들을 하위 Goal로. planner.DecomposeFn.
 
     node.anchor 없으면 분해 불가(잎). 자식의 name이 다음 단계 anchor가 되어 재귀가 이어진다.
@@ -85,6 +87,7 @@ _READY_SEEDS_RETURN = (
 
 
 def ready_seeds_cypher(limit: int | None = None, cycle_id: str | None = None) -> tuple[str, dict]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """READY 씨앗 read-back cypher + params. read-only (covenant 토큰 부재 — 검증 불필요).
 
     cycle_id 주면 그 cycle에 심긴 씨앗만(s.cycleId) — KG 전역 READY 씨앗 무차별 발아 footgun 방지.
@@ -104,6 +107,7 @@ def ready_seeds_cypher(limit: int | None = None, cycle_id: str | None = None) ->
 def read_ready_seeds(
     run_cypher: CypherRunner, *, limit: int | None = None, cycle_id: str | None = None
 ) -> list[SeedRecord]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """심긴 READY :SubagentTaskSpec 씨앗을 KG에서 읽어 SeedRecord로 복원 (plant_seeds의 역).
 
     dispatch가 소비할 씨앗 read-back — 씨앗(KG)↔발아(dispatch) 사이 끊겨 있던 핸드오프.
@@ -170,6 +174,7 @@ def _assert_covenant(cypher: str) -> None:
 
 
 def build_seed_merge(seed: SeedRecord, cycle_id: str) -> tuple[str, dict]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗 MERGE cypher + params. covenant: 파괴적 토큰 부재를 assert로 강제."""
     _assert_covenant(_SEED_MERGE)
     params = {
@@ -188,6 +193,7 @@ def build_seed_merge(seed: SeedRecord, cycle_id: str) -> tuple[str, dict]:
 
 
 def build_has_seed_edge(seed: SeedRecord, wave: int, cycle_id: str) -> tuple[str, dict] | None:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """anchor↔씨앗 HAS_SEED 엣지. self-anchored root(anchor==name)면 None (자기 자신엔 안 검)."""
     if seed.source_id == seed.name:
         return None
@@ -201,6 +207,7 @@ def build_has_seed_edge(seed: SeedRecord, wave: int, cycle_id: str) -> tuple[str
 
 
 def build_decomposes_to_edge(seed: SeedRecord) -> tuple[str, dict] | None:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """parent_seed→child_seed DECOMPOSES_TO (계획에 대한 계획 = 트리 구조 KG화). 루트면 None."""
     if seed.parent is None:
         return None
@@ -214,6 +221,7 @@ def plant_seeds(
     cycle_id: str = "jaebaeman-cli",
     dry_run: bool = True,
 ) -> SeedApplyResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗 트리를 KG에 심는다. dry_run 기본 — write_cypher 있어도 실행 안 함 (planned만).
 
     순서: 씨앗 MERGE 전부 → HAS_SEED 엣지 → DECOMPOSES_TO 엣지 (엣지 전에 양끝 노드 존재 보장).

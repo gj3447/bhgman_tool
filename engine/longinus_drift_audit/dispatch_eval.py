@@ -42,12 +42,14 @@ _SELF_WRITE_CLAIMS: list[re.Pattern[str]] = [
 
 
 class CheckResult(BaseModel):
+    # KG: ATOM_Skill_longinus
     name: str
     passed: bool
     detail: str = ""
 
 
 class FindingEvalResult(BaseModel):
+    # KG: ATOM_Skill_longinus
     finding_id: str
     checks: list[CheckResult]
 
@@ -61,6 +63,7 @@ class FindingEvalResult(BaseModel):
 
 
 class DispatchEvalReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     total: int = Field(ge=0)
     passed: int = Field(ge=0)
     pass_rate: float = Field(ge=0.0, le=1.0)
@@ -95,6 +98,7 @@ def _no_self_write_claim(rec: dict[str, Any]) -> tuple[bool, str]:
 
 
 def evaluate_finding(rec: dict[str, Any]) -> FindingEvalResult:
+    # KG: ATOM_Skill_longinus
     """Deterministic eval of one FullFindingRecord-shaped dict (pure)."""
     fid = str(rec.get("findingId") or rec.get("name") or "<missing>")
     no_claim_ok, claim_detail = _no_self_write_claim(rec)
@@ -140,6 +144,7 @@ def evaluate_dispatch(
     intent_n: int | None = None,
     warn_threshold: float = 0.90,
 ) -> DispatchEvalReport:
+    # KG: ATOM_Skill_longinus
     """Evaluate a batch of returned finding records (pure, offline).
 
     Args:

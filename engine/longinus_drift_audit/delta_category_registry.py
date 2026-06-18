@@ -36,6 +36,7 @@ DS = TypeVar("DS")
 
 @runtime_checkable
 class DeltaCategoryRegistryProto(Protocol):
+    # KG: ATOM_Skill_longinus
     """Protocol for a DeltaCategory registry — DIP abstraction.
 
     High-level code (DeltaLens factories) depends on this Protocol, not on
@@ -53,6 +54,7 @@ class DeltaCategoryRegistryProto(Protocol):
 
 
 class DefaultDeltaCategoryRegistry:
+    # KG: ATOM_Skill_longinus
     """Default in-memory registry. Singleton via module-level instance below."""
 
     def __init__(self) -> None:

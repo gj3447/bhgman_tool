@@ -66,6 +66,7 @@ _MONIKER_RE = re.compile(
 
 
 class ScipSymbol(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Parsed SCIP symbol moniker — Frege Sinn carrier."""
 
     scheme: str = Field(..., description="Indexer scheme e.g. 'scip-typescript', 'scip-python'")
@@ -75,6 +76,7 @@ class ScipSymbol(BaseModel):
 
 
 class ScipOccurrence(BaseModel):
+    # KG: ATOM_Skill_longinus
     """One symbol reference in a document — Bedeutung carrier (file+range)."""
 
     symbol: str = Field(..., description="Moniker string referencing a ScipSymbol")
@@ -94,6 +96,7 @@ class ScipOccurrence(BaseModel):
 
 
 class ScipDocument(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Per-source-file collection of occurrences."""
 
     relative_path: str = Field(..., description="Path relative to project_root")
@@ -102,6 +105,7 @@ class ScipDocument(BaseModel):
 
 
 class ScipIndex(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Top-level SCIP index — mirrors `scip.Index` protobuf message."""
 
     metadata_version: int = Field(default=0, ge=0)
@@ -113,6 +117,7 @@ class ScipIndex(BaseModel):
 
 
 def parse_scip_symbol(raw_moniker: str) -> ScipSymbol:
+    # KG: ATOM_Skill_longinus
     """Parse a SCIP symbol moniker into structured form.
 
     Raises ValueError if moniker does not match expected grammar.
@@ -148,6 +153,7 @@ def parse_scip_symbol(raw_moniker: str) -> ScipSymbol:
 
 
 def parse_scip_index_json(json_text: str) -> ScipIndex:
+    # KG: ATOM_Skill_longinus
     """Parse a SCIP index JSON document (protobuf JSON marshaling).
 
     Sourcegraph's `scip` CLI emits both binary protobuf and JSON
@@ -259,6 +265,7 @@ def _classify_kind(descriptor: str) -> str:
 
 
 def scip_to_code_symbols(idx: ScipIndex) -> list[CodeSymbol]:
+    # KG: ATOM_Skill_longinus
     """Adapt a parsed SCIP index into `models.CodeSymbol` list.
 
     Each SCIP occurrence becomes one CodeSymbol with:

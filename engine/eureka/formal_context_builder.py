@@ -33,6 +33,7 @@ DEFAULT_FACET_RELS: tuple[str, ...] = ("ALIGNS_WITH_AXIS", "USES_ABSTRACT_DOMAIN
 
 @dataclass(frozen=True)
 class FormalContextConfig:
+    # KG: eureka-canonical-2026-05-26
     """formal context 구성 정책. 매직넘버 아님 — 실측 근거 default."""
 
     facet_rels: tuple[str, ...] = DEFAULT_FACET_RELS  # ③ 독립 facet
@@ -42,6 +43,7 @@ class FormalContextConfig:
 
 
 def build_extraction_cypher(cfg: FormalContextConfig) -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """3 pre-filter 박힌 추출 cypher + params. (query, params) 반환."""
     query = """
     MATCH (o)-[r]->(v)
@@ -63,6 +65,7 @@ def build_extraction_cypher(cfg: FormalContextConfig) -> tuple[str, dict]:
 
 
 def assemble_context(rows: Iterable[dict]) -> dict[str, frozenset[str]]:
+    # KG: eureka-canonical-2026-05-26
     """cypher rows({object, attributes}) → formal context dict. 순수 함수(테스트 용이)."""
     ctx: dict[str, set[str]] = defaultdict(set)
     for row in rows:
@@ -77,6 +80,7 @@ def assemble_context(rows: Iterable[dict]) -> dict[str, frozenset[str]]:
 def build_formal_context(
     run_cypher: CypherRunner, cfg: FormalContextConfig | None = None
 ) -> tuple[dict[str, frozenset[str]], dict]:
+    # KG: eureka-canonical-2026-05-26
     """KG에서 formal context 추출 (stage_0). 반환: (context, metadata).
 
     run_cypher 주입: 실전=Neo4j read, 테스트=fake rows.

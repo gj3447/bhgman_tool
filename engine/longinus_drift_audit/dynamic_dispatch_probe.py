@@ -114,6 +114,7 @@ _VALID_KINDS = {
 
 
 class DynamicDispatchSite(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Single dynamic dispatch site detected by static scan.
 
     Confidence semantics (reuses ``models.Confidence`` 3-tier enum):
@@ -141,6 +142,7 @@ class DynamicDispatchSite(BaseModel):
 
 
 class DynamicDispatchReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Aggregate summary of a dynamic dispatch scan."""
 
     total_sites: int = Field(ge=0)
@@ -309,6 +311,7 @@ def _scan_subscript(
 
 
 def scan_static(file_path: str) -> list[DynamicDispatchSite]:
+    # KG: ATOM_Skill_longinus
     """Scan a single Python file for dynamic dispatch idioms via AST.
 
     Returns a list of DynamicDispatchSite. On parse error or read failure,
@@ -352,6 +355,7 @@ def _iter_py_files(root: Path) -> Iterable[Path]:
 
 
 def scan_root_static(root_path: str, parallel: bool = False) -> list[DynamicDispatchSite]:
+    # KG: ATOM_Skill_longinus
     """Walk ``root_path`` for .py files and aggregate static scan results.
 
     Args:
@@ -380,6 +384,7 @@ def merge_with_runtime_trace(
     static_sites: list[DynamicDispatchSite],
     runtime_trace: Iterable[dict],
 ) -> list[DynamicDispatchSite]:
+    # KG: ATOM_Skill_longinus
     """Upgrade INFERRED/AMBIGUOUS sites to EXTRACTED when runtime resolves target.
 
     Args:
@@ -428,6 +433,7 @@ def merge_with_runtime_trace(
 
 
 def summarize(sites: list[DynamicDispatchSite]) -> DynamicDispatchReport:
+    # KG: ATOM_Skill_longinus
     """Aggregate counts by confidence tier and dispatch kind."""
     by_kind: dict[str, int] = {}
     extracted = inferred = ambiguous = 0

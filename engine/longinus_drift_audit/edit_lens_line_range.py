@@ -21,6 +21,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class LineRange:
+    # KG: ATOM_Skill_longinus
     """An inclusive 1-indexed line range bound to a single KG node binding."""
 
     start_line: int
@@ -40,6 +41,7 @@ class LineRange:
 
 
 class LineShiftMonoid:
+    # KG: ATOM_Skill_longinus
     """The LineShift monoid: identity = 0, binary op = addition.
 
     Mirrors `lineShiftMonoid : DeltaMonoid` in Lean. Proven monoid laws
@@ -61,6 +63,7 @@ class LineShiftMonoid:
 
 @dataclass(frozen=True)
 class EditLensLineRange:
+    # KG: ATOM_Skill_longinus
     """HPW 2012 edit lens for LineRange under LineShift monoid action.
 
     The edit lens form `(put_left, put_right)` from HPW 2012 specializes here

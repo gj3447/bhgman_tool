@@ -18,11 +18,13 @@ from typing import Any, Optional, Protocol, runtime_checkable
 
 
 class NotImplementedStageError(NotImplementedError):
+    # KG: eureka-canonical-2026-05-26
     """Stage explicitly declared not-yet-implemented. Caller must accept this."""
 
 
 @dataclass(frozen=True)
 class StageResult:
+    # KG: eureka-canonical-2026-05-26
     stage: str
     ok: bool
     payload: Any = None
@@ -31,6 +33,7 @@ class StageResult:
 
 @runtime_checkable
 class Stage(Protocol):
+    # KG: eureka-canonical-2026-05-26
     """A single pipeline stage. Stateless. Returns a StageResult."""
 
     name: str
@@ -40,6 +43,7 @@ class Stage(Protocol):
 
 @runtime_checkable
 class InductionOperator(Protocol):
+    # KG: eureka-canonical-2026-05-26
     """Pluggable induction operator (FCA / AMIE3 / Leiden-LLM / future).
 
     Implementations live in induction_operators/ and self-register via
@@ -59,12 +63,14 @@ class InductionOperator(Protocol):
 
 @runtime_checkable
 class QualityGate(Protocol):
+    # KG: eureka-canonical-2026-05-26
     """Pluggable quality gate. Returns ok + diagnostic."""
 
     def check(self, abstract_classes: list[Any]) -> StageResult: ...
 
 
 class NotImplementedStage:
+    # KG: eureka-canonical-2026-05-26
     """Explicit stand-in for a pipeline stage that is not yet implemented.
 
     Calling run() raises NotImplementedStageError with the reason. This makes the

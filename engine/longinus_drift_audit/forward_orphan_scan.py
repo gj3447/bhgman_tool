@@ -49,6 +49,7 @@ def scan_forward_orphans(
     *,
     required_fields: Iterable[str] = REQUIRED_HUB_FIELDS,
 ) -> list[ForwardOrphanRecord]:
+    # KG: ATOM_Skill_longinus
     """Detect :KnowledgeHub nodes missing required materialization fields.
 
     Returns one ForwardOrphanRecord per (hub, missing_field) pair — a single hub
@@ -72,6 +73,7 @@ def scan_forward_orphans(
 
 
 def forward_orphan_ratio(*, total_hubs: int, orphan_count: int) -> float:
+    # KG: ATOM_Skill_longinus
     """Forward orphan / total hubs ratio. 0.0 = perfect materialization."""
     if total_hubs == 0:
         return 0.0
@@ -90,6 +92,7 @@ def resolve_forward_orphan(
     ruflo_grade: str | None = None,
     fs_root: Path | str | None = None,
 ) -> bool:
+    # KG: ATOM_Skill_longinus
     """Write package_path/source_file/ruflo_grade onto a :KnowledgeHub.
 
     If `fs_root` is given, verify the path actually exists on disk before writing
@@ -122,6 +125,7 @@ def bulk_resolve(
     resolutions: dict[str, dict[str, Optional[str]]],
     fs_root: Path | str | None = None,
 ) -> dict[str, bool]:
+    # KG: ATOM_Skill_longinus
     """Apply multiple forward orphan resolutions in one call.
 
     `resolutions` shape:

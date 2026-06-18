@@ -113,6 +113,7 @@ def validate_seed_invariants(
     *,
     max_depth: int = MAX_DEPTH,
 ) -> list[SeedViolation]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗 배치의 불변식 위반 리스트. 빈 리스트 = 통과. plant_seeds() 전 게이트.
 
     로컬 4종(dup/depth/dangling/E3) 항상 + E1(orphan anchor)은 run_cypher 있을 때만.

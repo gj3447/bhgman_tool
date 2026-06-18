@@ -28,6 +28,7 @@ from engine.hades.extract_superclass import common_methods
 
 @dataclass(frozen=True)
 class GatedApplyResult:
+    # KG: hades-canonical-2026-05-27
     status: str  # "APPLIED" | "REVERTED" | "REFUSED"
     reason: str
     test_returncode: int | None = None
@@ -44,6 +45,7 @@ def _lifted_method_names(src: str, class_names: set[str]) -> list[str]:
 def apply_extract_superclass_to_module(
     src: str, base_name: str, class_names: list[str]
 ) -> str | None:
+    # KG: hades-canonical-2026-05-27
     """Rewrite a module: insert a shared base class + make each named class inherit
     it and drop the lifted methods. Returns new source, or None if nothing to lift.
 
@@ -98,6 +100,7 @@ def apply_extract_superclass_gated(
     test_cmd: list[str],
     cwd: str | Path | None = None,
 ) -> GatedApplyResult:
+    # KG: hades-canonical-2026-05-27
     """Apply the refactor to ``file_path`` only if ``test_cmd`` still passes.
 
     APPLIED  → gate passed, file rewritten.

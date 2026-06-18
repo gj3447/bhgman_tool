@@ -47,6 +47,7 @@ from engine.occam.scoring import (
 
 
 class ViolationKind(str, Enum):
+    # KG: occam-kam-canonical-2026-05-26
     SUBSUMPTION_CYCLE = "SUBSUMPTION_CYCLE"
     DANGLING_PARENT = "DANGLING_PARENT"
     DANGLING_TYPE = "DANGLING_TYPE"
@@ -67,6 +68,7 @@ _INCONSISTENCY_KINDS = frozenset(
 
 @dataclass(frozen=True)
 class OntologyClassRecord:
+    # KG: occam-kam-canonical-2026-05-26
     """온톨로지 클래스 한 개. parents=subClassOf 상위, disjoint_with=disjointWith 형제."""
 
     name: str
@@ -82,6 +84,7 @@ class OntologyClassRecord:
 
 @dataclass(frozen=True)
 class OntologyInstanceRecord:
+    # KG: occam-kam-canonical-2026-05-26
     """온톨로지 인스턴스 한 개. types=rdf:type 으로 가리키는 클래스들."""
 
     name: str
@@ -90,6 +93,7 @@ class OntologyInstanceRecord:
 
 @dataclass(frozen=True)
 class Violation:
+    # KG: occam-kam-canonical-2026-05-26
     kind: ViolationKind
     subject: str  # 위반 주체 노드 이름
     detail: str
@@ -98,6 +102,7 @@ class Violation:
 
 @dataclass(frozen=True)
 class OntologyReport:
+    # KG: occam-kam-canonical-2026-05-26
     violations: tuple[Violation, ...] = ()
     supersession_candidates: tuple[tuple[str, SupersessionScore], ...] = ()
     flagged: tuple[tuple[str, SupersessionScore], ...] = ()  # FLAG_ONLY/VERIFY (machloket)
@@ -325,6 +330,7 @@ def ontology_pass(
     instances: list[OntologyInstanceRecord] | None = None,
     config: ScoringConfig | None = None,
 ) -> OntologyReport:
+    # KG: occam-kam-canonical-2026-05-26
     """온톨로지 층 DL 정합성 + scored 위생 pass. covenant: surface만, 삭제 0.
 
     6 DL 검사(순환/dangling×2/punning/unsatisfiable/disjointness)는 각 _check_* 헬퍼,

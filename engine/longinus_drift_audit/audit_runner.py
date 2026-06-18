@@ -66,6 +66,7 @@ def _sha256_phase(kg: KgClient, verify_sha256: bool, repo_tag: str | None = None
 
 
 class LonginusAudit:
+    # KG: ATOM_Skill_longinus
     def __init__(
         self,
         *,
@@ -191,6 +192,7 @@ class LonginusAudit:
 
 
 def build_kg(args: argparse.Namespace) -> KgClient:
+    # KG: ATOM_Skill_longinus
     """Construct the KG backend from parsed args.
 
     ``--kg mock`` (default) is a self-test fixture with empty refs — NOT a real
@@ -218,6 +220,7 @@ def build_kg(args: argparse.Namespace) -> KgClient:
 
 
 def main() -> int:
+    # KG: ATOM_Skill_longinus
     parser = argparse.ArgumentParser(prog="longinus-audit")
     parser.add_argument("--code-root", required=True)
     parser.add_argument(

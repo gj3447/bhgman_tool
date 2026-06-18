@@ -58,6 +58,7 @@ DEFAULT_WINDOW_DAYS: int = 7
 
 @dataclass(frozen=True)
 class DispatchAuditReport:
+    # KG: ATOM_Skill_longinus
     """Result of a single :class:`DispatchAuditor.audit_window` call.
 
     Mirrors :class:`AuditReport` shape from sha256_baseline but scoped to
@@ -79,6 +80,7 @@ class DispatchAuditReport:
 
 
 class DispatchAuditor:
+    # KG: ATOM_Skill_longinus
     """7-day rolling cardinality_match ratchet over :DispatchHyperedge.
 
     Invariants enforced (canonical: SKILLS/jaebaeman/references/validation.md V5):
@@ -237,6 +239,7 @@ class DispatchAuditor:
 
 
 def main() -> None:
+    # KG: ATOM_Skill_longinus
     """One-shot CLI: ``python -m engine.longinus_drift_audit.dispatch_audit``.
 
     Wires to the daemon (``daemon.py``) for periodic scans in a follow-up

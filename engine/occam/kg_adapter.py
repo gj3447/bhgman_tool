@@ -43,6 +43,7 @@ _FETCH_SCOPED = (
 
 
 def fetch_cypher(scope: str | None) -> tuple[str, dict]:
+    # KG: occam-kam-canonical-2026-05-26
     """scope(label/path 부분문자열)로 SourceCodeNode 조회 cypher. None=전체."""
     if scope:
         return _FETCH_SCOPED, {"scope": scope}
@@ -50,6 +51,7 @@ def fetch_cypher(scope: str | None) -> tuple[str, dict]:
 
 
 def parse_node_records(rows: list[dict]) -> list[NodeRecord]:
+    # KG: occam-kam-canonical-2026-05-26
     """KG row → NodeRecord. 필수 필드(sourcePath/sha256/lineCount) 결손 row는 방어적 skip."""
     out: list[NodeRecord] = []
     for r in rows:
@@ -67,6 +69,7 @@ def parse_node_records(rows: list[dict]) -> list[NodeRecord]:
 
 
 def fetch_source_nodes(run_cypher: CypherRunner, scope: str | None = None) -> list[NodeRecord]:
+    # KG: occam-kam-canonical-2026-05-26
     """KG에서 SourceCodeNode를 NodeRecord로 가져온다 (PRIMARY = cypher)."""
     cypher, params = fetch_cypher(scope)
     return parse_node_records(run_cypher(cypher, params))
@@ -108,6 +111,7 @@ def _is_exact_dup(candidate: SupersessionCandidate) -> bool:
 
 
 def build_supersede(candidate: SupersessionCandidate) -> tuple[str, dict]:
+    # KG: occam-kam-canonical-2026-05-26
     """supersede write cypher + params. covenant: 파괴적 토큰 부재를 assert로 강제."""
     cypher = _SUPERSEDE_CYPHER
     up = cypher.upper()
@@ -129,6 +133,7 @@ def build_supersede(candidate: SupersessionCandidate) -> tuple[str, dict]:
 
 @dataclass(frozen=True)
 class ApplyResult:
+    # KG: occam-kam-canonical-2026-05-26
     """supersede 적용 결과. dry_run=True면 planned만, write 없음 (covenant)."""
 
     superseded: tuple[str, ...] = ()
@@ -143,6 +148,7 @@ def apply_supersessions(
     write_cypher: CypherRunner | None = None,
     dry_run: bool = True,
 ) -> ApplyResult:
+    # KG: occam-kam-canonical-2026-05-26
     """후보를 supersede 적용. dry_run 기본 — write_cypher 있어도 실행 안 함.
 
     write_cypher=None이거나 dry_run=True → planned cypher만 반환 (archive-only 안전).

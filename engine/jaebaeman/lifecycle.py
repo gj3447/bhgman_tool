@@ -32,6 +32,7 @@ FORBIDDEN_TOKENS = ("DELETE", "DETACH", "REMOVE")
 
 @dataclass(frozen=True)
 class SeedOutcome:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """한 씨앗의 dispatch 결과 + terminal status (COLLECTED | FAILED)."""
 
     seed_name: str
@@ -45,6 +46,7 @@ Dispatcher = Callable[["list[SeedRecord]"], "list[SeedOutcome]"]
 
 @dataclass(frozen=True)
 class LifecycleResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     outcomes: tuple[SeedOutcome, ...] = ()
     planned_status_writes: tuple[tuple[str, dict], ...] = ()
     dry_run: bool = True
@@ -87,6 +89,7 @@ def _assert_covenant(cypher: str) -> None:
 
 
 def build_status_write(outcome: SeedOutcome) -> tuple[str, dict]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗 status 전이 cypher + params. covenant: 파괴 토큰 부재 assert."""
     _assert_covenant(_STATUS_SET)
     return _STATUS_SET, {"name": outcome.seed_name, "status": outcome.status.value}
@@ -99,6 +102,7 @@ def drive_seeds(
     write_cypher: CypherRunner | None = None,
     apply: bool = False,
 ) -> LifecycleResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """READY 씨앗을 dispatcher로 출격→수확하고 terminal status를 KG에 write. dry-run 기본.
 
     dispatcher가 Phase 2(dispatch)+3(collect)를 수행(병렬 가능), 이 함수가 Phase 4(status write).
@@ -131,6 +135,7 @@ def agent_dispatcher(
     max_workers: int = 8,
     system: str = "너는 계획 실행기다. 주어진 작업을 간결히 수행하고 결과를 보고하라.",
 ) -> Dispatcher:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """실 dispatcher — engine.agents.dispatch.dispatch_parallel(ThreadPoolExecutor) 래핑.
 
     **병렬 출격**: N 씨앗을 동시에 (IO-bound LLM 호출 겹치기). web off = 공정 예산.

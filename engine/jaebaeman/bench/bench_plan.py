@@ -81,6 +81,7 @@ def _time(fn) -> float:
 
 
 def bench_shape(branching: int, depth: int, runs: int) -> dict:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     n = _node_count(branching, depth)
     dec_tree = _build_decompose_tree(branching, depth)
     dec = static_decompose(dec_tree)
@@ -128,6 +129,7 @@ def _eager_prefix(g, dec, depth, k):
 
 
 def bench_local(branching: int, depth: int, runs: int) -> dict:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """LocalKgStore(JSON 파일) 실제 write 비용 — plant_null(no-op) 대비 진짜 IO 오버헤드."""
     import tempfile  # noqa: PLC0415
 
@@ -155,6 +157,7 @@ def bench_local(branching: int, depth: int, runs: int) -> dict:
 
 
 def main() -> int:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     parser = argparse.ArgumentParser(prog="bench_plan")
     parser.add_argument(
         "--shapes",

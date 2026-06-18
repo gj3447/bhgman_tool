@@ -16,6 +16,7 @@ from engine.longinus_drift_audit.kg_binding_state import KGBindingState, KGMulti
 
 @dataclass(frozen=True)
 class KGBindingDelta:
+    # KG: ATOM_Skill_longinus
     """A delta between two KGBindingState values (state pair)."""
 
     src: KGBindingState
@@ -24,12 +25,14 @@ class KGBindingDelta:
 
 @dataclass(frozen=True)
 class KGMultiBindingDelta:
+    # KG: ATOM_Skill_longinus
     src: KGMultiBindingState
     tgt: KGMultiBindingState
 
 
 @dataclass(frozen=True)
 class LineRangeDelta:
+    # KG: ATOM_Skill_longinus
     """A delta between two LineRange values."""
 
     src: LineRange
@@ -38,6 +41,7 @@ class LineRangeDelta:
 
 @dataclass(frozen=True)
 class RangesDelta:
+    # KG: ATOM_Skill_longinus
     """Delta on a tuple of line ranges (view side of the multi-binding lens)."""
 
     src: tuple[LineRange, ...]

@@ -26,12 +26,14 @@ HOLE_PREFIX = "·"  # fresh 변수 표시 (불일치 위치)
 
 
 def tokenize(line: str) -> list[str]:
+    # KG: eureka-canonical-2026-05-26
     """코드 라인 → 토큰 (식별자/숫자/연산자/구두점). 공백 무시."""
     return re.findall(r"[A-Za-z_][A-Za-z0-9_]*|\d+|\S", line)
 
 
 @dataclass(frozen=True)
 class LggTemplate:
+    # KG: eureka-canonical-2026-05-26
     template: list[str]  # 고정 토큰 + ·N 변수
     holes: int
     arity: int  # 토큰 수
@@ -41,6 +43,7 @@ class LggTemplate:
 
 
 def anti_unify(sequences: list[list[str]]) -> LggTemplate | None:
+    # KG: eureka-canonical-2026-05-26
     """Plotkin LGG (token-sequence). 같은 위치 전부 일치=keep, 불일치=fresh var(·N).
 
     구조(길이) 다르면 None — 단순 LGG 불가, SP decompose 위임(클론 아님).
@@ -73,6 +76,7 @@ def anti_unify(sequences: list[list[str]]) -> LggTemplate | None:
 
 
 def propose_template(snippets: list[str], min_instances: int = 3) -> dict:
+    # KG: eureka-canonical-2026-05-26
     """N 코드 조각 → LGG 템플릿 PROPOSE (dry-run, materialize 안 함).
 
     Rule of Three: min_instances 미만이면 propose 안 함(premature abstraction 가드).

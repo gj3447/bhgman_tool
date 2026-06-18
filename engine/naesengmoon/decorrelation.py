@@ -30,12 +30,14 @@ ECHO_THRESHOLD = 0.65  # bigram-overlap above this ⇒ critic echoed the executo
 
 
 class CriticKind(str, Enum):
+    # KG: naesengmoon-canonical-2026-05-19
     ORACLE = "oracle"  # deterministic checker — substrate-disjoint from LLMs
     JUDGMENT = "judgment"  # LLM critic — subject to correlated common-mode failure
 
 
 @dataclass
 class CriticVerdict:
+    # KG: naesengmoon-canonical-2026-05-19
     lens: str
     kind: CriticKind
     passed: bool
@@ -45,6 +47,7 @@ class CriticVerdict:
 
 @dataclass
 class EnsembleResult:
+    # KG: naesengmoon-canonical-2026-05-19
     verdict: str  # PASS | CONDITIONAL_PASS | FAIL
     n_critics: int  # total dispatched
     n_oracle: int
@@ -61,6 +64,7 @@ class EnsembleResult:
 
 
 def effective_n(n_oracle: int, n_judgment: int, rho: float) -> float:
+    # KG: naesengmoon-canonical-2026-05-19
     """Oracle critics stay independent; judgment critics collapse under correlation ρ."""
     rho = min(max(rho, 0.0), 1.0)
     if n_judgment <= 1:
@@ -84,6 +88,7 @@ def _pearson_binary(a: list[bool], b: list[bool]) -> float | None:
 
 
 def estimate_rho(vote_matrix: list[list[bool]]) -> float | None:
+    # KG: naesengmoon-canonical-2026-05-19
     """Mean pairwise correlation of binary votes over a shared known-answer probe set.
 
     vote_matrix[c] = critic c's PASS/FAIL votes on the same probe items. None if < 2 usable
@@ -113,6 +118,7 @@ _MIN_HINT_BIGRAMS = (
 
 
 def prompt_echo_score(executor_hint: str, critic_reasoning: str) -> float:
+    # KG: naesengmoon-canonical-2026-05-19
     """Overlap coefficient of bigrams — fraction of the executor's framing echoed by the critic.
 
     High ⇒ the critic likely inherited the executor's hypothesis rather than verifying
@@ -134,6 +140,7 @@ def flag_echo(
     reasonings: dict[str, str],
     threshold: float = ECHO_THRESHOLD,
 ) -> None:
+    # KG: naesengmoon-canonical-2026-05-19
     """Mutate JUDGMENT verdicts: set echo_suspect when their reasoning echoes the executor."""
     for v in verdicts:
         if v.kind is CriticKind.JUDGMENT and v.lens in reasonings:
@@ -162,6 +169,7 @@ def _verdict_label(
 
 
 def aggregate(verdicts: list[CriticVerdict], rho: float | None = None) -> EnsembleResult:
+    # KG: naesengmoon-canonical-2026-05-19
     """Oracle-veto + independence-weighted judgment → honest verdict carrying n_eff.
 
     rho: measured inter-critic correlation (via estimate_rho); falls back to DEFAULT_RHO."""

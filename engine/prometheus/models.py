@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Gap:
+    # KG: ATOM_Skill_prometheus
     """KG의 빈 곳 — 답이 안 채워진 OpenQuestion / VerdictPending 노드."""
 
     id: str
@@ -21,6 +22,7 @@ class Gap:
 
 @dataclass(frozen=True)
 class Query:
+    # KG: ATOM_Skill_prometheus
     """gap → 결정론 템플릿으로 도출한 검색어 (LLM 아님)."""
 
     gap_id: str
@@ -29,6 +31,7 @@ class Query:
 
 @dataclass(frozen=True)
 class FetchedDoc:
+    # KG: ATOM_Skill_prometheus
     """fetcher(boundary I/O)가 돌려준 외부 문서."""
 
     url: str
@@ -37,6 +40,7 @@ class FetchedDoc:
 
 @dataclass(frozen=True)
 class Finding:
+    # KG: ATOM_Skill_prometheus
     """외부에서 ingest한 :ResearchFinding 후보 (정전 필드명 정렬)."""
 
     finding_id: str
@@ -64,6 +68,7 @@ class Finding:
 
 @dataclass(frozen=True)
 class AcquireReport:
+    # KG: ATOM_Skill_prometheus
     """획득 1회 결과. dry_run=True면 planned cypher만 (PROPOSE)."""
 
     cycle_id: str

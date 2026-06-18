@@ -29,6 +29,7 @@ _SORRY = re.compile(r"(?::=|by)\s+sorry\b")
 
 @dataclass(frozen=True)
 class FileAxiomProfile:
+    # KG: naesengmoon-canonical-2026-05-19
     stem: str  # filename without .lean (= Lean module name)
     axioms: tuple[str, ...]
     opaques: tuple[str, ...]
@@ -71,6 +72,7 @@ def _tainted_stems(profiles: list[FileAxiomProfile]) -> set[str]:
 
 @dataclass(frozen=True)
 class AxiomAuditReport:
+    # KG: naesengmoon-canonical-2026-05-19
     profiles: tuple[FileAxiomProfile, ...]
     tainted: frozenset[str] = field(default_factory=frozenset)
 
@@ -108,6 +110,7 @@ class AxiomAuditReport:
 
 
 def audit_lean_dir(lean_dir: str | Path) -> AxiomAuditReport:
+    # KG: naesengmoon-canonical-2026-05-19
     """lean/ 의 .lean 파일들을 스캔해 axiom-vs-theorem 위상 보고. 결정론, neo4j/LLM 불필요."""
     root = Path(lean_dir)
     profiles = sorted((_profile_file(f) for f in root.glob("*.lean")), key=lambda p: p.stem)
@@ -117,6 +120,7 @@ def audit_lean_dir(lean_dir: str | Path) -> AxiomAuditReport:
 
 
 def check_claim(report: AxiomAuditReport, claimed_resting: int | None) -> str:
+    # KG: naesengmoon-canonical-2026-05-19
     """리뷰/문서의 'N theorems rest on the axiom' 주장을 실측과 대조 (비판 자체의 검증)."""
     actual = report.axiom_resting_theorems
     if claimed_resting is None:

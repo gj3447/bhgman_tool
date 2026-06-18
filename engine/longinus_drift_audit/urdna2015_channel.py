@@ -57,6 +57,7 @@ Triple = tuple[str, str, str]
 
 
 class UrdnaDriftReport(BaseModel):
+    # KG: ATOM_Skill_longinus
     """Output of L2 Jaccard-on-canonical-triples drift comparison.
 
     Note ``preliminary_longinus_novel`` field (Naesengmoon HIGH#2 fix):
@@ -130,6 +131,7 @@ def compute_urdna_drift(
     warn_threshold: float = 0.05,
     halt_threshold: float = 0.15,
 ) -> UrdnaDriftReport:
+    # KG: ATOM_Skill_longinus
     """Compute Jaccard drift between two RDF triple snapshots.
 
     Args:

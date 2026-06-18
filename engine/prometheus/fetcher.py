@@ -17,12 +17,14 @@ from engine.prometheus.models import FetchedDoc, Query
 
 @runtime_checkable
 class Fetcher(Protocol):
+    # KG: ATOM_Skill_prometheus
     """쿼리 → 외부 문서들. 구현이 boundary I/O를 담당."""
 
     def fetch(self, query: Query) -> list[FetchedDoc]: ...
 
 
 class StaticFetcher:
+    # KG: ATOM_Skill_prometheus
     """오프라인/결정론 fetcher — corpus {query_text: [FetchedDoc]} backed. 테스트/무네트워크."""
 
     def __init__(self, corpus: dict[str, list[FetchedDoc]]) -> None:
@@ -33,6 +35,7 @@ class StaticFetcher:
 
 
 class CallableFetcher:
+    # KG: ATOM_Skill_prometheus
     """임의 `query→list[FetchedDoc]` 콜러블 wrap — production web search/HTTP plug-in 지점."""
 
     def __init__(self, fn: Callable[[Query], list[FetchedDoc]]) -> None:

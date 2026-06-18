@@ -11,6 +11,7 @@ from engine.longinus_drift_audit.models import CodeSymbol, KgRefRecord, LayerCov
 
 
 def compress_kg_ref(*, sourceId: str, sourcePath: str) -> str:
+    # KG: ATOM_Skill_longinus
     """L6 — Information Compression.
 
     한 줄 ``# KG: <sourceId>`` (sourcePath은 추론 가능: file:line of the comment) 가
@@ -22,6 +23,7 @@ def compress_kg_ref(*, sourceId: str, sourcePath: str) -> str:
 def layer_coverage(
     *, sites: Iterable[ReferenceSite], total_kg_refs: int, pierce_rate: float
 ) -> LayerCoverage:
+    # KG: ATOM_Skill_longinus
     """간이 layer coverage — 모든 site 가 정상이면 각 layer 1.0.
 
     pierce_rate (L7): 코드 lines per KG ref. ``1`` 이상이면 healthy.
@@ -56,6 +58,7 @@ def layer_coverage(
 
 
 def make_pierce_rate(*, total_code_symbols: int, total_kg_refs: int) -> float:
+    # KG: ATOM_Skill_longinus
     """L7 — pierce rate. *최소 침습으로 최대 추적*.
 
     Definition: kg_refs / code_symbols. 0.5 ≈ 절반의 심볼이 KG-referenced.
@@ -66,6 +69,7 @@ def make_pierce_rate(*, total_code_symbols: int, total_kg_refs: int) -> float:
 
 
 def symbol_to_reference_site(*, sym: CodeSymbol, kg_record: KgRefRecord) -> ReferenceSite:
+    # KG: ATOM_Skill_longinus
     return ReferenceSite(
         sourceId=kg_record.sourceId,
         sourcePath=sym.sourcePath,

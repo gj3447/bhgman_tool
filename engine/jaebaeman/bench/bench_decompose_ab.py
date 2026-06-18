@@ -71,6 +71,7 @@ def _baseline_arm() -> DecomposeFn:
 
 
 def main() -> int:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     import os  # noqa: PLC0415
 
     parser = argparse.ArgumentParser(prog="bench_decompose_ab")

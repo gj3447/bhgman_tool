@@ -23,6 +23,7 @@ def compute_ged(
     cost_delete: int = 1,
     cost_relabel: int = 1,
 ) -> GedReport:
+    # KG: ATOM_Skill_longinus
     """Label-based GED — node identity by sourceId/symbol-name.
 
     - insertions: KG ref 존재 ∧ 코드에서 미참조 (코드 측에 *추가*해야 함)
@@ -75,6 +76,7 @@ def compute_ged(
 
 
 def drift_score_to_severity(score: float) -> str:
+    # KG: ATOM_Skill_longinus
     """0.0 (clean) ~ 1.0 (catastrophic) → human-readable."""
     if score == 0.0:
         return "PERFECT"

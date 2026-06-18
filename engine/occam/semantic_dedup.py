@@ -33,6 +33,7 @@ _KEY_ALLOWLIST = frozenset({"name", "findingId", "id"})
 
 
 def cosine(a: list[float], b: list[float]) -> float:
+    # KG: occam-kam-canonical-2026-05-26
     """코사인 유사도. 영벡터/길이불일치는 0.0 (안전)."""
     if not a or not b or len(a) != len(b):
         return 0.0
@@ -46,6 +47,7 @@ def cosine(a: list[float], b: list[float]) -> float:
 
 @dataclass(frozen=True)
 class NearDupPair:
+    # KG: occam-kam-canonical-2026-05-26
     """의미론 near-dup 1쌍. keep=정전 유지, drop=supersede 후보 (PROPOSE)."""
 
     keep_id: str
@@ -67,6 +69,7 @@ def find_near_duplicates(
     threshold: float = 0.95,
     weight: dict[str, float] | None = None,
 ) -> list[NearDupPair]:
+    # KG: occam-kam-canonical-2026-05-26
     """(id, vector) 목록 → cosine ≥ threshold 쌍. i<j pairwise, 결정론 정렬."""
     w = weight or {}
     pairs: list[NearDupPair] = []
@@ -96,6 +99,7 @@ _SUPERSEDE_TMPL = (
 
 
 def plan_supersession(pair: NearDupPair, *, key: str = "name") -> tuple[str, dict]:
+    # KG: occam-kam-canonical-2026-05-26
     """near-dup 쌍 → supersede write cypher + params. covenant: 파괴 토큰 부재 assert."""
     if key not in _KEY_ALLOWLIST:
         raise ValueError(f"key must be one of {sorted(_KEY_ALLOWLIST)}, got {key!r}")
@@ -113,6 +117,7 @@ def plan_supersession(pair: NearDupPair, *, key: str = "name") -> tuple[str, dic
 
 @dataclass(frozen=True)
 class SemanticDedupReport:
+    # KG: occam-kam-canonical-2026-05-26
     pairs: tuple[NearDupPair, ...]
     scanned: int
     threshold: float
@@ -139,6 +144,7 @@ def run_semantic_dedup(
     write_cypher: CypherRunner | None = None,
     apply: bool = False,
 ) -> SemanticDedupReport:
+    # KG: occam-kam-canonical-2026-05-26
     """(id, text) 목록 → embed → near-dup → PROPOSE/apply. dry-run 기본 (archive-only)."""
     ids = [i for i, _ in items]
     texts = [t for _, t in items]

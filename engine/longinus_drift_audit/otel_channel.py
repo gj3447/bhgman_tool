@@ -80,6 +80,7 @@ _VALID_OPERATIONS = {"invoke_agent", "create_agent", "execute_tool"}
 
 
 class DispatchSpanRecord(BaseModel):
+    # KG: ATOM_Skill_longinus
     """A finished (or about-to-run) subagent dispatch, projected to GenAI semconv.
 
     ``intent_n`` / ``actual_n`` mirror :class:`dispatch_audit.DispatchAuditor`
@@ -103,16 +104,19 @@ class DispatchSpanRecord(BaseModel):
 
 
 def otel_available() -> bool:
+    # KG: ATOM_Skill_longinus
     """True iff ``opentelemetry-{api,sdk}`` is importable (``[otel]`` installed)."""
     return _OTEL_AVAILABLE
 
 
 def span_name(record: DispatchSpanRecord) -> str:
+    # KG: ATOM_Skill_longinus
     """GenAI span-name convention: ``"{operation} {agent.name}"`` (pure)."""
     return f"{record.operation} {record.agent_name}"
 
 
 def span_attributes(record: DispatchSpanRecord) -> dict[str, Any]:
+    # KG: ATOM_Skill_longinus
     """Project a dispatch record to GenAI-semconv + bhgman attributes (pure).
 
     None-valued optional fields (model, token usage) are omitted rather than
@@ -139,6 +143,7 @@ def span_attributes(record: DispatchSpanRecord) -> dict[str, Any]:
 
 
 def get_tracer(name: str = _TRACER_NAME):  # type: ignore[no-untyped-def]
+    # KG: ATOM_Skill_longinus
     """Return the OpenTelemetry tracer, or ``None`` when ``[otel]`` is absent.
 
     Uses the globally-configured TracerProvider (the host application is
@@ -157,6 +162,7 @@ def dispatch_span(
     *,
     tracer=None,  # type: ignore[no-untyped-def]
 ) -> Iterator[Optional[Any]]:
+    # KG: ATOM_Skill_longinus
     """Context manager wrapping a live dispatch as a GenAI span.
 
     Usage (in the orchestration / runtime layer)::
@@ -188,6 +194,7 @@ def emit_dispatch(
     *,
     tracer=None,  # type: ignore[no-untyped-def]
 ) -> bool:
+    # KG: ATOM_Skill_longinus
     """Emit a one-shot span for an already-finished dispatch (post-hoc).
 
     Returns ``True`` if a span was emitted, ``False`` on graceful no-op
@@ -220,6 +227,7 @@ def record_active_drift_event(
     severity: str,
     note: Optional[str] = None,
 ) -> bool:
+    # KG: ATOM_Skill_longinus
     """Attach a ``gen_ai.dispatch.drift`` event to the *currently-active* span.
 
     Called from :meth:`dispatch_audit.DispatchAuditor.record_drift` so that drift

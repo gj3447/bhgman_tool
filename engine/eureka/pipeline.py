@@ -49,6 +49,7 @@ from engine.eureka.validator import gate_before_merge
 
 @dataclass
 class PipelineConfig:
+    # KG: eureka-canonical-2026-05-26
     cycle_id: str
     gamma_sweep: tuple[float, ...] = (0.5, 1.0, 2.0)
     fca_min_extent: int = 2
@@ -112,6 +113,7 @@ class PipelineConfig:
 
 @dataclass
 class PipelineRun:
+    # KG: eureka-canonical-2026-05-26
     config: PipelineConfig
     stages: list[StageResult] = field(default_factory=list)
 
@@ -120,6 +122,7 @@ class PipelineRun:
 
 
 def stage_1_extract(reference_sites: list[dict]) -> list[dict]:
+    # KG: eureka-canonical-2026-05-26
     """L1-L7 ReferenceSite → :Candidate. Pure relabel."""
     return [{**rs, "_label": "Candidate"} for rs in reference_sites]
 
@@ -166,6 +169,7 @@ def stage_4_induce(
     cycle_id: str,
     config: PipelineConfig,
 ) -> tuple[list[AbstractClass], list[GeneralizesEdge], FcaResult]:
+    # KG: eureka-canonical-2026-05-26
     """induction operator dispatch (config.method): 'fca'(default) | 'amie3' | 'leiden-llm' | 'leiden-true'.
 
     모든 operator 가 FcaResult(FormalConcept) shape로 정규화 → 후단(quality/oracle/fidelity/gate)
@@ -226,6 +230,7 @@ def stage_4_induce_fca(
     cycle_id: str,
     config: PipelineConfig,
 ) -> tuple[list[AbstractClass], list[GeneralizesEdge], FcaResult]:
+    # KG: eureka-canonical-2026-05-26
     """Back-compat alias — FCA path. 신규 호출은 stage_4_induce(dispatch) 권장."""
     return stage_4_induce(formal_context, cycle_id, config)
 
@@ -233,6 +238,7 @@ def stage_4_induce_fca(
 def stage_4_7_oracle_gate(
     acs: list[AbstractClass], config: "PipelineConfig", pr: "PipelineRun"
 ) -> bool:
+    # KG: eureka-canonical-2026-05-26
     """나생문 oracle hard-gate (executable lens-class) — 선(先) gate. KG backend.
 
     2 lens-class: 이 oracle(실행) 렌즈가 hard pre-gate, 이후 판단(LLM) 렌즈 = stage_5.
@@ -280,6 +286,7 @@ def stage_4_7_oracle_gate(
 def stage_4_8_fidelity_gate(
     acs: list[AbstractClass], config: "PipelineConfig", pr: "PipelineRun"
 ) -> None:
+    # KG: eureka-canonical-2026-05-26
     """fidelity gate (SOFT, stage_4.8) — consilience. config.fidelity_runner 없으면 skip.
 
     per-ac witness coherence 측정 → SOFT_WARN/PASS 기록. block 안 함(판단렌즈가 흡수).
@@ -303,6 +310,7 @@ def stage_4_8_fidelity_gate(
 
 
 def stage_5_naesengmoon_gate(abstract_classes: list[AbstractClass]) -> list[AbstractClass]:
+    # KG: eureka-canonical-2026-05-26
     return [
         ac.model_copy(update={"status": AbstractClassStatus.VERDICT_PENDING})
         for ac in abstract_classes
@@ -324,6 +332,7 @@ _PERSIST_AC_CYPHER = (
 def stage_6_persist(
     gated_acs: list[AbstractClass], persist_cypher: CypherRunner, *, accept: bool
 ) -> int:
+    # KG: eureka-canonical-2026-05-26
     """Persist gated AbstractClass nodes to the KG so hades can fetch + realize them.
 
     Closes the dead producer→consumer seam: hades reads `verdictStatus='ACCEPTED'` but
@@ -375,6 +384,7 @@ def run(
     formal_context: dict[str, frozenset[str]],
     config: PipelineConfig,
 ) -> PipelineRun:
+    # KG: eureka-canonical-2026-05-26
     pr = PipelineRun(config=config)
 
     candidates = stage_1_extract(reference_sites)
@@ -459,6 +469,7 @@ def run_from_kg(
     config: PipelineConfig,
     fc_cfg: FormalContextConfig | None = None,
 ) -> PipelineRun:
+    # KG: eureka-canonical-2026-05-26
     """stage_0 (KG-EXTRACT) → 전체 pipeline. formal_context_builder로 KG에서 context 빌드 후 run().
 
     Phase 1 wiring (2026-05-27): build_formal_context(3 pre-filter) → induce_fca.
@@ -473,6 +484,7 @@ def run_from_kg(
 
 
 def main() -> None:
+    # KG: eureka-canonical-2026-05-26
     cfg = PipelineConfig(cycle_id="cli-demo")
     result = run(reference_sites=[], formal_context={}, config=cfg)
     for s in result.stages:

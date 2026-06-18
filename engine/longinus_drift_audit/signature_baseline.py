@@ -22,6 +22,7 @@ from engine.longinus_drift_audit.models import CodeSymbol
 
 
 def signatures_by_ref(symbols: list[CodeSymbol]) -> dict[str, str]:
+    # KG: ATOM_Skill_longinus
     """sourceId → live canonical signature, from each symbol's `# KG:` refs.
 
     First symbol wins per ref (refs are normally 1:1 with the symbol they anchor).
@@ -39,6 +40,7 @@ def signatures_by_ref(symbols: list[CodeSymbol]) -> dict[str, str]:
 def record_signature_baselines(
     kg: KgClient, symbols: list[CodeSymbol], repo_tag: str | None = None
 ) -> int:
+    # KG: ATOM_Skill_longinus
     """Freeze each bound symbol's current signature onto its ReferenceSite.
 
     Returns the number of sites whose baseline was (re)written. Idempotent — a

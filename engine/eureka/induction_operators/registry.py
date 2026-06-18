@@ -20,6 +20,7 @@ _INDUCED_AUTOMATED = {"fca", "amie3", "leiden-llm", "leiden-true"}
 
 
 def register_method(name: str, *, automated: bool = False) -> None:
+    # KG: eureka-canonical-2026-05-26
     """Register a new induction method name. Idempotent."""
     with _LOCK:
         _REGISTERED.add(name)
@@ -28,10 +29,12 @@ def register_method(name: str, *, automated: bool = False) -> None:
 
 
 def is_registered(name: str) -> bool:
+    # KG: eureka-canonical-2026-05-26
     return name in _REGISTERED
 
 
 def is_automated(name: str) -> bool:
+    # KG: eureka-canonical-2026-05-26
     """True if the method is an automated inducer (FCA/AMIE3/Leiden-LLM family).
 
     Used by AbstractClass model_validator to enforce induced→{extent,intent,
@@ -41,6 +44,7 @@ def is_automated(name: str) -> bool:
 
 
 def known_methods() -> frozenset[str]:
+    # KG: eureka-canonical-2026-05-26
     return frozenset(_REGISTERED)
 
 

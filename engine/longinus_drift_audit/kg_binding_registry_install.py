@@ -20,6 +20,7 @@ from engine.longinus_drift_audit.kg_binding_categories import (
 
 
 def install(registry=default_registry) -> None:
+    # KG: ATOM_Skill_longinus
     """Register 4 KG-binding categories. Idempotent on re-import."""
     pairs = (
         ("kg_binding", kg_binding_cat),

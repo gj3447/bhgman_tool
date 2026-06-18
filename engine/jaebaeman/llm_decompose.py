@@ -73,6 +73,7 @@ def llm_decompose(
     task_type: str = "research",
     max_subgoals: int = 8,
 ) -> DecomposeFn:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """LLM이 하위 목표 제안 → gate 검증 → Goal 리스트. 실패/빈 결과 → fallback(없으면 잎).
 
     fallback = kg_decompose(run_cypher) 등 결정론 분해기 (client 없을 때 legion 패턴).
@@ -97,6 +98,7 @@ def llm_decompose(
 def from_agent_client(
     client, *, model: str = "claude-haiku-4-5-20251001", system: str = ""
 ) -> LlmComplete:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """engine.agents.client.AgentClient → LlmComplete 어댑터. complete(system,user,model).text."""
     sys_prompt = system or "JSON만 출력. 설명 금지."
 

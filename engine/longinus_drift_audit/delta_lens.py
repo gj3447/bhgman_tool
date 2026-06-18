@@ -32,6 +32,7 @@ DV = TypeVar("DV")  # view delta type (morphism in view category)
 
 @dataclass(frozen=True)
 class DeltaCategory(Generic[S, DS]):
+    # KG: ATOM_Skill_longinus
     """A delta category: states + morphisms (deltas) with id and composition."""
 
     id_delta: Callable[[S], DS]
@@ -42,6 +43,7 @@ class DeltaCategory(Generic[S, DS]):
 
 @dataclass(frozen=True)
 class DeltaLens(Generic[S, V, DS, DV]):
+    # KG: ATOM_Skill_longinus
     """Diskin 2011 asymmetric delta lens.
 
     get:  S -> V
@@ -80,6 +82,7 @@ class DeltaLens(Generic[S, V, DS, DV]):
 
 
 def identity_delta_lens(cat: DeltaCategory[S, DS]) -> DeltaLens[S, S, DS, DS]:
+    # KG: ATOM_Skill_longinus
     """Identity delta lens on a single delta category."""
     return DeltaLens(
         source_cat=cat,
@@ -96,6 +99,7 @@ def identity_delta_lens(cat: DeltaCategory[S, DS]) -> DeltaLens[S, S, DS, DS]:
 
 @dataclass(frozen=True)
 class IntDelta:
+    # KG: ATOM_Skill_longinus
     """A trivial delta on integers: from src to tgt, with no extra structure."""
 
     src: int
@@ -111,6 +115,7 @@ _INT_CAT: DeltaCategory[int, IntDelta] = DeltaCategory(
 
 
 def int_delta_cat() -> DeltaCategory[int, IntDelta]:
+    # KG: ATOM_Skill_longinus
     return _INT_CAT
 
 

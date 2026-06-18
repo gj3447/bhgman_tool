@@ -49,6 +49,7 @@ DEFAULT_CONFIG_RELOAD_INTERVAL_SECONDS = 5.0
 
 @dc.dataclass(frozen=True)
 class RepoEntry:
+    # KG: ATOM_Skill_longinus
     """One repo in the watch config."""
 
     path: Path
@@ -61,6 +62,7 @@ class RepoEntry:
 
 @dc.dataclass(frozen=True)
 class WatchConfig:
+    # KG: ATOM_Skill_longinus
     """Parsed TOML config."""
 
     repos: tuple[RepoEntry, ...]
@@ -106,6 +108,7 @@ def _entry_from_dict(d: dict[str, str]) -> RepoEntry:
 
 
 def safe_read_hash(file_path: Path) -> tuple[bytes, str]:
+    # KG: ATOM_Skill_longinus
     """Read file bytes once, compute SHA-256, return both.
 
     Guarantees no time-of-check / time-of-use race — the same bytes are
@@ -193,6 +196,7 @@ def _iter_repo_files(repo_root: Path) -> list[Path]:
 
 
 class LonginusDaemon:
+    # KG: ATOM_Skill_longinus
     """Multi-repo drift watch daemon."""
 
     def __init__(self, config_path: Path) -> None:

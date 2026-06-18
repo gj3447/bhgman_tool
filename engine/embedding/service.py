@@ -49,6 +49,7 @@ def _default_encoder() -> _Encoder:
 
 @dataclass
 class EmbeddingService:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """Semantic substrate facade. Stateless apart from the encoder + optional runner."""
 
     spec: VectorIndexSpec
@@ -153,6 +154,7 @@ def make_service(
     write_cypher: CypherRunner | None = None,
     encoder: _Encoder | None = None,
 ) -> EmbeddingService:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """Convenience constructor. Index name defaults to ``vec_<label_lowercased>``."""
     name = index_name or f"vec_{label.lower()}"
     spec = VectorIndexSpec(index_name=name, label=label, text_prop=text_prop)

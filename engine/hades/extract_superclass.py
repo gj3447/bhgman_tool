@@ -25,6 +25,7 @@ _FuncT = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 @dataclass(frozen=True)
 class ExtractSuperclassPatch:
+    # KG: hades-canonical-2026-05-27
     base_name: str
     base_source: str  # generated superclass code (real)
     common_methods: tuple[str, ...]  # method names lifted into the base
@@ -37,6 +38,7 @@ def _methods(cls: ast.ClassDef) -> dict[str, ast.AST]:
 
 
 def common_methods(classdefs: list[ast.ClassDef]) -> list[str]:
+    # KG: hades-canonical-2026-05-27
     """Method names present in EVERY class with a structurally identical body.
 
     Structural identity = equal ``ast.dump`` (line numbers excluded by default),
@@ -131,6 +133,7 @@ def _build_diff(
 def extract_superclass(
     base_name: str, class_sources: dict[str, str]
 ) -> ExtractSuperclassPatch | None:
+    # KG: hades-canonical-2026-05-27
     """Generate a real Extract-Superclass patch, or None if nothing to lift.
 
     Uses ast.unparse → canonical (formatting/comments not preserved). For a
@@ -156,6 +159,7 @@ def extract_superclass(
 def extract_superclass_cst(
     base_name: str, class_sources: dict[str, str]
 ) -> ExtractSuperclassPatch | None:
+    # KG: hades-canonical-2026-05-27
     """Format-preserving Extract-Superclass via libcst — comments, blank lines and
     quoting survive the roundtrip (unlike ast.unparse). Same contract as
     extract_superclass(). Lifted-method selection reuses the ast structural LGG.

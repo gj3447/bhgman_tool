@@ -30,6 +30,7 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 
 
 def project_cypher(graph_name: str, orientation: str = "UNDIRECTED") -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """gds.graph.project (native, 전체 그래프). leiden은 UNDIRECTED 필수(실 검증). name만 $param."""
     cypher = (
         "CALL gds.graph.project($graph, '*', {R: {type: '*', orientation: $orient}}) "
@@ -40,6 +41,7 @@ def project_cypher(graph_name: str, orientation: str = "UNDIRECTED") -> tuple[st
 
 
 def drop_cypher(graph_name: str) -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """gds.graph.drop(failIfMissing=false) — 멱등(없어도 에러 안 남). pre-drop + cleanup 겸용."""
     return (
         "CALL gds.graph.drop($graph, false) YIELD graphName RETURN graphName",
@@ -48,6 +50,7 @@ def drop_cypher(graph_name: str) -> tuple[str, dict]:
 
 
 def leiden_stream_cypher(graph_name: str, gamma: float) -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """gds.leiden.stream → flat (name, community) rows. randomSeed 고정 = 재현."""
     cypher = (
         "CALL gds.leiden.stream($graph, {gamma: $gamma, randomSeed: 42, maxLevels: 10}) "
@@ -58,6 +61,7 @@ def leiden_stream_cypher(graph_name: str, gamma: float) -> tuple[str, dict]:
 
 
 def parse_communities(rows: list[dict]) -> dict[int, list[str]]:
+    # KG: eureka-canonical-2026-05-26
     """[{name, community}] → {community_id: [names]}. None/결손 row skip."""
     out: dict[int, list[str]] = {}
     for r in rows:
@@ -69,6 +73,7 @@ def parse_communities(rows: list[dict]) -> dict[int, list[str]]:
 
 
 class LeidenCommunityStage:
+    # KG: eureka-canonical-2026-05-26
     """gds.leiden 군집화 — project(UNDIRECTED)→stream→drop. gds 부재 시 degrade(비치명적)."""
 
     def __init__(
@@ -103,6 +108,7 @@ class LeidenCommunityStage:
 
 
 def summarize_community(cid: int, members: list[str], top: int = 5) -> str:
+    # KG: eureka-canonical-2026-05-26
     """결정론 digest — LLM 없이 멤버 수 + 대표 멤버. 재현 가능(정렬 고정)."""
     ms = sorted(members)
     head = ", ".join(ms[:top])
@@ -111,6 +117,7 @@ def summarize_community(cid: int, members: list[str], top: int = 5) -> str:
 
 
 class SummarizeStage:
+    # KG: eureka-canonical-2026-05-26
     """community→요약. context['communities'](Stage 2 산출) 소비. 결정론, 인프라 불필요."""
 
     name = "3-summarize"
@@ -129,6 +136,7 @@ def _tokens(text: str) -> set[str]:
 
 
 def lexical_rrf(query: str, summaries: Mapping[int, str], k: int = 60) -> list[tuple[int, float]]:
+    # KG: eureka-canonical-2026-05-26
     """community-summary 토큰 overlap RRF 랭킹 (결정론)."""
     q = _tokens(query)
     scored = [(cid, len(q & _tokens(s))) for cid, s in summaries.items()]
@@ -138,6 +146,7 @@ def lexical_rrf(query: str, summaries: Mapping[int, str], k: int = 60) -> list[t
 
 
 def vector_query_cypher(index_name: str, k: int) -> tuple[str, dict]:
+    # KG: eureka-canonical-2026-05-26
     """native vector index 검색 (db.index.vector.queryNodes, dim 768 검증). $vec는 호출자 주입."""
     cypher = (
         "CALL db.index.vector.queryNodes($index, $k, $vec) YIELD node, score "
@@ -147,6 +156,7 @@ def vector_query_cypher(index_name: str, k: int) -> tuple[str, dict]:
 
 
 class HybridRetrievalStage:
+    # KG: eureka-canonical-2026-05-26
     """2-채널 검색: lexical(community summary) + native vector(node embedding).
 
     채널 granularity가 다르므로(community vs node) 강제 융합 않고 **둘 다 보고**(정직).
@@ -197,6 +207,7 @@ class HybridRetrievalStage:
 
 
 def partition_stability(prev: Mapping[int, list[str]], curr: Mapping[int, list[str]]) -> float:
+    # KG: eureka-canonical-2026-05-26
     """best-match Jaccard 평균 — 1.0=동일 partition, 낮을수록 drift. 빈 prev=1.0(baseline)."""
     if not prev:
         return 1.0
@@ -215,6 +226,7 @@ def partition_stability(prev: Mapping[int, list[str]], curr: Mapping[int, list[s
 
 
 class DriftLoopStage:
+    # KG: eureka-canonical-2026-05-26
     """partition 안정도. context['previous_communities'] 대비 Jaccard < τ면 re-induction 신호."""
 
     def __init__(self, tau: float = 0.75):
@@ -235,6 +247,7 @@ class DriftLoopStage:
 def wire_default_stages(
     run_cypher: CypherRunner, gamma: float = 1.0, vector_index: str | None = None
 ) -> dict[str, Any]:
+    # KG: eureka-canonical-2026-05-26
     """4개 stage 구현체를 PipelineConfig 주입용 dict로. CLI/호출자가 config에 펼쳐 넣는다."""
     return {
         "stage_community": LeidenCommunityStage(run_cypher, gamma=gamma),

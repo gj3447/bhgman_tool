@@ -16,6 +16,7 @@ def scan_reverse_orphans(
     symbols: Iterable[CodeSymbol],
     skip_kinds: set[str] | None = None,
 ) -> list[str]:
+    # KG: ATOM_Skill_longinus
     """Return list of sourcePath strings — symbols WITHOUT any `# KG: x` ref.
 
     skip_kinds: e.g. ``{'module'}`` to ignore module-level symbols.
@@ -32,6 +33,7 @@ def scan_reverse_orphans(
 
 
 def reverse_orphan_ratio(*, total_symbols: int, orphan_count: int) -> float:
+    # KG: ATOM_Skill_longinus
     """orphan_count / total_symbols. 0.0 = full coverage, 1.0 = complete blind."""
     if total_symbols == 0:
         return 0.0

@@ -14,10 +14,12 @@ from engine.eureka.induction_models import AbstractClass, GeneralizesEdge
 
 
 class SchemaViolation(ValueError):
+    # KG: eureka-canonical-2026-05-26
     """Raised when an AbstractClass or GeneralizesEdge fails schema validation."""
 
 
 def validate_abstract_class(payload: dict[str, Any]) -> AbstractClass:
+    # KG: eureka-canonical-2026-05-26
     try:
         return AbstractClass.model_validate(payload)
     except Exception as e:
@@ -25,6 +27,7 @@ def validate_abstract_class(payload: dict[str, Any]) -> AbstractClass:
 
 
 def validate_generalizes_edge(payload: dict[str, Any]) -> GeneralizesEdge:
+    # KG: eureka-canonical-2026-05-26
     try:
         return GeneralizesEdge.model_validate(payload)
     except Exception as e:
@@ -35,6 +38,7 @@ def gate_before_merge(
     abstract_classes: list[dict[str, Any]],
     edges: list[dict[str, Any]],
 ) -> tuple[list[AbstractClass], list[GeneralizesEdge]]:
+    # KG: eureka-canonical-2026-05-26
     """Run validation gate for a batch about to be MERGEd into Neo4j.
 
     Raises SchemaViolation on first failure (fail-fast). Caller catches and

@@ -26,6 +26,7 @@ def detect_missing(
     require_kg_ref_kinds: set[str] | None = None,
     ref_exists: Callable[[str], bool] | None = None,
 ) -> list[DriftRecord]:
+    # KG: ATOM_Skill_longinus
     """PutGet violation: code symbol 존재 ∧ KG ref 부재.
 
     require_kg_ref_kinds: filter only these kinds (default: all).
@@ -74,6 +75,7 @@ def detect_orphan(
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
+    # KG: ATOM_Skill_longinus
     """GetPut violation: KG ref 존재 ∧ 코드 대응 부재.
 
     Reverse: code 측 모든 `# KG: x` 의 합집합에 없는 KG ref 들.
@@ -149,6 +151,7 @@ def detect_sig_mismatch(
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
+    # KG: ATOM_Skill_longinus
     """PutGet violation (signature drift): KG ref vs live code signature.
 
     Two modes per ref:
@@ -191,6 +194,7 @@ def _sig_drift_record(s: CodeSymbol, ref: str, rec: KgRefRecord) -> DriftRecord 
 
 
 def detect_pattern_div(*, symbols: Iterable[CodeSymbol]) -> list[DriftRecord]:
+    # KG: ATOM_Skill_longinus
     """PutPut violation: 동일 KG ref 가 다중 sourcePath 에 분산 — 의도된 multi-ref
     인지 drift 인지 caller 판단 필요. *경고*만.
     """
@@ -220,6 +224,7 @@ def detect_label_rot(
     symbols: Iterable[CodeSymbol],
     kg_refs: dict[str, KgRefRecord],
 ) -> list[DriftRecord]:
+    # KG: ATOM_Skill_longinus
     """PutPut violation: KG ref 라벨이 코드 심볼 이름과 모두 다름.
 
     e.g., `# KG: lesson-foo-2026` 코멘트가 함수 `bar_baz()` 에 붙어있는데
@@ -254,6 +259,7 @@ def _label_substring(a: str, b: str) -> bool:
 
 
 def summarize_drifts(records: Iterable[DriftRecord]) -> dict[str, int]:
+    # KG: ATOM_Skill_longinus
     return dict(Counter(r.drift_type.value for r in records))
 
 
@@ -263,6 +269,7 @@ def detect_all(
     kg_refs: dict[str, KgRefRecord],
     ref_exists: Callable[[str], bool] | None = None,
 ) -> list[DriftRecord]:
+    # KG: ATOM_Skill_longinus
     """모든 5 drift 검출 — single dispatch.
 
     ref_exists threads to detect_missing only (the other 4 drifts compare

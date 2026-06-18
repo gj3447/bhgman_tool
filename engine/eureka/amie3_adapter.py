@@ -27,6 +27,7 @@ from engine.eureka.induction_operators.fca import FcaResult, FormalConcept
 def formal_context_to_triples(
     context: Mapping[str, frozenset[str]],
 ) -> list[tuple[str, str, str]]:
+    # KG: eureka-canonical-2026-05-26
     """object→attrs를 typed triple(s,p,o)로. attr 'P:V'→(obj,P,V), 'plain'→(obj,HAS_ATTR,plain)."""
     triples: list[tuple[str, str, str]] = []
     for obj, attrs in context.items():
@@ -69,6 +70,7 @@ def horn_rules_to_concepts(
     min_pca_confidence: float = 0.5,
     min_extent: int = 2,
 ) -> FcaResult:
+    # KG: eureka-canonical-2026-05-26
     """high-PCA Horn rule → FormalConcept. intent=body+head attrs, extent=intent 만족 객체."""
     seen: set[tuple[frozenset[str], frozenset[str]]] = set()
     survivors: list[FormalConcept] = []
@@ -101,6 +103,7 @@ def induce_via_amie3(
     min_extent: int = 2,
     **amie3_kwargs: Any,
 ) -> FcaResult:
+    # KG: eureka-canonical-2026-05-26
     """context → triples → AMIE3(Java, 주입식) → Horn rules → FormalConcept(FcaResult).
 
     amie3_fn 기본=induce_amie3(Java subprocess). 테스트는 fake 주입(Java 불필요).

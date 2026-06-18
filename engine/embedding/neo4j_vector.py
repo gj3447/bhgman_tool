@@ -46,6 +46,7 @@ def _ident(kind: str, value: str) -> str:
 
 @dataclass(frozen=True)
 class VectorIndexSpec:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """One node-label's vector index. ``text_prop`` is the source text to embed."""
 
     index_name: str
@@ -68,6 +69,7 @@ class VectorIndexSpec:
 
 @dataclass(frozen=True)
 class Neighbor:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """One kNN hit. ``score`` is cosine similarity in [0,1] for cosine indexes."""
 
     node_id: str
@@ -77,6 +79,7 @@ class Neighbor:
 
 @dataclass(frozen=True)
 class BackfillReport:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     index_name: str
     scanned: int
     embedded: int
@@ -89,6 +92,7 @@ class BackfillReport:
 
 
 def ensure_vector_index(run_cypher: CypherRunner, spec: VectorIndexSpec) -> None:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """Idempotently create the native VECTOR index. No-op if it already exists."""
     cypher = (
         f"CREATE VECTOR INDEX {spec.index_name} IF NOT EXISTS "
@@ -103,6 +107,7 @@ def ensure_vector_index(run_cypher: CypherRunner, spec: VectorIndexSpec) -> None
 def fetch_unembedded(
     run_cypher: CypherRunner, spec: VectorIndexSpec, *, key_prop: str = "name", limit: int = 1000
 ) -> list[tuple[str, str]]:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """(node_key, text) for nodes that have text but no embedding yet."""
     _ident("key_prop", key_prop)
     cypher = (
@@ -124,6 +129,7 @@ def backfill_embeddings(
     limit: int = 1000,
     apply: bool = False,
 ) -> BackfillReport:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """Embed every text-bearing node missing a vector and write it via the safe
     ``db.create.setNodeVectorProperty`` proc (validates dim against the index).
 
@@ -167,6 +173,7 @@ def knn(
     key_prop: str = "name",
     min_score: float = 0.0,
 ) -> list[Neighbor]:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """Approximate k-nearest neighbours via the native vector index."""
     _ident("key_prop", key_prop)
     cypher = (
@@ -195,6 +202,7 @@ def knn_pairs(
     k: int = 10,
     key_prop: str = "name",
 ) -> list[tuple[str, str, float]]:
+    # KG: project-legion-unification-kg-engine-2026-06-01
     """Near-duplicate (a_id, b_id, score) pairs via per-node kNN instead of O(N²).
 
     Each item probes the index for its k neighbours; self-hits and the symmetric

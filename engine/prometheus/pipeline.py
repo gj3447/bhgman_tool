@@ -29,6 +29,7 @@ def run_acquire(
     gap_limit: int = 50,
     researched_at: str = "",
 ) -> AcquireReport:
+    # KG: ATOM_Skill_prometheus
     """경계축 획득 1회. PROPOSE 기본 (apply+write_cypher 일 때만 ingest write)."""
     gaps = tuple(scan_gaps(run_cypher, limit=gap_limit))
     queries = tuple(derive_query(g) for g in gaps)

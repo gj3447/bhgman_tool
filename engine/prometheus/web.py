@@ -85,6 +85,7 @@ def _extract_result_links(html: str, limit: int) -> list[str]:
 
 
 class WebSearchFetcher:
+    # KG: ATOM_Skill_prometheus
     """query → DDG 검색 → top-K 결과 fetch → FetchedDoc. HTTP는 url_open 주입(테스트 가능)."""
 
     def __init__(
@@ -113,6 +114,7 @@ class WebSearchFetcher:
 
 
 class SearXNGFetcher:
+    # KG: ATOM_Skill_prometheus
     """SearXNG self-host(키 0) 검색 → top-K URL fetch → FetchedDoc.
 
     DDG HTML 스크래핑(WebSearchFetcher)보다 안정적 — 검색을 우리 인프라(dgx SearXNG)가 실행.
@@ -150,6 +152,7 @@ class SearXNGFetcher:
 
 
 def make_web_fetcher() -> WebSearchFetcher | SearXNGFetcher:
+    # KG: ATOM_Skill_prometheus
     """BHGMAN_SEARXNG_URL 있으면 SearXNGFetcher(self-host, 안정), 없으면 DDG WebSearchFetcher."""
     import os  # noqa: PLC0415
 

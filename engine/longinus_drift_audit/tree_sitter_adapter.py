@@ -26,6 +26,7 @@ from engine.longinus_drift_audit.kg_binding_delta_lens import RangesDelta
 
 @dataclass(frozen=True)
 class TSChangedRange:
+    # KG: ATOM_Skill_longinus
     """A tree-sitter changed range — start_byte/end_byte plus start/end row.
 
     Mirrors `TSRange` in tree-sitter Python bindings. Row indices are 0-indexed
@@ -39,6 +40,7 @@ class TSChangedRange:
 
 
 def ts_range_to_line_range(r: TSChangedRange) -> LineRange:
+    # KG: ATOM_Skill_longinus
     """Convert a tree-sitter 0-indexed row range to a Longinus 1-indexed LineRange."""
     return LineRange(start_line=r.start_row_0 + 1, end_line=r.end_row_0 + 1)
 
@@ -47,6 +49,7 @@ def changed_ranges_to_view_delta(
     old_ranges: Sequence[LineRange],
     new_ranges: Sequence[LineRange],
 ) -> RangesDelta:
+    # KG: ATOM_Skill_longinus
     """Build a view-side delta tuple from before/after LineRange sequences.
 
     Caller obtains `old_ranges` from the prior KG binding state and `new_ranges`
@@ -57,6 +60,7 @@ def changed_ranges_to_view_delta(
 
 
 def is_tree_sitter_available() -> bool:
+    # KG: ATOM_Skill_longinus
     """Soft check for tree_sitter installation; never raises."""
     try:
         import tree_sitter  # noqa: F401
@@ -67,6 +71,7 @@ def is_tree_sitter_available() -> bool:
 
 
 def example_workflow_doc() -> str:
+    # KG: ATOM_Skill_longinus
     """Return a docstring-style example of the expected integration flow.
 
     Returned as text rather than executed because tree-sitter usage requires

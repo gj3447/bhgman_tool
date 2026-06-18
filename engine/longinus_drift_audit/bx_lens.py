@@ -23,6 +23,7 @@ V = TypeVar("V")
 
 
 class Lens(Generic[S, V]):
+    # KG: ATOM_Skill_longinus
     """Reference Lens between KG state (s : S) and code value (v : V)."""
 
     def __init__(
@@ -65,6 +66,7 @@ class Lens(Generic[S, V]):
 
 
 def make_dict_lens(key: str) -> Lens:
+    # KG: ATOM_Skill_longinus
     """A simple lens between `dict` KG state and string value at fixed `key`.
 
     GET: state[key]

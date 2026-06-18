@@ -45,6 +45,7 @@ from enum import Enum
 
 
 class EntrenchmentTier(str, Enum):
+    # KG: occam-kam-canonical-2026-05-26
     """AGM epistemic entrenchment tier → guard 패널티 e ∈ [0,1].
 
     canonical/lesson/contract/verdict = never-archive (e=1.0, consensus c3 정전).
@@ -78,6 +79,7 @@ NEVER_ARCHIVE_TIERS = frozenset(t for t, e in _ENTRENCHMENT.items() if e >= 1.0)
 
 
 class Verdict(str, Enum):
+    # KG: occam-kam-canonical-2026-05-26
     SUPERSEDE = "SUPERSEDE"  # σ ≥ θ_supersede: 아카이브 후보 확정
     VERIFY = "VERIFY"  # 회색지대: 나생문에 검증 dispatch
     KEEP = "KEEP"  # σ 낮음: 손대지 않음
@@ -87,6 +89,7 @@ class Verdict(str, Enum):
 
 @dataclass(frozen=True)
 class ScoringConfig:
+    # KG: occam-kam-canonical-2026-05-26
     """모든 자유 파라미터 한 곳. magic number 금지 (MethodologyConfig 정신)."""
 
     halflife_days: float = 90.0  # staleness 반감기: 90일 미사용 → s=0.5
@@ -105,6 +108,7 @@ class ScoringConfig:
 
 @dataclass(frozen=True)
 class NodeScoreMeta:
+    # KG: occam-kam-canonical-2026-05-26
     """한 노드의 scoring 입력. occam.py NodeRecord 옆에 붙는 메타데이터.
 
     occam의 dedup 결과(redundancy)와 KG 메타(age/invocation/tier)를 모은다."""
@@ -126,6 +130,7 @@ class NodeScoreMeta:
 
 @dataclass(frozen=True)
 class SupersessionScore:
+    # KG: occam-kam-canonical-2026-05-26
     """scoring 결과 — 연속 σ + 3 성분 + verdict (감사 가능)."""
 
     sigma: float
@@ -142,6 +147,7 @@ class SupersessionScore:
 
 
 def staleness(age_days: float, halflife_days: float) -> float:
+    # KG: occam-kam-canonical-2026-05-26
     """시간 decay: s = 1 − 2^(−age/halflife) ∈ [0,1). age=halflife → 0.5, age=0 → 0.
 
     age로 단조 증가, halflife로 단조 감소. Ebbinghaus 망각곡선 형."""
@@ -151,21 +157,25 @@ def staleness(age_days: float, halflife_days: float) -> float:
 
 
 def deadness(invocation_count: int, invocation_scale: float) -> float:
+    # KG: occam-kam-canonical-2026-05-26
     """사용기반 deadness: d = 2^(−inv/scale) ∈ (0,1]. inv=0 → 1.0(dead), 많을수록 →0."""
     return math.pow(2.0, -invocation_count / invocation_scale)
 
 
 def candidacy(redundancy: float, staleness_v: float, deadness_v: float) -> float:
+    # KG: occam-kam-canonical-2026-05-26
     """noisy-OR: C = 1 − (1−r)(1−s)(1−d) ∈ [0,1]. 한 신호만 강해도 C↑ (Pearl 1988)."""
     return 1.0 - (1.0 - redundancy) * (1.0 - staleness_v) * (1.0 - deadness_v)
 
 
 def entrenchment_penalty(tier: EntrenchmentTier) -> float:
+    # KG: occam-kam-canonical-2026-05-26
     """AGM epistemic entrenchment e ∈ [0,1]. canonical 등 = 1.0 → guard=0."""
     return _ENTRENCHMENT[tier]
 
 
 def guard(entrenchment_v: float, has_successor: bool) -> float:
+    # KG: occam-kam-canonical-2026-05-26
     """truth-guard 거부권: G = (1−e)·twin_gate ∈ [0,1]. e=1 또는 twin 부재 → G=0."""
     twin_gate = 1.0 if has_successor else 0.0
     return (1.0 - entrenchment_v) * twin_gate
@@ -175,6 +185,7 @@ def guard(entrenchment_v: float, has_successor: bool) -> float:
 
 
 def score_node(meta: NodeScoreMeta, config: ScoringConfig | None = None) -> SupersessionScore:
+    # KG: occam-kam-canonical-2026-05-26
     """σ = candidacy · guard ∈ [0,1] + verdict 판정.
 
     안전 불변식 (Lean 형식화):

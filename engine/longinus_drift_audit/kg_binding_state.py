@@ -15,6 +15,7 @@ from engine.longinus_drift_audit.edit_lens_line_range import LineRange
 
 @dataclass(frozen=True)
 class KGBindingState:
+    # KG: ATOM_Skill_longinus
     """A KG node binding state: (node_id, file_path, line_range)."""
 
     node_id: str
@@ -24,6 +25,7 @@ class KGBindingState:
 
 @dataclass(frozen=True)
 class KGMultiBindingState:
+    # KG: ATOM_Skill_longinus
     """KG node bound to N line_range hooks. Models Longinus 1:N essence:
     a single KG node may correspond to multiple disjoint code spans."""
 

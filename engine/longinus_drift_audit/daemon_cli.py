@@ -31,6 +31,7 @@ def _ensure_config_dir() -> None:
 
 
 def cmd_add(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Add a repo to the watch config."""
     _ensure_config_dir()
     if DEFAULT_CONFIG_PATH.exists():
@@ -48,6 +49,7 @@ def cmd_add(args: argparse.Namespace) -> int:
 
 
 def cmd_start(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Start the daemon (foreground in skeleton; production should daemonize)."""
     _ensure_config_dir()
     if DEFAULT_PID_PATH.exists():
@@ -80,6 +82,7 @@ def cmd_start(args: argparse.Namespace) -> int:
 
 
 def cmd_stop(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Stop the running daemon (SIGTERM)."""
     if not DEFAULT_PID_PATH.exists():
         print("daemon not running", file=sys.stderr)
@@ -96,6 +99,7 @@ def cmd_stop(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Show daemon + per-repo status."""
     if DEFAULT_PID_PATH.exists():
         pid = DEFAULT_PID_PATH.read_text().strip()
@@ -119,6 +123,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_logs(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Tail the daemon log."""
     if not DEFAULT_LOG_PATH.exists():
         print("no log file yet", file=sys.stderr)
@@ -139,6 +144,7 @@ def cmd_logs(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    # KG: ATOM_Skill_longinus
     p = argparse.ArgumentParser(
         prog="bhgman-daemon",
         description="Longinus multi-repo drift detection daemon",
@@ -167,6 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # KG: ATOM_Skill_longinus
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

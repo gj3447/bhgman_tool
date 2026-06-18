@@ -10,6 +10,7 @@ from enum import Enum
 
 
 class RealizeStatus(str, Enum):
+    # KG: hades-canonical-2026-05-27
     PLANNED = "PLANNED"  # dry-run 계획만 (기본)
     REFUSED = "REFUSED"  # 가드 위반 (PROVISIONAL/REJECTED, >max_sites 등)
     APPLIED = "APPLIED"  # 실제 실현됨 (dry_run=False + apply)
@@ -17,6 +18,7 @@ class RealizeStatus(str, Enum):
 
 @dataclass(frozen=True)
 class MaterializationPlan:
+    # KG: hades-canonical-2026-05-27
     """추상→구체 실현 계획. operations + 역연산(undo) = reversibility-first."""
 
     concept: str
@@ -28,6 +30,7 @@ class MaterializationPlan:
 
 @dataclass(frozen=True)
 class RealizeVerdict:
+    # KG: hades-canonical-2026-05-27
     concept: str
     status: RealizeStatus
     plan: MaterializationPlan | None

@@ -16,6 +16,7 @@ MAX_DEPTH = 3
 
 
 class SeedStatus(str, Enum):
+    # KG: 재배맨-v2-subagent-runtime-protocol
     READY = "READY"  # 심긴 직후 (dispatch 대기)
     DISPATCHED = "DISPATCHED"
     COLLECTED = "COLLECTED"
@@ -23,6 +24,7 @@ class SeedStatus(str, Enum):
 
 
 class GerminationMethod(str, Enum):
+    # KG: 재배맨-v2-subagent-runtime-protocol
     SINGLETON = "singleton"  # 자식 없는 단일 목표
     DECOMPOSE = "decompose"  # 상위 계획에서 분해되어 발아
     MANUAL = "manual"
@@ -30,6 +32,7 @@ class GerminationMethod(str, Enum):
 
 @dataclass(frozen=True)
 class Goal:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """계획의 입력 — 하나의 목표. anchor = 발아 원천 KG 노드(FK, 있으면)."""
 
     name: str
@@ -41,6 +44,7 @@ class Goal:
 
 @dataclass(frozen=True)
 class PlanNode:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """계획 트리 한 노드 = 씨앗 하나. children = 하위 계획(계획에 대한 계획).
 
     initial algebra `μX.(CHUPiece + List X)`의 한 layer: 잎(children=())이면 CHUPiece,
@@ -63,6 +67,7 @@ class PlanNode:
 
 @dataclass(frozen=True)
 class SeedRecord:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """materialize 대상 씨앗의 식별 정보 (PlanNode를 flatten한 한 줄)."""
 
     name: str
@@ -78,6 +83,7 @@ class SeedRecord:
 
 
 class ViolationCode(str, Enum):
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗 불변식 위반 코드. E1/E3/E4 = SKILL.md v2.2/v2.4 error variants 거울."""
 
     E1_ORPHAN_ANCHOR = "E1_ORPHAN_ANCHOR"  # 외부 anchor(source_id)가 KG에 없음 (FK orphan)
@@ -91,6 +97,7 @@ class ViolationCode(str, Enum):
 
 @dataclass(frozen=True)
 class SeedViolation:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """불변식 위반 1건. fail-closed 게이트가 모아서 raise/report."""
 
     code: ViolationCode
@@ -100,6 +107,7 @@ class SeedViolation:
 
 @dataclass(frozen=True)
 class SeedApplyResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """씨앗 심기 결과. dry_run=True면 planned만, write 없음 (covenant: MERGE-only)."""
 
     seeded: tuple[str, ...] = ()
@@ -111,6 +119,7 @@ class SeedApplyResult:
 
 @dataclass(frozen=True)
 class PlanResult:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """재배맨 1회 실행 결과 — 계획 트리 + 평탄화된 씨앗 + apply 결과."""
 
     goal: str

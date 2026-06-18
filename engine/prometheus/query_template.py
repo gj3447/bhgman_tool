@@ -17,6 +17,7 @@ _TEMPLATES: dict[str, str] = {
 
 
 def derive_query(gap: Gap) -> Query:
+    # KG: ATOM_Skill_prometheus
     q = gap.question or gap.id
     tmpl = _TEMPLATES.get(gap.kind, "{q}")
     return Query(gap_id=gap.id, text=tmpl.format(q=q).strip())
