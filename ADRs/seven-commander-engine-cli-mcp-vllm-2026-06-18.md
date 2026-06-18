@@ -52,8 +52,23 @@ CommanderEngine (uniform shape, per commander)
 
 - 게이트 = 기존 `engine/efficacy/` **preflight 3-falsifier**(순환성/신호부재/신호역전) + cheap A/B. *재발명 금지, 이 라인 통과 필수* (`project_efficacy_measurement_line`).
 - 절차(군단장 X마다): `deterministic_core(X)` vs `deterministic_core(X) + vllm_enrich(X)` 를 X 본령의 *borrowed test*(인용 이론 자체 falsifiable test, `feedback_efficacy_via_borrowed_theory_tests`)로 A/B → preflight 3-falsifier 통과한 **양(陽)의 신호만** enrich 슬롯 승격.
-- **사전 가설(측정으로 확정/반증)**: eureka(개념 명명·자연어 라벨), naesengmoon 판단렌즈(의미 적합성), prometheus(외부 리서치 합성)는 vLLM이 *그럴듯하게* 도움 → 이미 enrich 있음(prom/나생문) + eureka 후보. occam(KG dedup)·hades(CANONICAL write)·longinus(sha256 drift)는 *checkable 결정론*이라 A/B에서 ≈0 예상 → 측정 전 enrich 미배선 default. **단 이건 가설이지 결론 아님** — A/B가 반증하면 뒤집음.
-- 측정 결과는 `:EfficacyVerdict` 노드 + 본 ADR에 commander별 PASS/NULL 표로 결정화. NULL은 정직하게 "deterministic-only" 라벨 (vLLM 미장착이 결함 아님).
+#### D2-측정 (2026-06-18, `efficacy/VERDICT.md` 2026-06-02 sweep 적용)
+
+측정은 *이미 돌렸다* — 7군단장 전부 non-circular oracle로 잼(`falsifier.py` preflight). 헤드라인: **equal tool budget에서 인지적 우위 군단장 = 0** (두 독립 측정선 수렴). 이걸 vLLM-enrich scope에 적용:
+
+| 군단장 | 실측 | vLLM-enrich verdict |
+|---|---|---|
+| occam | AUC 0.602, twin redundancy 약함(age/invocation 캐리), σ A/B preflight **INVERTED**(twin 41<59) | **REJECT** (측정확정) — deterministic-only |
+| hades | 0.839 = operational completeness(test-reachability), 인지 locus 無 | **REJECT** — 순수 mechanism, 판단 locus 없음 |
+| jaebaeman | 1.000 = dispatch fidelity | **REJECT** — 인지 아님 |
+| longinus | synthetic Δ+0.227 → **실 git Δ+0.050**(noise, 4.5× 부풀림) | **REJECT** — sha256 결정론 코어 유지 |
+| naesengmoon | mutation-catch 0.52 = base-LLM 동급, 가치=oracle렌즈(환각불가 precision) | **KEEP LLM, no-win** — 판단렌즈 유지하되 oracle이 본가치 |
+| prometheus | verifiability 0.931 / novelty 0.933 = 진짜 synthesizer | **KEEP LLM** ✅ — vLLM 실제 작동, 이미 배선 |
+| eureka | +1.000 = planted best-case, 실 KG = synchronic cover(7/319) | **OPEN** — FCA floor + vLLM 개념명명, *유일 미측정·그럴듯* locus → cheap A/B 후보(`eureka_naming_ab`) |
+
+추가로 측정상 유일한 양의 신호 = **competence-boundary repair-LOOP**(per-commander enrich 아님, oracle-gated loop 구조): Lean error-feedback repair가 best-of-N 이김 **p=0.016 @ qwen 32b**. ⚠️ 32b raw JSONL 미커밋=historical/미확정, 7b 재핀=NULL → dgx 32b 재실행+커밋해야 확정.
+
+**결론**: 4 REJECT(측정확정) + 2 KEEP-LLM + 1 OPEN(eureka). NULL은 "deterministic-only"로 정직 라벨(vLLM 미장착 ≠ 결함). 잴 가치 남은 lever 2개뿐 — (a) eureka 개념명명 A/B (b) 32b repair-loop 재현. 둘 다 dgx vLLM 가용 시 라이브.
 
 ### D3. MCP 패리티 (명확한 gap, vLLM scope와 독립)
 
