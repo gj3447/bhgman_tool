@@ -147,6 +147,7 @@ def cmd_daemon(args: argparse.Namespace) -> int:
 
 
 def cmd_apt(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_apt_orchestrator
     """APT cycle dispatch (SA → SP → ST → SCW). --status nav / --gated runtime / else skill route."""
     if getattr(args, "status", False):
         return _cmd_apt_status(args)
@@ -318,6 +319,7 @@ def _cmd_apt_gated(args: argparse.Namespace) -> int:
 
 
 def cmd_tpa(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_tpa_orchestrator_v10
     """TPA reverse cycle. --status nav / --gated engine runtime / else skill route."""
     if getattr(args, "status", False):
         return _cmd_tpa_status(args)
@@ -430,6 +432,7 @@ def _grounding_source(args: argparse.Namespace):
 
 
 def cmd_prom(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_prometheus
     """프로메테우스 — 지식 선행 리서치. 런타임 있으면 실행, 없으면 skill route(graceful)."""
     if not args.topic:
         print("usage: bhgman-tool prom <N> <topic>", file=sys.stderr)
@@ -460,6 +463,7 @@ def cmd_prom(args: argparse.Namespace) -> int:
 
 
 def cmd_tlb(args: argparse.Namespace) -> int:
+    # KG: naesengmoon-canonical-2026-05-19
     """나생문 — 판단렌즈 ensemble critic. 런타임 있으면 실행, 없으면 skill route(graceful)."""
     if not args.target:
         print("usage: bhgman-tool tlb <target> [--lens NAME] [--claim TEXT]", file=sys.stderr)
@@ -494,6 +498,7 @@ def cmd_tlb(args: argparse.Namespace) -> int:
 
 
 def cmd_longinus(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Longinus reference binding. Bash dispatcher emulation for sha256/ged/reverse-scan ops."""
     if not args.op:
         print("usage: bhgman-tool longinus <op> [args...]", file=sys.stderr)
@@ -549,6 +554,7 @@ def cmd_longinus(args: argparse.Namespace) -> int:
 
 
 def cmd_harness(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_harness
     """하네스 — 3계층/4축 진단 엔진(결정론, 인프라 0). --route로 skill 라우팅."""
     if not args.action:
         print("usage: bhgman-tool harness <subject>", file=sys.stderr)
@@ -590,6 +596,7 @@ LIMIT 20;"""
 
 
 def cmd_longinus_floating(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_longinus
     """Floating concept-node scan — concept nodes with no Longinus binding to source.
 
     Operationalizes lesson-concept-nodes-created-without-longinus-binding-float-2026-05-29:
@@ -824,6 +831,7 @@ _SEMANTIC_TARGETS: dict[str, tuple[str, tuple[str, ...]]] = {
 
 
 def cmd_naesengmoon_audit(args: argparse.Namespace) -> int:
+    # KG: naesengmoon-canonical-2026-05-19
     """나생문 truth-렌즈 (결정론) — axiom-audit + falsifiability routing.
 
     "일관성"과 "참"의 간극을 드러낸다: Lean 정리는 *선언된 공리 위 일관성*을 증명하지 공리가
@@ -854,6 +862,7 @@ def cmd_naesengmoon_audit(args: argparse.Namespace) -> int:
 
 
 def cmd_occam_semantic(args: argparse.Namespace) -> int:
+    # KG: occam-kam-canonical-2026-05-26
     """오캄 의미론 near-dup — 텍스트 노드 임베딩 cosine ≥ θ 쌍을 supersede 후보로 surface.
 
     sha256-blind 자리(패러프레이즈 중복)를 임베딩으로 메움. dry-run 기본, --apply로 write.
@@ -929,6 +938,7 @@ def cmd_occam_semantic(args: argparse.Namespace) -> int:
 
 
 def cmd_occam(args: argparse.Namespace) -> int:
+    # KG: occam-kam-canonical-2026-05-26
     """오캄 — KG SourceCodeNode dedup pass. dry-run 기본, --apply로 SUPERSEDED write (reversible)."""
     if getattr(args, "semantic", False):
         return cmd_occam_semantic(args)
@@ -1117,6 +1127,7 @@ def _cmd_hades_apply(args: argparse.Namespace) -> int:
 
 
 def cmd_hades_extract_superclass(args: argparse.Namespace) -> int:
+    # KG: hades-canonical-2026-05-27
     """하데스 코드 실현 — 디렉터리에서 구조-동일 공통 메서드 클래스 찾아 Extract-Superclass
     패치 생성. PLAN 기본. --apply + --test-cmd 시 characterization-gate apply. neo4j 불필요."""
     from engine.hades.extract_superclass import (  # noqa: PLC0415
@@ -1148,6 +1159,7 @@ def cmd_hades_extract_superclass(args: argparse.Namespace) -> int:
 
 
 def cmd_hades(args: argparse.Namespace) -> int:
+    # KG: hades-canonical-2026-05-27
     """하데스 — ACCEPTED 추상을 KG에 실현(CANONICAL+INSTANCE_OF). dry-run 기본, --apply로 write."""
     if getattr(args, "extract_superclass", None):
         return cmd_hades_extract_superclass(args)
@@ -1189,6 +1201,7 @@ def _now_iso() -> str:
 
 
 def cmd_acquire(args: argparse.Namespace) -> int:
+    # KG: ATOM_Skill_prometheus
     """프로메테우스 결정론 엔진 — 경계축 ingest (gap→query→fetch→parse→ingest).
 
     LLM 불필요 (그건 `prom`). fetcher 미주입 CLI에선 gap+query surface + PROPOSE cypher.
@@ -1240,6 +1253,7 @@ def cmd_acquire(args: argparse.Namespace) -> int:
 
 
 def cmd_legion(args: argparse.Namespace) -> int:
+    # KG: adr-seven-commander-legion-architecture-2026-05-27
     """레기온 — 6 군단장 통일 닫힌 루프 (획득→연결→창조→정리→검증→실현) 1회 실행.
 
     결정론 코어가 floor (neo4j/local KG만으로 동작) + LLM은 선택적 enrichment(--llm).
@@ -1318,6 +1332,7 @@ def cmd_legion(args: argparse.Namespace) -> int:
 
 
 def cmd_bot(args: argparse.Namespace) -> int:
+    # KG: bhgman-bot-daemon-2026-06-16
     """bhgman 봇 — legion 닫힌루프 백그라운드 자율 데몬 (vLLM 추론 + KG + SearXNG + 하네스).
 
     moltbot 류 self-hosted 자율 에이전트의 bhgman 판. 각 tick = topic 선택 → legion run
@@ -1479,6 +1494,7 @@ def _germinate_after_plant(
 
 
 def cmd_jaebaeman(args: argparse.Namespace) -> int:
+    # KG: 재배맨-v2-subagent-runtime-protocol
     """재배맨 — 계획→씨앗 결정화. 목표를 계획 트리로 unfold하고 SubagentTaskSpec 씨앗으로 심는다.
 
     "씨앗 심기 = 계획 짜기"(사용자 정전 2026-06-01). dry-run 기본(planned만), --apply로 MERGE write.
@@ -1574,6 +1590,7 @@ def _emit_run_record(res, runners) -> None:
 
 
 def cmd_eureka(args: argparse.Namespace) -> int:
+    # KG: eureka-canonical-2026-05-26
     """유레카 — KG 패턴→추상 개념 induce (PROPOSE only). covenant: auto-commit 금지, 실현은 하데스."""
     import datetime as _dt  # noqa: PLC0415
 

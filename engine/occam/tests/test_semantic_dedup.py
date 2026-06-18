@@ -142,3 +142,49 @@ def test_run_semantic_dedup_idempotent_proposal():
 def test_empty_input_safe():
     report = run_semantic_dedup([], embed_fn=_fake_embed)
     assert report.scanned == 0 and report.pairs == ()
+
+
+# ---- kNN path (Neo4j native vector index, scales past O(N²)) ----
+
+
+def test_near_duplicates_via_index_uses_knn_and_keeps_covenant():
+    """near_duplicates_via_index surfaces the same NearDupPair shape as the O(N²)
+    path, but candidate discovery comes from the injected vector-index kNN."""
+    from engine.occam.semantic_dedup import near_duplicates_via_index
+    from engine.embedding.neo4j_vector import VectorIndexSpec
+
+    spec = VectorIndexSpec(index_name="vec_lesson", label="Lesson", dimensions=2)
+
+    class FakeNeo4j:
+        def __call__(self, cypher, params):
+            # every queryNodes probe returns the same 2 neighbours (a self-hit + b)
+            if "queryNodes" in cypher:
+                return [
+                    {"id": "a", "score": 1.0, "text": "x"},
+                    {"id": "b", "score": 0.97, "text": "y"},
+                ]
+            return []
+
+    def embed(texts):
+        return [[1.0, 0.0] for _ in texts]
+
+    items = [("a", "alpha"), ("b", "beta")]
+    # b has more weight → must be kept, a dropped (covenant tiebreak preserved)
+    pairs = near_duplicates_via_index(
+        items, embed_fn=embed, run_cypher=FakeNeo4j(), spec=spec,
+        threshold=0.95, weight={"a": 0.0, "b": 1.0},
+    )
+    assert len(pairs) == 1
+    assert pairs[0].keep_id == "b" and pairs[0].drop_id == "a"
+    assert pairs[0].similarity == 0.97
+
+
+def test_near_duplicates_via_index_empty():
+    from engine.occam.semantic_dedup import near_duplicates_via_index
+    from engine.embedding.neo4j_vector import VectorIndexSpec
+
+    spec = VectorIndexSpec(index_name="vec_x", label="X", dimensions=2)
+    out = near_duplicates_via_index(
+        [], embed_fn=lambda t: [], run_cypher=lambda c, p: [], spec=spec
+    )
+    assert out == []

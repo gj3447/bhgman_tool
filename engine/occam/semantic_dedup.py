@@ -177,12 +177,50 @@ def run_semantic_dedup(
     )
 
 
+def near_duplicates_via_index(
+    items: list[tuple[str, str]],
+    *,
+    embed_fn: EmbedFn,
+    run_cypher: CypherRunner,
+    spec,
+    threshold: float = 0.95,
+    k: int = 10,
+    weight: dict[str, float] | None = None,
+) -> list[NearDupPair]:
+    # KG: occam-kam-canonical-2026-05-26
+    """Near-dup pairs via the Neo4j native vector index (approx kNN) instead of the
+    O(N²) in-memory pairwise scan — the documented follow-up this engine flagged.
+
+    Each item probes the index for its k neighbours (O(N·k·log N)), so this scales to
+    the full KG where ``find_near_duplicates`` does not. The keep/drop tiebreak and
+    supersession covenant are unchanged — only candidate discovery is swapped.
+
+    ``spec`` is an ``engine.embedding.VectorIndexSpec``; the index must already hold
+    embeddings (run the substrate backfill first). Injected ``run_cypher`` keeps this
+    backend-agnostic and unit-testable with a fake runner.
+    """
+    from engine.embedding.neo4j_vector import knn_pairs  # noqa: PLC0415 — substrate layer
+
+    w = weight or {}
+    ids = [i for i, _ in items]
+    texts = [t for _, t in items]
+    vectors = embed_fn(texts) if texts else []
+    raw = knn_pairs(run_cypher, spec, list(zip(ids, vectors)), threshold=threshold, k=k)
+    pairs: list[NearDupPair] = []
+    for a_id, b_id, sim in raw:
+        keep, drop = _pick_keep_drop(a_id, b_id, w)
+        pairs.append(NearDupPair(keep_id=keep, drop_id=drop, similarity=sim))
+    pairs.sort(key=lambda p: (-p.similarity, p.drop_id))
+    return pairs
+
+
 __all__ = [
     "EmbedFn",
     "NearDupPair",
     "SemanticDedupReport",
     "cosine",
     "find_near_duplicates",
+    "near_duplicates_via_index",
     "plan_supersession",
     "run_semantic_dedup",
 ]
