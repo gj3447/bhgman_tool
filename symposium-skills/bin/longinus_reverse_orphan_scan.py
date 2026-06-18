@@ -39,11 +39,12 @@ Modes:
     --label               : when used with --neo4j, MERGE ORPHAN_REFERENCE label
     --crate-script        : also extract crate/script-level entries
     --json                : machine-readable JSON output (default human)
-    --path PATH           : root directory to scan (default: SKILLS/bin/)
+    --path PATH           : root directory to scan (default: $LONGINUS_SCAN_ROOT else this
+                            script's own bin/ directory — clone-portable)
     --include-tests       : include test_*.py / *_test.py (default exclude)
 
 Smoke test:
-    python3 longinus_reverse_orphan_scan.py --path /Users/lagyeongjun/CD/SYMPOSIUM/SKILLS/bin --dry-run --json
+    python3 longinus_reverse_orphan_scan.py --dry-run --json   # scans bin/ by default
 """
 
 from __future__ import annotations
@@ -65,7 +66,11 @@ NEO4J_URL = os.environ.get(
 )
 NEO4J_AUTH = os.environ.get("NEO4J_AUTH", "neo4j:neo4jpassword")
 
-DEFAULT_SCAN_ROOT = "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS/bin"
+# Clone-portable default: $LONGINUS_SCAN_ROOT else this script's own directory (bin/),
+# which is exactly the tree this scanner is meant to walk — no hardcoded home dir.
+DEFAULT_SCAN_ROOT = os.environ.get(
+    "LONGINUS_SCAN_ROOT", os.path.dirname(os.path.abspath(__file__))
+)
 
 # Symbol kinds we extract from Python AST (function/class/main-entry)
 EXTRACTED_KINDS = {"function", "class", "method", "module_main", "script_main"}

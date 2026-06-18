@@ -27,14 +27,31 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Defaults — overridable via CLI. Cross-repo (tool layer reads paper-layer Lean).
-DEFAULT_LEAN_ROOT = Path("/Users/lagyeongjun/CD/MIND/lean_formalization")
-DEFAULT_DOCS_ROOT = Path("/Users/lagyeongjun/CD/SYMPOSIUM/THEORY/APT")
+# Defaults — overridable via CLI (--lean-root/--docs-root) or env. Cross-repo (tool layer
+# reads paper-layer Lean), so the defaults are derived from this checkout, not a hardcoded
+# home dir: $APT_LEAN_ROOT / $APT_DOCS_ROOT else paths relative to the repo (git toplevel)
+# with a CWD fallback. Both are external sibling trees that may be absent in a tool-only
+# clone — callers pass the real paths via CLI/env when they are.
+def _git_toplevel(start: Path) -> Path | None:
+    import subprocess
+    try:
+        out = subprocess.run(["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return Path(out.stdout.strip()) if out.returncode == 0 and out.stdout.strip() else None
+
+
+_REPO_ROOT = _git_toplevel(Path(__file__).resolve().parent) or Path.cwd()
+_WORKSPACE = _REPO_ROOT.parent  # analogue of CD/ (siblings: MIND, SYMPOSIUM, ...)
+DEFAULT_LEAN_ROOT = Path(os.environ.get("APT_LEAN_ROOT", _WORKSPACE / "MIND" / "lean_formalization"))
+DEFAULT_DOCS_ROOT = Path(os.environ.get("APT_DOCS_ROOT", _WORKSPACE / "SYMPOSIUM" / "THEORY" / "APT"))
 DEFAULT_OUT = DEFAULT_DOCS_ROOT / "_metrics" / "lean_metrics.json"
 
 THEOREM_RE = re.compile(r"(?m)^[ \t]*theorem\b")
