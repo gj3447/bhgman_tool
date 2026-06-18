@@ -51,6 +51,7 @@ py-modules = [
   "kg_binding_registry_install",
   "kg_binding_state",
   "kg_client",
+  "migrate_repo_ids",
   "models",
   "otel_channel",
   "profunctor_api",

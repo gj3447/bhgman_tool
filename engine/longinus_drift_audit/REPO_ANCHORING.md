@@ -75,6 +75,11 @@ the repo present but the file gone → `MISSING` (genuine drift); no repo anchor
 - `kg_client` (Neo4j) persists/returns the new fields.
 - `daemon.py`: `WatchConfig.from_registry()` + `_load_config` falls back to the registry when
   no `watch.toml` exists — the registry is the single source of truth for "repos on this box".
+- `migrate_repo_ids.py`: one-shot backfill of git anchoring onto pre-anchoring ReferenceSites
+  (disk-resolve → `git_identity` for `repo_id`/`repo_relpath`/`commit`/`blob_oid_baseline`;
+  `repo_tag → repo_id` map for sites whose repo isn't on this machine; idempotent; `--dry-run`).
 
-**Open:** a one-shot `migrate-repo-ids` backfill for pre-anchoring ReferenceSites
-(infer `repo_id` from `repo_tag`, `repo_relpath` from `sourcePath`, recompute `blob_oid_baseline`).
+      python -m engine.longinus_drift_audit.migrate_repo_ids --kg neo4j --dry-run
+
+The model is complete: new bindings are born git-anchored; legacy KG data is lifted in by the
+migration.
