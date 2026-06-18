@@ -115,6 +115,9 @@ class Sha256Status(str, Enum):
     DRIFT = "DRIFT"  # current sha256 != baseline
     FILE_MISSING = "FILE_MISSING"  # sourcePath no longer resolves on disk
     DIRECTORY_SKIP = "DIRECTORY_SKIP"  # sourcePath is a directory, not file
+    NOT_LOCAL = "NOT_LOCAL"  # site's repo_id is not checked out on THIS machine (repo_registry
+    #                          miss). Distinct from FILE_MISSING — "not here" ≠ "gone", so a
+    #                          single-repo audit over the shared KG must NOT flag it as drift.
     UNKNOWN = "UNKNOWN"  # never initialized
 
 
@@ -429,6 +432,8 @@ class AuditReport(BaseModel):
         default_factory=list
     )  # Wave 6 — baseline mismatches
     sha256_baseline_count: int = 0  # Wave 6 — total :ReferenceSite with sha256_baseline set
+    sha256_not_local_count: int = 0  # sites skipped because their repo isn't on this machine
+    #                                  (repo_registry miss) — never counted as drift/missing.
     layer_coverage: LayerCoverage = Field(default_factory=LayerCoverage)
     lens_verification: LensVerification = Field(default_factory=LensVerification)
     ged_report: Optional[GedReport] = None

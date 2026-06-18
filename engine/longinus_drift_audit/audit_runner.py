@@ -59,10 +59,12 @@ def _sha256_phase(kg: KgClient, verify_sha256: bool, repo_tag: str | None = None
     sites = kg.list_reference_site_states(repo_tag)
     baseline_count = sum(1 for s in sites if s.sha256_baseline)
     events: list = []
+    not_local = 0
     if verify_sha256 and sites:
         result = sha256_baseline.verify_baseline(kg=kg, sites=sites)
         events = _dedup_drift_events_by_file(result.drift_events)
-    return events, baseline_count
+        not_local = result.not_local
+    return events, baseline_count, not_local
 
 
 class LonginusAudit:
@@ -133,7 +135,7 @@ class LonginusAudit:
                 drift_records = f_drift.result()
                 orphans = f_reverse.result()
                 forward_orphans = f_forward.result()
-                sha256_drift_events, sha256_baseline_count = f_sha.result()
+                sha256_drift_events, sha256_baseline_count, sha256_not_local = f_sha.result()
                 ged_report = f_ged.result()
         else:
             drift_records = drift_detector.detect_all(
@@ -141,7 +143,7 @@ class LonginusAudit:
             )
             orphans = reverse_orphan_scan.scan_reverse_orphans(symbols=symbols)
             forward_orphans = _forward_orphan_phase(self.kg)
-            sha256_drift_events, sha256_baseline_count = _sha256_phase(
+            sha256_drift_events, sha256_baseline_count, sha256_not_local = _sha256_phase(
                 self.kg, verify_sha256, self.repo_tag
             )
             ged_report = ged_metric.compute_ged(kg_refs=kg_refs, code_symbols=symbols)
@@ -185,6 +187,7 @@ class LonginusAudit:
             forward_orphans=forward_orphans,
             sha256_drift_events=sha256_drift_events,
             sha256_baseline_count=sha256_baseline_count,
+            sha256_not_local_count=sha256_not_local,
             layer_coverage=layer_cov,
             lens_verification=lens_verif,
             ged_report=ged_report,

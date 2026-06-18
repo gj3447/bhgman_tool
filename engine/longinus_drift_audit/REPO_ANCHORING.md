@@ -55,14 +55,26 @@ python -m engine.longinus_drift_audit.repo_cli locate <repo_id> <repo_relpath>
 ## Why this also fixes shared-Neo4j multi-repo audits
 
 The dgx Neo4j holds ReferenceSites from several repos at once. With a portable `repo_id`,
-an audit on machine M can tell *"this site belongs to a repo not checked out here"* (skip)
-apart from *"this site's file is missing"* (real Orphan/drift) — so a single-repo audit no
-longer false-flags another repo's sites.
+an audit on machine M can tell *"this site belongs to a repo not checked out here"*
+(`NOT_LOCAL`, skipped) apart from *"this site's file is missing"* (real Orphan/drift) — so a
+single-repo audit no longer false-flags another repo's sites.
 
-## Status / follow-ups
+`sha256_baseline.resolve_site()` resolves registry-first: a `repo_id` miss → `NOT_LOCAL`;
+the repo present but the file gone → `MISSING` (genuine drift); no repo anchor → the legacy
+`resolve_path` heuristic. `init_baseline`/`verify_baseline` count `not_local` and set the
+`Sha256Status.NOT_LOCAL` state instead of emitting a drift event; `AuditReport` carries
+`sha256_not_local_count`.
 
-Landed: `repo_identity`, `repo_registry`, `repo_cli`, the `ReferenceSite` fields
-(`repo_id`/`repo_relpath`/`commit`/`blob_oid`/`blob_oid_baseline`), and `locate_site()`
-(registry-first, legacy base-chain fallback). Next: wire `audit_runner`/`sha256_baseline`
-to resolve via `locate_site` and add a `NOT_LOCAL` verdict; fold `daemon.py`'s `watch.toml`
-into the shared registry.
+## Status
+
+**Landed:**
+- `repo_identity`, `repo_registry`, `repo_cli`, the `ReferenceSite` fields
+  (`repo_id`/`repo_relpath`/`commit`/`blob_oid`/`blob_oid_baseline`), `locate_site()`.
+- `Sha256Status.NOT_LOCAL` + `resolve_site()`; `init_baseline`/`verify_baseline`/`audit_runner`
+  wired through it (shared-KG multi-repo false-flagging fixed).
+- `kg_client` (Neo4j) persists/returns the new fields.
+- `daemon.py`: `WatchConfig.from_registry()` + `_load_config` falls back to the registry when
+  no `watch.toml` exists — the registry is the single source of truth for "repos on this box".
+
+**Open:** a one-shot `migrate-repo-ids` backfill for pre-anchoring ReferenceSites
+(infer `repo_id` from `repo_tag`, `repo_relpath` from `sourcePath`, recompute `blob_oid_baseline`).
