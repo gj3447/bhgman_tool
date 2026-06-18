@@ -99,6 +99,25 @@ class WatchConfig:
 
         return cls(repos=tuple(repos))
 
+    @classmethod
+    def from_registry(cls, registry=None) -> WatchConfig:
+        """Build a watch config from the machine-local repo registry (repo_registry).
+
+        Every registered repo whose checkout still exists becomes a watched RepoEntry,
+        aliased by its repo_id. This is the watch.toml ⇄ registry fold-in: a machine that
+        has registered its repos needs no separate watch.toml — the registry is the single
+        source of truth for "which repos live here".
+        """
+        from engine.longinus_drift_audit.repo_registry import RepoRegistry
+
+        reg = registry or RepoRegistry()
+        repos: list[RepoEntry] = []
+        for repo_id, entry in sorted(reg.list().items()):
+            p = Path(entry.get("path", "")).expanduser()
+            if p.is_dir():
+                repos.append(RepoEntry(path=p.resolve(), alias=repo_id))
+        return cls(repos=tuple(repos))
+
 
 def _entry_from_dict(d: dict[str, str]) -> RepoEntry:
     return RepoEntry(path=Path(d["path"]).expanduser().resolve(), alias=d.get("alias"))
@@ -239,8 +258,20 @@ class LonginusDaemon:
 
     def _load_config(self) -> WatchConfig:
         if not self.config_path.exists():
-            logger.warning(f"config not found: {self.config_path}; using empty config")
-            return WatchConfig(repos=())
+            # No explicit watch.toml — fall back to the shared machine-local repo registry
+            # so a registered machine watches its repos with zero extra config.
+            cfg = WatchConfig.from_registry()
+            if cfg.repos:
+                logger.info(
+                    "config not found: %s; watching %d repo(s) from the repo registry",
+                    self.config_path, len(cfg.repos),
+                )
+            else:
+                logger.warning(
+                    "config not found: %s and repo registry is empty; using empty config",
+                    self.config_path,
+                )
+            return cfg
         return WatchConfig.parse_toml(self.config_path.read_text())
 
     def _spawn_worker(self, repo: RepoEntry) -> None:

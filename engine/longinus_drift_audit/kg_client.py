@@ -300,7 +300,9 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 "n.sha256 AS sha256, n.sha256_baseline AS sha256_baseline, "
                 "n.sha256_status AS sha256_status, n.kg_anchor AS kg_anchor, "
                 "n.layer AS layer, n.last_validated AS last_validated, "
-                "n.repo_tag AS repo_tag",
+                "n.repo_tag AS repo_tag, n.repo_id AS repo_id, "
+                "n.repo_relpath AS repo_relpath, n.commit AS commit, "
+                "n.blob_oid AS blob_oid, n.blob_oid_baseline AS blob_oid_baseline",
                 repo_tag=repo_tag,
             )
             out: list[ReferenceSite] = []
@@ -314,6 +316,11 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                     kg_anchor=r.get("kg_anchor"),
                     last_validated=r.get("last_validated"),
                     repo_tag=r.get("repo_tag"),
+                    repo_id=r.get("repo_id"),
+                    repo_relpath=r.get("repo_relpath"),
+                    commit=r.get("commit"),
+                    blob_oid=r.get("blob_oid"),
+                    blob_oid_baseline=r.get("blob_oid_baseline"),
                 )
                 # Carry sha256_status/layer ONLY when the stored value is a valid
                 # enum member (so DIRECTORY_SKIP etc. survive the roundtrip), else
@@ -352,7 +359,12 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                     n.drift_score = $drift_score,
                     n.drift_detected_at = $drift_detected_at,
                     n.signature_baseline = $signature_baseline,
-                    n.repo_tag = coalesce($repo_tag, n.repo_tag)
+                    n.repo_tag = coalesce($repo_tag, n.repo_tag),
+                    n.repo_id = coalesce($repo_id, n.repo_id),
+                    n.repo_relpath = coalesce($repo_relpath, n.repo_relpath),
+                    n.commit = $commit,
+                    n.blob_oid = $blob_oid,
+                    n.blob_oid_baseline = coalesce(n.blob_oid_baseline, $blob_oid_baseline)
                 """,
                 sourceId=site.sourceId,
                 sourcePath=site.sourcePath,
@@ -366,6 +378,11 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 drift_detected_at=site.drift_detected_at,
                 signature_baseline=site.signature_baseline,
                 repo_tag=site.repo_tag,
+                repo_id=site.repo_id,
+                repo_relpath=site.repo_relpath,
+                commit=site.commit,
+                blob_oid=site.blob_oid,
+                blob_oid_baseline=site.blob_oid_baseline,
             )
 
     def merge_forward_binding(self, site: ReferenceSite, *, line_count: int) -> bool:

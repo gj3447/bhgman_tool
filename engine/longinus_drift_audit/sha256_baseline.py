@@ -137,6 +137,48 @@ def resolve_path(
     return PathResolution(status="MISSING", abs_path=None)
 
 
+def resolve_site(
+    site: ReferenceSite,
+    *,
+    base_chain: Iterable[str] = DEFAULT_FS_BASE_CHAIN,
+    registry=None,
+) -> PathResolution:
+    # KG: ATOM_Skill_longinus
+    """Resolve a ReferenceSite to a disk location, git-repo-anchored when possible.
+
+    If the site carries a portable ``repo_id`` + ``repo_relpath`` (the new clone-portable
+    binding), resolve via the machine-local repo registry: the repo's local checkout joined
+    with the relative path. A registry miss (the repo is simply not on THIS machine) returns
+    ``NOT_LOCAL`` — *not* ``MISSING`` — so a single-repo audit over the shared KG does not
+    false-flag another repo's sites as drift. When the repo IS present but the file is gone,
+    that is a real ``MISSING`` (genuine drift).
+
+    Legacy sites (no repo anchor) fall back to the heuristic :func:`resolve_path` so old data
+    keeps resolving unchanged.
+    """
+    repo_id = getattr(site, "repo_id", None)
+    repo_relpath = getattr(site, "repo_relpath", None)
+    if repo_id and repo_relpath:
+        from engine.longinus_drift_audit.repo_registry import (
+            NotRegistered,
+            default_registry,
+        )
+
+        reg = registry or default_registry()
+        try:
+            p = reg.locate(repo_id, repo_relpath)
+        except NotRegistered:
+            return PathResolution(status="NOT_LOCAL", abs_path=None)
+        sp = str(p)
+        if os.path.isfile(sp):
+            return PathResolution(status="FILE", abs_path=sp)
+        if os.path.isdir(sp):
+            return PathResolution(status="DIRECTORY", abs_path=sp)
+        return PathResolution(status="MISSING", abs_path=None)
+    # Legacy: no portable repo anchor — heuristic resolver over sourcePath.
+    return resolve_path(site.sourcePath, base_chain=base_chain)
+
+
 # ─── init / verify result records ────────────────────────────────────────
 
 
@@ -148,6 +190,7 @@ class InitResult:
     populated: int = 0  # FILE → sha256_baseline written
     directory_skip: int = 0  # DIRECTORY → marked DIRECTORY_SKIP
     missing: int = 0  # MISSING → marked FILE_MISSING
+    not_local: int = 0  # NOT_LOCAL → repo not on this machine, baseline not taken here
     total_seen: int = 0
     populated_sites: list[ReferenceSite] = field(default_factory=list)
 
@@ -163,6 +206,7 @@ class VerifyResult:
     skipped_baseline: int = 0  # no baseline to compare against (call init first)
     skipped_dir: int = 0
     skipped_orphan: int = 0
+    not_local: int = 0  # repo not checked out on this machine — skipped, NOT drift
     drift_events: list[SourceCodeDriftEvent] = field(default_factory=list)
 
 
@@ -184,12 +228,15 @@ def init_baseline(
     kg: KgClient,
     sites: Iterable[ReferenceSite],
     base_chain: Iterable[str] = DEFAULT_FS_BASE_CHAIN,
+    registry=None,
 ) -> InitResult:
     # KG: ATOM_Skill_longinus
     """Populate `sha256_baseline` for every site that lacks it.
 
     Idempotent — sites with `sha256_baseline` already set are skipped.
-    Status transitions: UNKNOWN → BASELINE / DIRECTORY_SKIP / FILE_MISSING.
+    Status transitions: UNKNOWN → BASELINE / DIRECTORY_SKIP / FILE_MISSING / NOT_LOCAL.
+    A site whose repo is not checked out on this machine is marked NOT_LOCAL and left for
+    a machine that does have it — never baselined or flagged from here.
     """
     result = InitResult()
     ts = _now_iso()
@@ -198,7 +245,12 @@ def init_baseline(
         result.total_seen += 1
         if site.sha256_baseline:
             continue  # already initialized
-        resolution = resolve_path(site.sourcePath, base_chain=chain)
+        resolution = resolve_site(site, base_chain=chain, registry=registry)
+        if resolution.status == "NOT_LOCAL":
+            kg.merge_reference_site_state(site.model_copy(
+                update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}))
+            result.not_local += 1
+            continue
         if resolution.status == "FILE" and resolution.abs_path is not None:
             sha = _compute_sha256(resolution.abs_path)
             updated = site.model_copy(
@@ -232,10 +284,11 @@ def init_baseline(
             kg.merge_reference_site_state(updated)
             result.missing += 1
     logger.info(
-        "init_baseline: populated=%d directory_skip=%d missing=%d total=%d",
+        "init_baseline: populated=%d directory_skip=%d missing=%d not_local=%d total=%d",
         result.populated,
         result.directory_skip,
         result.missing,
+        result.not_local,
         result.total_seen,
     )
     return result
@@ -282,12 +335,17 @@ def verify_baseline(
     sites: Iterable[ReferenceSite],
     base_chain: Iterable[str] = DEFAULT_FS_BASE_CHAIN,
     emit_events: bool = True,
+    registry=None,
 ) -> VerifyResult:
     # KG: ATOM_Skill_longinus
     """Recompute current sha256 and compare to baseline.
 
     Emits :SourceCodeDriftEvent for every mismatch (PROV evidence trail).
-    Status transitions: BASELINE → VERIFIED | DRIFT | FILE_MISSING.
+    Status transitions: BASELINE → VERIFIED | DRIFT | FILE_MISSING | NOT_LOCAL.
+
+    A site whose repo_id is not checked out on this machine resolves to NOT_LOCAL and is
+    skipped (no drift event, no FILE_MISSING) — the shared-KG multi-repo correctness fix:
+    "not on this box" must not read as "the file is gone".
     """
     result = VerifyResult()
     ts = _now_iso()
@@ -299,7 +357,12 @@ def verify_baseline(
         if not site.sha256_baseline:
             result.skipped_baseline += 1
             continue
-        resolution = resolve_path(site.sourcePath, base_chain=chain)
+        resolution = resolve_site(site, base_chain=chain, registry=registry)
+        if resolution.status == "NOT_LOCAL":
+            result.not_local += 1
+            kg.merge_reference_site_state(site.model_copy(
+                update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}))
+            continue
         if resolution.status != "FILE":
             result.missing += 1
             _record_drift_event(
@@ -341,10 +404,11 @@ def verify_baseline(
             )
             kg.merge_reference_site_state(updated)
     logger.info(
-        "verify_baseline: ok=%d drift=%d missing=%d skip_baseline=%d skip_dir=%d",
+        "verify_baseline: ok=%d drift=%d missing=%d not_local=%d skip_baseline=%d skip_dir=%d",
         result.ok,
         result.drift,
         result.missing,
+        result.not_local,
         result.skipped_baseline,
         result.skipped_dir,
     )
