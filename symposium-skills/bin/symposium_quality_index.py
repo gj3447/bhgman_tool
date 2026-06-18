@@ -23,8 +23,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(os.environ.get("SYMPOSIUM_ROOT", "/Users/lagyeongjun/CD/SYMPOSIUM"))
-LEAN_DIR = Path("/Users/lagyeongjun/CD/MIND/lean_formalization")
+# Clone-portable roots: derive from this script's location, override via env. The skills
+# root is this file's parent dir (bin/ -> symposium-skills/); LEAN_DIR is an external
+# sibling tree that may be absent in a skills-only clone, so it degrades gracefully below.
+_BIN_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(os.environ.get("SYMPOSIUM_ROOT", _BIN_DIR.parent))
+LEAN_DIR = Path(os.environ.get("LEAN_DIR", _BIN_DIR.parent / "lean_formalization"))
 COST_FILE = Path.home() / ".claude" / "hooks" / ".cost_running_total"
 COST_WARN = 40.0
 COST_HALT = 50.0
@@ -114,7 +118,9 @@ def measure_provenance_completeness() -> float:
 def measure_mccabe_complexity_pass() -> float:
     """S_McCabe — lizard avg cyclomatic complexity normalized.
     Heuristic: assume average ≤10 (industry threshold) = 1.0."""
-    bin_dir = PROJECT_ROOT / "SKILLS" / "bin"
+    # This script lives in the bin/ being measured; prefer that, fall back to the
+    # CD/SYMPOSIUM/SKILLS/bin layout for a full-workspace checkout.
+    bin_dir = _BIN_DIR if _BIN_DIR.exists() else PROJECT_ROOT / "SKILLS" / "bin"
     if not bin_dir.exists():
         return 0.5
     py_files = list(bin_dir.glob("*.py"))

@@ -17,7 +17,8 @@ Modes:
 
 Limitations:
   - File-level sha256 only (no line_range support yet — ReferenceSite schema lacks line_range field)
-  - sourcePath resolved relative to FS_BASE env (default: /Users/lagyeongjun/CD/SERVER)
+  - sourcePath resolved against $FS_BASE (os.pathsep-separated) else a chain derived from
+    this script's own location + git toplevel (clone-portable; no hardcoded home dir)
   - No alert webhook (drift event KG node only — operator polls)
   - curl-based Cypher (production should use neo4j-driver)
 """
@@ -34,21 +35,36 @@ import time
 NEO4J_URL = os.environ.get("NEO4J_URL", "http://neo4j.metahumotonic.com/db/neo4j/tx/commit")
 NEO4J_AUTH = os.environ.get("NEO4J_AUTH", "neo4j:neo4jpassword")
 
-# Fallback chain for path resolution. Priority order: explicit FS_BASE override,
-# then known repo roots in CD/. Home-relative (~) is expanded inline.
+# Fallback chain for path resolution. Priority: explicit $FS_BASE override (one or more
+# roots, os.pathsep-separated), else a chain DERIVED from where this script actually lives
+# — so a fresh `git clone` resolves sourcePaths with no edits and no hardcoded home dir.
+#   bin/  ->  symposium-skills/ (the skills root)  ->  repo root (git toplevel)  ->  its
+#   parent (the workspace analogue of CD/)  ->  CWD  ->  ~
+def _git_toplevel(start: str) -> str | None:
+    """Repo root containing ``start`` via git; ``None`` if not a repo / git absent."""
+    try:
+        out = subprocess.run(["git", "-C", start, "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() or None if out.returncode == 0 else None
+
+
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_SKILLS_ROOT = os.path.dirname(_BIN_DIR)              # symposium-skills/  (== CD/SYMPOSIUM/SKILLS)
+_REPO_ROOT = _git_toplevel(_BIN_DIR)                  # bhgman_tool/
+_WORKSPACE = os.path.dirname(_REPO_ROOT) if _REPO_ROOT else None  # parent of repo (~ CD/)
+
 FS_BASE_OVERRIDE = os.environ.get("FS_BASE")
-FS_BASE_CHAIN = [FS_BASE_OVERRIDE] if FS_BASE_OVERRIDE else [
-    "/Users/lagyeongjun/CD/SERVER",
-    "/Users/lagyeongjun/CD/SYMPOSIUM",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/SKILLS",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/METAHUMOTONIC",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/THEORY/CHU",
-    "/Users/lagyeongjun/CD/SYMPOSIUM/THEORY/재배맨",
-    "/Users/lagyeongjun/CD/MIND",
-    "/Users/lagyeongjun/CD",
-    os.path.expanduser("~"),
-]
-FS_BASE_CHAIN = [b for b in FS_BASE_CHAIN if b]
+if FS_BASE_OVERRIDE:
+    _raw_chain = FS_BASE_OVERRIDE.split(os.pathsep)
+else:
+    _raw_chain = [_SKILLS_ROOT, _REPO_ROOT, _WORKSPACE, os.getcwd(), os.path.expanduser("~")]
+# drop empties + de-duplicate, order-preserving
+FS_BASE_CHAIN: list[str] = []
+for _b in _raw_chain:
+    if _b and _b not in FS_BASE_CHAIN:
+        FS_BASE_CHAIN.append(_b)
 
 
 def cypher(stmt, params=None):
