@@ -95,6 +95,18 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
         "dispatching subagents for an APT phase",
         "dispatch",
     ),
+    (
+        "legion_roster",
+        "List the 7 legion commanders (비행기맨#4) + Contract requires/provides chain.",
+        "inspecting which commanders exist and their handoff contracts",
+        "read",
+    ),
+    (
+        "legion_run",
+        "Run the closed legion loop 획득→연결→창조→정리→검증→실현 on the bundled local KG (infra-0).",
+        "exercising the full 7-commander deterministic loop without live Neo4j",
+        "read",
+    ),
 ]
 
 TOOL_CATALOG: dict[str, ToolMeta] = {

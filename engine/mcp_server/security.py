@@ -73,6 +73,8 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "kg_query": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
     "gate_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "seed_germinate": frozenset({Capability.READS_PRIVATE_DATA}),
+    "legion_roster": frozenset(),  # pure introspection (static roster)
+    "legion_run": frozenset({Capability.READS_PRIVATE_DATA}),  # reads local KG
     # apt_dispatch spawns subagents that may pull web / untrusted content.
     "apt_dispatch": frozenset({Capability.FETCHES_UNTRUSTED}),
 }

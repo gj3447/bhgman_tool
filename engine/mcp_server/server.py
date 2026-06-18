@@ -39,6 +39,10 @@ def build_server() -> Any:
     # KG: rs-mcp-symposium-absorb-2026-05-14
     from .tools.symposium import register as register_symposium
 
+    # 7-commander legion (비행기맨#4) — full roster + closed loop (2026-06-18):
+    # KG: adr-seven-commander-legion-architecture-2026-05-27
+    from .tools.legion import register as register_legion
+
     register_longinus(mcp)
     register_harness(mcp)
     register_apt(mcp)
@@ -46,6 +50,7 @@ def build_server() -> Any:
     register_tpa(mcp)
     register_prometheus(mcp)
     register_symposium(mcp)
+    register_legion(mcp)
 
     # Security audit (PROM 16 lever ④): log the toolset's lethal-trifecta profile.
     # ⚠ This is a ONE-SHOT boot-time profiler, NOT a live guard: it runs once here
@@ -85,4 +90,7 @@ def list_registered_tool_names() -> list[str]:
         "kg_query",
         "gate_check",
         "seed_germinate",
+        # 7-commander legion (비행기맨#4), 2026-06-18
+        "legion_roster",
+        "legion_run",
     ]
