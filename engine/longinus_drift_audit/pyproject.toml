@@ -61,6 +61,7 @@ py-modules = [
   "scip_adapter",
   "sha256_baseline",
   "signature_baseline",
+  "symbol_binding",
   "tree_sitter_adapter",
   "urdna2015_channel",
 ]
