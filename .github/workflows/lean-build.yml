@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 120  # Mathlib initial build can exceed 1h even with cache
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
