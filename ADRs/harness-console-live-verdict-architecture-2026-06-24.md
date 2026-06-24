@@ -560,3 +560,40 @@ Negative:
 3. Should FastAPI be a new dependency in root `pyproject.toml` or isolated in a subpackage?
 4. Should KG write-back target local KG first, Neo4j first, or both behind one interface?
 5. Which identity model is enough for MVP: local reviewer string or authenticated user?
+
+## Closure Comments
+
+Longinus closure status:
+
+- This ADR is the source artifact for `adr-harness-console-live-verdict-architecture-2026-06-24`.
+- The project plan node is `plan-harness-console-live-verdict-2026-06-24`.
+- The local KG materialization created one plan node and eight `SubagentTaskSpec` task nodes.
+- Future implementation files must carry task-level `# KG:` comments before they are considered bound.
+
+Canonical comments for PR 1:
+
+```python
+# KG: task-harness-console-event-store-2026-06-24
+# KG: plan-harness-console-live-verdict-2026-06-24
+```
+
+Canonical comments for the server/GUI PR:
+
+```python
+# KG: task-harness-console-live-gui-2026-06-24
+# KG: plan-harness-console-live-verdict-2026-06-24
+```
+
+Canonical comments for project adapters:
+
+```python
+# KG: task-harness-console-project-adapters-2026-06-24
+# KG: plan-harness-console-live-verdict-2026-06-24
+```
+
+Do not mark the plan implemented until the first executable slice exists:
+
+1. `HarnessEvent`, `HumanVerdictRequest`, `HumanVerdict`, and `LabelTask` DTOs.
+2. Append-only SQLite event store.
+3. Tests for event ordering and verdict request lifecycle.
+4. At least one Longinus-bound source file carrying the PR 1 comments above.
