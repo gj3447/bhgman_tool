@@ -37,8 +37,63 @@ class AgentRuntimeUnavailable(RuntimeError):
     """LLM 런타임 사용 불가 (백엔드 없음). 호출자가 degrade."""
 
 
+class LLMHTTPError(RuntimeError):
+    """openai-compat 백엔드가 non-2xx 반환 (예: 122B OOM 500). dispatch/synth fallback 트리거용.
+
+    urllib.request.urlopen 은 4xx/5xx 에 HTTPError 를 던지지만 http.client(keep-alive 풀드)는
+    안 던지므로, 두 transport 의 의미를 일치시켜 dead tier-1 이 graceful degrade 되게 한다.
+    """
+
+
 def _local_base_url() -> str | None:
     return os.environ.get("BHGMAN_LLM_BASE_URL")
+
+
+@dataclass(frozen=True)
+class Endpoint:
+    """한 openai-compat 백엔드 (DGX 35B / Ollama 122B 등). tier로 라우팅.
+
+    tier 0 = fast/cheap (35B 브레드스). tier 1 = big/slow (하드 축·synth·verify, 디코릴레이터).
+    max_concurrency = 이 백엔드에 동시에 흘릴 수 있는 상한 (Ollama는 OLLAMA_NUM_PARALLEL 얕음 →
+    범람시 thrash; dispatch가 per-endpoint 세마포어로 가드).
+    """
+
+    name: str
+    base_url: str
+    model: str
+    key: str = "EMPTY"
+    tier: int = 0
+    max_concurrency: int = 32
+
+
+def _load_endpoints() -> list[Endpoint] | None:
+    """BHGMAN_LLM_ENDPOINTS(JSON list) → [Endpoint]. unset/malformed → None(레거시 단일 경로).
+
+    절대 raise 하지 않는다 — JSON 파싱 실패나 필드 누락은 None 으로 떨어져 레거시
+    BHGMAN_LLM_BASE_URL/MODEL 단일 백엔드로 graceful fallback (엔진 죽이지 않음).
+    """
+    raw = os.environ.get("BHGMAN_LLM_ENDPOINTS")
+    if not raw:
+        return None
+    try:
+        items = json.loads(raw)
+        if not isinstance(items, list) or not items:
+            return None
+        eps: list[Endpoint] = []
+        for it in items:
+            eps.append(
+                Endpoint(
+                    name=str(it["name"]),
+                    base_url=str(it["base_url"]).rstrip("/"),
+                    model=str(it["model"]),
+                    key=str(it.get("key", "EMPTY")),
+                    tier=int(it.get("tier", 0)),
+                    max_concurrency=int(it.get("max_concurrency", 32)),
+                )
+            )
+        return eps or None
+    except (ValueError, TypeError, KeyError):  # malformed JSON / 필드 누락 → 레거시 fallback
+        return None
 
 
 def runtime_status() -> tuple[bool, str]:
@@ -69,6 +124,8 @@ class Completion:
     output_tokens: int = 0
     cache_read_tokens: int = 0
     stop_reason: str = ""
+    # L6: openai-compat tool-call (FOLLOWUPS emit_followups 등). [{name, arguments(str)}].
+    tool_calls: tuple[dict, ...] = ()
 
 
 def _urllib_post(url: str, payload: dict, headers: dict, timeout: float) -> dict:
@@ -116,9 +173,14 @@ def _pooled_post(url: str, payload: dict, headers: dict, timeout: float) -> dict
         try:
             conn.request("POST", path, body, hdrs)
             resp = conn.getresponse()
+            status = resp.status
             data = resp.read()  # keep-alive 유지하려면 응답 본문을 반드시 다 읽어야 함
             conns[key] = conn
+            if status >= 400:  # 4xx/5xx (예: 122B OOM 500) → urllib 처럼 raise → caller fallback
+                raise LLMHTTPError(f"HTTP {status}: {data[:200].decode(errors='replace')}")
             return json.loads(data.decode())
+        except LLMHTTPError:
+            raise  # 상태 에러는 재연결로 안 풀림 — 바로 위로 (소켓은 keep-alive 유지 가능)
         except (
             http.client.RemoteDisconnected,
             http.client.BadStatusLine,
@@ -143,6 +205,9 @@ class AgentClient:
         self, client=None, http_post: Callable | None = None, max_continuations: int = 5
     ) -> None:
         self._max_cont = max_continuations
+        # tier→[Endpoint] 라우팅 테이블. None(레거시/주입)이면 self._base/_model/_key 단일 경로.
+        self._endpoints: list[Endpoint] | None = None
+        self._by_tier: dict[int, list[Endpoint]] = {}
         if client is not None:  # 주입된 anthropic-like (테스트)
             self._mode, self._c = "anthropic", client
             return
@@ -168,10 +233,42 @@ class AgentClient:
             self._base = base_url.rstrip("/")
             self._model = os.environ["BHGMAN_LLM_MODEL"]
             self._key = os.environ.get("BHGMAN_LLM_API_KEY", "EMPTY")
+            # L4: 멀티 엔드포인트(tier 라우팅). malformed/unset → None → 위 단일 base 유지.
+            eps = _load_endpoints()
+            if eps:
+                self._endpoints = eps
+                for ep in eps:
+                    self._by_tier.setdefault(ep.tier, []).append(ep)
         else:  # 실 anthropic
             import anthropic  # noqa: PLC0415
 
             self._mode, self._c = "anthropic", anthropic.Anthropic()
+
+    def endpoint_for_tier(self, tier: int | None) -> Endpoint | None:
+        """tier → Endpoint (없으면 가장 낮은 tier로 fallback). 엔드포인트 미구성이면 None."""
+        if not self._endpoints:
+            return None
+        if tier is not None and self._by_tier.get(tier):
+            return self._by_tier[tier][0]
+        # 요청 tier 없음/미존재 → 가장 낮은 tier (보통 0=fast breadth)
+        lowest = min(self._by_tier)
+        return self._by_tier[lowest][0]
+
+    def _resolve_target(self, tier: int | None) -> tuple[str, str, str]:
+        """(base_url, model, key) 결정. 엔드포인트 구성됐으면 tier로, 아니면 레거시 단일.
+
+        이게 'complete()가 caller model 을 버리던 死코드 버그'의 수정점 — 물리 모델이
+        tier→endpoint 로 선택된다(레거시면 self._model 그대로 → 기존 테스트 불변)."""
+        ep = self.endpoint_for_tier(tier)
+        if ep is not None:
+            return ep.base_url, ep.model, ep.key
+        return self._base, self._model, self._key
+
+    def endpoint_concurrency(self) -> dict[str, int]:
+        """{base_url: max_concurrency} — dispatch per-endpoint 세마포어 사이징용."""
+        if not self._endpoints:
+            return {}
+        return {ep.base_url: ep.max_concurrency for ep in self._endpoints}
 
     def is_local(self) -> bool:
         """openai-compat(로컬 vLLM/DGX·주입 transport) 백엔드면 True. anthropic 이면 False.
@@ -192,16 +289,49 @@ class AgentClient:
         web_search: bool = False,
         temperature: float = 0.0,
         seed: int | None = None,
+        tier: int | None = None,
+        tools: list[dict] | None = None,
+        tool_choice: str | dict | None = None,
     ) -> Completion:
         """1회 호출. openai-compat면 로컬 모델로(web_search/effort 무시), anthropic이면 full.
 
         temperature/seed = self-consistency K-샘플링 on-switch (openai-compat만 적용; vLLM이 per-request
         로 sampler 를 켠다). 기본 0.0/None 이면 payload 미주입 = 오늘의 greedy 동작 그대로.
         anthropic 경로는 parity 위해 accept-and-ignore.
+
+        tier(L4): 멀티 엔드포인트 구성시 물리 백엔드/모델을 tier 로 고른다. 미구성이면 무시
+        (레거시 단일 base/model). tier=1 = 큰 모델(122B, 디코릴레이터/하드 축/synth).
+
+        tools/tool_choice(L6): openai-compat tool-calling (FOLLOWUPS emit_followups 강제용).
+        web_search ReAct 와 배타 — tools 주면 단발 POST 로 tool_calls 를 받는다.
         """
         if self._mode == "openai":
+            base, mdl, key = self._resolve_target(tier)
+            if tools is not None:  # L6: tool-call 경로 — ReAct 루프 우회, 단발
+                return self._openai_post(
+                    [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    max_tokens,
+                    temperature=temperature,
+                    seed=seed,
+                    base=base,
+                    model=mdl,
+                    key=key,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                )
             return self._complete_openai(
-                system, user, max_tokens, web_search, temperature=temperature, seed=seed
+                system,
+                user,
+                max_tokens,
+                web_search,
+                temperature=temperature,
+                seed=seed,
+                base=base,
+                model=mdl,
+                key=key,
             )
         return self._complete_anthropic(system, user, model, max_tokens, effort, web_search)
 
@@ -212,33 +342,59 @@ class AgentClient:
         *,
         temperature: float = 0.0,
         seed: int | None = None,
+        base: str | None = None,
+        model: str | None = None,
+        key: str | None = None,
+        tools: list[dict] | None = None,
+        tool_choice: str | dict | None = None,
     ) -> Completion:
         """openai-compat /chat/completions 단발 호출 (멀티턴 messages 그대로 POST).
+
+        base/model/key 미지정이면 레거시 단일 백엔드(self._base/_model/_key) 사용 (기존 동작).
+        지정시 그 (tier→endpoint) 물리 백엔드로 POST — caller model 을 버리던 死코드 수정.
 
         BHGMAN_LLM_NO_THINK 설정 시 Qwen reasoning(think)을 끈다(chat_template_kwargs).
         느린 로컬 GPU(GB10 ~4tok/s)에서 ReAct 멀티라운드의 think 토큰 폭발을 막아 실용 속도 확보.
         """
-        payload: dict = {"model": self._model, "messages": messages, "max_tokens": max_tokens}
+        base = base if base is not None else self._base
+        model = model if model is not None else self._model
+        key = key if key is not None else self._key
+        payload: dict = {"model": model, "messages": messages, "max_tokens": max_tokens}
         if temperature:  # 0.0 = greedy = 오늘 동작 → 미주입 (back-compat)
             payload["temperature"] = temperature
         if seed is not None:
             payload["seed"] = seed
+        if tools is not None:  # L6 tool-calling
+            payload["tools"] = tools
+            if tool_choice is not None:
+                payload["tool_choice"] = tool_choice
         if os.environ.get("BHGMAN_LLM_NO_THINK"):
             payload["chat_template_kwargs"] = {"enable_thinking": False}
-        headers = {"Authorization": f"Bearer {self._key}"}
+        headers = {"Authorization": f"Bearer {key}"}
         timeout = float(
             os.environ.get("BHGMAN_LLM_TIMEOUT", "120")
         )  # reasoning models load+think slowly
-        resp = self._post(f"{self._base}/chat/completions", payload, headers, timeout)
+        resp = self._post(f"{base}/chat/completions", payload, headers, timeout)
         choice = (resp.get("choices") or [{}])[0]
-        text = (choice.get("message") or {}).get("content") or ""
+        msg = choice.get("message") or {}
+        text = msg.get("content") or ""
+        tcs: tuple[dict, ...] = ()
+        if msg.get("tool_calls"):
+            tcs = tuple(
+                {
+                    "name": (tc.get("function") or {}).get("name", ""),
+                    "arguments": (tc.get("function") or {}).get("arguments", ""),
+                }
+                for tc in msg["tool_calls"]
+            )
         usage = resp.get("usage") or {}
         return Completion(
             text=text,
-            model=resp.get("model", self._model),
+            model=resp.get("model", model),
             input_tokens=usage.get("prompt_tokens", 0) or 0,
             output_tokens=usage.get("completion_tokens", 0) or 0,
             stop_reason=choice.get("finish_reason", "") or "",
+            tool_calls=tcs,
         )
 
     def _complete_openai(
@@ -250,6 +406,9 @@ class AgentClient:
         *,
         temperature: float = 0.0,
         seed: int | None = None,
+        base: str | None = None,
+        model: str | None = None,
+        key: str | None = None,
     ) -> Completion:
         """openai-compat. web_search=True + BHGMAN_SEARXNG_URL 이면 ReAct 검색 루프.
 
@@ -258,6 +417,9 @@ class AgentClient:
         토큰 사용량은 전 라운드 누적해서 반환. temperature/seed 는 모든 라운드에 동일 적용.
         """
         from engine.agents import web_search_local as _ws  # noqa: PLC0415
+
+        # tier→endpoint 가 고른 물리 백엔드를 모든 라운드에 전파(레거시면 None → self._*).
+        _t = {"base": base, "model": model, "key": key}
 
         if not (web_search and _ws.searxng_url()):
             return self._openai_post(
@@ -268,6 +430,7 @@ class AgentClient:
                 max_tokens,
                 temperature=temperature,
                 seed=seed,
+                **_t,
             )
 
         instr = (
@@ -281,7 +444,7 @@ class AgentClient:
         ]
         rounds = int(os.environ.get("BHGMAN_LLM_SEARCH_ROUNDS", "4"))
         tin = tout = 0
-        last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed)
+        last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed, **_t)
         tin, tout = tin + last.input_tokens, tout + last.output_tokens
         for _ in range(rounds):
             m = _SEARCH_RE.search(last.text or "")
@@ -300,7 +463,7 @@ class AgentClient:
                     "이 결과로 최종 답을 작성하거나, 더 필요하면 다시 SEARCH 하라.",
                 }
             )
-            last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed)
+            last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed, **_t)
             tin, tout = tin + last.input_tokens, tout + last.output_tokens
         if _SEARCH_RE.search(last.text or ""):  # rounds 소진 후에도 검색 요청 → 강제 종합
             messages.append({"role": "assistant", "content": last.text})
@@ -310,7 +473,7 @@ class AgentClient:
                     "content": "검색 한도 도달. 더 검색하지 말고 지금까지 결과로 최종 답을 작성하라.",
                 }
             )
-            last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed)
+            last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed, **_t)
             tin, tout = tin + last.input_tokens, tout + last.output_tokens
         return Completion(
             text=last.text,
@@ -358,5 +521,7 @@ __all__ = [
     "AgentClient",
     "AgentRuntimeUnavailable",
     "Completion",
+    "Endpoint",
+    "LLMHTTPError",
     "runtime_status",
 ]

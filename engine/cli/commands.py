@@ -461,6 +461,15 @@ def cmd_prom(args: argparse.Namespace) -> int:
         k = getattr(args, "k", None)
         if k is not None:
             kwargs["k"] = k
+        # L4/L5/L6 노브 — None(미지정)이면 env 기본을 research() 가 그대로 쓴다.
+        depth = getattr(args, "depth", None)
+        if depth is not None:
+            kwargs["depth"] = depth
+        hard_axes = getattr(args, "hard_axes", None)
+        if hard_axes is not None:
+            kwargs["hard_axes"] = hard_axes
+        if getattr(args, "verify", False):
+            kwargs["verify"] = True
         report = agents.research(topic, args.N, agents.AgentClient(), **kwargs)
     finally:
         close()
