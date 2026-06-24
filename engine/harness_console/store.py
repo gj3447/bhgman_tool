@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -153,6 +154,7 @@ class SqliteEventStore(EventStore):
     def __init__(self, path: str | Path = ":memory:") -> None:
         self.path = str(path)
         self._memory_conn: sqlite3.Connection | None = None
+        self._lock = threading.RLock()
         if self.path == ":memory:":
             self._memory_conn = self._connect()
 
@@ -329,19 +331,20 @@ class SqliteEventStore(EventStore):
 
     @contextmanager
     def _session(self):
-        if self._memory_conn is not None:
-            yield self._memory_conn
-            self._memory_conn.commit()
-            return
-        conn = self._connect()
-        try:
-            yield conn
-            conn.commit()
-        finally:
-            conn.close()
+        with self._lock:
+            if self._memory_conn is not None:
+                yield self._memory_conn
+                self._memory_conn.commit()
+                return
+            conn = self._connect()
+            try:
+                yield conn
+                conn.commit()
+            finally:
+                conn.close()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path)
+        conn = sqlite3.connect(self.path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 
