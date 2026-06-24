@@ -62,9 +62,7 @@ def test_disk_confirmed_current_drives_supersede_via_evidence_vector():
         "stale": NodeScoreMeta(redundancy=0.0, age_days=0.0, invocation_count=None),
         "cur": NodeScoreMeta(redundancy=0.0, age_days=0.0, invocation_count=None),
     }
-    report = occam_pass(
-        [stale, current], disk_truth={"x.py": "diskwins"}, score_meta=meta
-    )
+    report = occam_pass([stale, current], disk_truth={"x.py": "diskwins"}, score_meta=meta)
     cand = report.candidates[0]
     assert cand.confidence is Confidence.HIGH
     assert cand.verdict == "SUPERSEDE"  # disk_current=1.0 evidence가 σ를 끌어올림
