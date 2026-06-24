@@ -124,7 +124,7 @@ class NodeScoreMeta:
 
     redundancy: float  # [0,1] — 동일 sha=1.0, line_count 비율 기반 등
     age_days: float  # last_validated(없으면 commit_time/created) 이후 경과 일수, ≥0
-    invocation_count: int  # tool_use 실측 호출수 (≥0)
+    invocation_count: int | None  # tool_use 실측 호출수 (≥0). None=사용기록 부재 → deadness 기여 0
     tier: EntrenchmentTier = EntrenchmentTier.PLAIN
     has_successor: bool = True  # 살아있는 twin/후속 노드 존재 (없으면 σ=0)
     inbound_edges: int = 0  # 이 노드를 가리키는 참조 엣지 수 (연결성 entrenchment, ≥0)
@@ -141,8 +141,8 @@ class NodeScoreMeta:
             raise ValueError(f"redundancy must be in [0,1], got {self.redundancy}")
         if self.age_days < 0:
             raise ValueError("age_days must be ≥ 0")
-        if self.invocation_count < 0:
-            raise ValueError("invocation_count must be ≥ 0")
+        if self.invocation_count is not None and self.invocation_count < 0:
+            raise ValueError("invocation_count must be ≥ 0 (or None for absent usage data)")
         if self.inbound_edges < 0:
             raise ValueError("inbound_edges must be ≥ 0")
         for field in (
@@ -247,9 +247,14 @@ def staleness(age_days: float, halflife_days: float) -> float:
     return 1.0 - math.pow(2.0, -age_days / halflife_days)
 
 
-def deadness(invocation_count: int, invocation_scale: float) -> float:
+def deadness(invocation_count: int | None, invocation_scale: float) -> float:
     # KG: occam-kam-canonical-2026-05-26
-    """사용기반 deadness: d = 2^(−inv/scale) ∈ (0,1]. inv=0 → 1.0(dead), 많을수록 →0."""
+    """사용기반 deadness: d = 2^(−inv/scale) ∈ (0,1]. inv=0 → 1.0(dead), 많을수록 →0.
+
+    inv=None(사용기록 부재) → 0.0: 증거 부재는 죽음의 증거가 아니다 (noisy-OR에서 부재 cause는
+    기여 0). inv=0(실측 0회)과 구분 — 후자는 'dead'로 측정된 것."""
+    if invocation_count is None:
+        return 0.0
     return math.pow(2.0, -invocation_count / invocation_scale)
 
 

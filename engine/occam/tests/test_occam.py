@@ -23,6 +23,35 @@ def test_no_dup_single_node_yields_no_candidate():
     assert report.scanned_nodes == 1
 
 
+def test_pick_current_prefers_more_referenced_over_more_lines():
+    # 라인은 적지만 inbound 참조가 많은 노드가 current (line_count 단독 휴리스틱 보강, #2)
+    big_lonely = NodeRecord("big", "bhgman_tool/x.py", "sha_big", 999, inbound_edges=0)
+    small_hub = NodeRecord("hub", "bhgman_tool/x.py", "sha_hub", 10, inbound_edges=20)
+    report = occam_pass([big_lonely, small_hub])
+    assert report.superseded_count == 1
+    cand = report.candidates[0]
+    assert cand.current.name == "hub"
+    assert cand.stale.name == "big"
+    assert cand.confidence is Confidence.MEDIUM
+
+
+def test_pick_current_prefers_more_recent_when_inbound_tied():
+    # inbound·line 동률이면 더 최근 검증된 쪽이 current
+    older = NodeRecord("old", "bhgman_tool/y.py", "s1", 50, last_validated="2025-01-01")
+    newer = NodeRecord("new", "bhgman_tool/y.py", "s2", 50, last_validated="2026-06-01")
+    report = occam_pass([older, newer])
+    assert report.candidates[0].current.name == "new"
+    assert report.candidates[0].stale.name == "old"
+
+
+def test_pick_current_falls_back_to_line_count_without_metadata():
+    # 메타 부재(None)면 기존 동작(max line_count) 그대로 (하위호환)
+    small = NodeRecord("small", "bhgman_tool/z.py", "s1", 10)
+    big = NodeRecord("big", "bhgman_tool/z.py", "s2", 99)
+    report = occam_pass([small, big])
+    assert report.candidates[0].current.name == "big"
+
+
 def test_conftest_case_disk_confirms_current_HIGH():
     # 실제 l8 케이스: rel(8L) vs abs(18L) 같은 파일, disk가 abs를 확정
     rel = NodeRecord("l8ind-tests-conftest.py", "bhgman_tool/engine/l8/tests/conftest.py", "aaa", 8)

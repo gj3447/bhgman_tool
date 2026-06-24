@@ -36,6 +36,66 @@ def test_run_occam_dry_run_detects_but_does_not_write():
     assert write.calls == []  # covenant
 
 
+# fetch가 inbound_edges/recency를 실어오면 _pick_current가 그것으로 current를 고른다 (end-to-end).
+_INBOUND_ROWS = [
+    {
+        "name": "big_lonely",
+        "source_path": "bhgman_tool/x.py",
+        "sha256": "a",
+        "line_count": 999,
+        "inbound_edges": 0,
+    },
+    {
+        "name": "small_hub",
+        "source_path": "bhgman_tool/x.py",
+        "sha256": "b",
+        "line_count": 10,
+        "inbound_edges": 20,
+    },
+]
+
+
+def test_run_occam_uses_inbound_edges_for_current_selection():
+    res = run_occam(_Runner(_INBOUND_ROWS))
+    assert res.report.superseded_count == 1
+    cand = res.report.candidates[0]
+    assert cand.current.name == "small_hub"  # 참조 많은 쪽이 현재 (line_count 휴리스틱 보강)
+    assert cand.stale.name == "big_lonely"
+
+
+# ─── σ seam: run_occam이 score_meta를 빌드해 occam_pass에 주입 (이전엔 dead) ───
+
+
+def test_run_occam_attaches_sigma_and_verdict():
+    # σ scoring이 production runner 경로에서 살아있어야 한다 (이전엔 score_meta 미주입 → dead).
+    res = run_occam(_Runner(_DUP_ROWS))
+    cand = res.report.candidates[0]
+    assert cand.score is not None
+    assert 0.0 <= cand.score <= 1.0
+    assert cand.verdict in {"SUPERSEDE", "VERIFY", "KEEP", "PROTECTED", "FLAG_ONLY"}
+
+
+def test_run_occam_no_usage_log_does_not_saturate_to_supersede():
+    # 사용기록 부재(invocation None → deadness 0)라 부분중복 후보가 σ=1.0 SUPERSEDE로 잘못
+    # 떠선 안 된다 (안전 회귀 방지). 10L vs 99L, 동일경로, 타임스탬프 없음 → redundancy 낮음.
+    res = run_occam(_Runner(_DUP_ROWS))
+    cand = res.report.candidates[0]
+    assert cand.score < 0.7  # θ_supersede 밑 — 자동 SUPERSEDE 아님
+    assert cand.verdict != "SUPERSEDE"
+
+
+def test_run_occam_exact_duplicate_still_supersedes():
+    # 동일 sha(완전중복) = redundancy 1.0 → deadness 부재여도 candidacy 포화 → σ 높음 → SUPERSEDE.
+    rows = [
+        {"name": "a", "source_path": "/abs/bhgman_tool/x.py", "sha256": "same", "line_count": 50},
+        {"name": "b", "source_path": "bhgman_tool/x.py", "sha256": "same", "line_count": 50},
+    ]
+    res = run_occam(_Runner(rows))
+    cand = res.report.candidates[0]
+    assert cand.score is not None and cand.score >= 0.7
+    assert cand.verdict == "SUPERSEDE"
+
+
 def test_run_occam_apply_writes_supersession():
     read = _Runner(_DUP_ROWS)
     write = _Runner([{"superseded": "old", "current": "new"}])  # cypher matches a row

@@ -30,15 +30,24 @@ FORBIDDEN_TOKENS = ("DELETE", "DETACH", "REMOVE")
 # 이미 SUPERSEDED된 노드는 제외 — 아카이브된 과거를 재-아카이브하지 않는다 (dogfood 교훈 2026-05-27).
 _NOT_ALREADY_ARCHIVED = "(s.status IS NULL OR s.status <> 'SUPERSEDED')"
 _REQUIRED = "s.sha256 IS NOT NULL AND s.lineCount IS NOT NULL AND s.sourcePath IS NOT NULL"
+# inbound 참조 수 + recency(lastValidated/createdAt)를 함께 fetch → _pick_current 다신호 보강.
+# count(x)는 비집계 RETURN 항(name/path/...)으로 그룹핑. "RETURN s.name AS name" prefix 유지
+# (local runner route 매칭 계약). 신호 부재 노드는 NULL/0 → 기존 line_count 폴백.
+_OPTIONAL_INBOUND = "OPTIONAL MATCH (x)-[]->(s) "
 _RETURN = (
     "RETURN s.name AS name, s.sourcePath AS source_path, "
-    "s.sha256 AS sha256, s.lineCount AS line_count"
+    "s.sha256 AS sha256, s.lineCount AS line_count, "
+    "s.lastValidated AS last_validated, s.createdAt AS created_at, "
+    "count(x) AS inbound_edges"
 )
 
-_FETCH_ALL = f"MATCH (s:SourceCodeNode) WHERE {_REQUIRED} AND {_NOT_ALREADY_ARCHIVED} {_RETURN}"
+_FETCH_ALL = (
+    f"MATCH (s:SourceCodeNode) WHERE {_REQUIRED} AND {_NOT_ALREADY_ARCHIVED} "
+    f"{_OPTIONAL_INBOUND}{_RETURN}"
+)
 _FETCH_SCOPED = (
     f"MATCH (s:SourceCodeNode) WHERE s.sourcePath CONTAINS $scope "
-    f"AND {_REQUIRED} AND {_NOT_ALREADY_ARCHIVED} {_RETURN}"
+    f"AND {_REQUIRED} AND {_NOT_ALREADY_ARCHIVED} {_OPTIONAL_INBOUND}{_RETURN}"
 )
 
 
@@ -57,12 +66,16 @@ def parse_node_records(rows: list[dict]) -> list[NodeRecord]:
     for r in rows:
         if r.get("source_path") is None or r.get("sha256") is None or r.get("line_count") is None:
             continue
+        inbound = r.get("inbound_edges")
         out.append(
             NodeRecord(
                 name=r["name"],
                 source_path=r["source_path"],
                 sha256=r["sha256"],
                 line_count=int(r["line_count"]),
+                inbound_edges=int(inbound) if inbound is not None else None,
+                last_validated=r.get("last_validated"),
+                created_at=r.get("created_at"),
             )
         )
     return out

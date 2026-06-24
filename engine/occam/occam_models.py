@@ -18,12 +18,24 @@ class Confidence(str, Enum):
 @dataclass(frozen=True)
 class NodeRecord:
     # KG: occam-kam-canonical-2026-05-26
-    """KG SourceCodeNode 한 개의 식별 정보."""
+    """KG SourceCodeNode 한 개의 식별 정보 + (선택) current-선정 신호.
+
+    아래 메타필드는 fetch가 채우면 _pick_current가 line_count 휴리스틱 대신 다신호로 current를
+    고른다 (challenge: 'line 큰 쪽이 현재'는 약함). None이면 기존 동작 불변 (하위호환)."""
 
     name: str
     source_path: str
     sha256: str
     line_count: int
+    # current-선정 보강 신호 (KG가 주면 사용, 없으면 None → line_count 폴백).
+    inbound_edges: int | None = None  # 이 노드를 가리키는 참조 엣지 수 (많을수록 live/current)
+    last_validated: str | None = None  # 마지막 검증 시점 (ISO) — 최신일수록 current
+    created_at: str | None = None  # 생성 시점 (ISO) — last_validated 부재 시 recency 폴백
+
+    @property
+    def recency_key(self) -> str:
+        """recency 비교 키 (ISO 문자열 사전식 비교). last_validated > created_at > ''."""
+        return self.last_validated or self.created_at or ""
 
 
 @dataclass(frozen=True)

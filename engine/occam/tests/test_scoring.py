@@ -75,6 +75,20 @@ def test_deadness_decreases_with_invocation():
     assert deadness(0, 3.0) > deadness(1, 3.0) > deadness(10, 3.0) > 0.0
 
 
+def test_deadness_none_usage_absent_contributes_zero():
+    # 사용기록 부재(None) → 0 (증거 부재 ≠ dead). inv=0(실측 0회=dead)인 1.0과 구분.
+    assert deadness(None, 3.0) == 0.0
+    assert deadness(0, 3.0) == 1.0
+
+
+def test_score_node_none_invocation_no_saturation():
+    # invocation None이면 deadness 0 → 부분중복(redundancy 낮음)이 candidacy 포화 안 함.
+    meta = NodeScoreMeta(redundancy=0.1, age_days=0.0, invocation_count=None)
+    sc = score_node(meta)
+    assert sc.deadness == 0.0
+    assert sc.sigma < 0.7  # SUPERSEDE 안 됨 (saturation 회귀 방지)
+
+
 # ── candidacy noisy-OR C = 1 − (1−r)(1−s)(1−d) ────────────────────────────────
 
 

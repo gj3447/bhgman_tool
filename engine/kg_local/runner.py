@@ -39,14 +39,23 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
             return False
         return scope is None or (scope in str(p.get("sourcePath", "")))
 
+    matched = store.find_nodes("SourceCodeNode", ok)
+    # inbound 참조 수: neo4j `count(x)` (OPTIONAL MATCH (x)-[]->(s))의 local mirror.
+    inbound: dict[int, int] = {}
+    for e in store.edges:
+        inbound[e["dst"]] = inbound.get(e["dst"], 0) + 1
+    idx_of = {id(n): i for i, n in enumerate(store.nodes)}
     return [
         {
             "name": n["props"].get("name"),
             "source_path": n["props"]["sourcePath"],
             "sha256": n["props"]["sha256"],
             "line_count": n["props"]["lineCount"],
+            "last_validated": n["props"].get("lastValidated"),
+            "created_at": n["props"].get("createdAt"),
+            "inbound_edges": inbound.get(idx_of.get(id(n), -1), 0),
         }
-        for n in store.find_nodes("SourceCodeNode", ok)
+        for n in matched
     ]
 
 

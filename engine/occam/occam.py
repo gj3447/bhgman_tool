@@ -46,18 +46,31 @@ def _in_repo(path: str) -> bool:
     return _REPO_MARKER in path
 
 
+def _current_rank(n: NodeRecord) -> tuple:
+    """disk-truth 부재 시 current 선정 다신호 키 (클수록 current).
+
+    challenge-occam: 'line_count 큰 쪽이 현재'는 약한 추정. inbound 참조 수(live/load-bearing)
+    와 recency(최근 검증/생성)를 line_count보다 우선해 보강한다. 메타 부재(None) 노드만 있으면
+    inbound=0·recency='' 동률 → line_count 폴백 = 기존 동작 불변 (하위호환).
+    sha256/source_path 마지막 tiebreak = 입력 순서 무관 결정론 (W3-A)."""
+    return (
+        n.inbound_edges or 0,
+        n.recency_key,
+        n.line_count,
+        n.sha256 or "",
+        n.source_path,
+    )
+
+
 def _pick_current(group: list[NodeRecord], disk_sha: str | None) -> tuple[NodeRecord, Confidence]:
-    """현재 lineage 노드 선정. disk sha 일치 = HIGH, 없으면 max line_count = MEDIUM."""
+    """현재 lineage 노드 선정. disk sha 일치 = HIGH, 없으면 다신호 rank = MEDIUM.
+
+    MEDIUM 경로: inbound 참조 수 > recency > line_count 순 (line_count 단독 휴리스틱 보강)."""
     if disk_sha:
         for node in group:
             if node.sha256 == disk_sha:
                 return node, Confidence.HIGH
-    # deterministic on equal line_count ties (sha256 then path) — occam_pass must not depend
-    # on input order (W3-A).
-    return (
-        max(group, key=lambda n: (n.line_count, n.sha256 or "", n.source_path)),
-        Confidence.MEDIUM,
-    )
+    return max(group, key=_current_rank), Confidence.MEDIUM
 
 
 def _reason(stale: NodeRecord, current: NodeRecord) -> str:
