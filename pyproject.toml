@@ -121,6 +121,12 @@ memory = [
     "sentence-transformers>=2.7",
     "hnswlib>=0.8",
 ]
+# Harness Console PR1 — Postgres-preferred event store. FastAPI/GUI dependencies
+# land in later slices; this extra only enables Postgres storage.
+# KG: task-harness-console-event-store-2026-06-24
+harness-console = [
+    "psycopg[binary]>=3.2",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
