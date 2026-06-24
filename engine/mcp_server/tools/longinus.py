@@ -2,74 +2,17 @@
 
 KG: span-mcp-tool-longinus-audit-2026-05-13 (:AtomicSpan)
 
-Exposes Longinus drift detection as a Claude-Code-callable MCP tool.
-Uses the simulated KG audit logic from the worked example (worked/01-longinus-simple/run.py).
-NOTE (H7): this thin wrapper does NOT import the production Pydantic models from
-`longinus_drift_audit` — it returns a hand-shaped dict (the AuditReport subset documented
-below). For the real typed audit, call engine.longinus_drift_audit.audit_runner directly.
+Exposes the production Longinus CommanderEngine as a Claude-Code-callable MCP tool.
 """
 
 from __future__ import annotations
 
-import json
-import re
-from pathlib import Path
 from typing import Any
 
+from engine.longinus_engine import LonginusEngine
+from engine.longinus_drift_audit.models import Confidence
 
-KG_REF_RE = re.compile(r"#\s*KG:\s*(\S+)")
-CONFIDENCE_TIERS = ("EXTRACTED", "INFERRED", "AMBIGUOUS")
-
-
-def _validate_repo_path(repo_path: str) -> Path:
-    """Path-traversal guard. Resolves to absolute path under user filesystem."""
-    p = Path(repo_path).expanduser().resolve()
-    if not p.exists():
-        raise FileNotFoundError(f"repo path not found: {repo_path}")
-    if not p.is_dir():
-        raise NotADirectoryError(f"not a directory: {repo_path}")
-    return p
-
-
-def _scan_kg_refs(root: Path, max_files: int = 1000) -> list[dict]:
-    """Walk root, find `# KG: <id>` references in .py files.
-
-    Bounded: max_files prevents runaway scans.
-    """
-    refs: list[dict] = []
-    skip_dirs = {
-        ".git",
-        ".venv",
-        "node_modules",
-        "__pycache__",
-        ".pytest_cache",
-        "dist",
-        "build",
-        ".mypy_cache",
-        ".ruff_cache",
-    }
-    count = 0
-    for path in root.rglob("*.py"):
-        if count >= max_files:
-            break
-        if any(skip in path.parts for skip in skip_dirs):
-            continue
-        try:
-            source = path.read_text(errors="replace")
-        except OSError:
-            continue
-        for i, line in enumerate(source.splitlines(), start=1):
-            m = KG_REF_RE.search(line)
-            if m:
-                refs.append(
-                    {
-                        "file": str(path.relative_to(root)),
-                        "line": i,
-                        "kg_id": m.group(1),
-                    }
-                )
-        count += 1
-    return refs
+CONFIDENCE_TIERS = tuple(c.value for c in Confidence)
 
 
 def longinus_audit_impl(
@@ -99,44 +42,7 @@ def longinus_audit_impl(
     KG: span-mcp-tool-longinus-audit-2026-05-13
     Verification: pytest test_mcp_tool_longinus.py
     """
-    if confidence_threshold not in CONFIDENCE_TIERS:
-        raise ValueError(
-            f"confidence_threshold must be one of {CONFIDENCE_TIERS}, got {confidence_threshold!r}"
-        )
-
-    root = _validate_repo_path(repo_path)
-    refs = _scan_kg_refs(root)
-
-    # In this skeleton stage we don't connect to live Neo4j.
-    # When a kg_simulated.json sibling is present (worked-example style), use it.
-    drifts: list[dict] = []
-    kg_sim_path = root / "kg_simulated.json"
-    if kg_sim_path.exists():
-        try:
-            kg = json.loads(kg_sim_path.read_text())
-            for r in refs:
-                if r["kg_id"] not in kg:
-                    drifts.append(
-                        {
-                            "drift_type": "Orphan",
-                            "kg_id": r["kg_id"],
-                            "code_location": f"{r['file']}:{r['line']}",
-                            "lens_law_violated": "GetPut",
-                        }
-                    )
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    return {
-        "audit_id": f"mcp-longinus-{root.name}",
-        "repo_path": str(root),
-        "files_scanned": len(set(r["file"] for r in refs)) if refs else 0,
-        "kg_refs_found": len(refs),
-        "refs": refs,
-        "drift_records": drifts,
-        "confidence_threshold": confidence_threshold,
-        "note": "Skeleton stage: scans for # KG: refs and reports Orphans against kg_simulated.json (if present). Production Neo4j integration is Phase 2 sprint.",
-    }
+    return LonginusEngine().audit_repo_for_mcp(repo_path, confidence_threshold)
 
 
 def register(mcp: Any) -> None:

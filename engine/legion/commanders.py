@@ -27,14 +27,23 @@ from __future__ import annotations
 
 from typing import Any
 
+from engine.commander_engine import CommanderEngine
 from engine.legion.legion import CANONICAL_ORDER, Legion
 from engine.legion.legion_models import CommanderStage
+from engine.longinus_engine import LonginusEngine, degraded as _degraded
 from engine.naesengmoon.decorrelation import CriticKind, CriticVerdict, aggregate, flag_echo
 
 
-def _degraded(key: str, reason: str) -> dict:
-    """엔진 호출 실패/백엔드 미지원 시 결정론 graceful-degrade (loop는 항상 provides 반환)."""
-    return {key: {"mode": "degraded", "reason": reason, "summary": f"{key}: degraded — {reason}"}}
+def _stage_from_engine(engine: CommanderEngine, *, measure=None) -> CommanderStage:
+    """Adapt a transport-neutral CommanderEngine to the legion stage contract."""
+    return CommanderStage(
+        engine.name,
+        engine.verb,
+        engine.requires,
+        engine.provides,
+        engine.run,
+        measure=measure,
+    )
 
 
 # ── 획득 (프로메테우스) ─────────────────────────────────────────────────────
@@ -91,43 +100,7 @@ def _run_acquire(ctx: dict) -> dict:
 # ── 연결 (롱기누스) ─────────────────────────────────────────────────────────
 def _run_bind(ctx: dict) -> dict:
     """code↔KG 바인딩. kg+code_root 주면 full audit, 없으면 KG-only float(미바인딩) 결정론 count."""
-    rc = ctx["run_cypher"]
-    kg = ctx.get("kg")
-    code_root = ctx.get("code_root")
-    if kg is not None and code_root is not None:
-        try:
-            from engine.longinus_drift_audit.audit_runner import LonginusAudit  # noqa: PLC0415
-
-            report = LonginusAudit(
-                kg=kg, code_root=code_root, repo_tag=ctx.get("repo_tag")
-            ).run_full(verify_sha256=bool(ctx.get("verify_sha256", True)))
-            return {
-                "bindings": {
-                    "mode": "full-audit",
-                    "drifts_by_type": getattr(report, "drifts_by_type", {}),
-                    "summary": f"longinus[audit]: drift={getattr(report, 'drifts_by_type', {})}",
-                }
-            }
-        except Exception as e:  # noqa: BLE001
-            return _degraded("bindings", f"full audit failed: {e}")
-    # 결정론 코어: ReferenceSite 바인딩 없는 떠다니는 concept 노드 count (float lesson).
-    try:
-        rows = rc(
-            "MATCH (c) WHERE c:Concept OR c:ResearchFinding OR c:Lesson "
-            "WITH c WHERE NOT (c)-[:HAS_REFERENCE|BINDS_TO]->() "
-            "RETURN count(c) AS n",
-            {},
-        )
-        n = rows[0]["n"] if rows else 0
-        return {
-            "bindings": {
-                "mode": "kg-deterministic",
-                "floating_nodes": n,
-                "summary": f"longinus[kg]: {n} floating (unbound) concept nodes",
-            }
-        }
-    except Exception as e:  # noqa: BLE001
-        return _degraded("bindings", f"float scan failed: {e}")
+    return LonginusEngine().run(ctx)
 
 
 # ── 창조 (유레카) ───────────────────────────────────────────────────────────
@@ -309,7 +282,7 @@ _STAGES: tuple[CommanderStage, ...] = (
         _run_acquire,
         measure=_measure_prometheus,
     ),
-    CommanderStage("longinus", "연결", ("run_cypher",), ("bindings",), _run_bind),
+    _stage_from_engine(LonginusEngine()),
     CommanderStage("eureka", "창조", ("run_cypher",), ("abstractions",), _run_induce),
     CommanderStage("occam", "정리", ("run_cypher",), ("hygiene",), _run_hygiene),
     CommanderStage(

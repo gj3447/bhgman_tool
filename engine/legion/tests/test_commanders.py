@@ -37,6 +37,15 @@ def test_default_stages_follow_canonical_order():
     assert verbs == CANONICAL_ORDER  # 획득 연결 창조 정리 검증 실현
 
 
+def test_longinus_stage_uses_commander_engine_contract():
+    from engine.longinus_engine import LonginusEngine
+
+    longinus = next(s for s in default_stages() if s.name == "longinus")
+    assert longinus.requires == LonginusEngine.requires
+    assert longinus.provides == LonginusEngine.provides
+    assert longinus.run.__self__.__class__ is LonginusEngine
+
+
 def test_verify_requires_all_four_upstream_provides():
     verify = next(s for s in default_stages() if s.verb == "검증")
     assert set(verify.requires) == {"acquired", "bindings", "abstractions", "hygiene"}

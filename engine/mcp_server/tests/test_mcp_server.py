@@ -58,10 +58,8 @@ def test_longinus_audit_on_worked_example_finds_drift(tmp_path):
     # Set up a tiny repo with a KG ref + simulated KG
     src = tmp_path / "sample.py"
     src.write_text(
-        "# KG: lesson-known-2026-05-13\n"
-        "def foo(): pass\n"
-        "# KG: lesson-orphan-2026-05-13\n"
-        "def bar(): pass\n"
+        "def foo(): pass  # KG: lesson-known-2026-05-13\n"
+        "def bar(): pass  # KG: lesson-orphan-2026-05-13\n"
     )
     (tmp_path / "kg_simulated.json").write_text(
         '{"lesson-known-2026-05-13": {"expected_signature": "foo() -> Any"}}'
@@ -69,15 +67,16 @@ def test_longinus_audit_on_worked_example_finds_drift(tmp_path):
     report = longinus_audit_impl(str(tmp_path))
     assert report["kg_refs_found"] == 2
     assert any(
-        d["drift_type"] == "Orphan" and d["kg_id"] == "lesson-orphan-2026-05-13"
+        d["drift_type"] == "Missing" and d["sourceId"] == "lesson-orphan-2026-05-13"
         for d in report["drift_records"]
     )
-    assert "lesson-known-2026-05-13" not in [d.get("kg_id") for d in report["drift_records"]]
+    assert "lesson-known-2026-05-13" not in [d.get("sourceId") for d in report["drift_records"]]
+    assert report["engine"] == "engine.longinus_engine.LonginusEngine"
 
 
 def test_longinus_audit_no_kg_simulated_returns_empty_drifts(tmp_path):
     src = tmp_path / "x.py"
-    src.write_text("# KG: lesson-a\ndef a(): pass\n")
+    src.write_text("def a(): pass  # KG: lesson-a\n")
     report = longinus_audit_impl(str(tmp_path))
     assert report["kg_refs_found"] == 1
     assert report["drift_records"] == []
