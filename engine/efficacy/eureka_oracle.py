@@ -27,6 +27,7 @@ cognitive/downstream 층은 정직히 OPEN" 패턴.
 from __future__ import annotations
 
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from engine.eureka.induction_operators.fca import induce_fca
@@ -54,7 +55,9 @@ def build_planted_context(
 
 
 def recovery_recall(
-    extents: list[frozenset[str]], planted: list[frozenset[str]], thresh: float = 0.8
+    extents: Sequence[frozenset[str]],
+    planted: Sequence[frozenset[str]],
+    thresh: float = 0.8,
 ) -> float:
     """planted 그룹 중 어떤 extent와 Jaccard ≥ thresh로 매칭되는 비율 (순수)."""
     if not planted:

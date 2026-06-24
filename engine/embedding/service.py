@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, replace
+from typing import Protocol, runtime_checkable
 
 from engine.embedding.neo4j_vector import (
     BackfillReport,
@@ -30,8 +31,12 @@ from engine.embedding.neo4j_vector import (
 )
 
 
-class _Encoder:
-    """Minimal protocol the service needs: text(s) → vector(s)."""
+@runtime_checkable
+class _Encoder(Protocol):
+    """Minimal protocol the service needs: text(s) → vector(s).
+
+    Structural — any object with a matching ``encode`` (e.g. ``memory.Embedder``) satisfies it.
+    """
 
     def encode(self, text: str) -> list[float]: ...  # pragma: no cover
 

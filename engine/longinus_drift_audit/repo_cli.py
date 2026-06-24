@@ -67,11 +67,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "id":
-        rid = repo_id_for(args.dir)
-        if rid is None:
+        # discover 분기의 `rid: str` 와 이름 충돌 회피 — 여기선 Optional 반환을 받는다.
+        id_rid = repo_id_for(args.dir)
+        if id_rid is None:
             print(f"not a git repo: {args.dir}", file=sys.stderr)
             return 1
-        print(rid)
+        print(id_rid)
         return 0
 
     if args.cmd == "locate":

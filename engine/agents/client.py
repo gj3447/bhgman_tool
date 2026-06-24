@@ -23,9 +23,20 @@ import threading
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypedDict
 from urllib.parse import urlparse
 
 from engine.agents.agent_models import EFFORT_CAPABLE
+
+
+class _BackendKW(TypedDict):
+    """tier→endpoint 가 고른 물리 백엔드 triple. `**`-unpack 으로 _openai_post 의
+    base/model/key 키워드에 정확히 매핑되도록 키별 타입을 고정한다."""
+
+    base: str | None
+    model: str | None
+    key: str | None
+
 
 DEFAULT_MAX_TOKENS = 4096
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}
@@ -150,14 +161,17 @@ def _pooled_post(url: str, payload: dict, headers: dict, timeout: float) -> dict
     stale/half-open 소켓은 재사용 시 예외를 던지므로, 그런 경우 1회 재연결-후-재시도한다.
     """
     u = urlparse(url)
-    key = (u.scheme, u.hostname, u.port)
+    host = u.hostname
+    if host is None:
+        raise ValueError(f"malformed URL (no host): {url!r}")
+    key = (u.scheme, host, u.port)
     conns = getattr(_POOL, "conns", None)
     if conns is None:
         conns = _POOL.conns = {}
 
     def _fresh() -> http.client.HTTPConnection:
         ctor = http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection
-        return ctor(u.hostname, u.port, timeout=timeout)
+        return ctor(host, u.port, timeout=timeout)
 
     path = u.path or "/"
     if u.query:
@@ -197,6 +211,10 @@ def _pooled_post(url: str, payload: dict, headers: dict, timeout: float) -> dict
 class AgentClient:
     """dual-backend. client=(anthropic 주입) / http_post=(openai-compat 주입)은 테스트용."""
 
+    # openai-compat transport (주입된 http_post 또는 _pooled_post/_urllib_post). anthropic
+    # 모드에선 미설정. 단일 클래스-레벨 선언으로 __init__ 분기별 재할당의 타입을 통일.
+    _post: Callable[..., dict] | None
+
     def __init__(
         self, client=None, http_post: Callable | None = None, max_continuations: int = 5
     ) -> None:
@@ -216,7 +234,7 @@ class AgentClient:
         ok, reason = runtime_status()
         if not ok:
             raise AgentRuntimeUnavailable(reason)
-        self._post: Callable | None = None
+        self._post = None
         base_url = _local_base_url()
         if base_url:  # 실 openai-compat (vLLM/DGX)
             # 기본 keep-alive 풀드 transport(느린 링크서 핸드셰이크 절약); 0 이면 stdlib 단발.
@@ -368,6 +386,8 @@ class AgentClient:
         timeout = float(
             os.environ.get("BHGMAN_LLM_TIMEOUT", "120")
         )  # reasoning models load+think slowly
+        # openai 모드에서만 도달 — _post 는 항상 주입/설정돼 있다(anthropic 모드면 _complete_openai 미호출).
+        assert self._post is not None, "openai-compat transport not configured"
         resp = self._post(f"{base}/chat/completions", payload, headers, timeout)
         choice = (resp.get("choices") or [{}])[0]
         msg = choice.get("message") or {}
@@ -413,7 +433,7 @@ class AgentClient:
         from engine.agents import web_search_local as _ws  # noqa: PLC0415
 
         # tier→endpoint 가 고른 물리 백엔드를 모든 라운드에 전파(레거시면 None → self._*).
-        _t = {"base": base, "model": model, "key": key}
+        _t: _BackendKW = {"base": base, "model": model, "key": key}
 
         if not (web_search and _ws.searxng_url()):
             return self._openai_post(
