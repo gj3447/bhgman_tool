@@ -234,6 +234,29 @@ def test_score_meta_redundancy_overridden_by_occam_dedup():
     assert cand.verdict == "KEEP"
 
 
+def test_disk_confirmed_candidate_scores_as_hard_support():
+    # disk_truth가 current를 확정하면 fresh/used 노드라도 "살아있는 후속자" 근거가 붙는다.
+    stale = NodeRecord("old.py", "bhgman_tool/m.py", "old", 10)
+    current = NodeRecord("new.py", "bhgman_tool/m.py", "new", 100)
+    meta = {
+        "old.py": NodeScoreMeta(
+            redundancy=0.0,
+            age_days=1.0,
+            invocation_count=100,
+            tier=EntrenchmentTier.PLAIN,
+        )
+    }
+    report = occam_pass(
+        [stale, current],
+        disk_truth={"m.py": "new"},
+        score_meta=meta,
+    )
+    cand = report.candidates[0]
+    assert cand.confidence is Confidence.HIGH
+    assert cand.score == 1.0
+    assert cand.verdict == "SUPERSEDE"
+
+
 def test_pick_current_deterministic_on_line_count_tie():
     """W3-A: equal line_count must not make occam_pass depend on input order."""
     a = NodeRecord("a.py", "engine/dup.py", "sha_aaa", 100)

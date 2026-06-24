@@ -163,6 +163,8 @@ def _score_candidates(
             meta,
             redundancy=_redundancy(c.stale, c.current),
             has_successor=True,
+            disk_current=max(meta.disk_current, 1.0 if c.confidence is Confidence.HIGH else 0.0),
+            blob_match=max(meta.blob_match, 1.0 if c.stale.sha256 == c.current.sha256 else 0.0),
         )
         sc = score_node(merged, cfg)
         out.append(dataclasses.replace(c, score=sc.sigma, verdict=sc.verdict.value))

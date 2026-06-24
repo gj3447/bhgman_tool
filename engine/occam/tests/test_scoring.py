@@ -14,12 +14,15 @@ from engine.occam.scoring import (
     EntrenchmentTier,
     NodeScoreMeta,
     ScoringConfig,
+    ScoreVector,
     Verdict,
+    anchoring,
     candidacy,
     deadness,
     entrenchment_penalty,
     guard,
     score_node,
+    score_vector,
     staleness,
 )
 
@@ -110,6 +113,48 @@ def test_guard_no_successor_is_zero():
 
 def test_guard_plain_with_successor_is_one():
     assert guard(0.0, has_successor=True) == 1.0
+
+
+# ── anchoring a = 1 − 2^(−inbound/scale) (연결성 기반 entrenchment) ────────────
+
+
+def test_anchoring_zero_inbound_is_zero():
+    # 아무도 안 가리키는 노드 = anchoring 없음 (archive 보호 안 함)
+    assert anchoring(0, 5.0) == 0.0
+
+
+def test_anchoring_at_scale_is_half():
+    assert anchoring(5, 5.0) == pytest.approx(0.5)
+
+
+def test_anchoring_increases_with_inbound():
+    assert anchoring(0, 5.0) < anchoring(3, 5.0) < anchoring(50, 5.0) < 1.0
+
+
+def test_guard_high_anchoring_dampens_toward_zero():
+    # 많이 참조되는 plain 노드는 twin이 있어도 guard가 줄어 archive를 막는다
+    g_lonely = guard(0.0, has_successor=True, anchoring_v=0.0)
+    g_anchored = guard(0.0, has_successor=True, anchoring_v=0.9)
+    assert g_lonely == 1.0
+    assert g_anchored == pytest.approx(0.1)
+
+
+def test_guard_anchoring_defaults_to_no_dampening():
+    # 하위호환: anchoring 미지정 = 기존 (1−e)·twin 동작
+    assert guard(0.0, has_successor=True) == 1.0
+
+
+def test_heavily_referenced_node_resists_supersede():
+    # 완전중복·오래됨·미사용이라도 inbound가 많으면 σ가 SUPERSEDE 밑으로 눌린다
+    cfg = ScoringConfig()
+    base = dict(
+        redundancy=1.0, age_days=3650, invocation_count=0, tier=EntrenchmentTier.PLAIN
+    )
+    lonely = score_node(NodeScoreMeta(inbound_edges=0, **base), cfg)
+    anchored = score_node(NodeScoreMeta(inbound_edges=50, **base), cfg)
+    assert lonely.verdict == Verdict.SUPERSEDE
+    assert anchored.sigma < lonely.sigma
+    assert anchored.verdict != Verdict.SUPERSEDE
 
 
 # ── never-archive tier 정전 (canonical/lesson/contract/verdict = e=1.0) ───────
@@ -204,6 +249,66 @@ def test_gray_zone_triggers_verify():
     assert sc.verdict == Verdict.VERIFY
 
 
+# ── ScoreVector: hard evidence / semantic evidence 분리 ───────────────────────
+
+
+def test_score_vector_preserves_legacy_score_when_new_signals_zero():
+    meta = NodeScoreMeta(
+        redundancy=0.2,
+        age_days=45.0,
+        invocation_count=6,
+        tier=EntrenchmentTier.PLAIN,
+    )
+    legacy = score_node(meta)
+    vector = ScoreVector.from_meta(meta)
+    direct = score_vector(vector)
+    assert direct.sigma == pytest.approx(legacy.sigma)
+    assert direct.verdict == legacy.verdict
+
+
+def test_score_vector_hard_disk_support_can_raise_sigma():
+    vector = ScoreVector(
+        redundancy=0.0,
+        staleness=0.0,
+        deadness=0.0,
+        entrenchment=0.0,
+        anchoring=0.0,
+        has_successor=True,
+        disk_current=1.0,
+    )
+    sc = score_vector(vector)
+    assert sc.sigma == pytest.approx(1.0)
+    assert sc.verdict == Verdict.SUPERSEDE
+
+
+def test_score_vector_semantic_only_requires_verification():
+    vector = ScoreVector(
+        redundancy=0.0,
+        staleness=0.0,
+        deadness=0.0,
+        entrenchment=0.0,
+        anchoring=0.0,
+        has_successor=True,
+        semantic_similarity=1.0,
+    )
+    sc = score_vector(vector)
+    assert sc.sigma == pytest.approx(1.0)
+    assert sc.verdict == Verdict.VERIFY
+
+
+def test_score_vector_rejects_out_of_range_signal():
+    with pytest.raises(ValueError):
+        ScoreVector(
+            redundancy=0.0,
+            staleness=0.0,
+            deadness=0.0,
+            entrenchment=0.0,
+            anchoring=0.0,
+            has_successor=True,
+            blob_match=1.1,
+        )
+
+
 # ── property-based: 경계 + 단조성 ─────────────────────────────────────────────
 
 _unit = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
@@ -255,6 +360,19 @@ def test_sigma_monotone_increasing_in_age(age1, age2, r, inv):
     s1 = score_node(NodeScoreMeta(age_days=age1, **base)).sigma
     s2 = score_node(NodeScoreMeta(age_days=age2, **base)).sigma
     assert s1 <= s2 + 1e-12
+
+
+@given(in1=_inv, in2=_inv, r=_unit, age=_age, inv=_inv)
+def test_sigma_monotone_decreasing_in_inbound_edges(in1, in2, r, age, inv):
+    # 더 많이 참조될수록(inbound↑) σ는 같거나 낮다 (연결성 entrenchment 보호)
+    if in1 > in2:
+        in1, in2 = in2, in1
+    base = dict(
+        redundancy=r, age_days=age, invocation_count=inv, tier=EntrenchmentTier.PLAIN
+    )
+    s_low = score_node(NodeScoreMeta(inbound_edges=in1, **base)).sigma
+    s_high = score_node(NodeScoreMeta(inbound_edges=in2, **base)).sigma
+    assert s_high <= s_low + 1e-12
 
 
 @given(r=_unit, age=_age, inv=_inv)
