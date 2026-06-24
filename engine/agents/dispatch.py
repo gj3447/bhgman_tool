@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
@@ -35,6 +36,12 @@ class SubagentSpec:
     # temperature 0.0 → openai payload 미주입(greedy), seed None → 미주입. K>1 axis 복제 시에만 켜짐.
     temperature: float = 0.0
     seed: int | None = None
+    # L4: tier 라우팅 — 0=fast(35B 브레드스), 1=big(122B 디코릴레이터/하드 축/synth).
+    # 멀티 엔드포인트 미구성이면 무시(레거시 단일 백엔드). 기본 0 = 오늘 동작 불변.
+    tier: int = 0
+    # L6: openai-compat tool-calling (FOLLOWUPS emit_followups 강제). None = tool 미사용(오늘 동작).
+    tools: tuple[dict, ...] | None = None
+    tool_choice: str | dict | None = None
 
 
 @dataclass(frozen=True)
@@ -61,7 +68,27 @@ def dispatch_parallel(
     if not specs:
         return []
 
+    # L4: per-endpoint 세마포어 — 얕은 Ollama(122B)를 K×N width 로 범람시키지 않게.
+    # endpoint_for_tier 가 None(레거시 단일 백엔드 / 테스트 더블)이면 게이팅 없음(오늘 동작).
+    # duck-typed: 이 메서드 없는 client(테스트 stub)는 세마포어 미사용으로 graceful degrade.
+    _concurrency = getattr(client, "endpoint_concurrency", None)
+    _ep_for_tier = getattr(client, "endpoint_for_tier", None)
+    _sems: dict[str, threading.Semaphore] = (
+        {base: threading.Semaphore(max(1, mc)) for base, mc in _concurrency().items()}
+        if callable(_concurrency)
+        else {}
+    )
+
+    def _sem_for(spec: SubagentSpec) -> threading.Semaphore | None:
+        if not _sems or not callable(_ep_for_tier):
+            return None
+        ep = _ep_for_tier(spec.tier)
+        return _sems.get(ep.base_url) if ep is not None else None
+
     def _run(spec: SubagentSpec) -> SubagentResult:
+        sem = _sem_for(spec)
+        if sem is not None:
+            sem.acquire()
         try:
             c = client.complete(
                 system=spec.system,
@@ -71,10 +98,16 @@ def dispatch_parallel(
                 web_search=spec.web_search,
                 temperature=spec.temperature,
                 seed=spec.seed,
+                tier=spec.tier,
+                tools=list(spec.tools) if spec.tools is not None else None,
+                tool_choice=spec.tool_choice,
             )
             return SubagentResult(spec.name, True, c.text, "", c)
         except Exception as e:  # noqa: BLE001 — 한 서브 실패가 출격 전체를 죽이지 않게 격리
             return SubagentResult(spec.name, False, "", f"{type(e).__name__}: {e}")
+        finally:
+            if sem is not None:
+                sem.release()
 
     cap = int(os.environ.get("BHGMAN_MAX_INFLIGHT", "24"))
     workers = min(max_workers or cap, max(1, len(specs)))

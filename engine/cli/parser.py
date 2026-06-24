@@ -117,6 +117,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="축당 self-consistency 샘플 수 (>1=K×N 동시 디코드로 GB10 포화; "
         "기본=BHGMAN_PROM_K 또는 1).",
     )
+    p_prom.add_argument(
+        "--verify",
+        action="store_true",
+        help="L5: synth 후 나생문 적대 검증 → FAIL/CONDITIONAL이면 1회 수리(기본 OFF).",
+    )
+    p_prom.add_argument(
+        "--depth",
+        type=int,
+        default=None,
+        help="L6: 재귀 트리 깊이 (1=flat 오늘 경로, 2=map-reduce 트리; 기본=BHGMAN_PROM_DEPTH 또는 1).",
+    )
+    p_prom.add_argument(
+        "--hard-axes",
+        type=int,
+        default=None,
+        dest="hard_axes",
+        help="L4: 상위 N개 하드 축(compare/prove/why…)을 tier-1(122B)로 라우팅(기본=BHGMAN_HARD_AXES 또는 0).",
+    )
     p_prom.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
     p_prom.add_argument(
         "--local",

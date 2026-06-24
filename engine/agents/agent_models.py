@@ -17,9 +17,16 @@ SYNTHESIS_MODEL = OPUS  # 수확분 합성 / 판단 렌즈
 # effort는 Opus/Sonnet 4.6+ 만 (Haiku 4.5에 주면 400). 이 집합으로 가드.
 EFFORT_CAPABLE = frozenset({OPUS, SONNET, "claude-opus-4-6", "claude-opus-4-5"})
 
+# L4: openai-compat(로컬 DGX) tier 라우팅 상수. 이 경로에선 물리 모델이 tier→endpoint 로
+# 선택되고, 위 SUBAGENT_MODEL/SYNTHESIS_MODEL(claude-* 문자열)은 anthropic 경로에서만 바인딩된다.
+LOCAL_FAST_TIER = 0  # 35B 브레드스 (병렬 서브에이전트)
+LOCAL_BIG_TIER = 1  # 122B 디코릴레이터 (하드 축 / synth / verify)
+
 __all__ = [
     "EFFORT_CAPABLE",
     "HAIKU",
+    "LOCAL_BIG_TIER",
+    "LOCAL_FAST_TIER",
     "OPUS",
     "SONNET",
     "SUBAGENT_MODEL",
