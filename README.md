@@ -13,7 +13,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
-[![Pytest engine](https://img.shields.io/badge/pytest%20engine-332%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
+[![Pytest engine](https://img.shields.io/badge/pytest%20engine-378%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
 [![Pre-commit gate](https://img.shields.io/badge/pre--commit%20gate-1369%20tests-blue.svg?style=flat-square)](.pre-commit-config.yaml)
 
 </div>
@@ -149,7 +149,7 @@ cd bhgman_tool
 
 # 1. engine — verify pytest (run from repo ROOT; tests use absolute `engine.longinus_drift_audit.*`
 #    imports, and --all-extras pulls suite deps like python-frontmatter)
-uv run --all-extras pytest engine/longinus_drift_audit/tests -q   # expected: 332 passed, 1 skipped in ~2s
+uv run --all-extras pytest engine/longinus_drift_audit/tests -q   # expected: 378 passed, 3 skipped in ~5s
 
 # 2. Lean 4 — verify formal claims (optional)
 ( cd lean && lean Longinus_ConfidenceSchema_GraphifyAbsorbed.lean )   # exit 0, sorry=0
@@ -165,7 +165,7 @@ Restart Claude Code, then `/apt` `/prom` `/tpa` `/tlb` `/longinus` `/harness` `/
 
 ```mermaid
 flowchart LR
-    A([git clone]) --> B[engine pytest<br/>332 PASS]
+    A([git clone]) --> B[engine pytest<br/>378 PASS]
     B --> C{Lean 4?<br/>optional}
     C -- yes --> D[lean verify<br/>sorry=0]
     C -- skip --> E[bhgman-tool install-skills]
@@ -196,7 +196,7 @@ Every numeric claim in this README ships with a one-command verifier. Run them o
 
 | Claim | Command | What it checks |
 |---|---|---|
-| `332 passed, 1 skipped` (engine subset) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (from repo root) | engine subset pass count + runtime |
+| `378 passed, 3 skipped` (engine subset) | `uv run --all-extras pytest engine/longinus_drift_audit/tests -q` (from repo root) | engine subset pass count + runtime |
 | `1365 passed, 4 skipped` (full repo; 1369 collected) | `uv run --all-extras pytest -q` from root (or `uvx pre-commit run --all-files`) | full-repo result, single invocation (skips on a keyless clone: real-API smoke + otel no-op). NOTE: `--all-extras` is required — plain `uv run pytest` (or bare `pytest`) fails at collection on `import frontmatter`, because python-frontmatter lives in the `resolver`/`all` extra, not the default deps. |
 | `Lean 4: proof-position sorry=0` | `cd lean && export LEAN_PATH=$PWD && for f in Measurement_MetricScale Measurement_CommanderMetrics Measurement_CompositionSafety Measurement_Phase4_EmpiricalValidation; do lean --o=$f.olean $f.lean \|\| exit 1; done && for f in *.lean; do lean "$f" \|\| exit 1; done && grep -rEn '(:=\|by) +sorry' *.lean \| wc -l` | 14 Mathlib-free files build (dependency-ordered via LEAN_PATH) + count of unfinished proofs (= 0; every `sorry` token in the tree is in a comment) |
 | `105 theorems` (whole `lean/` tree; 89 in the 14 Mathlib-free files) | `grep -rcE '^(theorem\|lemma) ' lean/ \| awk -F: '{s+=$2} END{print s}'` | top-level theorem/lemma declaration count |
