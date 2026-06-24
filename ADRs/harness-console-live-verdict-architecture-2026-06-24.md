@@ -44,10 +44,11 @@ The console will use the Harness four-axis frame as its product architecture:
 | Verify | Compare human, AI, tests, Lean, Longinus, Occam, Eureka, and Lakatos verdicts. |
 | Correct | Turn rejected or ambiguous items into relabel tasks, patch tasks, or follow-up research. |
 
-The first implementation should be local-first:
+The first implementation should be local-first but production-shaped:
 
 - FastAPI server.
-- SQLite event store.
+- Postgres event store when a shared Postgres instance is available.
+- SQLite fallback for isolated tests and offline development.
 - Server-sent events for live streaming.
 - Vite/React frontend.
 - Three.js canvas for architecture and project graph views.
@@ -75,7 +76,7 @@ Vite/React Harness Console
   v
 FastAPI Harness Server
   |
-  +-- SQLite Event Store
+  +-- Event Store (Postgres preferred, SQLite fallback)
   +-- Project Snapshot Store
   +-- Verdict Queue
   +-- Label Task Queue
@@ -356,7 +357,27 @@ Once the bead corpus is present, the adapter can add a stricter schema.
 
 ## Event Store
 
-SQLite tables:
+Use Postgres for the shared working deployment, with SQLite only as a fallback
+for unit tests and offline development. The domain layer must depend on an
+`EventStore` port rather than on `psycopg`, SQLAlchemy, SQLite, or FastAPI.
+
+Configuration:
+
+- `HARNESS_CONSOLE_DATABASE_URL`: primary DSN.
+- `postgresql://...`: use `PostgresEventStore`.
+- `sqlite:///...`: use `SqliteEventStore`.
+- unset: tests may use an in-memory SQLite store; runtime should fail loudly
+  unless an explicit dev fallback is requested.
+
+Postgres is preferred because this console is a shared review surface:
+
+- concurrent human reviewers
+- live event streaming
+- stable audit history
+- future KG write-back batching
+- easier migration to server deployment
+
+Initial schema:
 
 ```sql
 CREATE TABLE harness_events (
@@ -369,6 +390,9 @@ CREATE TABLE harness_events (
   created_at TEXT NOT NULL,
   UNIQUE(run_id, sequence)
 );
+
+CREATE INDEX idx_harness_events_run_sequence
+  ON harness_events (run_id, sequence);
 
 CREATE TABLE verdict_requests (
   id TEXT PRIMARY KEY,
@@ -383,6 +407,9 @@ CREATE TABLE verdict_requests (
   created_at TEXT NOT NULL
 );
 
+CREATE INDEX idx_verdict_requests_status_created
+  ON verdict_requests (status, created_at);
+
 CREATE TABLE human_verdicts (
   id TEXT PRIMARY KEY,
   request_id TEXT NOT NULL,
@@ -392,6 +419,9 @@ CREATE TABLE human_verdicts (
   evidence_refs_json TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+CREATE INDEX idx_human_verdicts_request
+  ON human_verdicts (request_id, created_at);
 
 CREATE TABLE label_tasks (
   id TEXT PRIMARY KEY,
@@ -407,7 +437,15 @@ CREATE TABLE label_tasks (
   status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+CREATE INDEX idx_label_tasks_project_status
+  ON label_tasks (project_id, status, created_at);
 ```
+
+The first executable slice should implement the Postgres adapter behind the same
+test suite as the SQLite adapter. If shared Postgres credentials are not present
+in the execution environment, the Postgres tests should skip with an explicit
+reason rather than silently downgrading.
 
 ## KG Plan
 
@@ -439,7 +477,7 @@ MERGE (p)-[:DOCUMENTED_BY]->(adr);
 
 WITH p
 UNWIND [
-  ['task-harness-console-event-store-2026-06-24', 'Build SQLite event store and append-only HarnessEvent model', 1],
+  ['task-harness-console-event-store-2026-06-24', 'Build Postgres-preferred event store and append-only HarnessEvent model', 1],
   ['task-harness-console-verdict-queue-2026-06-24', 'Build HumanVerdictRequest and HumanVerdict workflow', 2],
   ['task-harness-console-project-adapters-2026-06-24', 'Add PythonRepo, NodeVite, ThreeD, Bead, and GenericFile adapter slots', 3],
   ['task-harness-console-architecture-graph-2026-06-24', 'Build server and engine architecture analysis graph', 4],
@@ -486,7 +524,9 @@ Expected first code anchors:
 
 - Add ADR.
 - Add `engine/harness_console/models.py`.
-- Add SQLite event store.
+- Add `EventStore` port.
+- Add Postgres event store.
+- Add SQLite fallback for tests/offline dev.
 - Add tests for append-only sequence and verdict request lifecycle.
 
 ### PR 2: Server Skeleton
@@ -534,7 +574,7 @@ Expected first code anchors:
 ### PR 7: KG Write-Back
 
 - Add optional Neo4j/local KG materializer.
-- Preserve SQLite as append-only audit source.
+- Preserve the Postgres event log as the append-only audit source.
 - Write only confirmed human verdicts and stable plan/task nodes.
 
 ## Consequences
@@ -594,6 +634,6 @@ Canonical comments for project adapters:
 Do not mark the plan implemented until the first executable slice exists:
 
 1. `HarnessEvent`, `HumanVerdictRequest`, `HumanVerdict`, and `LabelTask` DTOs.
-2. Append-only SQLite event store.
+2. Append-only Postgres event store, with SQLite fallback behind the same port.
 3. Tests for event ordering and verdict request lifecycle.
 4. At least one Longinus-bound source file carrying the PR 1 comments above.
