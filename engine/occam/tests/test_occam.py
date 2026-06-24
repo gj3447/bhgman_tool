@@ -52,6 +52,28 @@ def test_pick_current_falls_back_to_line_count_without_metadata():
     assert report.candidates[0].current.name == "big"
 
 
+def test_disk_confirmed_current_drives_supersede_via_evidence_vector():
+    # regression lock: disk가 current를 확정(HIGH → disk_current=1.0)하면 redundancy가 낮아도
+    # score_vector evidence noisy-OR가 σ를 SUPERSEDE까지 끌어올린다. score_node가 score_vector로
+    # 위임하므로 _score_candidates의 disk_current/blob_match 근거가 실제로 σ에 반영됨을 고정.
+    stale = NodeRecord("stale", "bhgman_tool/x.py", "old", 999)
+    current = NodeRecord("cur", "bhgman_tool/x.py", "diskwins", 5)
+    meta = {
+        "stale": NodeScoreMeta(redundancy=0.0, age_days=0.0, invocation_count=None),
+        "cur": NodeScoreMeta(redundancy=0.0, age_days=0.0, invocation_count=None),
+    }
+    report = occam_pass(
+        [stale, current], disk_truth={"x.py": "diskwins"}, score_meta=meta
+    )
+    cand = report.candidates[0]
+    assert cand.confidence is Confidence.HIGH
+    assert cand.verdict == "SUPERSEDE"  # disk_current=1.0 evidence가 σ를 끌어올림
+
+    # disk truth 없으면 disk_current 근거 부재 → 낮은 σ → KEEP (보류, evidence 없이 단정 안 함)
+    report2 = occam_pass([stale, current], score_meta=meta)
+    assert report2.candidates[0].verdict == "KEEP"
+
+
 def test_conftest_case_disk_confirms_current_HIGH():
     # 실제 l8 케이스: rel(8L) vs abs(18L) 같은 파일, disk가 abs를 확정
     rel = NodeRecord("l8ind-tests-conftest.py", "bhgman_tool/engine/l8/tests/conftest.py", "aaa", 8)
