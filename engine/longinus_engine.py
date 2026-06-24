@@ -105,8 +105,8 @@ def summarize_report(report) -> dict[str, Any]:
 class LonginusEngine(DeterministicCommanderEngine):
     name = "longinus"
     verb = "연결"
-    requires = ("run_cypher",)
-    provides = ("bindings",)
+    requires: tuple[str, ...] = ("run_cypher",)
+    provides: tuple[str, ...] = ("bindings",)
 
     def deterministic_core(self, context: CommanderContext) -> CommanderOutput:
         kg = context.get("kg")

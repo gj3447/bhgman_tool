@@ -217,9 +217,8 @@ def apply_supersessions(
         else:
             no_match.append(_ident(cand.stale))
 
-    notes: list[str] = [
-        f"applied {len(applied)}/{len(plans)} supersession(s) — reversible via status+edge"
-    ]
+    # 위 dry-run 분기는 return 으로 끝나므로 여기 notes 는 새 바인딩 — 재-annotate 하지 않는다(no-redef).
+    notes = [f"applied {len(applied)}/{len(plans)} supersession(s) — reversible via status+edge"]
     if deferred:
         notes.append(_deferred_note)
     if refused:

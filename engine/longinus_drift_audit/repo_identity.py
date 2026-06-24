@@ -116,7 +116,7 @@ def git_identity(abs_path: str) -> dict:
     so it is identical across operating systems. ``blob_oid`` is the working-tree content
     hash (``git hash-object``) — the content-addressed, machine-independent drift signal.
     """
-    out = {
+    out: dict[str, str | None] = {
         "toplevel": None,
         "repo_id": None,
         "commit": None,

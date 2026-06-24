@@ -68,7 +68,8 @@ class EscalationPlan:
 
 def _ident(node) -> str:
     """표시용 식별자 (never None) — name 우선, 없으면 sourcePath."""
-    return getattr(node, "name", None) or getattr(node, "source_path", "?")
+    ident = getattr(node, "name", None) or getattr(node, "source_path", "?")
+    return str(ident)  # getattr 가 Any 라 명시 str 캐스트로 반환 타입 보장
 
 
 def is_confident_supersede(c: SupersessionCandidate) -> bool:

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from engine.agents import naesengmoon
 from engine.agents.client import AgentClient
@@ -251,11 +251,8 @@ class TreeNode:
     question: str
     answer: SubagentResult | None = None
     synthesis: str = ""  # reduce_tree 가 채움 (internal node 의 partial synthesis)
-    children: list[TreeNode] | None = None
-
-    def __post_init__(self) -> None:
-        if self.children is None:
-            self.children = []
+    # 항상 list — 생성 시 빈 리스트로 초기화(과거엔 None→__post_init__ 정규화였음).
+    children: list[TreeNode] = field(default_factory=list)
 
 
 def _parse_followups(comp, branch: int) -> tuple[list[str], bool]:

@@ -67,12 +67,15 @@ def module_concepts(content: str) -> list[str]:
     return out
 
 
-def _header_has_kg(node: ast.AST, lines: list[str]) -> bool:
+def _header_has_kg(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, lines: list[str]
+) -> bool:
+    # caller(bind_symbols)가 isinstance 로 def/class 노드만 넘긴다 — lineno/decorator_list/body 보장.
     start = node.lineno
-    decos = getattr(node, "decorator_list", []) or []
+    decos = node.decorator_list
     if decos:
         start = min(start, min(d.lineno for d in decos))
-    body = getattr(node, "body", None)
+    body = node.body
     end = (body[0].lineno - 1) if body else node.lineno
     return any(_KG_REF.search(lines[ln - 1]) for ln in range(start, max(start, end) + 1))
 

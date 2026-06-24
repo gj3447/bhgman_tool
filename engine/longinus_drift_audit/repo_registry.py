@@ -26,6 +26,7 @@ never a silently-wrong file.
 
 from __future__ import annotations
 
+import builtins
 import logging
 import os
 from pathlib import Path
@@ -159,7 +160,7 @@ class RepoRegistry:
         return rid, Path(top)
 
     def discover_for(
-        self, repo_id: str, search_paths: Optional[list[str]] = None
+        self, repo_id: str, search_paths: Optional[builtins.list[str]] = None
     ) -> Optional[Path]:
         """Hunt for ``repo_id`` without it being pre-registered: check the CWD's repo, then
         the immediate children of each search root ($LONGINUS_SEARCH_PATHS, $CD_ROOT, ~,

@@ -52,8 +52,8 @@ def summarize_occam_result(result) -> dict[str, Any]:
 class OccamEngine(DeterministicCommanderEngine):
     name = "occam"
     verb = "정리"
-    requires = ("run_cypher",)
-    provides = ("hygiene",)
+    requires: tuple[str, ...] = ("run_cypher",)
+    provides: tuple[str, ...] = ("hygiene",)
 
     def deterministic_core(self, context: CommanderContext) -> CommanderOutput:
         run_cypher = context["run_cypher"]
