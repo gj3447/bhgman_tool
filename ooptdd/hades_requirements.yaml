@@ -1,0 +1,49 @@
+# bhgman_tool hades 실현(realize) — ooptdd-loop spec (the RED artifact). Legion DAG terminus.
+#
+# Three trace gates, each Longinus-bound to a REAL emitting symbol in ooptdd/hades_adapter.py.
+# The adapter ships these events only by genuinely running engine.hades.apply_extract_superclass_gated
+# (on-disk Extract-Superclass behind a characterization-test gate — one coherent call graph, NOT
+# the infra-0 KG path). hades_extracted = len(common_methods); hades_gate_applied emitted ONLY on
+# status APPLIED (file rewritten + test_cmd exit 0). Literals live in the ADAPTER, never in
+# engine/hades/. A gate goes DONE iff GREEN *and* its bound symbol's body contains the must_emit.
+#
+# Run:   ooptdd-loop validate-spec ooptdd/hades_requirements.yaml
+#        ooptdd-loop run          ooptdd/hades_requirements.yaml --json
+name: bhgman-hades-realize
+
+target:
+  mode: in_process
+  callable: ooptdd.hades_adapter:run_hades_pipeline  # run_hades_pipeline(backend, cid)
+  backend: memory
+  root: .
+
+requirements:
+  - id: REQ-HAD-REALIZE-COMPLETE
+    description: the real hades on-disk realize runs exactly once
+    gate:
+      - {event: hades_realize_complete, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-hades-adapter-20260625
+      source: ooptdd/hades_adapter.py
+      symbol: run_hades_pipeline
+      must_emit: hades_realize_complete
+
+  - id: REQ-HAD-EXTRACTED
+    description: exactly the structurally-identical method is lifted into the base (1)
+    gate:
+      - {event: hades_extracted, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-hades-adapter-20260625
+      source: ooptdd/hades_adapter.py
+      symbol: emit_extract_phase
+      must_emit: hades_extracted
+
+  - id: REQ-HAD-GATE-APPLIED
+    description: the refactor is APPLIED only behind a passing characterization gate (1)
+    gate:
+      - {event: hades_gate_applied, where: {status: APPLIED}, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-hades-adapter-20260625
+      source: ooptdd/hades_adapter.py
+      symbol: emit_gated_apply_phase
+      must_emit: hades_gate_applied

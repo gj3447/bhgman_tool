@@ -1,0 +1,53 @@
+# The Red artifact for bhgman_tool's hades 실현(realize) flow — the legion DAG terminus.
+#
+# It states what the store must OBSERVE when hades runs the ON-DISK Extract-Superclass realize
+# behind a characterization-test gate (one coherent call graph; NOT the infra-0 KG path).
+# Thresholds match the real run: 1 structurally-identical method lifted (Dog/Cat speak), 1
+# APPLIED (the file rewritten AND a real test_cmd exited 0).
+#
+# HONEST-COUNT NOTE: hades_gate_applied is emitted ONLY on status APPLIED — a failing test_cmd
+# REVERTS the file byte-for-byte (no event), a divergent family REFUSES (nothing lifts). Each
+# leaves the ==1 counts GENUINELY RED. APPLIED is backed by a genuinely-passing subprocess.
+#
+# Strength: value-pinned (where / ==), ordered (must_order), forbidding (absent).
+cid_env: OOPTDD_CID
+service: bhgman.hades
+
+expect:
+  # the realize run entered the extract phase.
+  - event: hades_realize_started
+    where: {phase: extract}
+    op: "=="
+    count: 1
+
+  # one per structurally-identical method lifted into the base (==1). A divergent/one-class
+  # family lifts nothing => 0 => RED.
+  - event: hades_extracted
+    op: "=="
+    count: 1
+
+  # the gated apply landed APPLIED (==1, where status:APPLIED) — file rewritten AND test_cmd
+  # exited 0. A failing test_cmd reverts (no event) => RED.
+  - event: hades_gate_applied
+    where: {status: APPLIED}
+    op: "=="
+    count: 1
+
+  # the realize closed exactly once.
+  - event: hades_realize_complete
+    op: "=="
+    count: 1
+
+  # ── subset present, value-pinned via where (any order) ───────────────────
+  - present:
+      - {event: hades_realize_started, where: {phase: extract}}
+      - {event: hades_gate_applied, where: {status: APPLIED}}
+      - {event: hades_realize_complete}
+
+  # ── sequencing: the flow must emit in lifecycle order ────────────────────
+  - must_order: [hades_realize_started, hades_extracted, hades_gate_applied, hades_realize_complete]
+    within_s: 60
+
+  # ── negative wing: the happy realize flow logs no ERROR ──────────────────
+  - absent:
+      where: {level: ERROR}
