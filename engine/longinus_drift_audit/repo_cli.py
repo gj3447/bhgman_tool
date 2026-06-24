@@ -10,6 +10,7 @@ The registry is machine-local (see repo_registry.registry_path) and must not be 
 
 # KG: ATOM_Skill_longinus
 """
+
 from __future__ import annotations
 
 import argparse

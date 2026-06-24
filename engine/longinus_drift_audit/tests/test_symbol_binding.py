@@ -49,7 +49,7 @@ def test_module_concepts_only_outside_symbols():
 def test_plan_binds_public_skips_private_and_already_bound():
     plans, already = plan_file(SRC, "concept-primary")
     bound = {p.symbol for p in plans}
-    assert bound == {"public_fn"}          # _private_fn skipped, PublicCls already has header KG
+    assert bound == {"public_fn"}  # _private_fn skipped, PublicCls already has header KG
     assert "PublicCls" in already
     assert "_private_fn" not in bound
 
@@ -98,14 +98,14 @@ def test_only_restricts_to_named_symbols():
 
 
 def test_multiline_signature_inserts_in_header_span(tmp_path: Path):
-    src = textwrap.dedent('''\
+    src = textwrap.dedent("""\
         # KG: c-multi
         def wide(
             a,
             b,
         ):
             return a + b
-    ''')
+    """)
     f = tmp_path / "w.py"
     f.write_text(src)
     bind_file(f, apply=True)

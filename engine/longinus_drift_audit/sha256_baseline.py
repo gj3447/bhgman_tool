@@ -53,7 +53,9 @@ def _git_toplevel(cwd: str) -> Optional[str]:
     try:
         out = subprocess.run(
             ["git", "-C", cwd, "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -247,8 +249,11 @@ def init_baseline(
             continue  # already initialized
         resolution = resolve_site(site, base_chain=chain, registry=registry)
         if resolution.status == "NOT_LOCAL":
-            kg.merge_reference_site_state(site.model_copy(
-                update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}))
+            kg.merge_reference_site_state(
+                site.model_copy(
+                    update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}
+                )
+            )
             result.not_local += 1
             continue
         if resolution.status == "FILE" and resolution.abs_path is not None:
@@ -360,8 +365,11 @@ def verify_baseline(
         resolution = resolve_site(site, base_chain=chain, registry=registry)
         if resolution.status == "NOT_LOCAL":
             result.not_local += 1
-            kg.merge_reference_site_state(site.model_copy(
-                update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}))
+            kg.merge_reference_site_state(
+                site.model_copy(
+                    update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}
+                )
+            )
             continue
         if resolution.status != "FILE":
             result.missing += 1

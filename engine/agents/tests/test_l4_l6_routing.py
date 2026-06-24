@@ -205,7 +205,8 @@ def test_parse_followups_tool_call():
 
 def test_parse_followups_empty_leaf():
     comp = Completion(
-        text="done", model="m",
+        text="done",
+        model="m",
         tool_calls=({"name": "emit_followups", "arguments": '{"followups":[]}'},),
     )
     fu, ok = _parse_followups(comp, branch=3)

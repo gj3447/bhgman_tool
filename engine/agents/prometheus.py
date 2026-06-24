@@ -84,7 +84,9 @@ _FOLLOWUPS_TOOL = {
 }
 # 텍스트 fallback 파서 — 모델이 tool-call 대신 평문 `FOLLOWUPS:` 블록을 내면 관용 파싱.
 _FOLLOWUPS_RE = re.compile(r"(?ims)^\s*FOLLOWUPS?\s*:\s*(.*?)\s*$")
-_NODE_CTX_BUDGET = int(os.environ.get("BHGMAN_PROM_NODE_CTX", "6000"))  # reduce 노드 children char 상한
+_NODE_CTX_BUDGET = int(
+    os.environ.get("BHGMAN_PROM_NODE_CTX", "6000")
+)  # reduce 노드 children char 상한
 
 
 @dataclass(frozen=True)
@@ -279,7 +281,7 @@ def _parse_followups(comp, branch: int) -> tuple[list[str], bool]:
     text = getattr(comp, "text", "") or ""
     m = _FOLLOWUPS_RE.search(text)
     if m:
-        tail = text[m.start():]
+        tail = text[m.start() :]
         # 선행 리스트 마커(-, •, 1., 2)) 만 제거 — 끝의 숫자(q1, q2)는 보존
         lines = [
             re.sub(r"^[\s\-•*]*\d*[.)]?\s*", "", ln).strip()
@@ -393,8 +395,9 @@ def reduce_tree(
         return f"### {c.question}\n{_truncate_children(body)}"
 
     # 깊은 internal level 부터 위로 (root level 0 은 마지막)
-    for d in sorted((dd for dd, nodes in levels.items() if any(n.children for n in nodes)),
-                    reverse=True):
+    for d in sorted(
+        (dd for dd, nodes in levels.items() if any(n.children for n in nodes)), reverse=True
+    ):
         internal = [n for n in levels[d] if n.children]
         if not internal:
             continue
@@ -473,9 +476,7 @@ def _pick_hard_axes(axes: list[str], hard_axes: int) -> set[str]:
     """compare|prove|why|tradeoff|derive 키워드 가진 축 우선 → 상위 hard_axes 개."""
     if hard_axes <= 0:
         return set()
-    scored = sorted(
-        axes, key=lambda a: (bool(_HARD_AXIS_RE.search(a)), len(a)), reverse=True
-    )
+    scored = sorted(axes, key=lambda a: (bool(_HARD_AXIS_RE.search(a)), len(a)), reverse=True)
     return set(scored[:hard_axes])
 
 
@@ -592,9 +593,7 @@ def research(
         flat = dispatch_parallel(specs, client)
         # K개씩 축별로 재그룹화 (입력 순서 보존)
         grouped = [flat[i * k : (i + 1) * k] for i in range(len(axes))]
-        results = _merge_axis_samples(
-            topic, axes, grouped, client, k=k, grounding=ctx
-        )
+        results = _merge_axis_samples(topic, axes, grouped, client, k=k, grounding=ctx)
 
     synthesis = synthesize(topic, axes, results, client, grounding=ctx, tier=synth_tier)
 

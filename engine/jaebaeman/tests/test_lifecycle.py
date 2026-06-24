@@ -90,7 +90,10 @@ def test_agent_dispatcher_via_fake_client():
             self.text = text
 
     class _FakeClient:
-        def complete(self, *, system, user, model, max_tokens=2048, web_search=False):
+        # **_kw absorbs the L4/L6 dispatch contract (temperature/seed/tier/tools/
+        # tool_choice) that dispatch_parallel._run now forwards — same tolerant-double
+        # pattern as _BoomClient below. web_search stays explicit for the budget assert.
+        def complete(self, *, system, user, model, max_tokens=2048, web_search=False, **_kw):
             assert web_search is False  # 공정 예산 (web off)
             return _Comp(f"done: {user[:10]}")
 

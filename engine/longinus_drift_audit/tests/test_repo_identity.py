@@ -1,4 +1,5 @@
 """repo_identity — portable, machine-independent repo anchoring."""
+
 from __future__ import annotations
 
 import subprocess
@@ -29,15 +30,18 @@ def _init(tmp_path, remote=None):
     return tmp_path
 
 
-@pytest.mark.parametrize("url,expected", [
-    ("https://github.com/gj3447/bhgman_tool.git", "github.com/gj3447/bhgman_tool"),
-    ("http://github.com/gj3447/bhgman_tool", "github.com/gj3447/bhgman_tool"),
-    ("git@github.com:gj3447/bhgman_tool.git", "github.com/gj3447/bhgman_tool"),
-    ("ssh://git@github.com:2222/gj3447/bhgman_tool.git", "github.com/gj3447/bhgman_tool"),
-    ("https://GitHub.com/O/R.git", "github.com/O/R"),
-    ("not a url", None),
-    (None, None),
-])
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("https://github.com/gj3447/bhgman_tool.git", "github.com/gj3447/bhgman_tool"),
+        ("http://github.com/gj3447/bhgman_tool", "github.com/gj3447/bhgman_tool"),
+        ("git@github.com:gj3447/bhgman_tool.git", "github.com/gj3447/bhgman_tool"),
+        ("ssh://git@github.com:2222/gj3447/bhgman_tool.git", "github.com/gj3447/bhgman_tool"),
+        ("https://GitHub.com/O/R.git", "github.com/O/R"),
+        ("not a url", None),
+        (None, None),
+    ],
+)
 def test_normalize_remote(url, expected):
     assert normalize_remote(url) == expected
 

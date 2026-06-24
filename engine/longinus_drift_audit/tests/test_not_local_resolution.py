@@ -5,6 +5,7 @@ A ReferenceSite whose repo is not checked out on THIS machine must resolve to NO
 false-flag another repo's sites. When the repo IS present but the file is gone, that is a
 real MISSING (drift). Legacy sites (no repo anchor) keep using the heuristic resolver.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -62,6 +63,7 @@ def _site(**kw):
 
 # ── resolve_site ──
 
+
 def test_resolve_site_not_local_when_repo_unregistered(reg):
     res = resolve_site(_site(repo_id=UNREG, repo_relpath="a.py"), registry=reg)
     assert res.status == "NOT_LOCAL" and res.abs_path is None
@@ -91,10 +93,15 @@ def test_resolve_site_legacy_fallback_without_repo_anchor(reg, tmp_path):
 
 # ── verify_baseline ──
 
+
 def test_verify_baseline_not_local_is_not_drift(reg):
     kg = MockKgClient()
-    site = _site(repo_id=UNREG, repo_relpath="a.py",
-                 sha256_baseline="deadbeef", sha256_status=Sha256Status.BASELINE)
+    site = _site(
+        repo_id=UNREG,
+        repo_relpath="a.py",
+        sha256_baseline="deadbeef",
+        sha256_status=Sha256Status.BASELINE,
+    )
     res = verify_baseline(kg=kg, sites=[site], registry=reg)
     assert res.not_local == 1
     assert res.drift == 0 and res.missing == 0 and res.drift_events == []
@@ -105,14 +112,19 @@ def test_verify_baseline_real_missing_still_drifts(reg, tmp_path):
     repo = _repo(tmp_path / "r")
     reg.register(UNREG, str(repo))
     kg = MockKgClient()
-    site = _site(repo_id=UNREG, repo_relpath="gone.py",
-                 sha256_baseline="deadbeef", sha256_status=Sha256Status.BASELINE)
+    site = _site(
+        repo_id=UNREG,
+        repo_relpath="gone.py",
+        sha256_baseline="deadbeef",
+        sha256_status=Sha256Status.BASELINE,
+    )
     res = verify_baseline(kg=kg, sites=[site], registry=reg)
     assert res.missing == 1 and res.not_local == 0 and len(res.drift_events) == 1
     assert res.drift_events[0].kind == "FILE_MISSING"
 
 
 # ── init_baseline ──
+
 
 def test_init_baseline_not_local_is_skipped(reg):
     kg = MockKgClient()
@@ -123,6 +135,7 @@ def test_init_baseline_not_local_is_skipped(reg):
 
 
 # ── daemon watch.toml <-> registry fold-in ──
+
 
 def test_daemon_watchconfig_from_registry(reg, tmp_path):
     repo = _repo(tmp_path / "d")
