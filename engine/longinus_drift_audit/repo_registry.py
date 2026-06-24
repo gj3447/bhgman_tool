@@ -23,6 +23,7 @@ never a silently-wrong file.
 
 # KG: ATOM_Skill_longinus
 """
+
 from __future__ import annotations
 
 import logging
@@ -91,8 +92,11 @@ def _parse_repos_toml(text: str) -> dict[str, dict]:
 
 
 def _dump_repos_toml(entries: dict[str, dict]) -> str:
-    lines = ["# Longinus machine-local repo registry — per-hardware, do NOT commit.",
-             "# Maps a portable repo_id to where that repo is checked out on THIS machine.", ""]
+    lines = [
+        "# Longinus machine-local repo registry — per-hardware, do NOT commit.",
+        "# Maps a portable repo_id to where that repo is checked out on THIS machine.",
+        "",
+    ]
     for repo_id, e in sorted(entries.items()):
         lines.append("[[repo]]")
         lines.append(f'id   = "{repo_id}"')
@@ -132,8 +136,9 @@ class RepoRegistry:
         p = Path(e["path"]).expanduser()
         return p if p.is_dir() else None
 
-    def register(self, repo_id: str, path: str, remote: Optional[str] = None,
-                 *, log: bool = True) -> None:
+    def register(
+        self, repo_id: str, path: str, remote: Optional[str] = None, *, log: bool = True
+    ) -> None:
         entries = self._load()
         entries[repo_id] = {"path": str(Path(path).expanduser().resolve()), "remote": remote}
         self._save(entries)
@@ -153,8 +158,9 @@ class RepoRegistry:
         self.register(rid, top, remote=remote)
         return rid, Path(top)
 
-    def discover_for(self, repo_id: str,
-                     search_paths: Optional[list[str]] = None) -> Optional[Path]:
+    def discover_for(
+        self, repo_id: str, search_paths: Optional[list[str]] = None
+    ) -> Optional[Path]:
         """Hunt for ``repo_id`` without it being pre-registered: check the CWD's repo, then
         the immediate children of each search root ($LONGINUS_SEARCH_PATHS, $CD_ROOT, ~,
         CWD and its parent). Registers + returns the first match."""

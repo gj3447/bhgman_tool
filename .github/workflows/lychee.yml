@@ -79,19 +79,28 @@ jobs:
         run: |
           set -e
           fail=0
-          # Find every .claude-plugin/plugin.json across plugins/ and skills/
+          # Find every first-party .claude-plugin/plugin.json (plugins/).
+          # Exclude the cross-repo symlink-mirror dirs (theory/, skills/, symposium-skills/)
+          # — same dirs lychee.toml excludes from link-checking; their manifests belong to
+          # the separate symposium-skills repo, not this tool repo.
           while IFS= read -r f; do
             python -c "import json,sys; json.load(open('$f')); print('OK', '$f')" || fail=1
-          done < <(find . -name 'plugin.json' -print 2>/dev/null | grep -F '.claude-plugin/')
+          done < <(find . -name 'plugin.json' -not -path './skills/*' -not -path './symposium-skills/*' -not -path './theory/*' -print 2>/dev/null | grep -F '.claude-plugin/')
           exit $fail
 
       - name: Validate SKILL.md frontmatter (name/description required)
         run: |
           python - <<'PY'
           import sys, pathlib, frontmatter
+          # Cross-repo symlink-mirror dirs hold third-party SKILL.md this repo doesn't own
+          # (theory/, skills/, symposium-skills/) — same exclusion as lychee.toml. Only
+          # first-party SKILL.md frontmatter is gated here.
+          MIRROR_DIRS = {'theory', 'skills', 'symposium-skills'}
           fail = []
           for p in pathlib.Path('.').rglob('SKILL.md'):
               if any(part in {'node_modules', '.git', '.venv', '__pycache__'} for part in p.parts):
+                  continue
+              if p.parts and p.parts[0] in MIRROR_DIRS:
                   continue
               try:
                   post = frontmatter.load(p)

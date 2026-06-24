@@ -1,4 +1,5 @@
 """repo_registry — machine-local repo location store + portable resolution."""
+
 from __future__ import annotations
 
 import subprocess

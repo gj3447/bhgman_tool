@@ -161,9 +161,7 @@ def test_guard_anchoring_defaults_to_no_dampening():
 def test_heavily_referenced_node_resists_supersede():
     # 완전중복·오래됨·미사용이라도 inbound가 많으면 σ가 SUPERSEDE 밑으로 눌린다
     cfg = ScoringConfig()
-    base = dict(
-        redundancy=1.0, age_days=3650, invocation_count=0, tier=EntrenchmentTier.PLAIN
-    )
+    base = dict(redundancy=1.0, age_days=3650, invocation_count=0, tier=EntrenchmentTier.PLAIN)
     lonely = score_node(NodeScoreMeta(inbound_edges=0, **base), cfg)
     anchored = score_node(NodeScoreMeta(inbound_edges=50, **base), cfg)
     assert lonely.verdict == Verdict.SUPERSEDE
@@ -381,9 +379,7 @@ def test_sigma_monotone_decreasing_in_inbound_edges(in1, in2, r, age, inv):
     # 더 많이 참조될수록(inbound↑) σ는 같거나 낮다 (연결성 entrenchment 보호)
     if in1 > in2:
         in1, in2 = in2, in1
-    base = dict(
-        redundancy=r, age_days=age, invocation_count=inv, tier=EntrenchmentTier.PLAIN
-    )
+    base = dict(redundancy=r, age_days=age, invocation_count=inv, tier=EntrenchmentTier.PLAIN)
     s_low = score_node(NodeScoreMeta(inbound_edges=in1, **base)).sigma
     s_high = score_node(NodeScoreMeta(inbound_edges=in2, **base)).sigma
     assert s_high <= s_low + 1e-12

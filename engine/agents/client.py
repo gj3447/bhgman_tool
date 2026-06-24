@@ -156,11 +156,7 @@ def _pooled_post(url: str, payload: dict, headers: dict, timeout: float) -> dict
         conns = _POOL.conns = {}
 
     def _fresh() -> http.client.HTTPConnection:
-        ctor = (
-            http.client.HTTPSConnection
-            if u.scheme == "https"
-            else http.client.HTTPConnection
-        )
+        ctor = http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection
         return ctor(u.hostname, u.port, timeout=timeout)
 
     path = u.path or "/"
@@ -225,9 +221,7 @@ class AgentClient:
         if base_url:  # 실 openai-compat (vLLM/DGX)
             # 기본 keep-alive 풀드 transport(느린 링크서 핸드셰이크 절약); 0 이면 stdlib 단발.
             post = (
-                _pooled_post
-                if os.environ.get("BHGMAN_LLM_KEEPALIVE", "1") == "1"
-                else _urllib_post
+                _pooled_post if os.environ.get("BHGMAN_LLM_KEEPALIVE", "1") == "1" else _urllib_post
             )
             self._mode, self._post = "openai", post
             self._base = base_url.rstrip("/")

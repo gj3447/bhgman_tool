@@ -243,6 +243,19 @@ ignore_errors = true
 module = "engine.hades.extract_superclass"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+# numpy (transitive via torch/scikit-learn/sentence-transformers — not imported by
+# engine/ first-party code) now ships PEP-695 `type` statements in its bundled stubs
+# (numpy/__init__.pyi: `type _Falsy = ...`), 3.12+ syntax. Under our py3.11 analysis
+# target mypy raised `[syntax] Type statement is only supported in Python 3.12 and
+# greater` while parsing that third-party stub and aborted the whole run ("errors
+# prevented further checking") — masking every real engine error. We don't own numpy's
+# stubs, so skip following into them (same don't-gate-third-party-stubs stance as the
+# global ignore_missing_imports). First-party py3.11 gating is fully preserved.
+module = "numpy.*"
+follow_imports = "skip"
+follow_imports_for_stubs = true
+
 [tool.deptry]
 # Local source packages (resolved via sys.path inject in tests + via hatch package config).
 # longinus_drift_audit is a flat-layout standalone subpackage — its tests import submodules

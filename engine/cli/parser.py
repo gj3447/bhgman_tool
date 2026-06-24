@@ -467,12 +467,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_bot.add_argument(
         "--interval", type=float, default=300, help="tick 간 sleep 초 (default 300)."
     )
-    p_bot.add_argument(
-        "--once", action="store_true", help="1 tick 만 실행하고 종료 (검증용)."
-    )
-    p_bot.add_argument(
-        "--max-ticks", type=int, default=None, help="N tick 후 종료 (default 무한)."
-    )
+    p_bot.add_argument("--once", action="store_true", help="1 tick 만 실행하고 종료 (검증용).")
+    p_bot.add_argument("--max-ticks", type=int, default=None, help="N tick 후 종료 (default 무한).")
     p_bot.add_argument(
         "--topics", nargs="*", help="tick rotation topic 큐 (없으면 KG 에서 일감 pull)."
     )
@@ -487,7 +483,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_bot.add_argument("--no-ground", action="store_true", help="LLM grounding skip.")
     p_bot.add_argument(
-        "--web", action="store_true", help="실제 웹 fetcher 주입 (SearXNG self-host 우선, 없으면 DDG)."
+        "--web",
+        action="store_true",
+        help="실제 웹 fetcher 주입 (SearXNG self-host 우선, 없으면 DDG).",
     )
     p_bot.set_defaults(func=commands.cmd_bot)
 

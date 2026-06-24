@@ -111,9 +111,7 @@ def _handicapped_floor(drop_last: int = 2):
     kept = planted[: len(planted) - drop_last]
 
     def floor_fn(context):  # noqa: ARG001
-        return [
-            NamedAbstraction(extent=e, name="", source="fca") for e in kept
-        ]
+        return [NamedAbstraction(extent=e, name="", source="fca") for e in kept]
 
     return floor_fn, planted[len(planted) - drop_last :]
 

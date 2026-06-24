@@ -62,8 +62,11 @@ jobs:
         if: matrix.suite == 'cli'
         run: |
           # cli imports from engine.* package layout — install repo root in editable mode.
-          # hades-cst (libcst) pulled in for the hades_apply characterization-gate tests.
-          pip install -e ".[hades-cst]" || pip install -e . || pip install pyyaml python-frontmatter httpx
+          # hades-cst (libcst) → hades_apply characterization-gate tests.
+          # longinus → neo4j driver: test_main.py::test_make_kg_runners_accepts_neo4j_username_env
+          #   monkeypatches `neo4j.GraphDatabase`, so the module must be importable (ci.yml's
+          #   --all-extras already provides it; this path-filtered job didn't → ModuleNotFoundError).
+          pip install -e ".[hades-cst,longinus]" || pip install -e ".[longinus]" || pip install -e . || pip install pyyaml python-frontmatter httpx neo4j
 
       - name: Run engine/cli tests
         if: matrix.suite == 'cli'

@@ -16,6 +16,7 @@ return ``None`` and callers fall back to the legacy path resolver (offline invar
 
 # KG: ATOM_Skill_longinus
 """
+
 from __future__ import annotations
 
 import os
@@ -28,8 +29,7 @@ from typing import Optional
 def _git(args: list[str], cwd: str) -> Optional[str]:
     """Run ``git <args>`` in ``cwd``; stripped stdout or ``None`` on any failure."""
     try:
-        out = subprocess.run(["git", "-C", cwd, *args],
-                             capture_output=True, text=True, timeout=5)
+        out = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
     return out.stdout.strip() or None if out.returncode == 0 else None
@@ -116,8 +116,14 @@ def git_identity(abs_path: str) -> dict:
     so it is identical across operating systems. ``blob_oid`` is the working-tree content
     hash (``git hash-object``) — the content-addressed, machine-independent drift signal.
     """
-    out = {"toplevel": None, "repo_id": None, "commit": None,
-           "blob_oid": None, "remote": None, "repo_relpath": None}
+    out = {
+        "toplevel": None,
+        "repo_id": None,
+        "commit": None,
+        "blob_oid": None,
+        "remote": None,
+        "repo_relpath": None,
+    }
     top = git_toplevel(abs_path)
     if top is None:
         return out

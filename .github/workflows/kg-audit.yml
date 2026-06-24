@@ -61,7 +61,7 @@ jobs:
               sys.exit(1)
           PY
             yamllint -d "{extends: default, rules: {line-length: disable, indentation: disable, document-start: disable, truthy: disable}}" /tmp/fm/current.yml || fail=1
-          done < <(find . -name 'SKILL.md' -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/__pycache__/*' -print)
+          done < <(find . -name 'SKILL.md' -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/__pycache__/*' -not -path './skills/*' -not -path './symposium-skills/*' -not -path './theory/*' -print)
           exit $fail
 
       - name: SKILL.md frontmatter schema check
@@ -69,10 +69,16 @@ jobs:
           python - <<'PY'
           import sys, pathlib, frontmatter
           REQUIRED = ('name', 'description')
+          # Cross-repo symlink-mirror dirs (theory/, skills/, symposium-skills/) carry
+          # third-party frontmatter this tool repo doesn't own — same dirs lychee.toml
+          # excludes from link-checking. Only first-party SKILL.md is schema-gated.
+          MIRROR_DIRS = {'theory', 'skills', 'symposium-skills'}
           errors = []
           warnings = []
           for p in pathlib.Path('.').rglob('SKILL.md'):
               if any(part in {'node_modules', '.git', '.venv', '__pycache__'} for part in p.parts):
+                  continue
+              if p.parts and p.parts[0] in MIRROR_DIRS:
                   continue
               try:
                   post = frontmatter.load(p)
@@ -102,7 +108,7 @@ jobs:
           fail=0
           while IFS= read -r f; do
             python -c "import json,sys; d=json.load(open('$f')); assert 'name' in d or 'plugin' in d, 'missing name/plugin'; print('OK', '$f')" || fail=1
-          done < <(find . -name 'plugin.json' -not -path '*/node_modules/*' -print | grep -F '.claude-plugin/')
+          done < <(find . -name 'plugin.json' -not -path '*/node_modules/*' -not -path './skills/*' -not -path './symposium-skills/*' -not -path './theory/*' -print | grep -F '.claude-plugin/')
           exit $fail
 
       - name: KG-ref census (Canonical / Lesson / Pattern)

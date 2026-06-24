@@ -139,9 +139,7 @@ def plan_file(
             continue
         first = node.body[0]
         indent = " " * (first.col_offset)
-        plans.append(
-            BindPlan(symbol=name, index=first.lineno - 1, text=f"{indent}# KG: {concept}")
-        )
+        plans.append(BindPlan(symbol=name, index=first.lineno - 1, text=f"{indent}# KG: {concept}"))
     return plans, already
 
 

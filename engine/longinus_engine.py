@@ -40,7 +40,13 @@ def _refs_from_symbols(root: Path) -> list[dict[str, Any]]:
             if key in seen:
                 continue
             seen.add(key)
-            refs.append({"file": sym.sourcePath.split(":", 1)[0], "line": _line(sym.sourcePath), "kg_id": ref})
+            refs.append(
+                {
+                    "file": sym.sourcePath.split(":", 1)[0],
+                    "line": _line(sym.sourcePath),
+                    "kg_id": ref,
+                }
+            )
     return refs
 
 
@@ -59,7 +65,10 @@ def _load_simulated_kg(root: Path) -> MockKgClient | None:
     else:
         names = []
     return MockKgClient(
-        refs=[KgRefRecord(sourceId=name, sourcePath=f"kg_simulated.json:{i + 1}") for i, name in enumerate(names)]
+        refs=[
+            KgRefRecord(sourceId=name, sourcePath=f"kg_simulated.json:{i + 1}")
+            for i, name in enumerate(names)
+        ]
     )
 
 
@@ -106,11 +115,13 @@ class LonginusEngine(DeterministicCommanderEngine):
             return self.audit_context(context, kg=kg, code_root=code_root)
         return self.floating_context(context)
 
-    def audit_context(self, context: CommanderContext, *, kg: KgClient, code_root: str | Path) -> dict:
+    def audit_context(
+        self, context: CommanderContext, *, kg: KgClient, code_root: str | Path
+    ) -> dict:
         try:
-            report = LonginusAudit(kg=kg, code_root=code_root, repo_tag=context.get("repo_tag")).run_full(
-                verify_sha256=bool(context.get("verify_sha256", True))
-            )
+            report = LonginusAudit(
+                kg=kg, code_root=code_root, repo_tag=context.get("repo_tag")
+            ).run_full(verify_sha256=bool(context.get("verify_sha256", True)))
             summary = summarize_report(report)
             return {
                 "bindings": {
@@ -143,7 +154,9 @@ class LonginusEngine(DeterministicCommanderEngine):
         except Exception as e:  # noqa: BLE001
             return degraded("bindings", f"float scan failed: {e}")
 
-    def audit_repo_for_mcp(self, repo_path: str, confidence_threshold: str = "INFERRED") -> dict[str, Any]:
+    def audit_repo_for_mcp(
+        self, repo_path: str, confidence_threshold: str = "INFERRED"
+    ) -> dict[str, Any]:
         try:
             Confidence(confidence_threshold)
         except ValueError as exc:

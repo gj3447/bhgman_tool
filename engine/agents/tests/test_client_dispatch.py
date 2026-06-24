@@ -134,7 +134,10 @@ def test_openai_react_web_search_loop(monkeypatch):
             }
         return {
             "choices": [
-                {"message": {"content": "최신 버전은 0.22.0 (http://gh/vllm)"}, "finish_reason": "stop"}
+                {
+                    "message": {"content": "최신 버전은 0.22.0 (http://gh/vllm)"},
+                    "finish_reason": "stop",
+                }
             ],
             "usage": {"prompt_tokens": 20, "completion_tokens": 8},
         }

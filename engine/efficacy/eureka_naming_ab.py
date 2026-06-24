@@ -212,7 +212,9 @@ def run_eureka_naming_ab(
 
     delta = arm_b - arm_a
     # AUC: Arm B proposal의 신호가 Arm A(FCA-only) 후보보다 planted를 잘 복원하나 (보조 진단).
-    a_sig = [it.signal for it in _label_abstractions(fca_abs, planted, thresh) if it.signal is not None]
+    a_sig = [
+        it.signal for it in _label_abstractions(fca_abs, planted, thresh) if it.signal is not None
+    ]
     b_sig = [
         it.signal
         for it in _label_abstractions(list(proposed), planted, thresh)

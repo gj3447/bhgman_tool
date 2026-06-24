@@ -25,6 +25,7 @@ skipped. ``--dry-run`` reports without writing.
 
 # KG: ATOM_Skill_longinus
 """
+
 from __future__ import annotations
 
 import argparse
@@ -95,15 +96,21 @@ def migrate(
                 if not dry_run:
                     kg.merge_reference_site_state(site.model_copy(update=updates))
                     if register_repos and ident["toplevel"]:
-                        reg.register(ident["repo_id"], ident["toplevel"],
-                                     remote=ident["remote"], log=False)
+                        reg.register(
+                            ident["repo_id"], ident["toplevel"], remote=ident["remote"], log=False
+                        )
                 registered.add(ident["repo_id"])
                 if site.repo_tag:
                     tag_to_id.setdefault(site.repo_tag, ident["repo_id"])
                 result.migrated += 1
                 result.details.append(
-                    {"sourceId": site.sourceId, "action": "migrated",
-                     "repo_id": updates["repo_id"], "repo_relpath": updates["repo_relpath"]})
+                    {
+                        "sourceId": site.sourceId,
+                        "action": "migrated",
+                        "repo_id": updates["repo_id"],
+                        "repo_relpath": updates["repo_relpath"],
+                    }
+                )
                 continue
         deferred.append(site)
 
@@ -119,8 +126,13 @@ def migrate(
                 kg.merge_reference_site_state(site.model_copy(update=updates))
             result.tagged_only += 1
             result.details.append(
-                {"sourceId": site.sourceId, "action": "tagged_only",
-                 "repo_id": updates["repo_id"], "repo_relpath": relpath})
+                {
+                    "sourceId": site.sourceId,
+                    "action": "tagged_only",
+                    "repo_id": updates["repo_id"],
+                    "repo_relpath": relpath,
+                }
+            )
         else:
             result.unresolved += 1
             result.details.append({"sourceId": site.sourceId, "action": "unresolved"})
@@ -129,16 +141,22 @@ def migrate(
     logger.info(
         "migrate-repo-ids%s: total=%d already=%d migrated=%d tagged_only=%d unresolved=%d "
         "repos_registered=%d",
-        " (dry-run)" if dry_run else "", result.total, result.already, result.migrated,
-        result.tagged_only, result.unresolved, result.repos_registered,
+        " (dry-run)" if dry_run else "",
+        result.total,
+        result.already,
+        result.migrated,
+        result.tagged_only,
+        result.unresolved,
+        result.repos_registered,
     )
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    ap = argparse.ArgumentParser(prog="longinus-migrate-repo-ids",
-                                 description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(
+        prog="longinus-migrate-repo-ids", description=__doc__.splitlines()[0]
+    )
     ap.add_argument("--kg", choices=["neo4j", "mock", "local", "mcp"], default="neo4j")
     ap.add_argument("--uri", default=os.environ.get("NEO4J_URI"))
     ap.add_argument("--user", default=os.environ.get("NEO4J_USER", "neo4j"))

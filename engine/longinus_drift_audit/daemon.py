@@ -264,7 +264,8 @@ class LonginusDaemon:
             if cfg.repos:
                 logger.info(
                     "config not found: %s; watching %d repo(s) from the repo registry",
-                    self.config_path, len(cfg.repos),
+                    self.config_path,
+                    len(cfg.repos),
                 )
             else:
                 logger.warning(

@@ -171,8 +171,12 @@ def test_near_duplicates_via_index_uses_knn_and_keeps_covenant():
     items = [("a", "alpha"), ("b", "beta")]
     # b has more weight → must be kept, a dropped (covenant tiebreak preserved)
     pairs = near_duplicates_via_index(
-        items, embed_fn=embed, run_cypher=FakeNeo4j(), spec=spec,
-        threshold=0.95, weight={"a": 0.0, "b": 1.0},
+        items,
+        embed_fn=embed,
+        run_cypher=FakeNeo4j(),
+        spec=spec,
+        threshold=0.95,
+        weight={"a": 0.0, "b": 1.0},
     )
     assert len(pairs) == 1
     assert pairs[0].keep_id == "b" and pairs[0].drop_id == "a"
