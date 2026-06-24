@@ -162,7 +162,57 @@ class ProjectSnapshot(BaseModel):
     created_at: datetime = Field(default_factory=utc_now)
 
 
+class ArchitectureRole(str, Enum):
+    ENTRYPOINT = "ENTRYPOINT"
+    FACADE = "FACADE"
+    ENGINE = "ENGINE"
+    ADAPTER = "ADAPTER"
+    DTO = "DTO"
+    STORAGE = "STORAGE"
+    TRANSPORT = "TRANSPORT"
+    UI = "UI"
+    TEST = "TEST"
+    DOC = "DOC"
+    ASSET = "ASSET"
+    SHADER = "SHADER"
+    SCENE = "SCENE"
+    UNKNOWN = "UNKNOWN"
+
+
+class ArchitectureNode(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    label: str
+    path: str
+    role: ArchitectureRole = ArchitectureRole.UNKNOWN
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ArchitectureEdge(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source: str
+    target: str
+    relation: str = Field(min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ArchitectureGraph(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    project_id: str
+    adapter: str
+    nodes: list[ArchitectureNode] = Field(default_factory=list)
+    edges: list[ArchitectureEdge] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 __all__ = [
+    "ArchitectureEdge",
+    "ArchitectureGraph",
+    "ArchitectureNode",
+    "ArchitectureRole",
     "HarnessEvent",
     "HumanVerdict",
     "HumanVerdictRequest",
