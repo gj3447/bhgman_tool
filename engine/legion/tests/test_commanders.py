@@ -46,6 +46,15 @@ def test_longinus_stage_uses_commander_engine_contract():
     assert longinus.run.__self__.__class__ is LonginusEngine
 
 
+def test_occam_stage_uses_commander_engine_contract():
+    from engine.occam_engine import OccamEngine
+
+    occam = next(s for s in default_stages() if s.name == "occam")
+    assert occam.requires == OccamEngine.requires
+    assert occam.provides == OccamEngine.provides
+    assert occam.run.__self__.__class__ is OccamEngine
+
+
 def test_verify_requires_all_four_upstream_provides():
     verify = next(s for s in default_stages() if s.verb == "검증")
     assert set(verify.requires) == {"acquired", "bindings", "abstractions", "hygiene"}

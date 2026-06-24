@@ -32,6 +32,7 @@ from engine.legion.legion import CANONICAL_ORDER, Legion
 from engine.legion.legion_models import CommanderStage
 from engine.longinus_engine import LonginusEngine, degraded as _degraded
 from engine.naesengmoon.decorrelation import CriticKind, CriticVerdict, aggregate, flag_echo
+from engine.occam_engine import OccamEngine
 
 
 def _stage_from_engine(engine: CommanderEngine, *, measure=None) -> CommanderStage:
@@ -131,27 +132,7 @@ def _run_induce(ctx: dict) -> dict:
 # ── 정리 (오캄) ─────────────────────────────────────────────────────────────
 def _run_hygiene(ctx: dict) -> dict:
     """superseded/dup SourceCodeNode 정리 (dry-run 기본, ctx['apply']로 write)."""
-    rc = ctx["run_cypher"]
-    try:
-        from engine.occam.occam_runner import run_occam  # noqa: PLC0415
-
-        res = run_occam(
-            rc,
-            write_cypher=ctx.get("write_cypher"),
-            scope=ctx.get("scope"),
-            apply=bool(ctx.get("apply", False)),
-            repo_root=ctx.get("repo_root"),
-        )
-        return {
-            "hygiene": {
-                "mode": "occam",
-                "applied": res.apply_result.applied_count,
-                "dry_run": res.apply_result.dry_run,
-                "summary": res.summary,
-            }
-        }
-    except Exception as e:  # noqa: BLE001
-        return _degraded("hygiene", f"occam failed: {e}")
+    return OccamEngine().run(ctx)
 
 
 # ── 검증 (나생문) ───────────────────────────────────────────────────────────
@@ -284,7 +265,7 @@ _STAGES: tuple[CommanderStage, ...] = (
     ),
     _stage_from_engine(LonginusEngine()),
     CommanderStage("eureka", "창조", ("run_cypher",), ("abstractions",), _run_induce),
-    CommanderStage("occam", "정리", ("run_cypher",), ("hygiene",), _run_hygiene),
+    _stage_from_engine(OccamEngine()),
     CommanderStage(
         "naesengmoon",
         "검증",

@@ -72,6 +72,12 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
         "read",
     ),
     (
+        "occam_dedupe",
+        "Occam KG dedup / reversible supersession pass, dry-run by default.",
+        "finding duplicate or stale SourceCodeNode records and planning archive-only supersessions",
+        "write",
+    ),
+    (
         "kg_query",
         "Neo4j Cypher read wrapper (fail-open via ssh dgx → cypher-shell).",
         "reading the knowledge graph with a Cypher query",

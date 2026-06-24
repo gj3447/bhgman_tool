@@ -34,6 +34,7 @@ def build_server() -> Any:
     from .tools.taliban import register as register_taliban
     from .tools.tpa import register as register_tpa
     from .tools.prometheus import register as register_prometheus  # Legion step 6 (획득)
+    from .tools.occam import register as register_occam
 
     # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):
     # KG: rs-mcp-symposium-absorb-2026-05-14
@@ -49,6 +50,7 @@ def build_server() -> Any:
     register_taliban(mcp)
     register_tpa(mcp)
     register_prometheus(mcp)
+    register_occam(mcp)
     register_symposium(mcp)
     register_legion(mcp)
 
@@ -85,6 +87,7 @@ def list_registered_tool_names() -> list[str]:
         "taliban_lens_check",
         "tpa_drift_audit",
         "prometheus_research",  # Legion step 6 — 획득(knowledge-first), 2026-05-27
+        "occam_dedupe",
         # SYMPOSIUM dispatch tools (Wave 7 P2-A absorbed 2026-05-14)
         "apt_dispatch",
         "kg_query",
