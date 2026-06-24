@@ -452,9 +452,16 @@ def cmd_prom(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
     try:
-        report = agents.research(
-            topic, args.N, agents.AgentClient(), web_search=not args.no_web, grounding=source
-        )
+        from engine.agents.client import _local_base_url  # noqa: PLC0415
+
+        # 로컬 DGX/vLLM 백엔드면 web_search 강제 OFF: Anthropic server-side tool 부재 /
+        # SearXNG ReAct 직렬 round-trip 세금 → K-샘플링 전 하드 전제(hygiene).
+        web = (not args.no_web) and not _local_base_url()
+        kwargs: dict = {"web_search": web, "grounding": source}
+        k = getattr(args, "k", None)
+        if k is not None:
+            kwargs["k"] = k
+        report = agents.research(topic, args.N, agents.AgentClient(), **kwargs)
     finally:
         close()
     print(report.summary)

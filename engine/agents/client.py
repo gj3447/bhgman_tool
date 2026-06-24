@@ -15,12 +15,15 @@ backend 우선순위: 주입(client=/http_post=) > BHGMAN_LLM_BASE_URL(local) > 
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
+import threading
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from engine.agents.agent_models import EFFORT_CAPABLE
 
@@ -69,13 +72,68 @@ class Completion:
 
 
 def _urllib_post(url: str, payload: dict, headers: dict, timeout: float) -> dict:
-    """무의존 JSON POST (stdlib). openai-compat 백엔드 기본 transport."""
+    """무의존 JSON POST (stdlib). openai-compat 백엔드 기본 transport (주입 fallback)."""
     data = json.dumps(payload).encode()
     req = urllib.request.Request(
         url, data=data, headers={"Content-Type": "application/json", **headers}
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 — 신뢰된 LLM endpoint
         return json.loads(resp.read().decode())
+
+
+# 스레드별 keep-alive 연결 풀. http.client.HTTPConnection은 thread-safe 하지 않고
+# ThreadPoolExecutor가 worker 스레드를 재사용하므로 threading.local 이 必수다.
+# (scheme,host,port)로 키잉 — Layer 4(2번째 백엔드)가 다른 host로 가도 소켓이 안 섞이게.
+_POOL = threading.local()
+
+
+def _pooled_post(url: str, payload: dict, headers: dict, timeout: float) -> dict:
+    """keep-alive 풀드 JSON POST. 느린 192.168.10.x 링크의 TCP 핸드셰이크를 스레드당 1번만 지불.
+
+    stale/half-open 소켓은 재사용 시 예외를 던지므로, 그런 경우 1회 재연결-후-재시도한다.
+    """
+    u = urlparse(url)
+    key = (u.scheme, u.hostname, u.port)
+    conns = getattr(_POOL, "conns", None)
+    if conns is None:
+        conns = _POOL.conns = {}
+
+    def _fresh() -> http.client.HTTPConnection:
+        ctor = (
+            http.client.HTTPSConnection
+            if u.scheme == "https"
+            else http.client.HTTPConnection
+        )
+        return ctor(u.hostname, u.port, timeout=timeout)
+
+    path = u.path or "/"
+    if u.query:
+        path = f"{path}?{u.query}"
+    body = json.dumps(payload).encode()
+    hdrs = {"Content-Type": "application/json", "Connection": "keep-alive", **headers}
+    conn = conns.get(key) or _fresh()
+    for attempt in (1, 2):  # reconnect-once on stale/half-open socket
+        try:
+            conn.request("POST", path, body, hdrs)
+            resp = conn.getresponse()
+            data = resp.read()  # keep-alive 유지하려면 응답 본문을 반드시 다 읽어야 함
+            conns[key] = conn
+            return json.loads(data.decode())
+        except (
+            http.client.RemoteDisconnected,
+            http.client.BadStatusLine,
+            ConnectionError,
+            OSError,
+        ):
+            try:
+                conn.close()
+            except Exception:  # noqa: BLE001 — 소켓 정리 best-effort
+                pass
+            conns.pop(key, None)
+            if attempt == 2:
+                raise
+            conn = _fresh()
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 class AgentClient:
@@ -97,9 +155,16 @@ class AgentClient:
         ok, reason = runtime_status()
         if not ok:
             raise AgentRuntimeUnavailable(reason)
+        self._post: Callable | None = None
         base_url = _local_base_url()
         if base_url:  # 실 openai-compat (vLLM/DGX)
-            self._mode, self._post = "openai", _urllib_post
+            # 기본 keep-alive 풀드 transport(느린 링크서 핸드셰이크 절약); 0 이면 stdlib 단발.
+            post = (
+                _pooled_post
+                if os.environ.get("BHGMAN_LLM_KEEPALIVE", "1") == "1"
+                else _urllib_post
+            )
+            self._mode, self._post = "openai", post
             self._base = base_url.rstrip("/")
             self._model = os.environ["BHGMAN_LLM_MODEL"]
             self._key = os.environ.get("BHGMAN_LLM_API_KEY", "EMPTY")
@@ -107,6 +172,14 @@ class AgentClient:
             import anthropic  # noqa: PLC0415
 
             self._mode, self._c = "anthropic", anthropic.Anthropic()
+
+    def is_local(self) -> bool:
+        """openai-compat(로컬 vLLM/DGX·주입 transport) 백엔드면 True. anthropic 이면 False.
+
+        web_search 게이팅용 — 로컬 백엔드엔 Anthropic server-side web_search 도구가 없고,
+        SearXNG ReAct 경로는 K×N width 에서 라운드당 직렬 round-trip 세금이라 끄는 게 맞다.
+        """
+        return self._mode == "openai"
 
     def complete(
         self,
@@ -117,19 +190,39 @@ class AgentClient:
         max_tokens: int = DEFAULT_MAX_TOKENS,
         effort: str | None = None,
         web_search: bool = False,
+        temperature: float = 0.0,
+        seed: int | None = None,
     ) -> Completion:
-        """1회 호출. openai-compat면 로컬 모델로(web_search/effort 무시), anthropic이면 full."""
+        """1회 호출. openai-compat면 로컬 모델로(web_search/effort 무시), anthropic이면 full.
+
+        temperature/seed = self-consistency K-샘플링 on-switch (openai-compat만 적용; vLLM이 per-request
+        로 sampler 를 켠다). 기본 0.0/None 이면 payload 미주입 = 오늘의 greedy 동작 그대로.
+        anthropic 경로는 parity 위해 accept-and-ignore.
+        """
         if self._mode == "openai":
-            return self._complete_openai(system, user, max_tokens, web_search)
+            return self._complete_openai(
+                system, user, max_tokens, web_search, temperature=temperature, seed=seed
+            )
         return self._complete_anthropic(system, user, model, max_tokens, effort, web_search)
 
-    def _openai_post(self, messages: list[dict], max_tokens: int) -> Completion:
+    def _openai_post(
+        self,
+        messages: list[dict],
+        max_tokens: int,
+        *,
+        temperature: float = 0.0,
+        seed: int | None = None,
+    ) -> Completion:
         """openai-compat /chat/completions 단발 호출 (멀티턴 messages 그대로 POST).
 
         BHGMAN_LLM_NO_THINK 설정 시 Qwen reasoning(think)을 끈다(chat_template_kwargs).
         느린 로컬 GPU(GB10 ~4tok/s)에서 ReAct 멀티라운드의 think 토큰 폭발을 막아 실용 속도 확보.
         """
         payload: dict = {"model": self._model, "messages": messages, "max_tokens": max_tokens}
+        if temperature:  # 0.0 = greedy = 오늘 동작 → 미주입 (back-compat)
+            payload["temperature"] = temperature
+        if seed is not None:
+            payload["seed"] = seed
         if os.environ.get("BHGMAN_LLM_NO_THINK"):
             payload["chat_template_kwargs"] = {"enable_thinking": False}
         headers = {"Authorization": f"Bearer {self._key}"}
@@ -149,13 +242,20 @@ class AgentClient:
         )
 
     def _complete_openai(
-        self, system: str, user: str, max_tokens: int, web_search: bool = False
+        self,
+        system: str,
+        user: str,
+        max_tokens: int,
+        web_search: bool = False,
+        *,
+        temperature: float = 0.0,
+        seed: int | None = None,
     ) -> Completion:
         """openai-compat. web_search=True + BHGMAN_SEARXNG_URL 이면 ReAct 검색 루프.
 
         로컬 LLM 엔 server-side web_search 가 없으므로, 모델이 `SEARCH: <쿼리>` 를 출력하면
         우리(SearXNG self-host)가 검색을 실행해 결과를 다시 주입하는 client-side tool 루프.
-        토큰 사용량은 전 라운드 누적해서 반환.
+        토큰 사용량은 전 라운드 누적해서 반환. temperature/seed 는 모든 라운드에 동일 적용.
         """
         from engine.agents import web_search_local as _ws  # noqa: PLC0415
 
@@ -166,6 +266,8 @@ class AgentClient:
                     {"role": "user", "content": user},
                 ],
                 max_tokens,
+                temperature=temperature,
+                seed=seed,
             )
 
         instr = (
@@ -179,7 +281,7 @@ class AgentClient:
         ]
         rounds = int(os.environ.get("BHGMAN_LLM_SEARCH_ROUNDS", "4"))
         tin = tout = 0
-        last = self._openai_post(messages, max_tokens)
+        last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed)
         tin, tout = tin + last.input_tokens, tout + last.output_tokens
         for _ in range(rounds):
             m = _SEARCH_RE.search(last.text or "")
@@ -198,7 +300,7 @@ class AgentClient:
                     "이 결과로 최종 답을 작성하거나, 더 필요하면 다시 SEARCH 하라.",
                 }
             )
-            last = self._openai_post(messages, max_tokens)
+            last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed)
             tin, tout = tin + last.input_tokens, tout + last.output_tokens
         if _SEARCH_RE.search(last.text or ""):  # rounds 소진 후에도 검색 요청 → 강제 종합
             messages.append({"role": "assistant", "content": last.text})
@@ -208,7 +310,7 @@ class AgentClient:
                     "content": "검색 한도 도달. 더 검색하지 말고 지금까지 결과로 최종 답을 작성하라.",
                 }
             )
-            last = self._openai_post(messages, max_tokens)
+            last = self._openai_post(messages, max_tokens, temperature=temperature, seed=seed)
             tin, tout = tin + last.input_tokens, tout + last.output_tokens
         return Completion(
             text=last.text,

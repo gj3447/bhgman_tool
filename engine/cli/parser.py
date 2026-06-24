@@ -110,6 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_prom.add_argument("N", type=int, help="Sub-question 수 (병렬 서브에이전트).")
     p_prom.add_argument("topic", nargs="+", help="Research topic.")
     p_prom.add_argument("--no-web", action="store_true", help="web_search 끄기 (LLM 지식만).")
+    p_prom.add_argument(
+        "--k",
+        type=int,
+        default=None,
+        help="축당 self-consistency 샘플 수 (>1=K×N 동시 디코드로 GB10 포화; "
+        "기본=BHGMAN_PROM_K 또는 1).",
+    )
     p_prom.add_argument("--route", action="store_true", help="실행 대신 SKILL.md 경로만 출력.")
     p_prom.add_argument(
         "--local",
