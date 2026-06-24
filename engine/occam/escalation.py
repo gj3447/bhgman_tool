@@ -71,14 +71,23 @@ def _ident(node) -> str:
     return getattr(node, "name", None) or getattr(node, "source_path", "?")
 
 
-def _candidate_needs_verify(c: SupersessionCandidate) -> bool:
-    """이 후보를 자동 supersede 전에 나생문으로 보내야 하는가.
+def is_confident_supersede(c: SupersessionCandidate) -> bool:
+    """이 후보를 *확신*하고 자동 supersede해도 되는가 (apply gate ↔ escalation gate 단일 기준).
 
-    자동 통과(escalation 불요)는 *확신* 케이스뿐: disk-truth가 current를 확정(HIGH)하고
-    σ도 SUPERSEDE(또는 σ 미배선). 그 외 전부 escalate — MEDIUM(line-count 추정), VERIFY/KEEP
-    /FLAG_ONLY(σ가 obsolescence 근거 부족이라 판단), HIGH인데 σ가 SUPERSEDE 아님(불일치)."""
-    confident_supersede = c.confidence is Confidence.HIGH and c.verdict in (None, "SUPERSEDE")
-    return not confident_supersede
+    확신 = ① σ verdict가 SUPERSEDE이거나 미배선(None), AND ② archive 대상을 추측 없이 고를 수
+    있음 — disk-truth가 current를 확정(HIGH)했거나, stale/current가 byte-동일(같은 sha → 어느 쪽을
+    남겨도 무손실). 그 외(σ가 VERIFY/KEEP/FLAG_ONLY, 또는 SUPERSEDE인데 MEDIUM·비동일) = 불확실.
+
+    apply는 확신 케이스만 자동 write, escalation은 그 여집합(불확실)을 나생문/Longinus로 보낸다 —
+    둘이 같은 술어를 공유해 'auto-apply ∩ escalate = ∅' partition을 보장한다."""
+    if c.verdict is not None and c.verdict != "SUPERSEDE":
+        return False
+    return c.confidence is Confidence.HIGH or c.stale.sha256 == c.current.sha256
+
+
+def _candidate_needs_verify(c: SupersessionCandidate) -> bool:
+    """자동 통과(확신) 여집합 = escalate 대상."""
+    return not is_confident_supersede(c)
 
 
 def _naesengmoon_item(subject: str, reason: str) -> EscalationItem:
@@ -151,4 +160,5 @@ __all__ = [
     "EscalationItem",
     "EscalationPlan",
     "build_escalation_plan",
+    "is_confident_supersede",
 ]

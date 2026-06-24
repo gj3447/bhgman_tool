@@ -96,12 +96,31 @@ def test_run_occam_exact_duplicate_still_supersedes():
     assert cand.verdict == "SUPERSEDE"
 
 
-def test_run_occam_apply_writes_supersession():
+def test_run_occam_apply_defers_uncertain_partial_dup():
+    # σ-gate: 부분중복(σ=KEEP, MEDIUM, 비동일)은 apply=True여도 auto-write 안 함 → deferred.
+    # 불확실한 건 escalation에 위임 (잘못 supersede로 KG 의미계층 왜곡 방지).
     read = _Runner(_DUP_ROWS)
-    write = _Runner([{"superseded": "old", "current": "new"}])  # cypher matches a row
+    write = _Runner([{"superseded": "old", "current": "new"}])
+    res = run_occam(read, write_cypher=write, apply=True)
+    assert res.apply_result.applied_count == 0
+    assert write.calls == []  # 불확실 → write 안 함
+    assert "old" in res.apply_result.deferred
+
+
+_EXACT_DUP_ROWS = [
+    {"name": "a_abs", "source_path": "/abs/bhgman_tool/x.py", "sha256": "same", "line_count": 50},
+    {"name": "b_rel", "source_path": "bhgman_tool/x.py", "sha256": "same", "line_count": 50},
+]
+
+
+def test_run_occam_apply_writes_confident_supersession():
+    # 확신 케이스(완전중복 σ=SUPERSEDE, byte-동일)는 apply=True에서 실제 write.
+    read = _Runner(_EXACT_DUP_ROWS)
+    write = _Runner([{"superseded": "a_abs", "current": "b_rel"}])  # cypher matched a row
     res = run_occam(read, write_cypher=write, apply=True)
     assert res.apply_result.applied_count == 1
     assert len(write.calls) == 1
+    assert res.apply_result.deferred == ()
 
 
 # name은 schema상 required 아님(sourcePath/sha256/lineCount만 필수). name=None 노드도

@@ -153,6 +153,7 @@ class ApplyResult:
     planned_cyphers: tuple[tuple[str, dict], ...] = ()
     dry_run: bool = True
     applied_count: int = 0
+    deferred: tuple[str, ...] = ()  # σ-gate가 escalation에 위임한 불확실 후보 (auto-apply 안 함)
     notes: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -160,29 +161,49 @@ def apply_supersessions(
     report: OccamReport,
     write_cypher: CypherRunner | None = None,
     dry_run: bool = True,
+    should_apply: "Callable[[SupersessionCandidate], bool] | None" = None,
 ) -> ApplyResult:
     # KG: occam-kam-canonical-2026-05-26
     """후보를 supersede 적용. dry_run 기본 — write_cypher 있어도 실행 안 함.
 
     write_cypher=None이거나 dry_run=True → planned cypher만 반환 (archive-only 안전).
+
+    should_apply(주입식 술어) 주면 그것이 True인 후보만 auto-apply, 나머지는 deferred로 분류해
+    write 안 함 (σ-gate: 확신 SUPERSEDE만 자동, 불확실은 escalation에 위임). None이면 전부 적용
+    (legacy — 직접 호출자 동작 불변).
     """
     plans = [build_supersede(c) for c in report.candidates]
-    stale_names = tuple(_ident(c.stale) for c in report.candidates)
+
+    def _applicable(c: SupersessionCandidate) -> bool:
+        return should_apply is None or should_apply(c)
+
+    deferred = tuple(_ident(c.stale) for c in report.candidates if not _applicable(c))
+    _deferred_note = (
+        f"deferred {len(deferred)} uncertain candidate(s) to escalation "
+        f"(σ verdict not confident SUPERSEDE): {list(deferred)}"
+    )
 
     if dry_run or write_cypher is None:
-        note = "dry-run: planned only, no write (covenant archive-only)"
+        planned = [p for p, c in zip(plans, report.candidates) if _applicable(c)]
+        superseded = tuple(_ident(c.stale) for c in report.candidates if _applicable(c))
+        notes = ["dry-run: planned only, no write (covenant archive-only)"]
+        if deferred:
+            notes.append(_deferred_note)
         return ApplyResult(
-            superseded=stale_names,
-            planned_cyphers=tuple(plans),
+            superseded=superseded,
+            planned_cyphers=tuple(planned),
             dry_run=True,
             applied_count=0,
-            notes=(note,),
+            deferred=deferred,
+            notes=tuple(notes),
         )
 
     applied: list[str] = []
     refused: list[str] = []
     no_match: list[str] = []
     for (cypher, params), cand in zip(plans, report.candidates):
+        if not _applicable(cand):
+            continue  # deferred (위에서 집계) — escalation이 처리, auto-write 안 함
         if _is_exact_dup(cand):
             # identical (sourcePath, sha256) on both sides → the composite supersede key
             # cannot pick which node to archive (the write is a no-op for a single node, or
@@ -199,6 +220,8 @@ def apply_supersessions(
     notes: list[str] = [
         f"applied {len(applied)}/{len(plans)} supersession(s) — reversible via status+edge"
     ]
+    if deferred:
+        notes.append(_deferred_note)
     if refused:
         notes.append(
             f"REFUSED {len(refused)} exact-duplicate(s) — identical sourcePath+sha256, "
@@ -214,6 +237,7 @@ def apply_supersessions(
         planned_cyphers=tuple(plans),
         dry_run=False,
         applied_count=len(applied),
+        deferred=deferred,
         notes=tuple(notes),
     )
 

@@ -31,6 +31,8 @@ def summarize_occam_result(result) -> dict[str, Any]:
         "dry_run": apply_result.dry_run,
         "planned": len(apply_result.planned_cyphers),
         "superseded": list(apply_result.superseded),
+        "deferred_count": len(apply_result.deferred),
+        "deferred": list(apply_result.deferred),
         "escalation_count": plan.count,
         "escalations": [
             {

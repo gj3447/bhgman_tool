@@ -121,6 +121,30 @@ def test_apply_with_write_executes_per_candidate():
     assert "old" in result.superseded
 
 
+def test_apply_should_apply_gate_defers_rejected_candidates():
+    # 주입식 should_apply가 False인 후보는 write 안 하고 deferred로 분류 (σ-gate 메커니즘).
+    # None이면 legacy(전부 적용) — 위 test_apply_with_write_executes_per_candidate가 그 경로.
+    report = _dup_report()
+    runner = _RecordingRunner([{"superseded": "old", "current": "new"}])
+    result = apply_supersessions(
+        report, write_cypher=runner, dry_run=False, should_apply=lambda _c: False
+    )
+    assert result.applied_count == 0
+    assert runner.calls == []  # gate가 막아 write 안 함
+    assert "old" in result.deferred
+
+
+def test_apply_dry_run_reports_deferred_under_gate():
+    report = _dup_report()
+    runner = _RecordingRunner()
+    result = apply_supersessions(
+        report, write_cypher=runner, should_apply=lambda _c: False
+    )  # dry_run 기본
+    assert result.dry_run is True
+    assert result.planned_cyphers == ()  # gate가 막은 후보는 planned에서도 제외
+    assert "old" in result.deferred
+
+
 def test_apply_counts_rows_not_candidates_on_no_match():
     """W1-G: a planned supersession whose cypher matches 0 rows (node absent / already
     superseded) must NOT be counted as applied — report planned vs actual honestly."""

@@ -209,9 +209,11 @@ class _FakeRunner:
         return self.rows
 
 
+# byte-동일 dup(같은 sha, 다른 lineage) = 확신 SUPERSEDE → σ-gate가 auto-apply 통과.
+# (부분중복/불확실 후보는 deferred → escalation; 그 경로는 occam runner 테스트가 커버.)
 _DUP_ROWS = [
-    {"name": "old", "source_path": "bhgman_tool/x.py", "sha256": "o", "line_count": 10},
-    {"name": "new", "source_path": "bhgman_tool/x.py", "sha256": "n", "line_count": 99},
+    {"name": "old", "source_path": "/abs/bhgman_tool/x.py", "sha256": "same", "line_count": 50},
+    {"name": "new", "source_path": "bhgman_tool/x.py", "sha256": "same", "line_count": 50},
 ]
 
 

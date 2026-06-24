@@ -23,6 +23,7 @@ from engine.occam.kg_adapter import (
     apply_supersessions,
     fetch_source_nodes,
 )
+from engine.occam.escalation import is_confident_supersede
 from engine.occam.occam import normalize_path, occam_pass
 from engine.occam.occam_models import NodeRecord, OccamReport
 from engine.occam.scoring import NodeScoreMeta
@@ -179,7 +180,13 @@ def run_occam(
         disk_paths=disk_paths,
         score_meta=_build_score_meta(nodes),
     )
-    apply_result = apply_supersessions(report, write_cypher=write_cypher, dry_run=not apply)
+    # σ-gate: 확신 SUPERSEDE만 auto-apply, 불확실(VERIFY/KEEP/MEDIUM·비동일)은 deferred → escalation.
+    apply_result = apply_supersessions(
+        report,
+        write_cypher=write_cypher,
+        dry_run=not apply,
+        should_apply=is_confident_supersede,
+    )
     return OccamRunResult(report=report, apply_result=apply_result, scope=scope)
 
 
