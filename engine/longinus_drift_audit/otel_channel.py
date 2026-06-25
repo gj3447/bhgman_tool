@@ -45,12 +45,18 @@ from typing import Any, Iterator, Optional
 
 from pydantic import BaseModel, Field
 
-try:  # optional-dependency guard — bhgman_tool[otel]
+try:  # optional-dependency guard — bhgman_tool[otel] requires BOTH api AND sdk
     from opentelemetry import trace as _otel_trace
     from opentelemetry.trace import Status, StatusCode
 
+    # Gate on the SDK too: the API package alone hands back a NonRecordingSpan
+    # (is_recording()==False) that silently drops every attribute, so without the SDK
+    # otel_available()/emit_dispatch() would claim success while emitting NOTHING. The
+    # import is the capability probe — the host still wires the TracerProvider/exporter.
+    import opentelemetry.sdk.trace as _otel_sdk_trace  # noqa: F401
+
     _OTEL_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised only in non-[otel] envs
+except ImportError:  # pragma: no cover - exercised in api-only / non-[otel] envs
     _otel_trace = None  # type: ignore[assignment]
     Status = StatusCode = None  # type: ignore[assignment,misc]
     _OTEL_AVAILABLE = False
