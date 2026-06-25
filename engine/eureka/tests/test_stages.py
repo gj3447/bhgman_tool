@@ -7,6 +7,8 @@ gds.leiden/vector 인프라부는 fake run_cypher로, 결정론부(summarize/rrf
 
 from __future__ import annotations
 
+import pytest
+
 from engine.eureka.pipeline import PipelineConfig, run
 from engine.eureka.stages import (
     DriftLoopStage,
@@ -179,7 +181,25 @@ def test_drift_stage_flags_below_tau():
         }
     )
     assert res.ok
-    assert res.payload["stability"] == 0.5
+    # symmetric stability: dir(prev→curr)=0.5, dir(curr→prev)=(0.5+0.25+0.25)/3=0.333 → mean 0.4167
+    assert res.payload["stability"] == pytest.approx(0.4167, abs=1e-3)
+    assert res.payload["drifted"] is True
+
+
+def test_partition_stability_detects_new_cluster():
+    # a brand-new latent cluster present only in curr is REAL drift — the prev-only best-match
+    # average was blind to it (every prev cluster matched perfectly → 1.0). Must drop below 1.0.
+    assert partition_stability({0: ["A", "B"]}, {0: ["A", "B"], 1: ["X", "Y", "Z"]}) < 1.0
+
+
+def test_drift_stage_flags_new_cluster():
+    # the new-cluster drift must actually fire DriftLoopStage (was silently missed at stability 1.0).
+    res = DriftLoopStage(tau=0.9).run(
+        {
+            "previous_communities": {0: ["A", "B"]},
+            "communities": {0: ["A", "B"], 1: ["X", "Y", "Z"]},
+        }
+    )
     assert res.payload["drifted"] is True
 
 
