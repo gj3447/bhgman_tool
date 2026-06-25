@@ -90,7 +90,11 @@ def test_agent_dispatcher_via_fake_client():
             self.text = text
 
     class _FakeClient:
-        def complete(self, *, system, user, model, max_tokens=2048, web_search=False):
+        # forgiving double: must accept whatever the real dispatch_parallel sends
+        # (temperature/seed/tier/tools/tool_choice were added to client.complete) —
+        # mirror the **_kw of the sibling _BoomClient so a signature drift can't masquerade
+        # as a dispatch failure.
+        def complete(self, *, system, user, model, max_tokens=2048, web_search=False, **_kw):
             assert web_search is False  # 공정 예산 (web off)
             return _Comp(f"done: {user[:10]}")
 
