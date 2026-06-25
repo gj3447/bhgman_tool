@@ -19,9 +19,10 @@ objective 는 'ensure/verify {axis} coverage'(harness 가 그 축을 광고하�
 from __future__ import annotations
 
 from engine.harness.harness_models import Axis, HarnessDiagnosis
-from engine.jaebaeman.jaebaeman_models import Goal
+from engine.jaebaeman.jaebaeman_models import Goal, SeedRecord
 
 _TASK_TYPE = "harness-compensation"
+_BASE_SYSTEM = "너는 계획 실행기다. 작업을 수행하고 결과를 보고하라."
 
 
 def harness_seed_goals(diagnosis: HarnessDiagnosis) -> list[Goal]:
@@ -53,4 +54,49 @@ def harness_seed_goals(diagnosis: HarnessDiagnosis) -> list[Goal]:
     return goals
 
 
-__all__ = ["harness_seed_goals"]
+def harness_germination_system(diagnosis: HarnessDiagnosis, *, base_system: str = _BASE_SYSTEM) -> str:
+    """The germination ENVIRONMENT a subagent runs in under a target harness — a system directive
+    naming the tier + which 4-axis primitives the harness PROVIDES (use them) vs leaves UNKNOWN
+    (supply yourself). The REVERSE of :func:`harness_seed_goals`: the harness is not only turned
+    into a seed, it also shapes HOW a seed germinates (harness = soil, seed = WHAT, this = WHERE/HOW).
+    """
+    present = [a.value for a in diagnosis.present_axes]
+    missing = [a.value for a in Axis if a not in set(diagnosis.present_axes)]
+    lines: list[str] = []
+    if base_system.strip():
+        lines.append(base_system.strip())
+    lines.append(
+        f"[harness] tier={diagnosis.tier.value}; this harness provides "
+        f"{', '.join(present) if present else 'no detected'} axis primitive(s) — use them."
+    )
+    if missing:
+        lines.append(
+            f"[harness] it does NOT advertise {', '.join(missing)} (Presence.UNKNOWN — "
+            "부재 ≠ 능력 없음) — you must supply these yourself in your output."
+        )
+    return "\n".join(lines)
+
+
+def germinate_under_harness(
+    seed: SeedRecord,
+    diagnosis: HarnessDiagnosis,
+    *,
+    model: str = "claude-haiku-4-5-20251001",
+    base_system: str = _BASE_SYSTEM,
+):
+    """Compile a seed into a subagent context whose germination ENVIRONMENT is the target harness:
+    the system prompt bakes in the harness tier + axis primitives (via :func:`harness_germination_system`)
+    while the user prompt carries the seed's task. Seed = WHAT; harness = WHERE/HOW. Returns a
+    ``SubagentSpec`` (lazy-imported to keep this module free of the agents dependency)."""
+    from engine.agents.dispatch import SubagentSpec  # noqa: PLC0415
+
+    return SubagentSpec(
+        name=seed.name,
+        system=harness_germination_system(diagnosis, base_system=base_system),
+        user=f"{seed.display_name}\n기대 산출: {seed.expected_outcome}",
+        model=model,
+        web_search=False,
+    )
+
+
+__all__ = ["germinate_under_harness", "harness_germination_system", "harness_seed_goals"]
