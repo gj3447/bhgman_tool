@@ -210,3 +210,53 @@ def test_harness_diagnosis_is_the_soil_its_seeds_anchor_to():
     anchored = [seed for anc, seed in kg.has_seed if anc == "claude code"]
     assert len(anchored) == 2  # the 2 compensation seeds grow in the harness-diagnosis soil
     assert all("ensure-" in s for s in anchored)
+
+
+class _FaithfulLlmClient:
+    """The up-to-date AgentClient.complete interface (every kwarg dispatch_parallel passes),
+    deterministic — no API. Swap for engine.agents.client.AgentClient when ANTHROPIC_API_KEY is
+    set. Records the system/user it was called with so we can assert the harness-aware context."""
+
+    def __init__(self):
+        self.calls: list = []
+
+    def complete(self, *, system, user, model, max_tokens=2048, web_search=False,
+                 temperature=0.0, seed=None, tier=0, tools=None, tool_choice=None):
+        assert web_search is False  # fair budget (web off)
+        self.calls.append({"system": system, "user": user, "model": model})
+
+        class _Completion:
+            pass
+
+        c = _Completion()
+        c.text = f"[{model}] processed under harness"
+        return c
+
+
+def test_closed_loop_via_real_agent_dispatcher_with_harness_aware_system():
+    # Depth 1: the REAL agent_dispatcher path (dispatch_parallel → client.complete), with the
+    # harness-aware system from the reverse bridge, run deterministically (no LLM key here).
+    from engine.jaebaeman.jaebaeman_models import Goal
+    from engine.jaebaeman.jaebaeman_runner import germinate_ready_seeds, run_jaebaeman
+    from engine.jaebaeman.lifecycle import agent_dispatcher
+    from engine.jaebaeman.planner import static_decompose
+
+    kg = _FakeKg()
+    d = diagnose("claude code")
+    root = Goal(name="harness::cc", objective="root")
+    run_jaebaeman(
+        root, run_cypher=kg, write_cypher=kg,
+        decompose=static_decompose({root.name: harness_seed_goals(d)}),
+        skill="harness", cycle_id="llm-1", apply=True, validate=False,
+    )
+
+    client = _FaithfulLlmClient()
+    dispatcher = agent_dispatcher(  # the REAL dispatcher, not a hand fake
+        client, model="claude-haiku-4-5-20251001", system=harness_germination_system(d)
+    )
+    lc = germinate_ready_seeds(dispatcher, kg, cycle_id="llm-1", write_cypher=kg, apply=True)
+
+    assert lc.collected == 3 and lc.failed == 0  # the real dispatch_parallel path worked
+    assert client.calls  # client.complete was actually called
+    assert all("tier=IDE_HOST" in c["system"] for c in client.calls)  # harness-aware system reached the LLM
+    assert all(p["status"] == "COLLECTED" for p in kg.nodes.values())
