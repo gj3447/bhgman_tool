@@ -201,29 +201,28 @@ async def gate_check(payload: GateRequest, req: Request) -> GateResponse:
     decision = cb.check()
     audit_id = f"audit-{payload.gate_name}-{uuid.uuid4().hex[:12]}"
     mode: EnforcementMode = req.app.state.enforcement_mode
+    kg_runner = getattr(req.app.state, "kg_runner", None)
 
     if not decision.allow_request:
         # circuit OPEN → 즉시 거부 (단, informational 모드에선 advisory)
         verdict = "OPEN_REFUSED" if mode is EnforcementMode.BLOCKER else "WOULD_FAIL"
-        _audit(audit_id, payload, verdict, decision.reason, mode)
+        _audit(audit_id, payload, verdict, decision.reason, mode, kg_runner)
         return _fail_response(verdict, decision.reason, audit_id, decision.state.value, mode)
 
     # Resolve verdict: OPA policy (authoritative, opt-in), else the real KG materializer
     # for an APT phase gate (Phase B), else the context sanity stub.
     try:
-        ok, reason = await _decide(
-            req.app.state.opa, payload, getattr(req.app.state, "kg_runner", None)
-        )
+        ok, reason = await _decide(req.app.state.opa, payload, kg_runner)
     except Exception as e:  # noqa: BLE001 — fail-closed on any gate-backend error
         new_state = cb.record_failure()
-        _audit(audit_id, payload, _fail_verdict(mode), f"gate backend error: {e}", mode)
+        _audit(audit_id, payload, _fail_verdict(mode), f"gate backend error: {e}", mode, kg_runner)
         return _fail_response(
             _fail_verdict(mode), f"gate backend unreachable: {e}", audit_id, new_state.value, mode
         )
 
     if ok:
         cb.record_success()
-        _audit(audit_id, payload, "PASS", reason, mode)
+        _audit(audit_id, payload, "PASS", reason, mode, kg_runner)
         return GateResponse(
             verdict="PASS",
             reason=reason,
@@ -233,7 +232,7 @@ async def gate_check(payload: GateRequest, req: Request) -> GateResponse:
         )
 
     new_state = cb.record_failure()
-    _audit(audit_id, payload, _fail_verdict(mode), reason, mode)
+    _audit(audit_id, payload, _fail_verdict(mode), reason, mode, kg_runner)
     return _fail_response(_fail_verdict(mode), reason, audit_id, new_state.value, mode)
 
 
@@ -369,20 +368,52 @@ async def _decide(opa: Any, payload: GateRequest, run_cypher: Any = None) -> tup
 # ─── audit (JFrog 패턴 — actor/timestamp/verdict) ────────────────────────
 
 
+# Layer-3 mandatory-audit: durable, queryable verdict record (JFrog pattern). MERGE on
+# auditId (idempotent under retry). Persisted when a kg_runner is wired; stderr otherwise.
+_GATE_AUDIT_CYPHER = (
+    "MERGE (e:GateAuditEntry {auditId: $audit_id}) "
+    "SET e.gateName = $gate_name, e.actor = $actor, e.cycleId = $cycle_id, "
+    "e.verdict = $verdict, e.mode = $mode, e.reason = $reason, e.recordedAt = $recorded_at "
+    "RETURN e.auditId AS auditId"
+)
+
+
 def _audit(
     audit_id: str,
     payload: GateRequest,
     verdict: str,
     reason: str,
     mode: EnforcementMode,
+    kg_runner: Any = None,
 ) -> None:
-    # TODO: KG `:GateAuditEntry` 노드 + structlog 영구 기록
+    ts = dt.datetime.now(dt.timezone.utc).isoformat()
     print(
-        f"[AUDIT {audit_id}] {dt.datetime.now(dt.timezone.utc).isoformat()} "
+        f"[AUDIT {audit_id}] {ts} "
         f"{payload.gate_name} actor={payload.actor} cycle={payload.cycle_id} "
         f"verdict={verdict} mode={mode.value} reason={reason}",
         file=sys.stderr,
     )
+    # Durable record: a :GateAuditEntry survives restart and is queryable (the stderr line
+    # is not). Audit persistence must NEVER break the gate decision — degrade to the print
+    # above on any failure (or when no runner is wired).
+    if kg_runner is None:
+        return
+    try:
+        kg_runner(
+            _GATE_AUDIT_CYPHER,
+            {
+                "audit_id": audit_id,
+                "gate_name": payload.gate_name,
+                "actor": payload.actor,
+                "cycle_id": payload.cycle_id,
+                "verdict": verdict,
+                "mode": mode.value,
+                "reason": reason,
+                "recorded_at": ts,
+            },
+        )
+    except Exception as e:  # noqa: BLE001 — audit write must not fail the gate
+        print(f"[AUDIT {audit_id}] KG persist degraded ({type(e).__name__}: {e})", file=sys.stderr)
 
 
 def _audit_break_glass(audit_id: str, payload: BreakGlassRequest) -> None:
