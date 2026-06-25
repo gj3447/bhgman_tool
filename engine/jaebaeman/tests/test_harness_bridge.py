@@ -90,3 +90,81 @@ def test_germinate_under_harness_bakes_environment_into_subagent():
     assert "tier=IDE_HOST" in spec.system  # harness shapes HOW it germinates (environment)
     assert spec.user == "do X\n기대 산출: Y"  # seed shapes WHAT
     assert spec.web_search is False
+
+
+# ── closed loop: harness → seed → KG plant → read-back → germinate(harness-aware) → status ──
+
+
+class _FakeKg:
+    """Faithful in-memory :SubagentTaskSpec store — plant / read-ready / status round-trip."""
+
+    def __init__(self):
+        self.nodes: dict = {}
+        self.parent: dict = {}
+
+    def __call__(self, cypher, params=None):
+        p = params or {}
+        if "MERGE (s:SubagentTaskSpec {name: $name})" in cypher:  # plant
+            self.nodes[p["name"]] = {**p, "status": "READY"}
+            return [{"seeded": p["name"]}]
+        if "MERGE (p)-[:DECOMPOSES_TO]->(c)" in cypher:  # plan edge
+            self.parent[p["child"]] = p["parent"]
+            return [{"child": p["child"]}]
+        if "MERGE (a)-[r:HAS_SEED]->(s)" in cypher:  # anchor edge (no-op for this store)
+            return [{"linked": p.get("seed")}]
+        if "WHERE s.status = 'READY'" in cypher:  # read-back
+            cyc = p.get("cycle_id")
+            rows = []
+            for n, pr in self.nodes.items():
+                if pr.get("status") != "READY" or (cyc and pr.get("cycle_id") != cyc):
+                    continue
+                rows.append({
+                    "name": n, "skill": pr.get("skill"), "sourceId": pr.get("sourceId"),
+                    "displayName": pr.get("displayName"), "taskType": pr.get("taskType"),
+                    "targetDomain": pr.get("targetDomain"), "expectedOutcome": pr.get("expectedOutcome"),
+                    "germinationMethod": pr.get("germinationMethod"), "depth": pr.get("depth", 0),
+                    "parent": self.parent.get(n),
+                })
+            return rows
+        if "SET s.status = $status" in cypher:  # status writeback
+            if p["name"] in self.nodes:
+                self.nodes[p["name"]]["status"] = p["status"]
+            return [{"updated": p["name"]}]
+        return []
+
+
+def test_closed_loop_harness_to_seed_to_germinate_to_status():
+    from engine.jaebaeman.jaebaeman_models import Goal, SeedStatus
+    from engine.jaebaeman.jaebaeman_runner import germinate_ready_seeds, run_jaebaeman
+    from engine.jaebaeman.lifecycle import SeedOutcome
+    from engine.jaebaeman.planner import static_decompose
+
+    kg = _FakeKg()
+    d = diagnose("claude code")
+    goals = harness_seed_goals(d)  # 2 compensation goals (INFORM, CORRECT)
+    root = Goal(name="harness::claude code", objective="compensate harness gaps")
+
+    # plant (apply=True) — seeds land in the KG as READY :SubagentTaskSpec.
+    res = run_jaebaeman(
+        root, run_cypher=kg, write_cypher=kg,
+        decompose=static_decompose({root.name: goals}),
+        skill="harness", cycle_id="loop-1", apply=True, validate=False,
+    )
+    assert res.apply_result.applied_count == 3  # root + 2 leaves
+    assert all(p["status"] == "READY" for p in kg.nodes.values())
+
+    # germinate (apply=True) — read READY back, germinate UNDER the harness, write status back.
+    germinated = []
+
+    def dispatcher(seeds):
+        out = []
+        for s in seeds:
+            germinated.append(germinate_under_harness(s, d))  # reverse bridge: harness-aware
+            out.append(SeedOutcome(s.name, SeedStatus.COLLECTED, "germinated"))
+        return out
+
+    lc = germinate_ready_seeds(dispatcher, kg, cycle_id="loop-1", write_cypher=kg, apply=True)
+    assert lc.collected == 3 and lc.failed == 0
+    assert all(p["status"] == "COLLECTED" for p in kg.nodes.values())  # status round-tripped to KG
+    assert all("tier=IDE_HOST" in g.system for g in germinated)  # every subagent harness-aware
+    assert any("ensure-inform" in g.name for g in germinated)
