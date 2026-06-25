@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from engine.occam.kg_adapter import fetch_cypher, parse_node_records
 from engine.occam.occam_runner import run_occam, scan_disk_paths
 
 
@@ -199,6 +200,47 @@ def test_scan_disk_paths_follows_symlinked_dirs(tmp_path):
     (repo / "skills").symlink_to(tmp_path / "real_skills")
     paths = scan_disk_paths(repo)
     assert "skills/harness/SKILL.md" in paths  # 심링크 통해 발견돼야
+
+
+# ─── invocation_count (deadness) wiring: oracle_backfill → fetch → scoring ───
+# lesson-occam-needs-invocation-log-2026-05-28: usage-based deadness. oracle_backfill writes
+# s.invocation_count to the KG, but the runner never read it (cypher/parse/score_meta all
+# dropped it) → the load-bearing signal was permanently dead.
+
+
+def test_fetch_cypher_selects_invocation_count():
+    cypher, _ = fetch_cypher(None)
+    assert "invocation_count" in cypher  # the backfilled usage signal must be fetched
+
+
+def test_parse_node_records_keeps_invocation_count():
+    rows = [
+        {"name": "n", "source_path": "p.py", "sha256": "s", "line_count": 5, "invocation_count": 0},
+        {"name": "m", "source_path": "q.py", "sha256": "t", "line_count": 5},  # absent → None
+    ]
+    recs = parse_node_records(rows)
+    assert recs[0].invocation_count == 0  # measured-dead survives into the NodeRecord
+    assert recs[1].invocation_count is None  # absent stays None (no-false-dead preserved)
+
+
+_DUP_ROWS_MEASURED_DEAD = [
+    # same path + different sha as _DUP_ROWS, but the stale "old" is measured-DEAD (0 calls).
+    {"name": "old", "source_path": "bhgman_tool/x.py", "sha256": "o", "line_count": 10, "invocation_count": 0},
+    {"name": "new", "source_path": "bhgman_tool/x.py", "sha256": "n", "line_count": 99, "invocation_count": 20},
+]
+
+
+def test_run_occam_reads_backfilled_invocation_count():
+    # The backfilled deadness (stale measured-dead) must RAISE σ vs the no-usage baseline —
+    # currently identical because invocation_count is dropped before scoring = RED.
+    measured = run_occam(_Runner(_DUP_ROWS_MEASURED_DEAD)).report.candidates[0]
+    baseline = run_occam(_Runner(_DUP_ROWS)).report.candidates[0]
+    assert measured.score is not None and baseline.score is not None
+    assert measured.score > baseline.score  # the live, load-bearing usage signal
+    # crosses θ_supersede the no-usage baseline never reaches (the verdict flip the audit
+    # verified: σ 0.3 VERIFY → 1.0 SUPERSEDE), while the baseline keeps the no-false-dead floor.
+    assert measured.verdict == "SUPERSEDE"
+    assert baseline.verdict != "SUPERSEDE"
 
 
 def test_scan_disk_paths_symlink_and_real_dir_coexist(tmp_path):

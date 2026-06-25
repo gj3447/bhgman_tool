@@ -53,6 +53,7 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
             "line_count": n["props"]["lineCount"],
             "last_validated": n["props"].get("lastValidated"),
             "created_at": n["props"].get("createdAt"),
+            "invocation_count": n["props"].get("invocation_count"),  # oracle_backfill usage (--local parity)
             "inbound_edges": inbound.get(idx_of.get(id(n), -1), 0),
         }
         for n in matched
