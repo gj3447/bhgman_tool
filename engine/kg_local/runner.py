@@ -495,7 +495,15 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     ),
     (lambda c: "q:OpenQuestion OR q:VerdictPending" in c, _gap_scan, False),
     (lambda c: "$facet_rels" in c, _eureka_facets, False),
-    (lambda c: "(a:AbstractClass)" in c and "verdictStatus" in c, _hades_fetch_accepted, False),
+    # both hades fetch variants: _FETCH_ALL `(a:AbstractClass)` and _FETCH_ONE
+    # `(a:AbstractClass {name: $concept})` (handler filters on params['concept']). The MERGE
+    # routes above match first, so the single-concept form can't be mis-routed here.
+    (
+        lambda c: ("(a:AbstractClass)" in c or "(a:AbstractClass {name: $concept})" in c)
+        and "verdictStatus" in c,
+        _hades_fetch_accepted,
+        False,
+    ),
     (
         lambda c: "(s:SourceCodeNode)" in c and "RETURN s.name AS name" in c,
         _fetch_source_nodes,
