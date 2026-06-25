@@ -42,6 +42,15 @@ def test_axis_less_harness_yields_four():
     assert _missing(goals) == ["constrain", "correct", "inform", "verify"]
 
 
+def test_seeds_can_anchor_to_the_harness_diagnosis_node():
+    # the harness diagnosis node (KG :HarnessDiagnosis) becomes the soil the seeds anchor to.
+    d = diagnose("claude code")
+    anchored = harness_seed_goals(d, anchor=d.subject)
+    assert anchored and all(g.anchor == "claude code" for g in anchored)
+    # default stays self-anchored (backward compat).
+    assert all(g.anchor is None for g in harness_seed_goals(d))
+
+
 def test_bridge_goals_are_plantable_via_jaebaeman():
     # the bridge output is real 재배맨 Goals → run_jaebaeman plants them as seeds (the handoff):
     # harness diagnosis → seeds → (germinate → subagent contexts, see test_germinate_handoff).
@@ -101,16 +110,22 @@ class _FakeKg:
     def __init__(self):
         self.nodes: dict = {}
         self.parent: dict = {}
+        self.diagnoses: dict = {}
+        self.has_seed: list = []
 
     def __call__(self, cypher, params=None):
         p = params or {}
+        if "MERGE (h:HarnessDiagnosis {name: $subject})" in cypher:  # plant diagnosis (the soil)
+            self.diagnoses[p["subject"]] = dict(p)
+            return [{"diagnosed": p["subject"]}]
         if "MERGE (s:SubagentTaskSpec {name: $name})" in cypher:  # plant
             self.nodes[p["name"]] = {**p, "status": "READY"}
             return [{"seeded": p["name"]}]
         if "MERGE (p)-[:DECOMPOSES_TO]->(c)" in cypher:  # plan edge
             self.parent[p["child"]] = p["parent"]
             return [{"child": p["child"]}]
-        if "MERGE (a)-[r:HAS_SEED]->(s)" in cypher:  # anchor edge (no-op for this store)
+        if "MERGE (a)-[r:HAS_SEED]->(s)" in cypher:  # anchor edge → record (soil ↔ seed)
+            self.has_seed.append((p["anchor"], p["seed"]))
             return [{"linked": p.get("seed")}]
         if "WHERE s.status = 'READY'" in cypher:  # read-back
             cyc = p.get("cycle_id")
@@ -168,3 +183,30 @@ def test_closed_loop_harness_to_seed_to_germinate_to_status():
     assert all(p["status"] == "COLLECTED" for p in kg.nodes.values())  # status round-tripped to KG
     assert all("tier=IDE_HOST" in g.system for g in germinated)  # every subagent harness-aware
     assert any("ensure-inform" in g.name for g in germinated)
+
+
+def test_harness_diagnosis_is_the_soil_its_seeds_anchor_to():
+    from engine.harness.harness import build_diagnosis_cypher
+    from engine.jaebaeman.jaebaeman_models import Goal
+    from engine.jaebaeman.jaebaeman_runner import run_jaebaeman
+    from engine.jaebaeman.planner import static_decompose
+
+    kg = _FakeKg()
+    d = diagnose("claude code")
+
+    # ① plant the harness diagnosis node itself (the soil) — harness classifier → KG.
+    kg(*build_diagnosis_cypher(d))
+    assert kg.diagnoses["claude code"]["tier"] == "IDE_HOST"
+    assert set(kg.diagnoses["claude code"]["axes"]) == {"CONSTRAIN", "VERIFY"}
+
+    # ② plant the compensation seeds ANCHORED to that diagnosis node (HAS_SEED edge = soil↔seed).
+    goals = harness_seed_goals(d, anchor=d.subject)
+    root = Goal(name="harness-root::claude code", objective="root")  # self-anchored root
+    run_jaebaeman(
+        root, run_cypher=kg, write_cypher=kg,
+        decompose=static_decompose({root.name: goals}),
+        skill="harness", cycle_id="soil-1", apply=True, validate=False,
+    )
+    anchored = [seed for anc, seed in kg.has_seed if anc == "claude code"]
+    assert len(anchored) == 2  # the 2 compensation seeds grow in the harness-diagnosis soil
+    assert all("ensure-" in s for s in anchored)
