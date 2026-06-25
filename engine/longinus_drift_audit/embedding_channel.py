@@ -115,6 +115,14 @@ class EmbeddingDriftReport(BaseModel):
     mean_cosine_drift: float = Field(ge=0.0, le=2.0)
     per_node_high_drift_count: int = Field(ge=0)
     per_node_high_drift_ratio: float = Field(ge=0.0, le=1.0)
+    high_drift_node_ids: tuple[str, ...] = Field(
+        default=(),
+        description=(
+            "node_ids whose per-node drift exceeds per_node_high_drift_threshold — the L5 "
+            "provenance bridge (WHICH nodes drifted, not just how many). Sorted; "
+            "len == per_node_high_drift_count."
+        ),
+    )
     warn: bool
     halt: bool
     opt_in_acknowledged: bool
@@ -335,6 +343,11 @@ def compute_embedding_drift(
     drifts = [_cosine_drift(a, b) for a, b in aligned_pairs]
     mean_drift = sum(drifts) / len(drifts)
     high_count = sum(1 for d in drifts if d > per_node_high_drift_threshold)
+    # shared_ids is sorted and aligned 1:1 with drifts, so the surfaced ids are the real
+    # high-drift nodes in sorted order (the L5 provenance the count alone discarded).
+    high_drift_node_ids = tuple(
+        nid for nid, d in zip(shared_ids, drifts) if d > per_node_high_drift_threshold
+    )
     high_ratio = high_count / len(drifts)
 
     warn_flag = mean_drift >= warn_mean_threshold or high_ratio > high_drift_ratio_threshold
@@ -347,6 +360,7 @@ def compute_embedding_drift(
         mean_cosine_drift=mean_drift,
         per_node_high_drift_count=high_count,
         per_node_high_drift_ratio=high_ratio,
+        high_drift_node_ids=high_drift_node_ids,
         warn=warn_flag,
         halt=halt_flag,
         opt_in_acknowledged=True,
