@@ -59,7 +59,45 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
     ]
 
 
+# semantic_dedup._KEY_ALLOWLIST mirror — the generic-key supersede matches an *unlabeled*
+# node on any of these identity props (stale.{key} = $stale_id).
+_GENERIC_IDENTITY_KEYS = ("name", "findingId", "id")
+
+
+def _occam_supersede_generic(store: LocalKgStore, params: dict) -> list[dict]:
+    # semantic_dedup._SUPERSEDE_TMPL 변종: `MATCH (stale) WHERE stale.{key} = $stale_id`
+    # (key ∈ {name,findingId,id}, label 무관). params = {stale_id, current_id, reason}.
+    # 과거엔 _occam_supersede가 params['stale_path']를 읽어 KeyError → 로컬서 의미론 dedup이
+    # silent no-op였다 (applied=0). label-agnostic identity 매칭으로 그 seam을 닫는다.
+    def _by(ident: str) -> dict | None:
+        for n in store.nodes:
+            props = n.get("props", {})
+            if any(props.get(k) == ident for k in _GENERIC_IDENTITY_KEYS):
+                return n
+        return None
+
+    stale = _by(params["stale_id"])
+    current = _by(params["current_id"])
+    if stale is None or current is None or stale is current:
+        return []
+    stale["props"].update(
+        {
+            "status": "SUPERSEDED",
+            "supersededBy": params["current_id"],
+            "supersededReason": params.get("reason", ""),
+            "occamPass": "occam-semantic",
+        }
+    )
+    store.add_edge(stale, "SUPERSEDED_BY", current)
+    return [{"superseded": params["stale_id"], "current": params["current_id"]}]
+
+
 def _occam_supersede(store: LocalKgStore, params: dict) -> list[dict]:
+    # 두 supersede 변종 처리 (둘 다 cypher에 `stale.status = 'SUPERSEDED'` 포함 → 같은 라우트):
+    #  · generic-key (semantic_dedup, key∈{name,findingId,id}): params에 stale_id → 위 핸들러.
+    #  · path+sha (SourceCodeNode, adapter._SUPERSEDE_CYPHER): params에 stale_path/stale_sha.
+    if "stale_path" not in params:
+        return _occam_supersede_generic(store, params)
     # 복합키 (sourcePath, sha256) 매칭 — name은 schema상 nullable이라 키로 못 씀.
     # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약)
     def _by(path: str, sha: str) -> dict | None:
