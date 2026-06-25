@@ -130,7 +130,10 @@ def _build_score_meta(nodes: list[NodeRecord]) -> dict[str, NodeScoreMeta]:
         meta[n.name] = NodeScoreMeta(
             redundancy=0.0,  # _score_candidates override
             age_days=_age_days(n, now),
-            invocation_count=None,  # usage 로그 부재 → deadness 0 (no false-dead)
+            # KG-backfilled usage (oracle_backfill writes s.invocation_count). Absent → None
+            # → deadness 0 (no-false-dead preserved); present (e.g. 0=measured-dead) → the
+            # signal reaches scoring. Was hardcoded None, so the backfill never mattered.
+            invocation_count=n.invocation_count,
             inbound_edges=n.inbound_edges or 0,
         )
     return meta
