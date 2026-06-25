@@ -1623,8 +1623,16 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     run_cypher, _write, close = runners
     eureka_stages = _load_engine_module("eureka", "stages")
     cycle_id = "cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+    # --accept implies --apply: both trigger stage_6 KG-persist (the eureka→hades seam).
+    # accept → verdictStatus='ACCEPTED' (realizable); apply-only → 'VERDICT_PENDING'
+    # (visible, not yet realizable — covenant: 실현은 하데스, 명시적 accept 신호에서만).
+    accept = getattr(args, "accept", False)
+    persist = getattr(args, "apply", False) or accept
     cfg = pipeline.PipelineConfig(
-        cycle_id=cycle_id, **eureka_stages.wire_default_stages(run_cypher)
+        cycle_id=cycle_id,
+        persist_cypher=_write if persist else None,
+        persist_accept=accept,
+        **eureka_stages.wire_default_stages(run_cypher),
     )
     try:
         pr = pipeline.run_from_kg(run_cypher, cfg)
@@ -1634,9 +1642,17 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     for s in pr.stages:
         status = "ok" if s.ok else "FAIL"
         print(f"  [{status}] {s.stage}")
-    print(
-        "[eureka] PROPOSE only — candidates surfaced; materialize via 하데스 + 나생문 gate (no auto-commit)."
-    )
+    if persist:
+        n = next(
+            (s.payload.get("persisted", 0) for s in pr.stages if s.stage == "6-persist"), 0
+        )
+        verdict = "ACCEPTED (hades-realizable)" if accept else "VERDICT_PENDING (visible, not yet realizable)"
+        print(f"[eureka] persisted {n} concept(s) as {verdict}.")
+    else:
+        print(
+            "[eureka] PROPOSE only — candidates surfaced; persist via --apply (pending) / "
+            "--accept (realizable), materialize via 하데스 + 나생문 gate (no auto-commit)."
+        )
     return 0
 
 

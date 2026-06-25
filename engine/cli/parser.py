@@ -373,6 +373,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
     )
+    p_eu.add_argument(
+        "--apply",
+        action="store_true",
+        help="Persist gated concepts to the KG as verdictStatus='VERDICT_PENDING' so hades "
+        "can see them (visible, NOT yet realizable). 생략 = dry-run (PROPOSE only, no write).",
+    )
+    p_eu.add_argument(
+        "--accept",
+        action="store_true",
+        help="명시적 PROPOSED→ACCEPTED: persist as verdictStatus='ACCEPTED' (the row hades "
+        "realizes). Implies --apply. covenant: 실현 게이트는 명시적 accept 신호에서만.",
+    )
     p_eu.set_defaults(func=commands.cmd_eureka)
 
     p_ks = sub.add_parser(
