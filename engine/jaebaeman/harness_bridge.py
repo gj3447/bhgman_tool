@@ -25,13 +25,17 @@ _TASK_TYPE = "harness-compensation"
 _BASE_SYSTEM = "너는 계획 실행기다. 작업을 수행하고 결과를 보고하라."
 
 
-def harness_seed_goals(diagnosis: HarnessDiagnosis) -> list[Goal]:
+def harness_seed_goals(diagnosis: HarnessDiagnosis, *, anchor: str | None = None) -> list[Goal]:
     """Compile a harness diagnosis into 재배맨 seed Goals — one per canonical :class:`Axis` NOT
     confirmed PRESENT, to ensure that axis in the germinated subagent context.
 
     A 4-axis-complete harness yields ZERO Goals (no compensation); an axis-less one yields four.
     The harness thereby becomes plantable 재배맨 씨앗 (a harness IS a seed). ``target_domain`` =
     the diagnosed tier so the subagent context knows where it runs.
+
+    ``anchor`` (default None = self-anchored) FK-roots the seeds to a KG node — pass
+    ``diagnosis.subject`` to anchor them to the planted ``:HarnessDiagnosis`` node (the harness
+    diagnosis becomes the soil the compensation seeds grow in, via a ``HAS_SEED`` edge).
     """
     present = set(diagnosis.present_axes)
     goals: list[Goal] = []
@@ -48,7 +52,7 @@ def harness_seed_goals(diagnosis: HarnessDiagnosis) -> list[Goal]:
                 ),
                 task_type=_TASK_TYPE,
                 target_domain=diagnosis.tier.value,
-                anchor=None,
+                anchor=anchor,
             )
         )
     return goals
