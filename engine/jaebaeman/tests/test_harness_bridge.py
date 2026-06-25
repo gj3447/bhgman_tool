@@ -10,7 +10,11 @@
 from __future__ import annotations
 
 from engine.harness.harness import diagnose
-from engine.jaebaeman.harness_bridge import harness_seed_goals
+from engine.jaebaeman.harness_bridge import (
+    germinate_under_harness,
+    harness_germination_system,
+    harness_seed_goals,
+)
 
 
 def _missing(goals) -> list[str]:
@@ -57,3 +61,32 @@ def test_bridge_goals_are_plantable_via_jaebaeman():
     seed_names = [s.name for s in res.seeds]
     assert any("ensure-inform" in n for n in seed_names)
     assert any("ensure-correct" in n for n in seed_names)
+
+
+# ── reverse direction: the harness shapes HOW a seed germinates (germination environment) ──
+
+
+def test_harness_germination_system_names_tier_and_axes():
+    sysd = harness_germination_system(diagnose("claude code"))
+    assert "tier=IDE_HOST" in sysd
+    assert "CONSTRAIN" in sysd and "VERIFY" in sysd  # provides — use them
+    assert "INFORM" in sysd and "CORRECT" in sysd  # UNKNOWN — supply yourself
+    assert "does NOT advertise" in sysd
+
+
+def test_full_harness_has_no_compensation_directive():
+    d = diagnose("x", signals={"inform": True, "constrain": True, "verify": True, "correct": True})
+    assert "does NOT advertise" not in harness_germination_system(d)  # nothing to compensate
+
+
+def test_germinate_under_harness_bakes_environment_into_subagent():
+    from engine.jaebaeman.jaebaeman_models import SeedRecord
+
+    seed = SeedRecord(
+        name="s1", skill="harness", source_id="s1", display_name="do X", task_type="research",
+        target_domain="kg", expected_outcome="Y", germination_method="manual", depth=0, parent=None,
+    )
+    spec = germinate_under_harness(seed, diagnose("claude code"))
+    assert "tier=IDE_HOST" in spec.system  # harness shapes HOW it germinates (environment)
+    assert spec.user == "do X\n기대 산출: Y"  # seed shapes WHAT
+    assert spec.web_search is False
