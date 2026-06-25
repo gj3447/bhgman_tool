@@ -1002,6 +1002,20 @@ def cmd_occam(args: argparse.Namespace) -> int:
         )
         for o in res.report.orphans:
             print(f"    [orphan] {o.name} @ {o.source_path}")
+    # σ-gate deferred (auto-apply 안 한 불확실 후보) + escalation routing — CLI/MCP/legion
+    # parity: MCP·legion은 summarize_occam_result로 이미 노출, CLI도 같은 plan을 띄운다.
+    deferred = res.apply_result.deferred
+    if deferred:
+        print(f"  deferred (σ-gate 미확신 → escalation, auto-apply 안 함): {len(deferred)}")
+        for d in deferred:
+            print(f"    [defer] {d}")
+    from engine.occam.escalation import build_escalation_plan  # noqa: PLC0415
+
+    plan = build_escalation_plan(res.report)
+    if plan.count:
+        print(f"  {plan.summary}")
+        for it in plan.items:
+            print(f"    [escalate→{it.target}] {it.subject}: {it.command}")
     return 0
 
 
