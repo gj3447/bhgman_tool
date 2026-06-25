@@ -239,6 +239,33 @@ class CommanderBase(ABC):
 # ─────────────────────────────────────────────────────────────
 
 
+def _is_external_citation(url) -> bool:
+    """True iff ``url`` is a REAL external source — an http/https URL with a host."""
+    from urllib.parse import urlsplit
+
+    try:
+        parts = urlsplit(str(url).strip())
+    except (ValueError, AttributeError):
+        return False
+    return parts.scheme in ("http", "https") and bool(parts.netloc)
+
+
+def compute_external_grounding_ratio(citation_urls) -> float:
+    """Fraction of citations backed by a REAL external source (http/https + host).
+
+    The Goodhart-mitigation control ``external_grounding_ratio < 0.3 → self-recurse`` can only
+    fire if this is COMPUTED from real findings: the field defaulted to 1.0 and was never
+    derived, so ``1.0 < 0.3`` was always False and the control was dead. Empty / non-http /
+    host-less citations are NOT external grounding; an empty findings set is 0.0 (no grounding
+    witnessed), never a vacuous 1.0 — that vacuous 1.0 was the hole.
+    """
+    urls = list(citation_urls)
+    if not urls:
+        return 0.0
+    grounded = sum(1 for u in urls if _is_external_citation(u))
+    return grounded / len(urls)
+
+
 class PrometheusMeasurement(CommanderBase):
     name = "prometheus"
     dispatch_thresholds = (
@@ -273,6 +300,15 @@ class PrometheusMeasurement(CommanderBase):
                 self._finding_count = finding_count
             if external_grounding_ratio is not None:
                 self._external_grounding_ratio = external_grounding_ratio
+        self._bump_epoch()
+
+    def update_grounding(self, citation_urls) -> None:
+        """Compute external_grounding_ratio from THIS cycle's finding citations and set it, so
+        the <0.3 self-recurse control reflects REAL grounding instead of the dead 1.0 default.
+        Pass e.g. ``[f.citation_url for f in report.findings]``."""
+        ratio = compute_external_grounding_ratio(citation_urls)
+        with self._lock:
+            self._external_grounding_ratio = ratio
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
