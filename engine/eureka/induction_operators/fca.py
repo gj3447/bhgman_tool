@@ -58,6 +58,12 @@ def _closure(
     return extent, intent
 
 
+# Exact (deterministic) subset enumeration up to this extent size — 2^12 = 4096 subsets is
+# cheap, so concept stability is reproducible + exact below it (above it, sampling with a fixed
+# sorted order keeps it deterministic). Raised from 8 to close q-eureka-nondeterminism.
+_EXACT_STABILITY_MAX_EXTENT = 12
+
+
 def _approx_stability(
     extent: frozenset[str],
     context: Mapping[str, frozenset[str]],
@@ -76,9 +82,11 @@ def _approx_stability(
     if not target_intent:
         return 1.0 if not extent else 0.0
 
-    ext_list = list(extent)
+    # sorted (not list(frozenset)) → deterministic, hash-seed-independent order: the residual
+    # sampling path below is now reproducible across processes (was the lone non-determinism).
+    ext_list = sorted(extent)
     n = len(ext_list)
-    if n <= 8:
+    if n <= _EXACT_STABILITY_MAX_EXTENT:
         total = 2**n
         stable_count = 0
         for mask in range(total):
