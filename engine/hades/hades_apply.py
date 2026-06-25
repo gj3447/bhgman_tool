@@ -112,9 +112,18 @@ def apply_extract_superclass_gated(
     if new is None:
         return GatedApplyResult("REFUSED", "no structurally-identical common method to lift")
     file_path.write_text(new, encoding="utf-8")
-    rc = subprocess.run(  # noqa: S603 - caller-supplied fixed argv, no shell
-        test_cmd, cwd=cwd, capture_output=True
-    ).returncode
+    try:
+        rc = subprocess.run(  # noqa: S603 - caller-supplied fixed argv, no shell
+            test_cmd, cwd=cwd, capture_output=True
+        ).returncode
+    except OSError as exc:
+        # The gate could not even be spawned (e.g. test binary missing). The file was already
+        # rewritten, so honor the reversibility covenant exactly as the rc!=0 path does —
+        # restore byte-for-byte instead of propagating and leaving the tree MODIFIED.
+        file_path.write_text(original, encoding="utf-8")
+        return GatedApplyResult(
+            "REVERTED", f"characterization gate could not run ({exc}) — reverted", None
+        )
     if rc == 0:
         return GatedApplyResult("APPLIED", f"characterization gate passed — {base_name} lifted", rc)
     file_path.write_text(original, encoding="utf-8")  # covenant: reversible
