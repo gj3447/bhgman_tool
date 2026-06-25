@@ -85,8 +85,21 @@ def _persist(kg, record: dict) -> None:
         print("[drift-check] (no KG client wired — record not persisted)")
         return
     try:
-        kg.merge_drift_check(record, reinduction=bool(record.get("fire")))
+        # Goodhart cap: a fire emits a :ReinductionTrigger only if fewer than
+        # MAX_REINDUCTION_PER_WEEK fired in the rolling 7-day window — else the trigger is
+        # suppressed (unbounded re-induction is the metric-gaming failure mode). The :DriftCheck
+        # audit record always persists; only the trigger is rate-limited.
+        from engine.longinus_drift.ged_drift_detector import MAX_REINDUCTION_PER_WEEK  # noqa: PLC0415
+
+        fire = bool(record.get("fire"))
+        allow = fire and kg.count_recent_reinduction_triggers(7) < MAX_REINDUCTION_PER_WEEK
+        kg.merge_drift_check(record, reinduction=allow)
         print(f"[drift-check] persisted :DriftCheck {record['name']} (KG)")
+        if fire and not allow:
+            print(
+                f"[drift-check] Goodhart cap — :ReinductionTrigger suppressed "
+                f"(≥{MAX_REINDUCTION_PER_WEEK}/week already in the rolling window)"
+            )
     except Exception as e:  # noqa: BLE001 — cron must not crash; surface + continue
         print(f"[drift-check] WARN: KG persist failed ({type(e).__name__}: {e})")
 
