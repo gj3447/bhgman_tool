@@ -257,7 +257,7 @@ def break_glass(payload: BreakGlassRequest, req: Request):
             status_code=400, detail="break-glass session expired (expires_at must be in the future)"
         )
     audit_id = f"breakglass-{uuid.uuid4().hex[:12]}"
-    _audit_break_glass(audit_id, payload)
+    _audit_break_glass(audit_id, payload, getattr(req.app.state, "kg_runner", None))
     # TODO: Slack/PagerDuty webhook
     return {
         "audit_id": audit_id,
@@ -416,12 +416,45 @@ def _audit(
         print(f"[AUDIT {audit_id}] KG persist degraded ({type(e).__name__}: {e})", file=sys.stderr)
 
 
-def _audit_break_glass(audit_id: str, payload: BreakGlassRequest) -> None:
+# Durable record for a break-glass override (the most security-critical audit path —
+# a human bypassing a gate). MERGE on auditId (idempotent). Queryable for quarterly review.
+_BREAK_GLASS_CYPHER = (
+    "MERGE (e:BreakGlassEntry {auditId: $audit_id}) "
+    "SET e.actor = $actor, e.reason = $reason, e.coversGates = $covers_gates, "
+    "e.expiresAt = $expires_at, e.recordedAt = $recorded_at "
+    "RETURN e.auditId AS auditId"
+)
+
+
+def _audit_break_glass(
+    audit_id: str, payload: BreakGlassRequest, kg_runner: Any = None
+) -> None:
     print(
         f"[BREAK-GLASS {audit_id}] actor={payload.actor} reason={payload.reason} "
         f"covers={payload.covers_gates} expires={payload.expires_at.isoformat()}",
         file=sys.stderr,
     )
+    # Durable :BreakGlassEntry — an override that survives restart and is queryable for the
+    # mandatory quarterly review (the stderr line is neither). Must NEVER break the override.
+    if kg_runner is None:
+        return
+    try:
+        kg_runner(
+            _BREAK_GLASS_CYPHER,
+            {
+                "audit_id": audit_id,
+                "actor": payload.actor,
+                "reason": payload.reason,
+                "covers_gates": list(payload.covers_gates),
+                "expires_at": payload.expires_at.isoformat(),
+                "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            },
+        )
+    except Exception as e:  # noqa: BLE001 — audit write must not fail the override
+        print(
+            f"[BREAK-GLASS {audit_id}] KG persist degraded ({type(e).__name__}: {e})",
+            file=sys.stderr,
+        )
 
 
 def main() -> None:

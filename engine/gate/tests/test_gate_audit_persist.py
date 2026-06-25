@@ -12,9 +12,17 @@ optional [gate] deps are absent, runs in CI's --all-extras).
 """
 from __future__ import annotations
 
+import datetime as dt
+
 import pytest
 
-from engine.gate.gate_endpoint import EnforcementMode, GateRequest, _audit
+from engine.gate.gate_endpoint import (
+    BreakGlassRequest,
+    EnforcementMode,
+    GateRequest,
+    _audit,
+    _audit_break_glass,
+)
 
 
 def _payload() -> GateRequest:
@@ -55,6 +63,45 @@ def test_audit_never_raises_on_runner_failure(capsys) -> None:
     _audit("audit-boom", _payload(), "PASS", "ok", _INFORMATIONAL, kg_runner=boom)
     # degraded, not raised — the audit_id still surfaces on stderr.
     assert "audit-boom" in capsys.readouterr().err
+
+
+# ── break-glass override audit (the more security-critical sibling) ──────────
+def _bg_payload() -> BreakGlassRequest:
+    return BreakGlassRequest(
+        actor="oncall-eng",
+        reason="cluster-autoscaler wedged; overriding G6.5 to unblock the prod rollback",
+        expires_at=dt.datetime(2030, 1, 1, tzinfo=dt.timezone.utc),
+        covers_gates=["G6.5"],
+    )
+
+
+def test_break_glass_audit_persists_entry_when_runner_present() -> None:
+    calls: list[tuple[str, dict]] = []
+
+    def runner(cypher, params):
+        calls.append((cypher, params))
+        return []
+
+    _audit_break_glass("breakglass-xyz", _bg_payload(), kg_runner=runner)
+
+    writes = [p for cy, p in calls if "BreakGlassEntry" in cy]
+    assert len(writes) == 1  # the override left a durable, queryable record
+    assert writes[0]["audit_id"] == "breakglass-xyz"
+    assert writes[0]["actor"] == "oncall-eng"
+    assert writes[0]["covers_gates"] == ["G6.5"]
+
+
+def test_break_glass_audit_degrades_to_print_without_runner(capsys) -> None:
+    _audit_break_glass("breakglass-no-runner", _bg_payload(), kg_runner=None)
+    assert "breakglass-no-runner" in capsys.readouterr().err
+
+
+def test_break_glass_audit_never_raises_on_runner_failure(capsys) -> None:
+    def boom(cypher, params):
+        raise RuntimeError("neo4j down")
+
+    _audit_break_glass("breakglass-boom", _bg_payload(), kg_runner=boom)
+    assert "breakglass-boom" in capsys.readouterr().err
 
 
 # ── call-site wiring (CI: needs the optional [gate] deps) ────────────────────
