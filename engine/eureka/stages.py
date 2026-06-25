@@ -206,23 +206,37 @@ class HybridRetrievalStage:
 # ── Stage 7: drift loop (deterministic partition stability) ─────────────────
 
 
+def _directional_stability(a_sets: list[set[str]], b_sets: list[set[str]]) -> float:
+    """mean over a_sets of each cluster's best-match Jaccard against b_sets."""
+    total = 0.0
+    for a in a_sets:
+        best = max(
+            (len(a & b) / len(a | b) if (a | b) else 0.0 for b in b_sets),
+            default=0.0,
+        )
+        total += best
+    return total / len(a_sets)
+
+
 def partition_stability(prev: Mapping[int, list[str]], curr: Mapping[int, list[str]]) -> float:
     # KG: eureka-canonical-2026-05-26
-    """best-match Jaccard 평균 — 1.0=동일 partition, 낮을수록 drift. 빈 prev=1.0(baseline)."""
+    """symmetric best-match Jaccard 평균 — 1.0=동일 partition, 낮을수록 drift. 빈 prev=1.0(baseline).
+
+    SYMMETRIC (both directions): the prev→curr-only average was blind to a cluster present only
+    in curr (a brand-new latent community) — every prev cluster still matched perfectly so it
+    reported 1.0 for clearly non-identical partitions and DriftLoopStage never fired. Averaging
+    dir(prev→curr) with dir(curr→prev) makes a new/merged/split community on either side drop it.
+    """
     if not prev:
         return 1.0
     prev_sets = [set(v) for v in prev.values()]
     curr_sets = [set(v) for v in curr.values()]
     if not curr_sets:
         return 0.0
-    total = 0.0
-    for ps in prev_sets:
-        best = max(
-            (len(ps & cs) / len(ps | cs) if (ps | cs) else 0.0 for cs in curr_sets),
-            default=0.0,
-        )
-        total += best
-    return total / len(prev_sets)
+    return (
+        _directional_stability(prev_sets, curr_sets)
+        + _directional_stability(curr_sets, prev_sets)
+    ) / 2
 
 
 class DriftLoopStage:
