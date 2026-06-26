@@ -315,13 +315,13 @@ def _jaebaeman_seed_merge(store: LocalKgStore, params: dict) -> list[dict]:
 
 
 def _jaebaeman_has_seed(store: LocalKgStore, params: dict) -> list[dict]:
-    # anchor↔씨앗 발아 엣지. anchor 노드 없으면 만들어 둔다(임의 라벨 Node, 스키마 자유).
+    # anchor↔씨앗 발아 엣지. neo4j `MATCH (a {name:$anchor})` 의미와 동일하게, anchor가 부재하면
+    # NO-OP — phantom :Node를 날조하지 않는다. 부재 anchor는 E1_ORPHAN_ANCHOR 불변식이 잡아야 할
+    # FK orphan이지, 조용히 메워 invariant를 무력화할 대상이 아니다.
     seed = store.find_one("name", params["seed"], "SubagentTaskSpec")
-    if seed is None:
+    anchor = store.find_one("name", params["anchor"])
+    if seed is None or anchor is None:
         return []
-    anchor = store.find_one("name", params["anchor"]) or store.merge_node(
-        "Node", "name", params["anchor"], {}
-    )
     store.add_edge(anchor, "HAS_SEED", seed)
     return [{"linked": params["seed"]}]
 

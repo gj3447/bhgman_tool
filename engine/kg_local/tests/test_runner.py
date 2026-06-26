@@ -107,6 +107,21 @@ _HADES_LINK_W3I = (
 )
 
 
+def test_has_seed_noop_when_anchor_absent(tmp_path):
+    # neo4j `MATCH (a {name:$anchor})` is a NO-OP when the anchor is absent, and the
+    # E1_ORPHAN_ANCHOR invariant exists to FLAG an absent anchor — so the local backend must
+    # not fabricate a phantom :Node anchor (which would create the orphan instead of flagging it).
+    from engine.jaebaeman.kg_adapter import _HAS_SEED_EDGE
+
+    s = _store(tmp_path)
+    s.nodes.append({"labels": ["SubagentTaskSpec"], "props": {"name": "seed1", "status": "READY"}})
+    n_before = len(s.nodes)
+    run = make_local_runner(s)
+    run(_HAS_SEED_EDGE, {"anchor": "ghost_anchor", "seed": "seed1"})
+    assert len(s.nodes) == n_before  # no phantom anchor node created
+    assert not any(e["type"] == "HAS_SEED" for e in s.edges)  # and no HAS_SEED edge
+
+
 def test_hades_link_excludes_abstractclass_members(tmp_path):
     s = _store(tmp_path)
     s.merge_node("AbstractClass", "name", "C", {"verdictStatus": "ACCEPTED"})
