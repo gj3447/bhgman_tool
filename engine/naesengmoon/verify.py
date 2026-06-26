@@ -22,7 +22,7 @@ from engine.naesengmoon.oracle_adapters import (
     pytest_ratio_oracle,
 )
 
-KINDS = ("lean-goals", "pytest-ratio", "drift-recount", "occam-twins")
+KINDS = ("lean-goals", "pytest-ratio", "drift-recount", "occam-twins", "kg-corroborate")
 
 
 @dataclass(frozen=True)
@@ -72,6 +72,28 @@ def verify(
         score = occam_twins_oracle(run_cypher, scope, repo_root=repo_root).evaluate(None).value
         passed = score == 0.0
         detail = f"{int(score)} stale duplicate node(s) supersedable"
+    elif kind == "kg-corroborate":
+        # separate-source leg: corroborate the claim (target) against canonical KG facts.
+        from engine.agents.grounding import (  # noqa: PLC0415
+            LocalGroundingSource,
+            Neo4jGroundingSource,
+        )
+        from engine.naesengmoon.kg_corroboration import kg_corroboration_oracle  # noqa: PLC0415
+
+        if kg is not None:
+            source = LocalGroundingSource(kg)
+        elif run_cypher is not None:
+            source = Neo4jGroundingSource(run_cypher)
+        else:
+            raise ValueError("kg-corroborate needs kg=<store> or run_cypher=<runner>")
+        cv = kg_corroboration_oracle(source).evaluate(str(target))
+        passed = cv.passed
+        score = 1.0 if passed else 0.0
+        detail = (
+            "claim corroborated by canon (no contradicting canonical fact)"
+            if passed
+            else "claim CONTRADICTED by a canonical fact (separate-source veto)"
+        )
     else:
         raise ValueError(f"unknown oracle kind {kind!r}; expected one of {KINDS}")
     return Verdict(kind=kind, target=str(target), score=score, passed=passed, detail=detail)

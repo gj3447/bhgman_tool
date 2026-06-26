@@ -1068,6 +1068,21 @@ def cmd_oracle(args: argparse.Namespace) -> int:
         # repo unless --no-disk-scan.
         repo_root = None if getattr(args, "no_disk_scan", False) else str(_repo_root())
         kwargs = {"run_cypher": run_cypher, "scope": args.scope, "repo_root": repo_root}
+    elif kind == "kg-corroborate":
+        # separate-source corroboration of --target (the claim) against canonical KG facts.
+        if getattr(args, "local", False):
+            store_mod = _load_engine_module("kg_local", "store")
+            kwargs = {"kg": store_mod.LocalKgStore()}
+        else:
+            runners = _resolve_kg_runners(args)
+            if runners is None:
+                print(
+                    "[oracle] kg-corroborate needs a KG (NEO4J_* / BHGMAN_KG_MCP_URL, or --local).",
+                    file=sys.stderr,
+                )
+                return 2
+            run_cypher, _w, close = runners
+            kwargs = {"run_cypher": run_cypher}
 
     try:
         v = verify(kind, args.target, **kwargs)
