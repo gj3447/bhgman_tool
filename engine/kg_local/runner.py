@@ -189,7 +189,13 @@ def _hades_link_members(store: LocalKgStore, params: dict) -> list[dict]:
     if ac is None:
         ac = store.merge_node("AbstractClass", "name", params["concept"], {})
     for m in params.get("members") or []:
-        member = store.find_one("name", m) or store.merge_node("Node", "name", m, {})
+        member = store.find_one("name", m)
+        # W3-I: mirror the neo4j op1 `WHERE NOT o:AbstractClass` — a member is INSTANCE_OF the
+        # abstraction, never itself an AbstractClass; don't link (or fabricate a Node for) one.
+        if member is not None and "AbstractClass" in member.get("labels", []):
+            continue
+        if member is None:
+            member = store.merge_node("Node", "name", m, {})
         store.add_edge(member, "INSTANCE_OF", ac)
     return []
 
