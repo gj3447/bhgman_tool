@@ -32,7 +32,14 @@ _DEFAULT_JAR = Path(__file__).resolve().parent.parent / "vendor" / "amie3.5.1.ja
 
 
 def _find_java() -> str:
-    for candidate in _DEFAULT_JAVA_CANDIDATES:
+    # Honor the JAVA / JAVA_HOME env vars the error message advertises — BEFORE the
+    # macOS-Homebrew defaults — so the operator is usable on Linux/CI with a non-default JDK.
+    env_candidates: list[str] = []
+    if os.environ.get("JAVA"):
+        env_candidates.append(os.environ["JAVA"])
+    if os.environ.get("JAVA_HOME"):
+        env_candidates.append(str(Path(os.environ["JAVA_HOME"]) / "bin" / "java"))
+    for candidate in (*env_candidates, *_DEFAULT_JAVA_CANDIDATES):
         path = shutil.which(candidate) or (candidate if Path(candidate).exists() else None)
         if path:
             return path
