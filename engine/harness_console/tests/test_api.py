@@ -80,3 +80,26 @@ def test_label_task_filters_over_http():
 
     assert listed.status_code == 200
     assert [item["id"] for item in listed.json()] == ["lt-1"]
+
+
+def test_project_architecture_and_label_tasks_over_http(tmp_path):
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    engine_dir = tmp_path / "engine"
+    engine_dir.mkdir()
+    (engine_dir / "__init__.py").write_text("")
+    (engine_dir / "foo_adapter.py").write_text("")
+    client = _client()
+    target = {"id": "project-1", "root_path": str(tmp_path), "kind": "python_repo"}
+
+    graph = client.post("/projects/architecture", json=target)
+    tasks = client.post("/projects/label-tasks", json=target)
+    events = client.get("/events/project-1")
+
+    assert graph.status_code == 200
+    assert any(node["path"] == "engine/foo_adapter.py" for node in graph.json()["nodes"])
+    assert tasks.status_code == 200
+    assert any(task["proposed_label"] == "ADAPTER" for task in tasks.json())
+    assert [event["event_type"] for event in events.json()][:2] == [
+        "project.ingested",
+        "architecture.analyzed",
+    ]

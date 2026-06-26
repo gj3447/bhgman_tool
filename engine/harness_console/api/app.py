@@ -17,13 +17,17 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from engine.harness_console.models import (
+    ArchitectureGraph,
     HarnessEvent,
     HumanVerdict,
     HumanVerdictRequest,
     LabelTask,
     LabelTaskStatus,
+    ProjectSnapshot,
+    ProjectTarget,
     RequestStatus,
 )
+from engine.harness_console.service import HarnessConsoleEngine
 from engine.harness_console.store import (
     EventStore,
     PostgresEventStore,
@@ -37,9 +41,13 @@ def create_app(store: EventStore | None = None) -> FastAPI:
     app = FastAPI(title="Harness Console", version="0.1.0")
     app.state.store = store or build_store_from_env()
     app.state.store.init_schema()
+    app.state.engine = HarnessConsoleEngine(app.state.store)
 
     def get_store(request: Request) -> EventStore:
         return request.app.state.store
+
+    def get_engine(request: Request) -> HarnessConsoleEngine:
+        return request.app.state.engine
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -65,10 +73,10 @@ def create_app(store: EventStore | None = None) -> FastAPI:
 
     @app.post("/verdict-requests", response_model=HumanVerdictRequest)
     def create_verdict_request(
-        request: HumanVerdictRequest, event_store: EventStore = Depends(get_store)
+        request: HumanVerdictRequest, engine: HarnessConsoleEngine = Depends(get_engine)
     ):
         try:
-            return event_store.create_verdict_request(request)
+            return engine.create_verdict_request(request)
         except StoreConflict as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -80,9 +88,9 @@ def create_app(store: EventStore | None = None) -> FastAPI:
         return event_store.list_verdict_requests(status)
 
     @app.post("/verdicts", response_model=HumanVerdict)
-    def submit_verdict(verdict: HumanVerdict, event_store: EventStore = Depends(get_store)):
+    def submit_verdict(verdict: HumanVerdict, engine: HarnessConsoleEngine = Depends(get_engine)):
         try:
-            return event_store.submit_human_verdict(verdict)
+            return engine.submit_verdict(verdict)
         except StoreNotFound as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except StoreConflict as exc:
@@ -102,6 +110,33 @@ def create_app(store: EventStore | None = None) -> FastAPI:
         event_store: EventStore = Depends(get_store),
     ):
         return event_store.list_label_tasks(project_id=project_id, status=status)
+
+    @app.post("/projects/ingest", response_model=ProjectSnapshot)
+    def ingest_project(target: ProjectTarget, engine: HarnessConsoleEngine = Depends(get_engine)):
+        try:
+            return engine.ingest_project(target)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.post("/projects/architecture", response_model=ArchitectureGraph)
+    def analyze_project_architecture(
+        target: ProjectTarget, engine: HarnessConsoleEngine = Depends(get_engine)
+    ):
+        try:
+            snapshot = engine.ingest_project(target)
+            return engine.analyze_architecture(snapshot)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.post("/projects/label-tasks", response_model=list[LabelTask])
+    def create_project_label_tasks(
+        target: ProjectTarget, engine: HarnessConsoleEngine = Depends(get_engine)
+    ):
+        try:
+            snapshot = engine.ingest_project(target)
+            return engine.create_label_tasks(snapshot)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return app
 

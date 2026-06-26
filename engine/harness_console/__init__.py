@@ -5,6 +5,7 @@
 """
 
 from engine.harness_console.models import (
+    ArchitectureGraph,
     HarnessEvent,
     HumanVerdict,
     HumanVerdictRequest,
@@ -12,6 +13,7 @@ from engine.harness_console.models import (
     ProjectSnapshot,
     ProjectTarget,
 )
+from engine.harness_console.service import HarnessConsoleEngine
 from engine.harness_console.store import (
     EventStore,
     PostgresEventStore,
@@ -23,7 +25,9 @@ from engine.harness_console.store import (
 
 __all__ = [
     "EventStore",
+    "ArchitectureGraph",
     "HarnessEvent",
+    "HarnessConsoleEngine",
     "HumanVerdict",
     "HumanVerdictRequest",
     "LabelTask",

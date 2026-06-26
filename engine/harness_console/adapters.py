@@ -145,10 +145,142 @@ class NodeViteAdapter:
         )
 
 
+class ThreeDProjectAdapter:
+    name = "three_d"
+
+    def supports(self, target: ProjectTarget) -> bool:
+        root = Path(target.root_path)
+        if target.kind is ProjectKind.THREE_D:
+            return True
+        return any(
+            p.suffix.lower() in {".glb", ".gltf", ".obj", ".fbx", ".vert", ".frag", ".glsl"}
+            for p in root.rglob("*")
+            if _is_project_file(p)
+        )
+
+    def snapshot(self, target: ProjectTarget) -> ProjectSnapshot:
+        root = Path(target.root_path)
+        assets = sorted(
+            p
+            for p in root.rglob("*")
+            if _is_project_file(p)
+            and p.suffix.lower() in {".glb", ".gltf", ".obj", ".fbx", ".vert", ".frag", ".glsl"}
+        )
+        return ProjectSnapshot(
+            id=f"{target.id}:snapshot:{self.name}",
+            target_id=target.id,
+            root_path=str(root),
+            adapter=self.name,
+            summary={"three_d_assets": len(assets)},
+            created_at=utc_now(),
+        )
+
+    def architecture(self, snapshot: ProjectSnapshot) -> ArchitectureGraph:
+        root = Path(snapshot.root_path)
+        nodes: list[ArchitectureNode] = []
+        for path in sorted(p for p in root.rglob("*") if p.is_file() and _is_project_file(p)):
+            rel = path.relative_to(root).as_posix()
+            role = _three_d_role(rel)
+            if role is ArchitectureRole.UNKNOWN:
+                continue
+            nodes.append(
+                ArchitectureNode(
+                    id=f"file:{rel}",
+                    label=path.name,
+                    path=rel,
+                    role=role,
+                    metadata={"suffix": path.suffix.lower()},
+                )
+            )
+        return ArchitectureGraph(
+            project_id=snapshot.target_id,
+            adapter=self.name,
+            nodes=nodes,
+            edges=[],
+            warnings=[],
+        )
+
+
+class BeadProjectAdapter:
+    name = "bead"
+
+    def supports(self, target: ProjectTarget) -> bool:
+        return target.kind is ProjectKind.BEAD
+
+    def snapshot(self, target: ProjectTarget) -> ProjectSnapshot:
+        root = Path(target.root_path)
+        files = sorted(p for p in root.rglob("*") if p.is_file() and _is_project_file(p))
+        return ProjectSnapshot(
+            id=f"{target.id}:snapshot:{self.name}",
+            target_id=target.id,
+            root_path=str(root),
+            adapter=self.name,
+            summary={"files": len(files), "schema_status": "reserved_extension_slot"},
+            created_at=utc_now(),
+        )
+
+    def architecture(self, snapshot: ProjectSnapshot) -> ArchitectureGraph:
+        return ArchitectureGraph(
+            project_id=snapshot.target_id,
+            adapter=self.name,
+            nodes=[],
+            edges=[],
+            warnings=["bead project schema is reserved; no canonical bead corpus was provided"],
+        )
+
+
+class GenericFileAdapter:
+    name = "generic_files"
+
+    def supports(self, target: ProjectTarget) -> bool:
+        return target.kind is ProjectKind.GENERIC_FILES or Path(target.root_path).exists()
+
+    def snapshot(self, target: ProjectTarget) -> ProjectSnapshot:
+        root = Path(target.root_path)
+        files = sorted(p for p in root.rglob("*") if p.is_file() and _is_project_file(p))
+        return ProjectSnapshot(
+            id=f"{target.id}:snapshot:{self.name}",
+            target_id=target.id,
+            root_path=str(root),
+            adapter=self.name,
+            summary={"files": len(files)},
+            created_at=utc_now(),
+        )
+
+    def architecture(self, snapshot: ProjectSnapshot) -> ArchitectureGraph:
+        root = Path(snapshot.root_path)
+        nodes: list[ArchitectureNode] = []
+        for path in sorted(p for p in root.rglob("*") if p.is_file() and _is_project_file(p)):
+            rel = path.relative_to(root).as_posix()
+            role = _generic_role(rel)
+            nodes.append(
+                ArchitectureNode(
+                    id=f"file:{rel}",
+                    label=path.name,
+                    path=rel,
+                    role=role,
+                    metadata={"suffix": path.suffix.lower()},
+                )
+            )
+        return ArchitectureGraph(
+            project_id=snapshot.target_id,
+            adapter=self.name,
+            nodes=nodes,
+            edges=[],
+            warnings=["generic adapter preserves files but cannot infer full architecture"],
+        )
+
+
 def select_adapter(
     target: ProjectTarget, adapters: list[ProjectAdapter] | None = None
 ) -> ProjectAdapter:
-    candidates = adapters or [PythonRepoAdapter(), NodeViteAdapter()]
+    candidates = adapters or [
+        PythonRepoAdapter(),
+        NodeViteAdapter(),
+        ThreeDProjectAdapter(),
+        BeadProjectAdapter(),
+        GenericFileAdapter(),
+    ]
     for adapter in candidates:
         if adapter.supports(target):
             return adapter
@@ -191,6 +323,30 @@ def _node_role(rel: str) -> ArchitectureRole:
     return ArchitectureRole.UNKNOWN
 
 
+def _three_d_role(rel: str) -> ArchitectureRole:
+    suffix = Path(rel).suffix.lower()
+    if suffix in {".vert", ".frag", ".glsl"}:
+        return ArchitectureRole.SHADER
+    if suffix in {".glb", ".gltf", ".obj", ".fbx"}:
+        return ArchitectureRole.ASSET
+    name = rel.rsplit("/", 1)[-1].lower()
+    if "scene" in name:
+        return ArchitectureRole.SCENE
+    return ArchitectureRole.UNKNOWN
+
+
+def _generic_role(rel: str) -> ArchitectureRole:
+    suffix = Path(rel).suffix.lower()
+    name = rel.rsplit("/", 1)[-1].lower()
+    if suffix in {".md", ".rst", ".txt", ".adoc"}:
+        return ArchitectureRole.DOC
+    if name in {"package.json", "pyproject.toml", "uv.lock"}:
+        return ArchitectureRole.DTO
+    if suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg", ".glb", ".gltf"}:
+        return ArchitectureRole.ASSET
+    return ArchitectureRole.UNKNOWN
+
+
 def _parent_module_node(rel: str) -> str | None:
     parent = Path(rel).parent
     if parent == Path("."):
@@ -200,8 +356,11 @@ def _parent_module_node(rel: str) -> str | None:
 
 
 __all__ = [
+    "BeadProjectAdapter",
+    "GenericFileAdapter",
     "NodeViteAdapter",
     "ProjectAdapter",
     "PythonRepoAdapter",
+    "ThreeDProjectAdapter",
     "select_adapter",
 ]

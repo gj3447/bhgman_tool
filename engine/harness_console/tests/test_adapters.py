@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from engine.harness_console.adapters import NodeViteAdapter, PythonRepoAdapter, select_adapter
+from engine.harness_console.adapters import (
+    GenericFileAdapter,
+    NodeViteAdapter,
+    PythonRepoAdapter,
+    ThreeDProjectAdapter,
+    select_adapter,
+)
 from engine.harness_console.models import ArchitectureRole, ProjectKind, ProjectTarget
 
 
@@ -53,3 +59,31 @@ def test_select_adapter_rejects_unknown_project(tmp_path):
         assert "no project adapter" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_default_adapter_falls_back_to_generic_files(tmp_path):
+    (tmp_path / "README.md").write_text("# Notes\n")
+
+    target = ProjectTarget(id="docs", root_path=str(tmp_path))
+    adapter = select_adapter(target)
+    graph = adapter.architecture(adapter.snapshot(target))
+
+    assert isinstance(adapter, GenericFileAdapter)
+    assert graph.nodes[0].role is ArchitectureRole.DOC
+    assert graph.warnings
+
+
+def test_three_d_adapter_labels_assets_and_shaders(tmp_path):
+    (tmp_path / "scene.glb").write_text("asset")
+    shaders = tmp_path / "shaders"
+    shaders.mkdir()
+    (shaders / "main.frag").write_text("void main() {}")
+
+    target = ProjectTarget(id="scene", root_path=str(tmp_path))
+    adapter = select_adapter(target)
+    graph = adapter.architecture(adapter.snapshot(target))
+
+    assert isinstance(adapter, ThreeDProjectAdapter)
+    roles = {node.path: node.role for node in graph.nodes}
+    assert roles["scene.glb"] is ArchitectureRole.ASSET
+    assert roles["shaders/main.frag"] is ArchitectureRole.SHADER
