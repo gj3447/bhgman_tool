@@ -1645,10 +1645,45 @@ def _emit_run_record(res, runners) -> None:
     print(f"  [record] PROV-O: {'turtle emitted' if prov else 'prov extra 미설치 (graceful skip)'}")
 
 
+def _cmd_eureka_code(args: argparse.Namespace) -> int:
+    """eureka code-template path (Plotkin LGG anti-unification) — neo4j-free, PROPOSE-only.
+
+    Lifts a shared template from ≥min-instances near-identical snippets (Rule of Three). Disjoint
+    from the KG-induction path (which still needs neo4j); Extract-Superclass materialize는 하데스 소관.
+    """
+    from engine.eureka.anti_unify import propose_template  # noqa: PLC0415
+
+    snippets = list(getattr(args, "snippet", None) or [])
+    code_file = getattr(args, "code_file", None)
+    if code_file:
+        text = Path(code_file).read_text(encoding="utf-8")
+        chunks = [c.strip() for c in text.split("\n\n") if c.strip()]
+        snippets.extend(
+            chunks if len(chunks) > 1 else [ln for ln in text.splitlines() if ln.strip()]
+        )
+    if not snippets:
+        print(
+            "[eureka --code] no snippets — pass --snippet ... (repeat) or --code-file FILE",
+            file=sys.stderr,
+        )
+        return 2
+    result = propose_template(snippets, min_instances=getattr(args, "min_instances", 3))
+    print(f"[eureka --code] status={result['status']} (PROPOSE only — 실현은 하데스)")
+    if result.get("template"):
+        print(f"  template: {result['template']}")
+    for k in ("holes", "hole_ratio", "instances", "reason", "note"):
+        if k in result:
+            print(f"  {k}: {result[k]}")
+    return 0
+
+
 def cmd_eureka(args: argparse.Namespace) -> int:
     # KG: eureka-canonical-2026-05-26
     """유레카 — KG 패턴→추상 개념 induce (PROPOSE only). covenant: auto-commit 금지, 실현은 하데스."""
     import datetime as _dt  # noqa: PLC0415
+
+    if getattr(args, "code", False):
+        return _cmd_eureka_code(args)
 
     pipeline = _load_engine_module("eureka", "pipeline", evict=("oracle_lens",))
     runners = _resolve_kg_runners(args)
