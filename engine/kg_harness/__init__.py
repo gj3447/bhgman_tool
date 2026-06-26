@@ -15,6 +15,7 @@ occam(engine/occam)이 *cleanup-time* archive라면, 여기는 *ingest-time* 예
 
 from __future__ import annotations
 
+from engine.kg_harness.rules import RULES, Rule
 from engine.kg_harness.write_guard import (
     ALLOW_CREATE_MARKER,
     CypherRunner,
@@ -31,8 +32,10 @@ from engine.kg_harness.write_guard import (
 
 __all__ = [
     "ALLOW_CREATE_MARKER",
+    "RULES",
     "CypherRunner",
     "GuardReport",
+    "Rule",
     "Severity",
     "Violation",
     "WriteGuardError",

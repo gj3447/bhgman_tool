@@ -66,95 +66,24 @@ class WriteGuardError(RuntimeError):
         super().__init__(f"KG write guard refused {len(report.errors)} violation(s): {codes}")
 
 
-# ── 정규식 (lint) ────────────────────────────────────────────────────────────
-# 라벨 붙은 노드를 CREATE — MERGE(stable-id) 였어야 함. CONSTRAINT/INDEX·관계전용
-# CREATE((a)-[:R]->(b), 라벨 없음)는 매치 안 됨(콜론 요구).
-_NAKED_CREATE = re.compile(r"\bCREATE\s*\(\s*\w*\s*:\s*\w+", re.IGNORECASE)
-# 라벨만으로 MERGE (식별 키 맵 없음) → 라벨당 1노드로 합쳐지는 함정. WARN.
-_MERGE_NO_KEY = re.compile(r"\bMERGE\s*\(\s*\w*\s*:\s*\w+\s*\)")
-# 버전드 필드 누적: 속성 키가 `_v<숫자>`. dot-access 또는 map-key 문맥만(문자열 리터럴 FP 회피).
-_VERSIONED_DOT = re.compile(r"\.([A-Za-z_]\w*_v\d+)\b")
-_VERSIONED_MAP = re.compile(r"[\{,]\s*([A-Za-z_]\w*_v\d+)\s*:")
-# stale 접미사(_old/_stale) — 보통 누적 신호. WARN.
-_STALE_DOT = re.compile(r"\.([A-Za-z_]\w*(?:_old|_stale))\b")
-_STALE_MAP = re.compile(r"[\{,]\s*([A-Za-z_]\w*(?:_old|_stale))\s*:")
-# supersede 의도 탐지(라벨/상태/속성). SUPERSEDED_BY(엣지)와는 구별됨.
-_SUPERSEDE_LABEL = re.compile(r":Superseded\b")
-_SUPERSEDE_STATUS = re.compile(r"""status\s*[:=]\s*['"]SUPERSEDED['"]""", re.IGNORECASE)
-_SUPERSEDE_PROP = re.compile(r"\bsuperseded(?:By|At|Reason)\b", re.IGNORECASE)
-
 _IDENT = re.compile(r"^[A-Za-z_]\w*$")
 # 빌더가 거부할 오염 속성 키(누적/묘비 흔적). INV2/INV3을 props 단계에서 차단.
 _DIRTY_KEY = re.compile(r"(_v\d+$|_old$|_stale$|^superseded)", re.IGNORECASE)
 
 
-def validate_write(cypher: str) -> GuardReport:
-    """write cypher를 3대 불변식으로 정적 검증. ERROR/WARN 목록을 GuardReport로."""
-    v: list[Violation] = []
-    has_create_optout = ALLOW_CREATE_MARKER in cypher
+def validate_write(cypher: str, rules: "list | None" = None) -> GuardReport:
+    """write cypher를 룰 레지스트리로 정적 검증. ERROR/WARN을 GuardReport로.
 
-    # INV1 — naked CREATE of labeled node
-    if not has_create_optout:
-        m = _NAKED_CREATE.search(cypher)
-        if m:
-            v.append(
-                Violation(
-                    "NAKED_CREATE",
-                    Severity.ERROR,
-                    "라벨 노드를 CREATE — stable-id MERGE 사용(중복 ingest 방지). "
-                    f"정당하면 '{ALLOW_CREATE_MARKER}' 주석으로 opt-out.",
-                    m.group(0),
-                )
-            )
-    mk = _MERGE_NO_KEY.search(cypher)
-    if mk:
-        v.append(
-            Violation(
-                "MERGE_WITHOUT_KEY",
-                Severity.WARN,
-                "MERGE에 식별 키 맵이 없음 — 라벨당 1노드로 잘못 합쳐질 수 있음.",
-                mk.group(0),
-            )
-        )
+    rules=None이면 engine.kg_harness.rules.RULES(정전) 사용. 호출자가 직접 룰 리스트를
+    주입하면 그것만 적용(테스트/특수 게이트). 새 불변식 = RULES에 Rule 추가(OCP).
+    """
+    from engine.kg_harness.rules import RULES  # noqa: PLC0415 — lazy(순환 회피)
 
-    # INV2 — versioned/stale field accretion
-    versioned = {m.group(1) for m in _VERSIONED_DOT.finditer(cypher)}
-    versioned |= {m.group(1) for m in _VERSIONED_MAP.finditer(cypher)}
-    for key in sorted(versioned):
-        v.append(
-            Violation(
-                "VERSIONED_FIELD",
-                Severity.ERROR,
-                f"버전드 필드 '{key}' — update-in-place 하라(god-object 유발). "
-                "이력이 필요하면 별도 :History 노드/엣지로.",
-                key,
-            )
-        )
-    stale = {m.group(1) for m in _STALE_DOT.finditer(cypher)}
-    stale |= {m.group(1) for m in _STALE_MAP.finditer(cypher)}
-    for key in sorted(stale):
-        v.append(
-            Violation("STALE_FIELD", Severity.WARN, f"stale 접미사 필드 '{key}' — 누적 신호.", key)
-        )
-
-    # INV3 — supersede tombstone must carry SUPERSEDED_BY edge
-    has_intent = bool(
-        _SUPERSEDE_LABEL.search(cypher)
-        or _SUPERSEDE_STATUS.search(cypher)
-        or _SUPERSEDE_PROP.search(cypher)
-    )
-    has_edge = "SUPERSEDED_BY" in cypher.upper()
-    if has_intent and not has_edge:
-        v.append(
-            Violation(
-                "ORPHAN_TOMBSTONE",
-                Severity.ERROR,
-                "노드를 supersede/tombstone 하면서 SUPERSEDED_BY 엣지가 없음 — "
-                "교체본 추적 불가(나중에 자동청소 불가능). 대체 노드로 엣지를 걸어라.",
-            )
-        )
-
-    return GuardReport(cypher=cypher, violations=tuple(v))
+    active = RULES if rules is None else rules
+    violations: list[Violation] = []
+    for rule in active:
+        violations.extend(rule.check(cypher))
+    return GuardReport(cypher=cypher, violations=tuple(violations))
 
 
 # ── 안전 빌더 (by construction) ──────────────────────────────────────────────
