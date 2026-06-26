@@ -14,7 +14,7 @@ Python chokepoint를 안 지난다. 이 모듈은 live KG를 직접 훑어 우�
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 from engine.kg_harness.registry import STABLE_IDS
@@ -24,8 +24,8 @@ CypherRunner = Callable[[str, "dict"], "list[dict]"]
 
 @dataclass(frozen=True)
 class AuditFinding:
-    code: str  # DUP_ID | ORPHAN_TOMBSTONE | VERSIONED_FIELD
-    label: str  # 대상 라벨 ('*' = 라벨 무관)
+    code: str  # DUP_ID | ORPHAN_TOMBSTONE | VERSIONED_FIELD | LINT:<rule>
+    label: str  # 대상 라벨 / 문장 출처 ('*' = 무관)
     count: int  # 위반 노드/그룹 수
     detail: str = ""
 
@@ -102,11 +102,45 @@ def audit_all(
     return findings
 
 
+# ── cypher 코퍼스 lint (write-guard 룰 공유) ──────────────────────────────────
+
+
+def lint_statements(
+    statements: Iterable[str], *, warnings: bool = True
+) -> list[AuditFinding]:
+    """cypher 문장들을 write-guard 룰(동일 RULES)로 사후 lint.
+
+    그래프-상태 audit는 '어떤 cypher가 썼는지' 못 본다 — apoc.create/LOAD CSV는 write-time
+    텍스트 패턴이라 결과 상태만으론 안 잡힌다. 이 함수가 그 구멍을 메운다: chokepoint를
+    우회하는 *텍스트 corpus*(벌크 import 스크립트 / .cypher 아티팩트 / 저장된 SavedQuery)를
+    ingest-guard와 **동일 불변식**으로 검사. label = 'stmt[i]'.
+
+    warnings=False면 ERROR만 보고.
+    """
+    from engine.kg_harness.write_guard import Severity, validate_write  # noqa: PLC0415
+
+    findings: list[AuditFinding] = []
+    for i, stmt in enumerate(statements):
+        for v in validate_write(stmt).violations:
+            if not warnings and v.severity is not Severity.ERROR:
+                continue
+            findings.append(
+                AuditFinding(
+                    code=f"LINT:{v.code}",
+                    label=f"stmt[{i}]",
+                    count=1,
+                    detail=f"{v.severity.value} {v.evidence or v.message[:60]}",
+                )
+            )
+    return findings
+
+
 __all__ = [
     "AuditFinding",
     "CypherRunner",
     "audit_all",
     "dup_id_cypher",
+    "lint_statements",
     "orphan_tombstone_cypher",
     "versioned_field_cypher",
 ]
