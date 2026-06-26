@@ -999,6 +999,12 @@ def cmd_occam(args: argparse.Namespace) -> int:
         close()
 
     print(res.summary)
+    # surface the continuous σ + per-candidate verdict occam computes (was invisible on every
+    # surface — only the writer read candidate.score). σ is the archive-safety value (높을수록 안전).
+    for c in res.report.candidates:
+        if c.score is not None:
+            ident = c.stale.name or c.stale.source_path
+            print(f"  σ={c.score:.2f} verdict={c.verdict} conf={c.confidence.value}  {ident}")
     if res.apply_result.dry_run:
         for i, (_cy, pa) in enumerate(res.apply_result.planned_cyphers, 1):
             print(f"  [plan {i}] supersede {pa['stale_name']} → {pa['current_name']}")

@@ -54,6 +54,42 @@ def _patch(monkeypatch):
     )
 
 
+def _scored_result():
+    stale = NodeRecord(name="old_dup", source_path="a/x.py", sha256="aaa", line_count=10)
+    current = NodeRecord(name="new_dup", source_path="b/x.py", sha256="bbb", line_count=12)
+    cand = SupersessionCandidate(
+        stale=stale,
+        current=current,
+        normalized_path="x.py",
+        reason="partial overlap",
+        confidence=Confidence.MEDIUM,
+        score=0.42,
+        verdict="VERIFY",
+    )
+    report = OccamReport(candidates=(cand,), scanned_nodes=2, groups_with_dups=1)
+    apply_result = types.SimpleNamespace(
+        dry_run=True, planned_cyphers=[], superseded=[], deferred=(), notes=()
+    )
+    return types.SimpleNamespace(
+        summary="occam: 1 scored", report=report, apply_result=apply_result, scope=None
+    )
+
+
+def test_occam_cli_surfaces_candidate_sigma(monkeypatch, capsys):
+    read, write = types.SimpleNamespace(), types.SimpleNamespace()
+    monkeypatch.setattr(
+        "engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None)
+    )
+    monkeypatch.setattr(
+        "engine.occam.occam_runner.run_occam", lambda *a, **k: _scored_result()
+    )
+    rc = cli(["occam", "--no-disk-scan"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "σ=0.42" in out  # the continuous safety value is now surfaced
+    assert "VERIFY" in out
+
+
 def test_occam_cli_surfaces_escalation_and_deferred(monkeypatch, capsys):
     _patch(monkeypatch)
     rc = cli(["occam", "--no-disk-scan"])
