@@ -388,6 +388,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="명시적 PROPOSED→ACCEPTED: persist as verdictStatus='ACCEPTED' (the row hades "
         "realizes). Implies --apply. covenant: 실현 게이트는 명시적 accept 신호에서만.",
     )
+    p_eu.add_argument(
+        "--code",
+        action="store_true",
+        help="code-template path (Plotkin LGG anti-unification over snippets) — neo4j-free, "
+        "PROPOSE-only. Feed snippets via repeated --snippet or --code-file.",
+    )
+    p_eu.add_argument(
+        "--snippet",
+        action="append",
+        help="--code: one code snippet (repeat for N). Rule of Three: ≥3 to propose.",
+    )
+    p_eu.add_argument(
+        "--code-file", help="--code: file of snippets separated by blank lines (or one per line)."
+    )
+    p_eu.add_argument(
+        "--min-instances", type=int, default=3, help="--code: Rule-of-Three minimum (default 3)."
+    )
     p_eu.set_defaults(func=commands.cmd_eureka)
 
     p_ks = sub.add_parser(
