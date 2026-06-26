@@ -11,7 +11,7 @@ from typing import Any
 
 from engine.commander_engine import CommanderContext, CommanderOutput, DeterministicCommanderEngine
 from engine.longinus_engine import degraded
-from engine.occam.escalation import build_escalation_plan
+from engine.occam.escalation import _ident, build_escalation_plan
 from engine.occam.occam_runner import run_occam
 
 
@@ -33,6 +33,18 @@ def summarize_occam_result(result) -> dict[str, Any]:
         "superseded": list(apply_result.superseded),
         "deferred_count": len(apply_result.deferred),
         "deferred": list(apply_result.deferred),
+        # per-candidate continuous σ + verdict (occam.py computes these and attaches them to
+        # every candidate, but every surface dropped them — the safety value was invisible).
+        "candidates": [
+            {
+                "stale": _ident(c.stale),
+                "current": _ident(c.current),
+                "sigma": c.score,
+                "verdict": c.verdict,
+                "confidence": c.confidence.value,
+            }
+            for c in report.candidates
+        ],
         "escalation_count": plan.count,
         "escalations": [
             {

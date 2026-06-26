@@ -230,6 +230,20 @@ _DUP_ROWS_MEASURED_DEAD = [
 ]
 
 
+def test_summarize_occam_result_exposes_candidate_sigma_verdict():
+    # occam.py attaches a continuous σ + per-candidate verdict to every candidate, but
+    # summarize_occam_result (the MCP/legion surface) dropped it — the safety value was invisible.
+    from engine.occam_engine import summarize_occam_result
+
+    res = run_occam(_Runner(_DUP_ROWS))
+    summary = summarize_occam_result(res)
+    assert "candidates" in summary
+    c0 = summary["candidates"][0]
+    assert c0["sigma"] is not None and 0.0 <= c0["sigma"] <= 1.0
+    assert c0["verdict"] in {"SUPERSEDE", "VERIFY", "KEEP", "PROTECTED", "FLAG_ONLY"}
+    assert c0["stale"] and c0["current"]
+
+
 def test_run_occam_reads_backfilled_invocation_count():
     # The backfilled deadness (stale measured-dead) must RAISE σ vs the no-usage baseline —
     # currently identical because invocation_count is dropped before scoring = RED.
