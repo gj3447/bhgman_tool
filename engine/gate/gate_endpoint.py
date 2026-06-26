@@ -426,9 +426,7 @@ _BREAK_GLASS_CYPHER = (
 )
 
 
-def _audit_break_glass(
-    audit_id: str, payload: BreakGlassRequest, kg_runner: Any = None
-) -> None:
+def _audit_break_glass(audit_id: str, payload: BreakGlassRequest, kg_runner: Any = None) -> None:
     print(
         f"[BREAK-GLASS {audit_id}] actor={payload.actor} reason={payload.reason} "
         f"covers={payload.covers_gates} expires={payload.expires_at.isoformat()}",

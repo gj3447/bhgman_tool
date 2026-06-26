@@ -6,6 +6,7 @@ Linux/CI with a non-default JDK the operator was unusable despite the documented
 
 # KG: finding-amie3-find-java-ignores-env-2026-06-26
 """
+
 from __future__ import annotations
 
 import stat

@@ -7,6 +7,7 @@
 
 # KG: 재배맨-v2-subagent-runtime-protocol
 """
+
 from __future__ import annotations
 
 from engine.harness.harness import diagnose
@@ -92,8 +93,16 @@ def test_germinate_under_harness_bakes_environment_into_subagent():
     from engine.jaebaeman.jaebaeman_models import SeedRecord
 
     seed = SeedRecord(
-        name="s1", skill="harness", source_id="s1", display_name="do X", task_type="research",
-        target_domain="kg", expected_outcome="Y", germination_method="manual", depth=0, parent=None,
+        name="s1",
+        skill="harness",
+        source_id="s1",
+        display_name="do X",
+        task_type="research",
+        target_domain="kg",
+        expected_outcome="Y",
+        germination_method="manual",
+        depth=0,
+        parent=None,
     )
     spec = germinate_under_harness(seed, diagnose("claude code"))
     assert "tier=IDE_HOST" in spec.system  # harness shapes HOW it germinates (environment)
@@ -133,13 +142,20 @@ class _FakeKg:
             for n, pr in self.nodes.items():
                 if pr.get("status") != "READY" or (cyc and pr.get("cycle_id") != cyc):
                     continue
-                rows.append({
-                    "name": n, "skill": pr.get("skill"), "sourceId": pr.get("sourceId"),
-                    "displayName": pr.get("displayName"), "taskType": pr.get("taskType"),
-                    "targetDomain": pr.get("targetDomain"), "expectedOutcome": pr.get("expectedOutcome"),
-                    "germinationMethod": pr.get("germinationMethod"), "depth": pr.get("depth", 0),
-                    "parent": self.parent.get(n),
-                })
+                rows.append(
+                    {
+                        "name": n,
+                        "skill": pr.get("skill"),
+                        "sourceId": pr.get("sourceId"),
+                        "displayName": pr.get("displayName"),
+                        "taskType": pr.get("taskType"),
+                        "targetDomain": pr.get("targetDomain"),
+                        "expectedOutcome": pr.get("expectedOutcome"),
+                        "germinationMethod": pr.get("germinationMethod"),
+                        "depth": pr.get("depth", 0),
+                        "parent": self.parent.get(n),
+                    }
+                )
             return rows
         if "SET s.status = $status" in cypher:  # status writeback
             if p["name"] in self.nodes:
@@ -161,9 +177,14 @@ def test_closed_loop_harness_to_seed_to_germinate_to_status():
 
     # plant (apply=True) — seeds land in the KG as READY :SubagentTaskSpec.
     res = run_jaebaeman(
-        root, run_cypher=kg, write_cypher=kg,
+        root,
+        run_cypher=kg,
+        write_cypher=kg,
         decompose=static_decompose({root.name: goals}),
-        skill="harness", cycle_id="loop-1", apply=True, validate=False,
+        skill="harness",
+        cycle_id="loop-1",
+        apply=True,
+        validate=False,
     )
     assert res.apply_result.applied_count == 3  # root + 2 leaves
     assert all(p["status"] == "READY" for p in kg.nodes.values())
@@ -203,9 +224,14 @@ def test_harness_diagnosis_is_the_soil_its_seeds_anchor_to():
     goals = harness_seed_goals(d, anchor=d.subject)
     root = Goal(name="harness-root::claude code", objective="root")  # self-anchored root
     run_jaebaeman(
-        root, run_cypher=kg, write_cypher=kg,
+        root,
+        run_cypher=kg,
+        write_cypher=kg,
         decompose=static_decompose({root.name: goals}),
-        skill="harness", cycle_id="soil-1", apply=True, validate=False,
+        skill="harness",
+        cycle_id="soil-1",
+        apply=True,
+        validate=False,
     )
     anchored = [seed for anc, seed in kg.has_seed if anc == "claude code"]
     assert len(anchored) == 2  # the 2 compensation seeds grow in the harness-diagnosis soil
@@ -220,8 +246,20 @@ class _FaithfulLlmClient:
     def __init__(self):
         self.calls: list = []
 
-    def complete(self, *, system, user, model, max_tokens=2048, web_search=False,
-                 temperature=0.0, seed=None, tier=0, tools=None, tool_choice=None):
+    def complete(
+        self,
+        *,
+        system,
+        user,
+        model,
+        max_tokens=2048,
+        web_search=False,
+        temperature=0.0,
+        seed=None,
+        tier=0,
+        tools=None,
+        tool_choice=None,
+    ):
         assert web_search is False  # fair budget (web off)
         self.calls.append({"system": system, "user": user, "model": model})
 
@@ -245,9 +283,14 @@ def test_closed_loop_via_real_agent_dispatcher_with_harness_aware_system():
     d = diagnose("claude code")
     root = Goal(name="harness::cc", objective="root")
     run_jaebaeman(
-        root, run_cypher=kg, write_cypher=kg,
+        root,
+        run_cypher=kg,
+        write_cypher=kg,
         decompose=static_decompose({root.name: harness_seed_goals(d)}),
-        skill="harness", cycle_id="llm-1", apply=True, validate=False,
+        skill="harness",
+        cycle_id="llm-1",
+        apply=True,
+        validate=False,
     )
 
     client = _FaithfulLlmClient()
@@ -258,5 +301,7 @@ def test_closed_loop_via_real_agent_dispatcher_with_harness_aware_system():
 
     assert lc.collected == 3 and lc.failed == 0  # the real dispatch_parallel path worked
     assert client.calls  # client.complete was actually called
-    assert all("tier=IDE_HOST" in c["system"] for c in client.calls)  # harness-aware system reached the LLM
+    assert all(
+        "tier=IDE_HOST" in c["system"] for c in client.calls
+    )  # harness-aware system reached the LLM
     assert all(p["status"] == "COLLECTED" for p in kg.nodes.values())

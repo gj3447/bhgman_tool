@@ -23,7 +23,6 @@ Two tests:
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -66,18 +65,12 @@ def _run_real_drift_audit() -> tuple[AuditReport, MockKgClient]:
     f_a.write_text("# KG: lesson-alpha-2026\ndef alpha():\n    return 1\n")
     f_b.write_text("# KG: lesson-beta-2026\ndef beta():\n    return 2\n")
 
-    site_a = ReferenceSite(
-        sourceId="lesson-alpha-2026", sourcePath=f"{f_a}:1", repo_tag=_REPO_TAG
-    )
-    site_b = ReferenceSite(
-        sourceId="lesson-beta-2026", sourcePath=f"{f_b}:1", repo_tag=_REPO_TAG
-    )
+    site_a = ReferenceSite(sourceId="lesson-alpha-2026", sourcePath=f"{f_a}:1", repo_tag=_REPO_TAG)
+    site_b = ReferenceSite(sourceId="lesson-beta-2026", sourcePath=f"{f_b}:1", repo_tag=_REPO_TAG)
     kg = MockKgClient(sites=[site_a, site_b])
 
     # Real sha256 baseline over the seeded sites — earns the '== 2' baseline count.
-    init = sha256_baseline.init_baseline(
-        kg=kg, sites=kg.list_reference_site_states(_REPO_TAG)
-    )
+    init = sha256_baseline.init_baseline(kg=kg, sites=kg.list_reference_site_states(_REPO_TAG))
     assert init.populated == 2, f"expected 2 baselined sites, got {init.populated}"
 
     # Mutate beta.py on disk => genuine sha256 drift on the audit's verify phase.
@@ -96,25 +89,50 @@ def _ship_flow_events(backend: MemoryBackend, cid: str, report: AuditReport) -> 
     ``drift.detected`` per real ``sha256_drift_events`` entry; the close verdict
     is the report's real ``is_clean``. This is the flow the gate observes.
     """
-    backend.ship([{
-        "cid": cid, "event": "audit.started", "phase": "scan",
-        "audit_id": report.audit_id, "repo_tag": _REPO_TAG,
-    }])
+    backend.ship(
+        [
+            {
+                "cid": cid,
+                "event": "audit.started",
+                "phase": "scan",
+                "audit_id": report.audit_id,
+                "repo_tag": _REPO_TAG,
+            }
+        ]
+    )
     for _ in range(report.sha256_baseline_count):
-        backend.ship([{
-            "cid": cid, "event": "site.baselined", "repo_tag": _REPO_TAG,
-        }])
+        backend.ship(
+            [
+                {
+                    "cid": cid,
+                    "event": "site.baselined",
+                    "repo_tag": _REPO_TAG,
+                }
+            ]
+        )
     for ev in report.sha256_drift_events:
-        backend.ship([{
-            "cid": cid, "event": "drift.detected", "kind": ev.kind,
-            "ref_site": ev.ref_site, "path": ev.path,
-        }])
-    backend.ship([{
-        "cid": cid, "event": "audit.completed",
-        "verdict": "clean" if report.is_clean else "dirty",
-        "total_drifts": report.total_drifts,
-        "audit_id": report.audit_id,
-    }])
+        backend.ship(
+            [
+                {
+                    "cid": cid,
+                    "event": "drift.detected",
+                    "kind": ev.kind,
+                    "ref_site": ev.ref_site,
+                    "path": ev.path,
+                }
+            ]
+        )
+    backend.ship(
+        [
+            {
+                "cid": cid,
+                "event": "audit.completed",
+                "verdict": "clean" if report.is_clean else "dirty",
+                "total_drifts": report.total_drifts,
+                "audit_id": report.audit_id,
+            }
+        ]
+    )
 
 
 def test_drift_audit_flow_arrives_green(monkeypatch):
@@ -166,8 +184,7 @@ def test_silent_loss_is_caught_by_gate(monkeypatch):
 
     result = evaluate(backend, load_gate(_GATE_PATH))
     assert result["ok"] is False, (
-        "silent-loss MUST turn the gate RED — a return-value test cannot see "
-        f"this. result={result}"
+        f"silent-loss MUST turn the gate RED — a return-value test cannot see this. result={result}"
     )
 
     # Concretely: the lifecycle count/order checks each failed because the store

@@ -2,6 +2,7 @@
 
 Dep-free (no neo4j/LLM/torch): a LocalGroundingSource over an in-memory store of canonical facts.
 """
+
 from __future__ import annotations
 
 import types

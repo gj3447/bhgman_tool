@@ -7,6 +7,7 @@ drifted", which is useless for provenance. RED until the field exists.
 
 # KG: ATOM_Skill_longinus
 """
+
 from __future__ import annotations
 
 from engine.longinus_drift_audit.embedding_channel import (
@@ -30,8 +31,12 @@ def test_high_drift_node_ids_names_the_drifted_node():
 
 def test_high_drift_node_ids_sorted_and_consistent():
     # 4 identical anchors pin Procrustes ~I; the two flipped nodes stay high-drift; ids sorted.
-    anchors_a = [_emb("a1", (1.0, 0.0)), _emb("a2", (0.0, 1.0)),
-                 _emb("a3", (1.0, 1.0)), _emb("a4", (1.0, -1.0))]
+    anchors_a = [
+        _emb("a1", (1.0, 0.0)),
+        _emb("a2", (0.0, 1.0)),
+        _emb("a3", (1.0, 1.0)),
+        _emb("a4", (1.0, -1.0)),
+    ]
     a = [*anchors_a, _emb("zed", (1.0, 0.0)), _emb("amy", (0.0, 1.0))]
     b = [*anchors_a, _emb("zed", (-1.0, 0.0)), _emb("amy", (0.0, -1.0))]
     r = compute_embedding_drift(a, b, opt_in=True, per_node_high_drift_threshold=0.4)

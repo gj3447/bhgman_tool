@@ -22,6 +22,7 @@ Five tests:
 
 # KG: naesengmoon-canonical-2026-05-19
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -54,10 +55,7 @@ def _explain(result: dict) -> str:
 
 
 def _broke(result: dict, event: str) -> list:
-    return [
-        c for c in result["checks"]
-        if not c.get("passed", True) and c.get("event") == event
-    ]
+    return [c for c in result["checks"] if not c.get("passed", True) and c.get("event") == event]
 
 
 def test_naesengmoon_flow_arrives_green(monkeypatch):

@@ -234,8 +234,7 @@ def partition_stability(prev: Mapping[int, list[str]], curr: Mapping[int, list[s
     if not curr_sets:
         return 0.0
     return (
-        _directional_stability(prev_sets, curr_sets)
-        + _directional_stability(curr_sets, prev_sets)
+        _directional_stability(prev_sets, curr_sets) + _directional_stability(curr_sets, prev_sets)
     ) / 2
 
 

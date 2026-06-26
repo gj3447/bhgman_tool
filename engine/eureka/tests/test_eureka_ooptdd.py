@@ -20,6 +20,7 @@ Four tests:
 
 # KG: eureka-canonical-2026-05-26
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -113,7 +114,8 @@ def test_empty_runner_is_red_even_though_stages_ok(monkeypatch):
         f"empty induction must be RED despite stages_ok={stages_ok}. {result}"
     )
     broke = [
-        c for c in result["checks"]
+        c
+        for c in result["checks"]
         if not c.get("passed", True) and c.get("event") == "eureka_concepts_induced"
     ]
     assert broke and broke[0].get("got") == 0, (

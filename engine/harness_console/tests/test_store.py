@@ -157,9 +157,9 @@ def test_label_task_status_update_and_filters():
 
     assert updated.status is LabelTaskStatus.HUMAN_APPROVED
     assert [task.id for task in store.list_label_tasks(project_id="project-1")] == ["lt-1"]
-    assert [
-        task.id for task in store.list_label_tasks(status=LabelTaskStatus.HUMAN_APPROVED)
-    ] == ["lt-1"]
+    assert [task.id for task in store.list_label_tasks(status=LabelTaskStatus.HUMAN_APPROVED)] == [
+        "lt-1"
+    ]
 
 
 def test_postgres_store_import_is_lazy():

@@ -8,6 +8,7 @@ the CLI (MCP/legion parity gap).
 
 # KG: finding-occam-semantic-pairs-never-escalated-2026-06-26
 """
+
 from __future__ import annotations
 
 from engine.cli.main import cli
@@ -16,20 +17,19 @@ from engine.occam.semantic_dedup import NearDupPair, SemanticDedupReport
 
 def test_occam_semantic_escalates_pairs_to_naesengmoon(monkeypatch, capsys):
     def read(cypher, params=None):
-        return [{"id": "keep1", "text": "shared phrasing"}, {"id": "drop1", "text": "shared phrasing"}]
+        return [
+            {"id": "keep1", "text": "shared phrasing"},
+            {"id": "drop1", "text": "shared phrasing"},
+        ]
 
-    monkeypatch.setattr(
-        "engine.cli.runtime.make_kg_runners", lambda: (read, read, lambda: None)
-    )
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, read, lambda: None))
     report = SemanticDedupReport(
         pairs=(NearDupPair(keep_id="keep1", drop_id="drop1", similarity=0.92),),
         scanned=2,
         threshold=0.5,
         dry_run=True,
     )
-    monkeypatch.setattr(
-        "engine.occam.semantic_dedup.run_semantic_dedup", lambda *a, **k: report
-    )
+    monkeypatch.setattr("engine.occam.semantic_dedup.run_semantic_dedup", lambda *a, **k: report)
 
     rc = cli(["occam", "--semantic", "--label", "Lesson", "--threshold", "0.5"])
     out = capsys.readouterr().out

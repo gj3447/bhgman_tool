@@ -53,7 +53,9 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
             "line_count": n["props"]["lineCount"],
             "last_validated": n["props"].get("lastValidated"),
             "created_at": n["props"].get("createdAt"),
-            "invocation_count": n["props"].get("invocation_count"),  # oracle_backfill usage (--local parity)
+            "invocation_count": n["props"].get(
+                "invocation_count"
+            ),  # oracle_backfill usage (--local parity)
             "inbound_edges": inbound.get(idx_of.get(id(n), -1), 0),
         }
         for n in matched
@@ -99,6 +101,7 @@ def _occam_supersede(store: LocalKgStore, params: dict) -> list[dict]:
     #  · path+sha (SourceCodeNode, adapter._SUPERSEDE_CYPHER): params에 stale_path/stale_sha.
     if "stale_path" not in params:
         return _occam_supersede_generic(store, params)
+
     # 복합키 (sourcePath, sha256) 매칭 — name은 schema상 nullable이라 키로 못 씀.
     # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약)
     def _by(path: str, sha: str) -> dict | None:
@@ -505,8 +508,10 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     # `(a:AbstractClass {name: $concept})` (handler filters on params['concept']). The MERGE
     # routes above match first, so the single-concept form can't be mis-routed here.
     (
-        lambda c: ("(a:AbstractClass)" in c or "(a:AbstractClass {name: $concept})" in c)
-        and "verdictStatus" in c,
+        lambda c: (
+            ("(a:AbstractClass)" in c or "(a:AbstractClass {name: $concept})" in c)
+            and "verdictStatus" in c
+        ),
         _hades_fetch_accepted,
         False,
     ),

@@ -9,6 +9,7 @@ approximation. RED until the cutoff is raised + the sampling order fixed.
 
 # KG: eureka-canonical-2026-05-26
 """
+
 from __future__ import annotations
 
 from itertools import combinations
@@ -30,10 +31,7 @@ def _exact_stability(extent, context) -> float:
 
 
 def _ctx(n_total: int, n_with_y: int) -> dict:
-    return {
-        f"o{i}": frozenset({"x"} | ({"y"} if i < n_with_y else set()))
-        for i in range(n_total)
-    }
+    return {f"o{i}": frozenset({"x"} | ({"y"} if i < n_with_y else set())) for i in range(n_total)}
 
 
 def test_stability_is_exact_for_extent_above_old_cutoff():

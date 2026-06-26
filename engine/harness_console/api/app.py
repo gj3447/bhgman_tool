@@ -112,8 +112,7 @@ def build_store_from_env() -> EventStore:
         if os.environ.get("HARNESS_CONSOLE_DEV_SQLITE", "").lower() == "true":
             return SqliteEventStore()
         raise RuntimeError(
-            "HARNESS_CONSOLE_DATABASE_URL is required unless "
-            "HARNESS_CONSOLE_DEV_SQLITE=true"
+            "HARNESS_CONSOLE_DATABASE_URL is required unless HARNESS_CONSOLE_DEV_SQLITE=true"
         )
     if dsn.startswith("postgresql://") or dsn.startswith("postgres://"):
         return PostgresEventStore(dsn)

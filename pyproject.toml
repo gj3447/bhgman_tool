@@ -363,6 +363,9 @@ DEP001 = ["sentence_transformers", "hnswlib", "testcontainers",
           "libcst",  # 2026-05-31 — optional [hades-cst] extra, lazy import in extract_superclass_cst
           "leidenalg", "igraph",  # 2026-05-31 — optional [eureka-leiden] extra, lazy import in leiden_true operator
          ]
+# DEP003 = "imported but transitive" — opentelemetry-api arrives via the declared [otel]
+# opentelemetry-sdk (we never declare -api directly); the import is guarded try/except in otel_channel.
+DEP003 = ["opentelemetry"]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
   "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)
@@ -381,6 +384,7 @@ DEP002 = [
   "libcst",           # 2026-05-31 [hades-cst] — lazy import inside extract_superclass_cst (importorskip in tests)
   "leidenalg",        # 2026-05-31 [eureka-leiden] — lazy import inside induce_leiden_true (importorskip in tests)
   "python-igraph",    # 2026-05-31 [eureka-leiden] — igraph, lazy import inside induce_leiden_true
+  "omd",              # [sisters] — 입체운행물방울 coordinator sibling; declared for the workspace, not imported in engine/
 ]
 
 [tool.pytest.ini_options]

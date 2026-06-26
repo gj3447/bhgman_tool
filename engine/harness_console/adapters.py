@@ -145,7 +145,9 @@ class NodeViteAdapter:
         )
 
 
-def select_adapter(target: ProjectTarget, adapters: list[ProjectAdapter] | None = None) -> ProjectAdapter:
+def select_adapter(
+    target: ProjectTarget, adapters: list[ProjectAdapter] | None = None
+) -> ProjectAdapter:
     candidates = adapters or [PythonRepoAdapter(), NodeViteAdapter()]
     for adapter in candidates:
         if adapter.supports(target):

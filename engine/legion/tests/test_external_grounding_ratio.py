@@ -8,6 +8,7 @@ tests pin the computed ratio and the dispatch firing — RED until compute_exter
 
 # KG: prometheus-grounding-2026-05-05
 """
+
 from __future__ import annotations
 
 from engine.legion.measurement import (

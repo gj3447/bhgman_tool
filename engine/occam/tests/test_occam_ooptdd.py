@@ -23,6 +23,7 @@ Six tests:
 
 # KG: occam-kam-canonical-2026-05-26
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -54,10 +55,7 @@ def _explain(result: dict) -> str:
 
 
 def _broke(result: dict, event: str) -> list:
-    return [
-        c for c in result["checks"]
-        if not c.get("passed", True) and c.get("event") == event
-    ]
+    return [c for c in result["checks"] if not c.get("passed", True) and c.get("event") == event]
 
 
 def test_occam_flow_arrives_green(monkeypatch):
@@ -106,8 +104,8 @@ def test_dry_run_does_not_emit_node_superseded(monkeypatch):
 
     backend = MemoryBackend()
     report = run_occam_pipeline(backend, cid, apply=False)
-    assert report["detected"] == 1     # the candidate IS detected...
-    assert report["superseded"] == 0   # ...but nothing was superseded (PROPOSE)
+    assert report["detected"] == 1  # the candidate IS detected...
+    assert report["superseded"] == 0  # ...but nothing was superseded (PROPOSE)
     assert report["dry_run"] is True
 
     result = evaluate(backend, load_gate(_GATE_PATH))
@@ -145,8 +143,8 @@ def test_unmatched_write_supersedes_nothing(monkeypatch):
 
     backend = MemoryBackend()
     report = run_occam_pipeline(backend, cid, write_matches=False)
-    assert report["detected"] == 1     # the candidate IS detected and apply was attempted...
-    assert report["superseded"] == 0   # ...but the write matched no row => nothing applied
+    assert report["detected"] == 1  # the candidate IS detected and apply was attempted...
+    assert report["superseded"] == 0  # ...but the write matched no row => nothing applied
 
     result = evaluate(backend, load_gate(_GATE_PATH))
     assert result["ok"] is False, f"unmatched write must turn the gate RED. {result}"

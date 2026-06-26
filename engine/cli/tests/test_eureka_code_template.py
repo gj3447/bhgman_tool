@@ -7,6 +7,7 @@ reached anti_unify. This wires the dep-free, neo4j-free code-template branch.
 
 # KG: finding-eureka-anti-unify-no-cli-entry-2026-06-26
 """
+
 from __future__ import annotations
 
 from engine.cli.main import cli

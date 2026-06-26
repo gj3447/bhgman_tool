@@ -21,6 +21,7 @@ Four tests:
 
 # KG: ATOM_Skill_longinus
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -62,9 +63,9 @@ def test_longinus_connect_flow_arrives_green(monkeypatch):
     report = run_longinus_connect_pipeline(backend, cid)
 
     # (a) self-report — necessary but NOT sufficient.
-    assert report["bound"] == 1      # NODE_BOUND_A materialized (has_node seed)
-    assert report["orphans"] == 1    # NODE_ORPHAN_B discriminated as orphan
-    assert report["symbols"] == 2    # alpha + beta bound (PROPOSE)
+    assert report["bound"] == 1  # NODE_BOUND_A materialized (has_node seed)
+    assert report["orphans"] == 1  # NODE_ORPHAN_B discriminated as orphan
+    assert report["symbols"] == 2  # alpha + beta bound (PROPOSE)
 
     # (b) the STORE is the judge.
     result = evaluate(backend, load_gate(_GATE_PATH))
@@ -99,13 +100,14 @@ def test_drop_the_seed_flips_bound_to_orphan(monkeypatch):
 
     backend = MemoryBackend()
     report = run_longinus_connect_pipeline(backend, cid, seed_bound=False)
-    assert report["bound"] == 0      # nothing pre-exists => everything orphan
-    assert report["orphans"] == 2    # both refs now node_absent orphans
+    assert report["bound"] == 0  # nothing pre-exists => everything orphan
+    assert report["orphans"] == 2  # both refs now node_absent orphans
 
     result = evaluate(backend, load_gate(_GATE_PATH))
     assert result["ok"] is False, f"dropped seed must turn the gate RED. {result}"
     broke = [
-        c for c in result["checks"]
+        c
+        for c in result["checks"]
         if not c.get("passed", True) and c.get("event") == "longinus_binding_materialized"
     ]
     assert broke and broke[0].get("got") == 0, (

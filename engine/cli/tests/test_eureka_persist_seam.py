@@ -18,6 +18,7 @@ any concept on the test KG): cmd_eureka must inject persist_cypher + persist_acc
 
 # KG: finding-eureka-stage6-persist-seam-dead-from-cli-2026-06-26
 """
+
 from __future__ import annotations
 
 from engine.cli.main import build_parser, cli
@@ -36,9 +37,7 @@ class _FakeRunner:
 def _patch(monkeypatch):
     """Patch runners + capture the PipelineConfig cmd_eureka hands to run_from_kg."""
     read, write = _FakeRunner(), _FakeRunner()
-    monkeypatch.setattr(
-        "engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None)
-    )
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
     captured = {}
 
     class _PR:
