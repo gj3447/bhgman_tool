@@ -950,6 +950,17 @@ def cmd_occam_semantic(args: argparse.Namespace) -> int:
         print(f"  {p.similarity:.3f}  keep={p.keep_id}  drop={p.drop_id}")
     if report.dry_run and report.pairs:
         print("  (dry-run — pass --apply to supersede; reversible via status+SUPERSEDED_BY edge)")
+    # covenant: byte-identity 없는 의미론 중복은 단독 supersede 금지 → 항상 나생문 검증으로 escalate.
+    # (build_escalation_plan(semantic_pairs=)이 라우팅을 이미 구현 — CLI만 호출 안 하던 dead seam.)
+    if report.pairs:
+        from engine.occam.escalation import build_escalation_plan  # noqa: PLC0415
+        from engine.occam.occam_models import OccamReport  # noqa: PLC0415
+
+        plan = build_escalation_plan(OccamReport(), semantic_pairs=report.pairs)
+        if plan.count:
+            print(f"  {plan.summary}")
+            for it in plan.items:
+                print(f"    [escalate→{it.target}] {it.subject}: {it.command}")
     return 0
 
 
