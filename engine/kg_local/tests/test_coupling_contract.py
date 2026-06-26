@@ -35,6 +35,31 @@ def test_occam_real_fetch_templates_routed(tmp_path):
     run(*kg_adapter.fetch_cypher("engine/x"))  # _FETCH_SCOPED
 
 
+def test_hades_real_fetch_templates_routed(tmp_path):
+    # both hades fetch variants must route through the local backend. The all-concepts form
+    # routed; the single-concept _FETCH_ONE interpolates `(a:AbstractClass {name: $concept})`,
+    # so the bare "(a:AbstractClass)" route predicate missed it → `hades --concept X --local`
+    # crashed with UnsupportedLocalQuery (handler already supported concept-filtering).
+    from engine.hades.hades_runner import fetch_accepted_cypher
+
+    run = _runner(tmp_path)
+    run(*fetch_accepted_cypher(None))  # _FETCH_ALL — already routed
+    run(*fetch_accepted_cypher("some_concept"))  # _FETCH_ONE — was UnsupportedLocalQuery (RED)
+
+
+def test_hades_single_concept_fetch_filters_to_requested(tmp_path):
+    # routing + filtering: with two ACCEPTED AbstractClasses, single-concept fetch returns only one.
+    from engine.hades.hades_runner import fetch_accepted_cypher
+
+    store = LocalKgStore(tmp_path / "k.json")
+    store.nodes.append({"labels": ["AbstractClass"], "props": {"name": "alpha", "verdictStatus": "ACCEPTED", "extent": ["a"]}})
+    store.nodes.append({"labels": ["AbstractClass"], "props": {"name": "beta", "verdictStatus": "ACCEPTED", "extent": ["b"]}})
+    run = make_local_runner(store, autosave=False)
+    rows = run(*fetch_accepted_cypher("alpha"))
+    assert [r["concept"] for r in rows] == ["alpha"]
+    assert len(run(*fetch_accepted_cypher(None))) == 2  # all-concepts still returns both
+
+
 def test_occam_real_supersede_template_routed(tmp_path):
     from engine.occam import kg_adapter
     from engine.occam.occam_models import Confidence, NodeRecord, SupersessionCandidate

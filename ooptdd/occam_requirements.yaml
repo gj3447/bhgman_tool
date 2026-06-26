@@ -1,0 +1,49 @@
+# bhgman_tool occam 정리(dedup/supersede) — ooptdd-loop spec (the RED artifact).
+#
+# Three trace gates, each Longinus-bound to a REAL emitting symbol in ooptdd/occam_adapter.py.
+# The adapter ships these events only by genuinely running engine.occam.run_occam (fetch ->
+# occam_pass -> apply supersede). candidate.detected = report.superseded_count; node.superseded
+# = apply_result.applied_count (APPLY wing only — a dry-run/clean/unmatched-write leaves it 0).
+# Literals live in the ADAPTER, never in engine/occam/ (IO-pure). A gate goes DONE iff GREEN
+# *and* its bound symbol's body literally contains the must_emit string.
+#
+# Run:   ooptdd-loop validate-spec ooptdd/occam_requirements.yaml
+#        ooptdd-loop run          ooptdd/occam_requirements.yaml --json
+name: bhgman-occam-supersede
+
+target:
+  mode: in_process
+  callable: ooptdd.occam_adapter:run_occam_pipeline  # run_occam_pipeline(backend, cid)
+  backend: memory
+  root: .
+
+requirements:
+  - id: REQ-OCC-RAN
+    description: the real occam dedup/supersede pass runs exactly once
+    gate:
+      - {event: occam.completed, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-occam-adapter-20260625
+      source: ooptdd/occam_adapter.py
+      symbol: run_occam_pipeline
+      must_emit: occam.completed
+
+  - id: REQ-OCC-CANDIDATE-DETECTED
+    description: exactly the confident byte-identical supersede candidate is detected (1)
+    gate:
+      - {event: occam.candidate.detected, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-occam-adapter-20260625
+      source: ooptdd/occam_adapter.py
+      symbol: emit_dedup_phase
+      must_emit: occam.candidate.detected
+
+  - id: REQ-OCC-NODE-SUPERSEDED
+    description: exactly the node really superseded by a matched write is archived (apply wing, 1)
+    gate:
+      - {event: occam.node.superseded, where: {covenant: archive_only}, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-occam-adapter-20260625
+      source: ooptdd/occam_adapter.py
+      symbol: emit_apply_phase
+      must_emit: occam.node.superseded

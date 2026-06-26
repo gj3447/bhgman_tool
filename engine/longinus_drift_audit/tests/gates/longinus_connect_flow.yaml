@@ -1,0 +1,61 @@
+# The Red artifact for bhgman_tool's longinus 연결(connect) CREATE-binding flow.
+#
+# The CREATE half of 연결 — distinct from the detect-only slice (drift_audit_flow.yaml,
+# which runs LonginusAudit.run_full). It states what the store must OBSERVE when
+# forward_binding_materialize.materialize + symbol_binding.bind_file run over a tmp
+# code-root seeded so exactly one cited '# KG:' node pre-exists (bound) and a second
+# stays orphan (orphan_discrimination), plus a file of unbound public symbols.
+#
+# Thresholds match the REAL MaterializeResult / BindResult for the fixture: bound=1
+# (NODE_BOUND_A, seeded), orphan=1 (NODE_ORPHAN_B, node_absent), symbol_bound=2
+# (alpha, beta). A fresh/empty KG routes EVERY ref to orphan => bound=0 (STEP-0
+# baseline), so every ==N below is GENUINELY RED until the has_node seed earns it.
+#
+# Strength: every gating check pins a field (where) or a cardinality (==), orders the
+# lifecycle (must_order), or forbids errors (absent) — no existence-only check.
+cid_env: OOPTDD_CID
+service: bhgman.longinus.connect
+
+expect:
+  # exactly one connect run, in the scan phase.
+  - event: longinus_connect_started
+    where: {phase: scan}
+    op: "=="
+    count: 1
+
+  # one binding materialized per cited node that PRE-EXISTS in the KG (==1). A fresh
+  # KG has none => 0 => RED; drop the has_node seed and this collapses to 0.
+  - event: longinus_binding_materialized
+    op: "=="
+    count: 1
+
+  # one orphan per cited '# KG:' node that is absent (==1, reason node_absent). Together
+  # with the ==1 above this is the orphan_discrimination: bound AND orphan in one scan.
+  - event: longinus_orphan_ref_skipped
+    where: {reason: node_absent}
+    op: "=="
+    count: 1
+
+  # one symbol_bound per real public top-level symbol lacking a '# KG:' header (==2).
+  - event: longinus_symbol_bound
+    op: "=="
+    count: 2
+
+  # the connect closed exactly once.
+  - event: longinus_connect_complete
+    op: "=="
+    count: 1
+
+  # ── subset present, value-pinned via where (any order) ───────────────────
+  - present:
+      - {event: longinus_connect_started, where: {phase: scan}}
+      - {event: longinus_orphan_ref_skipped, where: {reason: node_absent}}
+      - {event: longinus_connect_complete}
+
+  # ── sequencing: the flow must emit in lifecycle order ────────────────────
+  - must_order: [longinus_connect_started, longinus_binding_materialized, longinus_orphan_ref_skipped, longinus_symbol_bound, longinus_connect_complete]
+    within_s: 60
+
+  # ── negative wing: the happy connect flow logs no ERROR ──────────────────
+  - absent:
+      where: {level: ERROR}

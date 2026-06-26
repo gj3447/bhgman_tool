@@ -109,4 +109,42 @@ def propose_template(snippets: list[str], min_instances: int = 3) -> dict:
     }
 
 
-__all__ = ["HOLE_PREFIX", "LggTemplate", "anti_unify", "propose_template", "tokenize"]
+def _skeleton(tokens: list[str]) -> tuple[str, ...]:
+    """Structural signature for grouping: numeric literals → '*' wildcard, identifiers and
+    operators kept literal. Same skeleton ⇒ same token count ⇒ anti_unify is well-defined and
+    only literal-valued positions become holes."""
+    return tuple("*" if t.isdigit() else t for t in tokens)
+
+
+def scan_fragments(snippets: list[str], min_instances: int = 3) -> list[dict]:
+    # KG: eureka-canonical-2026-05-26
+    """Producer (the missing front-end for anti_unify): group structurally-similar code
+    fragments and PROPOSE an LGG template per family meeting the Rule of Three.
+
+    PROPOSE-only / dry-run — materialize (Extract-Superclass) is 하데스 소관, this writes nothing.
+    Returns only the PROPOSED families (REJECTED/INSUFFICIENT dropped), sorted by template.
+    """
+    groups: dict[tuple[str, ...], list[str]] = {}
+    for s in snippets:
+        toks = tokenize(s)
+        if not toks:
+            continue
+        groups.setdefault(_skeleton(toks), []).append(s)
+    proposals: list[dict] = []
+    for members in groups.values():
+        if len(members) < min_instances:
+            continue
+        result = propose_template(members, min_instances=min_instances)
+        if result["status"] == "PROPOSED":
+            proposals.append(result)
+    return sorted(proposals, key=lambda p: p["template"])
+
+
+__all__ = [
+    "HOLE_PREFIX",
+    "LggTemplate",
+    "anti_unify",
+    "propose_template",
+    "scan_fragments",
+    "tokenize",
+]

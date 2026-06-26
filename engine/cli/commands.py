@@ -950,6 +950,17 @@ def cmd_occam_semantic(args: argparse.Namespace) -> int:
         print(f"  {p.similarity:.3f}  keep={p.keep_id}  drop={p.drop_id}")
     if report.dry_run and report.pairs:
         print("  (dry-run — pass --apply to supersede; reversible via status+SUPERSEDED_BY edge)")
+    # covenant: byte-identity 없는 의미론 중복은 단독 supersede 금지 → 항상 나생문 검증으로 escalate.
+    # (build_escalation_plan(semantic_pairs=)이 라우팅을 이미 구현 — CLI만 호출 안 하던 dead seam.)
+    if report.pairs:
+        from engine.occam.escalation import build_escalation_plan  # noqa: PLC0415
+        from engine.occam.occam_models import OccamReport  # noqa: PLC0415
+
+        plan = build_escalation_plan(OccamReport(), semantic_pairs=report.pairs)
+        if plan.count:
+            print(f"  {plan.summary}")
+            for it in plan.items:
+                print(f"    [escalate→{it.target}] {it.subject}: {it.command}")
     return 0
 
 
@@ -988,6 +999,12 @@ def cmd_occam(args: argparse.Namespace) -> int:
         close()
 
     print(res.summary)
+    # surface the continuous σ + per-candidate verdict occam computes (was invisible on every
+    # surface — only the writer read candidate.score). σ is the archive-safety value (높을수록 안전).
+    for c in res.report.candidates:
+        if c.score is not None:
+            ident = c.stale.name or c.stale.source_path
+            print(f"  σ={c.score:.2f} verdict={c.verdict} conf={c.confidence.value}  {ident}")
     if res.apply_result.dry_run:
         for i, (_cy, pa) in enumerate(res.apply_result.planned_cyphers, 1):
             print(f"  [plan {i}] supersede {pa['stale_name']} → {pa['current_name']}")
@@ -1002,6 +1019,20 @@ def cmd_occam(args: argparse.Namespace) -> int:
         )
         for o in res.report.orphans:
             print(f"    [orphan] {o.name} @ {o.source_path}")
+    # σ-gate deferred (auto-apply 안 한 불확실 후보) + escalation routing — CLI/MCP/legion
+    # parity: MCP·legion은 summarize_occam_result로 이미 노출, CLI도 같은 plan을 띄운다.
+    deferred = res.apply_result.deferred
+    if deferred:
+        print(f"  deferred (σ-gate 미확신 → escalation, auto-apply 안 함): {len(deferred)}")
+        for d in deferred:
+            print(f"    [defer] {d}")
+    from engine.occam.escalation import build_escalation_plan  # noqa: PLC0415
+
+    plan = build_escalation_plan(res.report)
+    if plan.count:
+        print(f"  {plan.summary}")
+        for it in plan.items:
+            print(f"    [escalate→{it.target}] {it.subject}: {it.command}")
     return 0
 
 
@@ -1054,6 +1085,21 @@ def cmd_oracle(args: argparse.Namespace) -> int:
         # repo unless --no-disk-scan.
         repo_root = None if getattr(args, "no_disk_scan", False) else str(_repo_root())
         kwargs = {"run_cypher": run_cypher, "scope": args.scope, "repo_root": repo_root}
+    elif kind == "kg-corroborate":
+        # separate-source corroboration of --target (the claim) against canonical KG facts.
+        if getattr(args, "local", False):
+            store_mod = _load_engine_module("kg_local", "store")
+            kwargs = {"kg": store_mod.LocalKgStore()}
+        else:
+            runners = _resolve_kg_runners(args)
+            if runners is None:
+                print(
+                    "[oracle] kg-corroborate needs a KG (NEO4J_* / BHGMAN_KG_MCP_URL, or --local).",
+                    file=sys.stderr,
+                )
+                return 2
+            run_cypher, _w, close = runners
+            kwargs = {"run_cypher": run_cypher}
 
     try:
         v = verify(kind, args.target, **kwargs)
@@ -1605,10 +1651,45 @@ def _emit_run_record(res, runners) -> None:
     print(f"  [record] PROV-O: {'turtle emitted' if prov else 'prov extra 미설치 (graceful skip)'}")
 
 
+def _cmd_eureka_code(args: argparse.Namespace) -> int:
+    """eureka code-template path (Plotkin LGG anti-unification) — neo4j-free, PROPOSE-only.
+
+    Lifts a shared template from ≥min-instances near-identical snippets (Rule of Three). Disjoint
+    from the KG-induction path (which still needs neo4j); Extract-Superclass materialize는 하데스 소관.
+    """
+    from engine.eureka.anti_unify import propose_template  # noqa: PLC0415
+
+    snippets = list(getattr(args, "snippet", None) or [])
+    code_file = getattr(args, "code_file", None)
+    if code_file:
+        text = Path(code_file).read_text(encoding="utf-8")
+        chunks = [c.strip() for c in text.split("\n\n") if c.strip()]
+        snippets.extend(
+            chunks if len(chunks) > 1 else [ln for ln in text.splitlines() if ln.strip()]
+        )
+    if not snippets:
+        print(
+            "[eureka --code] no snippets — pass --snippet ... (repeat) or --code-file FILE",
+            file=sys.stderr,
+        )
+        return 2
+    result = propose_template(snippets, min_instances=getattr(args, "min_instances", 3))
+    print(f"[eureka --code] status={result['status']} (PROPOSE only — 실현은 하데스)")
+    if result.get("template"):
+        print(f"  template: {result['template']}")
+    for k in ("holes", "hole_ratio", "instances", "reason", "note"):
+        if k in result:
+            print(f"  {k}: {result[k]}")
+    return 0
+
+
 def cmd_eureka(args: argparse.Namespace) -> int:
     # KG: eureka-canonical-2026-05-26
     """유레카 — KG 패턴→추상 개념 induce (PROPOSE only). covenant: auto-commit 금지, 실현은 하데스."""
     import datetime as _dt  # noqa: PLC0415
+
+    if getattr(args, "code", False):
+        return _cmd_eureka_code(args)
 
     pipeline = _load_engine_module("eureka", "pipeline", evict=("oracle_lens",))
     runners = _resolve_kg_runners(args)
@@ -1623,8 +1704,16 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     run_cypher, _write, close = runners
     eureka_stages = _load_engine_module("eureka", "stages")
     cycle_id = "cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+    # --accept implies --apply: both trigger stage_6 KG-persist (the eureka→hades seam).
+    # accept → verdictStatus='ACCEPTED' (realizable); apply-only → 'VERDICT_PENDING'
+    # (visible, not yet realizable — covenant: 실현은 하데스, 명시적 accept 신호에서만).
+    accept = getattr(args, "accept", False)
+    persist = getattr(args, "apply", False) or accept
     cfg = pipeline.PipelineConfig(
-        cycle_id=cycle_id, **eureka_stages.wire_default_stages(run_cypher)
+        cycle_id=cycle_id,
+        persist_cypher=_write if persist else None,
+        persist_accept=accept,
+        **eureka_stages.wire_default_stages(run_cypher),
     )
     try:
         pr = pipeline.run_from_kg(run_cypher, cfg)
@@ -1634,9 +1723,17 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     for s in pr.stages:
         status = "ok" if s.ok else "FAIL"
         print(f"  [{status}] {s.stage}")
-    print(
-        "[eureka] PROPOSE only — candidates surfaced; materialize via 하데스 + 나생문 gate (no auto-commit)."
-    )
+    if persist:
+        n = next(
+            (s.payload.get("persisted", 0) for s in pr.stages if s.stage == "6-persist"), 0
+        )
+        verdict = "ACCEPTED (hades-realizable)" if accept else "VERDICT_PENDING (visible, not yet realizable)"
+        print(f"[eureka] persisted {n} concept(s) as {verdict}.")
+    else:
+        print(
+            "[eureka] PROPOSE only — candidates surfaced; persist via --apply (pending) / "
+            "--accept (realizable), materialize via 하데스 + 나생문 gate (no auto-commit)."
+        )
     return 0
 
 

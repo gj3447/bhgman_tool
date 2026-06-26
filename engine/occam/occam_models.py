@@ -31,6 +31,7 @@ class NodeRecord:
     inbound_edges: int | None = None  # 이 노드를 가리키는 참조 엣지 수 (많을수록 live/current)
     last_validated: str | None = None  # 마지막 검증 시점 (ISO) — 최신일수록 current
     created_at: str | None = None  # 생성 시점 (ISO) — last_validated 부재 시 recency 폴백
+    invocation_count: int | None = None  # KG-backfilled 실측 호출수 (oracle_backfill). None=부재→deadness 0
 
     @property
     def recency_key(self) -> str:

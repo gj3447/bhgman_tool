@@ -43,11 +43,20 @@ def ingest_findings(
     apply: bool = False,
 ) -> tuple[int, tuple[str, ...]]:
     # KG: ATOM_Skill_prometheus
-    """(written_count, planned_cyphers). apply+write_cypher 일 때만 실제 write."""
+    """(written_count, planned_cyphers). apply+write_cypher 일 때만 실제 write.
+
+    findingId(=sha256(gap|url|claim))로 dedup — 같은 키 Finding은 동일 :ResearchFinding 노드
+    (idempotent MERGE)이므로 written/planned 는 *구별 노드 수*를 센다(쓰기-호출 수 아님). 중복
+    claim이 ingested 카운트를 부풀려 legion research_finding_count 임계를 거짓 통과시키는 구멍 차단.
+    """
     planned: list[str] = []
     written = 0
+    seen: set[str] = set()
     do_write = apply and write_cypher is not None
     for f in findings:
+        if f.finding_id in seen:
+            continue  # 동일 findingId = 같은 노드의 재출현 → 한 번만 센다(재실행 안전)
+        seen.add(f.finding_id)
         cypher, params = plan_cypher(f)
         planned.append(cypher)
         if do_write:

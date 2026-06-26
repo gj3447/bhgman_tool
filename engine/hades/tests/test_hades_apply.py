@@ -70,6 +70,20 @@ def test_gate_fail_reverts_byte_for_byte(tmp_path):
     assert f.read_text(encoding="utf-8") == _SRC  # original restored exactly
 
 
+def test_gate_restores_on_unspawnable_test_cmd(tmp_path):
+    # covenant: a gate that cannot even RUN (test binary missing) must leave the tree exactly
+    # as it was — the file was rewritten before the gate, and restore only existed on the
+    # rc!=0 path, so an unspawnable command propagated FileNotFoundError after the overwrite.
+    f = tmp_path / "mod.py"
+    f.write_text(_SRC, encoding="utf-8")
+    res = apply_extract_superclass_gated(
+        f, "AnimalBase", ["Dog", "Cat"], test_cmd=["/nonexistent-binary-xyz-12345"]
+    )  # must NOT raise
+    assert res.status == "REVERTED"
+    assert res.test_returncode is None  # the gate never produced an exit code
+    assert f.read_text(encoding="utf-8") == _SRC  # original restored byte-for-byte
+
+
 def test_gate_refused_when_nothing_to_lift(tmp_path):
     f = tmp_path / "mod.py"
     src = "class A:\n    def f(self): return 1\nclass B:\n    def g(self): return 2\n"
