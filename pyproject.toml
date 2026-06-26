@@ -158,18 +158,18 @@ all = [
     "anthropic>=0.40",
     "fastmcp>=2.0",
 ]
-# 세 자매 방법론 (sibling repos under PROJECT/PI) applied to bhgman_tool 2026-06-24:
+# 세 자매 방법론 (sibling repos under PROJECT/PI) — DEV-ONLY, intentionally NOT a package extra:
 #   ooptdd        — log-based / positive-TDD trace gates (pytest11 plugin; memory backend)
 #   ooptdd-loop   — agent loop: trace gate + Longinus binding + KG + OMD bridge
 #   omd           — 입체운행물방울 parallel-dev coordinator (disjoint write-set orbits)
-# Local-path/uv-only (none are on PyPI yet) — resolved via [tool.uv.sources] below.
-# Install: `uv pip install --python .venv/bin/python -e ../ooptdd -e ../ooptdd-loop -e ../omd`
-# (avoid `uv sync --all-extras` on this box: the [memory] extra's hnswlib won't build on py3.14).
-sisters = [
-    "ooptdd>=0.4",
-    "ooptdd-loop>=0.1",
-    "omd>=0.0.1",
-]
+# These live in a PRIVATE different org (airobotics-ailab) and are not on any index, so they are
+# NOT declared as an extra: that kept `uv ... --all-extras` (CI) from resolving them and going red.
+# Install on a dev box (the in-repo ooptdd/*_adapter.py + engine/**/test_*_ooptdd.py use them):
+#   uv pip install --python .venv/bin/python -e ../ooptdd -e ../ooptdd-loop -e ../omd
+# The test_*_ooptdd.py files `pytest.importorskip("ooptdd.backends")` so CI skips them like the
+# leiden/lean/fakeredis optional-tool tests — the engine behaviour they instrument is covered by
+# the regular tests. (To verify the instrumentation in CI too, publish the siblings to a private
+# index and depend on versioned releases — see the merge-to-main discussion.)
 
 [project.scripts]
 bhgman-tool = "engine.cli.main:cli"
@@ -232,12 +232,9 @@ exclude = [
 # PROM 16 종속성 cycle P2 (2026-05-27).
 constraint-dependencies = ["starlette>=1.0.1"]
 
-# 세 자매 방법론 — editable sibling checkouts (not on PyPI). The [sisters] extra
-# above resolves through these. Relative paths assume the PROJECT/PI sibling layout.
-[tool.uv.sources]
-ooptdd = { path = "../ooptdd", editable = true }
-ooptdd-loop = { path = "../ooptdd-loop", editable = true }
-omd = { path = "../omd", editable = true }
+# NOTE: no [tool.uv.sources] for the ooptdd/ooptdd-loop/omd siblings — they are dev-only and
+# NOT declared deps (see the comment by the removed [sisters] extra above), so `uv` never tries
+# to resolve the private cross-org paths during `--all-extras`. Dev installs them editably by hand.
 
 # ooptdd session-level plugin (engine/.../tests author per-test gates explicitly;
 # this drives the once-per-session ship+verify of pytest's own outcome summary).
@@ -362,10 +359,15 @@ DEP001 = ["sentence_transformers", "hnswlib", "testcontainers",
           "prov", "rdflib", "lxml",  # 2026-05-30 — optional [provexport] extra, lazy import in engine/provexport
           "libcst",  # 2026-05-31 — optional [hades-cst] extra, lazy import in extract_superclass_cst
           "leidenalg", "igraph",  # 2026-05-31 — optional [eureka-leiden] extra, lazy import in leiden_true operator
+          "ooptdd", "ooptdd_loop",  # 2026-06-26 — dev-only methodology siblings (private, not on index);
+                                    # importorskip'd in engine/**/test_*_ooptdd.py, no package-extra declaration
          ]
 # DEP003 = "imported but transitive" — opentelemetry-api arrives via the declared [otel]
 # opentelemetry-sdk (we never declare -api directly); the import is guarded try/except in otel_channel.
-DEP003 = ["opentelemetry"]
+DEP003 = ["opentelemetry",
+          # ooptdd/ooptdd_loop: dev-only siblings, editable-installed (so deptry sees them as
+          # transitive locally) but not declared; absent on CI → DEP001. Ignored under both.
+          "ooptdd", "ooptdd_loop"]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
   "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)
@@ -384,7 +386,6 @@ DEP002 = [
   "libcst",           # 2026-05-31 [hades-cst] — lazy import inside extract_superclass_cst (importorskip in tests)
   "leidenalg",        # 2026-05-31 [eureka-leiden] — lazy import inside induce_leiden_true (importorskip in tests)
   "python-igraph",    # 2026-05-31 [eureka-leiden] — igraph, lazy import inside induce_leiden_true
-  "omd",              # [sisters] — 입체운행물방울 coordinator sibling; declared for the workspace, not imported in engine/
 ]
 
 [tool.pytest.ini_options]

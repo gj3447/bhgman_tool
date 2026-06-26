@@ -163,6 +163,36 @@ def _mcp_cypher_call(url: str, tool: str, cypher: str, params: dict) -> list[dic
     return parsed if isinstance(parsed, list) else [parsed]  # write tool returns a dict
 
 
+def _guard_write(write_cypher):
+    """write runner를 kg_harness 출혈-차단 하네스로 감싼다 (3대 불변식 강제).
+
+    `BHGMAN_KG_GUARD` 모드:
+      - enforce (기본) : ERROR 위반이면 WriteGuardError로 실행 거부(runner 미호출).
+      - warn          : 위반을 stderr로 알리되 write는 실행(점진 도입/관찰용).
+      - off           : 검증 없이 통과(레거시 비상 탈출구).
+    read runner는 감싸지 않는다 — 검증 대상은 write only.
+    # KG: occam-pass-metahumotonic-20260626 (왜: Superseded 10%·god-object 재오염 방지)
+    """
+    mode = os.environ.get("BHGMAN_KG_GUARD", "enforce").lower()
+    if mode == "off":
+        return write_cypher
+    from engine.kg_harness import guarded_run, validate_write  # noqa: PLC0415 — lazy
+
+    if mode == "warn":
+
+        def warned(cypher: str, params: dict) -> list[dict]:
+            for v in validate_write(cypher).violations:
+                print(f"[kg-guard:{v.severity.value}] {v.code}: {v.message}", file=sys.stderr)
+            return write_cypher(cypher, params)
+
+        return warned
+
+    def guarded(cypher: str, params: dict) -> list[dict]:
+        return guarded_run(write_cypher, cypher, params)
+
+    return guarded
+
+
 def _make_mcp_runners(url: str):
     """KG backend over the mcp-neo4j-cypher HTTP gateway → (run, write, close)."""
 
@@ -172,7 +202,7 @@ def _make_mcp_runners(url: str):
     def write_cypher(cypher: str, params: dict) -> list[dict]:
         return _mcp_cypher_call(url, "write_neo4j_cypher", cypher, params)
 
-    return run_cypher, write_cypher, (lambda: None)
+    return run_cypher, _guard_write(write_cypher), (lambda: None)
 
 
 def make_kg_runners():
@@ -209,7 +239,7 @@ def make_kg_runners():
         with driver.session() as s:
             return [dict(r) for r in s.run(cypher, **params)]
 
-    return run_cypher, run_cypher, driver.close
+    return run_cypher, _guard_write(run_cypher), driver.close
 
 
 def _make_local_runners():
@@ -222,7 +252,7 @@ def _make_local_runners():
     runner_mod = _load_engine_module("kg_local", "runner")
     store = store_mod.LocalKgStore()
     run = runner_mod.make_local_runner(store)
-    return run, run, (lambda: None)
+    return run, _guard_write(run), (lambda: None)
 
 
 def _resolve_kg_runners(args: argparse.Namespace):

@@ -30,6 +30,12 @@ import pytest
 
 pytest.importorskip("libcst")  # the on-disk apply path is format-preserving (libcst)
 
+# ooptdd/ooptdd_loop = dev-only methodology siblings (private, not on any index). CI does not
+# install them, so skip these instrumentation tests there — like the leiden/lean optional-tool
+# tests. The engine behaviour they trace-gate is covered by the regular tests.
+pytest.importorskip("ooptdd.backends")
+pytest.importorskip("ooptdd_loop")
+
 from ooptdd.backends.memory import MemoryBackend, reset  # noqa: E402
 from ooptdd.engine.gate import evaluate, load_gate  # noqa: E402
 from ooptdd_loop.longinus import verify_binding  # noqa: E402

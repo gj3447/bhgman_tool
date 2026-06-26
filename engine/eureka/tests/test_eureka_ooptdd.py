@@ -27,6 +27,12 @@ from pathlib import Path
 
 import pytest
 
+# ooptdd/ooptdd_loop = dev-only methodology siblings (private, not on any index). CI does not
+# install them, so skip these instrumentation tests there — like the leiden/lean optional-tool
+# tests. The engine behaviour they trace-gate is covered by the regular tests.
+pytest.importorskip("ooptdd.backends")
+pytest.importorskip("ooptdd_loop")
+
 from ooptdd.backends.memory import MemoryBackend, reset
 from ooptdd.engine.gate import evaluate, load_gate
 from ooptdd_loop.longinus import verify_binding
