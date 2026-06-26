@@ -252,10 +252,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_orc.add_argument(
         "--kind",
         required=True,
-        choices=["lean-goals", "pytest-ratio", "drift-recount", "occam-twins"],
+        choices=["lean-goals", "pytest-ratio", "drift-recount", "occam-twins", "kg-corroborate"],
         help="검증 oracle 종류.",
     )
-    p_orc.add_argument("--target", help="lean-goals: 자족 .lean 파일 / pytest-ratio: pytest 대상.")
+    p_orc.add_argument(
+        "--target",
+        help="lean-goals: 자족 .lean 파일 / pytest-ratio: pytest 대상 / kg-corroborate: 검증할 주장(claim).",
+    )
     p_orc.add_argument("--lean-dir", default="lean", help="lean-goals: .lean 파일 디렉터리.")
     p_orc.add_argument("--code-root", default=".", help="drift-recount: 코드 루트.")
     p_orc.add_argument("--scope", help="occam-twins: sourcePath CONTAINS 필터.")
