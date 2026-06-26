@@ -8,6 +8,7 @@ threshold (a Goodhart hole; PromHonesty hard-core: 영수 없는 green은 거짓
 
 # KG: ATOM_Skill_prometheus
 """
+
 from __future__ import annotations
 
 from engine.prometheus.extract import extract_findings
@@ -43,7 +44,7 @@ def test_identical_claims_collapse_to_one_distinct_node():
     assert len(findings) == 2 and len({f.finding_id for f in findings}) == 1
     w = _capture()
     written, planned = ingest_findings(findings, write_cypher=w, apply=True)
-    assert written == 1            # distinct nodes MERGEd, not write calls
+    assert written == 1  # distinct nodes MERGEd, not write calls
     assert len(planned) == 1
     assert len(set(w.ids)) == 1 == len(w.ids)  # the store saw exactly one MERGE
 
@@ -86,5 +87,5 @@ def test_dry_run_plans_distinct_only_no_write():
     w = _capture()
     written, planned = ingest_findings(findings, write_cypher=w, apply=False)
     assert written == 0
-    assert len(planned) == 1   # deduped before planning
-    assert w.ids == []         # no write in dry-run
+    assert len(planned) == 1  # deduped before planning
+    assert w.ids == []  # no write in dry-run

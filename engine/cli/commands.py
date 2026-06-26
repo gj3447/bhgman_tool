@@ -1724,10 +1724,12 @@ def cmd_eureka(args: argparse.Namespace) -> int:
         status = "ok" if s.ok else "FAIL"
         print(f"  [{status}] {s.stage}")
     if persist:
-        n = next(
-            (s.payload.get("persisted", 0) for s in pr.stages if s.stage == "6-persist"), 0
+        n = next((s.payload.get("persisted", 0) for s in pr.stages if s.stage == "6-persist"), 0)
+        verdict = (
+            "ACCEPTED (hades-realizable)"
+            if accept
+            else "VERDICT_PENDING (visible, not yet realizable)"
         )
-        verdict = "ACCEPTED (hades-realizable)" if accept else "VERDICT_PENDING (visible, not yet realizable)"
         print(f"[eureka] persisted {n} concept(s) as {verdict}.")
     else:
         print(

@@ -22,12 +22,19 @@ Five tests:
 
 # KG: naesengmoon-canonical-2026-05-19
 """
+
 from __future__ import annotations
 
 import tempfile
 from pathlib import Path
 
 import pytest
+
+# ooptdd/ooptdd_loop = dev-only methodology siblings (private, not on any index). CI does not
+# install them, so skip these instrumentation tests there — like the leiden/lean optional-tool
+# tests. The engine behaviour they trace-gate is covered by the regular tests.
+pytest.importorskip("ooptdd.backends")
+pytest.importorskip("ooptdd_loop")
 
 from ooptdd.backends.memory import MemoryBackend, reset
 from ooptdd.engine.gate import evaluate, load_gate
@@ -54,10 +61,7 @@ def _explain(result: dict) -> str:
 
 
 def _broke(result: dict, event: str) -> list:
-    return [
-        c for c in result["checks"]
-        if not c.get("passed", True) and c.get("event") == event
-    ]
+    return [c for c in result["checks"] if not c.get("passed", True) and c.get("event") == event]
 
 
 def test_naesengmoon_flow_arrives_green(monkeypatch):

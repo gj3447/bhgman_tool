@@ -75,11 +75,13 @@ def verify(
     elif kind == "kg-corroborate":
         # separate-source leg: corroborate the claim (target) against canonical KG facts.
         from engine.agents.grounding import (  # noqa: PLC0415
+            GroundingSource,
             LocalGroundingSource,
             Neo4jGroundingSource,
         )
         from engine.naesengmoon.kg_corroboration import kg_corroboration_oracle  # noqa: PLC0415
 
+        source: GroundingSource
         if kg is not None:
             source = LocalGroundingSource(kg)
         elif run_cypher is not None:

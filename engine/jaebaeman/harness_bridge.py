@@ -16,6 +16,7 @@ objective 는 'ensure/verify {axis} coverage'(harness 가 그 축을 광고하�
 
 # KG: 재배맨-v2-subagent-runtime-protocol, finding-jaebaeman-seed-dispatch-handoff-unwired-2026-06-07
 """
+
 from __future__ import annotations
 
 from engine.harness.harness_models import Axis, HarnessDiagnosis
@@ -58,7 +59,9 @@ def harness_seed_goals(diagnosis: HarnessDiagnosis, *, anchor: str | None = None
     return goals
 
 
-def harness_germination_system(diagnosis: HarnessDiagnosis, *, base_system: str = _BASE_SYSTEM) -> str:
+def harness_germination_system(
+    diagnosis: HarnessDiagnosis, *, base_system: str = _BASE_SYSTEM
+) -> str:
     """The germination ENVIRONMENT a subagent runs in under a target harness — a system directive
     naming the tier + which 4-axis primitives the harness PROVIDES (use them) vs leaves UNKNOWN
     (supply yourself). The REVERSE of :func:`harness_seed_goals`: the harness is not only turned

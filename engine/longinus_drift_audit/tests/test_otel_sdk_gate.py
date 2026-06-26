@@ -15,6 +15,7 @@ false 'SDK present' reason.
 
 # KG: finding-otel-availability-api-only-false-positive-2026-06-26
 """
+
 from __future__ import annotations
 
 import importlib.util

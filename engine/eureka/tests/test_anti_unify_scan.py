@@ -8,6 +8,7 @@ wildcarded, identifiers/operators kept) and PROPOSEs one LGG template per Rule-o
 
 # KG: eureka-canonical-2026-05-26
 """
+
 from __future__ import annotations
 
 from engine.eureka.anti_unify import scan_fragments

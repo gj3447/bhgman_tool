@@ -8,6 +8,7 @@ INVISIBLE on the most-used surface. An uncertain supersession would silently van
 
 # KG: finding-occam-cli-discards-escalation-plan-2026-06-26
 """
+
 from __future__ import annotations
 
 import types
@@ -46,12 +47,8 @@ def _uncertain_result():
 def _patch(monkeypatch):
     read = types.SimpleNamespace()
     write = types.SimpleNamespace()
-    monkeypatch.setattr(
-        "engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None)
-    )
-    monkeypatch.setattr(
-        "engine.occam.occam_runner.run_occam", lambda *a, **k: _uncertain_result()
-    )
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
+    monkeypatch.setattr("engine.occam.occam_runner.run_occam", lambda *a, **k: _uncertain_result())
 
 
 def _scored_result():
@@ -77,12 +74,8 @@ def _scored_result():
 
 def test_occam_cli_surfaces_candidate_sigma(monkeypatch, capsys):
     read, write = types.SimpleNamespace(), types.SimpleNamespace()
-    monkeypatch.setattr(
-        "engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None)
-    )
-    monkeypatch.setattr(
-        "engine.occam.occam_runner.run_occam", lambda *a, **k: _scored_result()
-    )
+    monkeypatch.setattr("engine.cli.runtime.make_kg_runners", lambda: (read, write, lambda: None))
+    monkeypatch.setattr("engine.occam.occam_runner.run_occam", lambda *a, **k: _scored_result())
     rc = cli(["occam", "--no-disk-scan"])
     out = capsys.readouterr().out
     assert rc == 0

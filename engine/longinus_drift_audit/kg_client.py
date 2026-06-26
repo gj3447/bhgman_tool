@@ -158,7 +158,9 @@ class MockKgClient(KgClient):
                 self.hubs[h.name] = h
         self.drift_events: list[SourceCodeDriftEvent] = []
         self.drift_checks: list[dict[str, Any]] = []
-        self.reinduction_triggers: list[str] = []
+        self.reinduction_triggers: list[
+            dict[str, Any]
+        ] = []  # {name, createdAt} for the Goodhart window
         self.other_nodes: set[str] = set()
         self.run_rows: list[dict[str, Any]] = []
 
@@ -511,8 +513,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
         ).isoformat()  # created_at stored as ISO 8601 → lexical >= is chronological
         with self._driver.session() as s:
             row = s.run(
-                "MATCH (t:ReinductionTrigger) WHERE t.created_at >= $cutoff "
-                "RETURN count(t) AS n",
+                "MATCH (t:ReinductionTrigger) WHERE t.created_at >= $cutoff RETURN count(t) AS n",
                 cutoff=cutoff,
             ).single()
             return int(row["n"]) if row else 0

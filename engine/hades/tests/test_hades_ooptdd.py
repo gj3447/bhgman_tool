@@ -21,6 +21,7 @@ Five tests:
 
 # KG: hades-canonical-2026-05-27
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,6 +29,12 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("libcst")  # the on-disk apply path is format-preserving (libcst)
+
+# ooptdd/ooptdd_loop = dev-only methodology siblings (private, not on any index). CI does not
+# install them, so skip these instrumentation tests there — like the leiden/lean optional-tool
+# tests. The engine behaviour they trace-gate is covered by the regular tests.
+pytest.importorskip("ooptdd.backends")
+pytest.importorskip("ooptdd_loop")
 
 from ooptdd.backends.memory import MemoryBackend, reset  # noqa: E402
 from ooptdd.engine.gate import evaluate, load_gate  # noqa: E402
@@ -54,10 +61,7 @@ def _explain(result: dict) -> str:
 
 
 def _broke(result: dict, event: str) -> list:
-    return [
-        c for c in result["checks"]
-        if not c.get("passed", True) and c.get("event") == event
-    ]
+    return [c for c in result["checks"] if not c.get("passed", True) and c.get("event") == event]
 
 
 def test_hades_flow_arrives_green(monkeypatch):
@@ -123,8 +127,8 @@ def test_failing_gate_reverts_and_does_not_apply(monkeypatch):
 
     backend = MemoryBackend()
     report = run_hades_pipeline(backend, cid, fail_test=True)
-    assert report["extracted"] == 1     # the method IS extractable...
-    assert report["applied"] == 0       # ...but the gate failed => REVERTED, nothing applied
+    assert report["extracted"] == 1  # the method IS extractable...
+    assert report["applied"] == 0  # ...but the gate failed => REVERTED, nothing applied
 
     result = evaluate(backend, load_gate(_GATE_PATH))
     assert result["ok"] is False, f"a reverted gate must turn the gate RED. {result}"

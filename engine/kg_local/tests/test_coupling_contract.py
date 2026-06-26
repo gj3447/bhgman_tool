@@ -52,8 +52,18 @@ def test_hades_single_concept_fetch_filters_to_requested(tmp_path):
     from engine.hades.hades_runner import fetch_accepted_cypher
 
     store = LocalKgStore(tmp_path / "k.json")
-    store.nodes.append({"labels": ["AbstractClass"], "props": {"name": "alpha", "verdictStatus": "ACCEPTED", "extent": ["a"]}})
-    store.nodes.append({"labels": ["AbstractClass"], "props": {"name": "beta", "verdictStatus": "ACCEPTED", "extent": ["b"]}})
+    store.nodes.append(
+        {
+            "labels": ["AbstractClass"],
+            "props": {"name": "alpha", "verdictStatus": "ACCEPTED", "extent": ["a"]},
+        }
+    )
+    store.nodes.append(
+        {
+            "labels": ["AbstractClass"],
+            "props": {"name": "beta", "verdictStatus": "ACCEPTED", "extent": ["b"]},
+        }
+    )
     run = make_local_runner(store, autosave=False)
     rows = run(*fetch_accepted_cypher("alpha"))
     assert [r["concept"] for r in rows] == ["alpha"]

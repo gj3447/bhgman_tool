@@ -22,11 +22,18 @@ Four tests:
 
 # KG: ATOM_Skill_prometheus
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
+
+# ooptdd/ooptdd_loop = dev-only methodology siblings (private, not on any index). CI does not
+# install them, so skip these instrumentation tests there — like the leiden/lean optional-tool
+# tests. The engine behaviour they trace-gate is covered by the regular tests.
+pytest.importorskip("ooptdd.backends")
+pytest.importorskip("ooptdd_loop")
 
 from ooptdd.backends.memory import MemoryBackend, reset
 from ooptdd.engine.gate import evaluate, load_gate
@@ -123,7 +130,8 @@ def test_drop_the_seed_breaks_value_pinned_count(monkeypatch):
     result = evaluate(backend, load_gate(_GATE_PATH))
     assert result["ok"] is False, f"dropped seed must turn the gate RED. {result}"
     broke = [
-        c for c in result["checks"]
+        c
+        for c in result["checks"]
         if not c.get("passed", True) and c.get("event") == "prometheus_finding_extracted"
     ]
     assert broke and broke[0].get("got") == 1, (

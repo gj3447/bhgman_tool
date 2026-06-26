@@ -10,6 +10,7 @@ optional [gate] deps are absent, runs in CI's --all-extras).
 
 # KG: finding-gate-audit-log-print-stub-no-kg-entry-2026-06-26
 """
+
 from __future__ import annotations
 
 import datetime as dt

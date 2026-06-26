@@ -9,6 +9,7 @@ AbstractClass/Concept/Finding semantic dedup was a SILENT no-op on local (applie
 
 # KG: finding-occam-semantic-dedup-local-keyerror-silent-noop-2026-06-26
 """
+
 from __future__ import annotations
 
 from engine.kg_local.runner import make_local_runner

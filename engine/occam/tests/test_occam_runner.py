@@ -225,8 +225,20 @@ def test_parse_node_records_keeps_invocation_count():
 
 _DUP_ROWS_MEASURED_DEAD = [
     # same path + different sha as _DUP_ROWS, but the stale "old" is measured-DEAD (0 calls).
-    {"name": "old", "source_path": "bhgman_tool/x.py", "sha256": "o", "line_count": 10, "invocation_count": 0},
-    {"name": "new", "source_path": "bhgman_tool/x.py", "sha256": "n", "line_count": 99, "invocation_count": 20},
+    {
+        "name": "old",
+        "source_path": "bhgman_tool/x.py",
+        "sha256": "o",
+        "line_count": 10,
+        "invocation_count": 0,
+    },
+    {
+        "name": "new",
+        "source_path": "bhgman_tool/x.py",
+        "sha256": "n",
+        "line_count": 99,
+        "invocation_count": 20,
+    },
 ]
 
 

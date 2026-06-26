@@ -18,6 +18,7 @@ is the single-authority gap that mattered. It abstains (passed=True) when canon 
 
 # KG: q-naesengmoon-single-authority, naesengmoon-canonical-2026-05-19
 """
+
 from __future__ import annotations
 
 import re
@@ -32,8 +33,22 @@ _LENS = "kg-corroborate"
 # negation markers — word-based for English (avoids 'another'→'not' false positives),
 # substring for Korean.
 _NEG_WORDS = frozenset(
-    {"not", "never", "no", "nor", "false", "incorrect", "wrong", "cannot",
-     "isn't", "aren't", "doesn't", "don't", "wasn't", "weren't"}
+    {
+        "not",
+        "never",
+        "no",
+        "nor",
+        "false",
+        "incorrect",
+        "wrong",
+        "cannot",
+        "isn't",
+        "aren't",
+        "doesn't",
+        "don't",
+        "wasn't",
+        "weren't",
+    }
 )
 _NEG_KO = ("아님", "아니", "없", "거짓", "틀린", "반증")
 

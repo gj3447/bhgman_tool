@@ -12,6 +12,7 @@ test: for every test-module basename that appears in more than one directory und
 
 # KG: finding-pytest-basename-collision-suite-uncollectable-2026-06-26
 """
+
 from __future__ import annotations
 
 import collections
