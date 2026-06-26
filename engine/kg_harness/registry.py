@@ -34,27 +34,33 @@ STABLE_IDS: dict[str, str | tuple[str, ...]] = {
     "ReinductionTrigger": "name",
     "SourceCodeDriftEvent": "name",
     "ResearchFinding": "findingId",  # dead-island/orphan 청소로 0 dup → clean
-    # ── dedup 선행 필요 (2026-06-26 dup 실측) ──
-    "SourceCodeNode": "sourcePath",  # 3 (occam 표준 타겟)
-    "SubagentTaskSpec": ("sourceId", "name"),  # 복합 9 dup 잔존(canonical 모호 → 사람 판단)
+    "SourceCodeNode": "sourcePath",  # ⚠️ UNCONSTRAINABLE (아래)
+    "SubagentTaskSpec": ("sourceId", "name"),  # 명확우위 4 dedup, sourceId null로 복합 면제 → clean
 }
 
-# constraint 설치 전 dedup 필요한 라벨 (clean해지면 제거).
-# 졸업: ReferenceSite(50 stub dedup), ResearchFinding(청소로 0 dup).
-NEEDS_DEDUP: frozenset[str] = frozenset({"SourceCodeNode", "SubagentTaskSpec"})
+# constraint 설치 전 dedup 필요한 라벨 (clean해지면 제거). 현재 전부 해소(졸업).
+NEEDS_DEDUP: frozenset[str] = frozenset()
+
+# ⚠️ 2026-06-26 발견: **archive식 dedup(SUPERSEDED_BY로 노드 보존)은 키를 풀지 못한다** —
+# uniqueness constraint는 :Superseded 노드도 카운트하므로 live canonical과 키 충돌.
+# 해법: dedup-archive 시 식별 키를 free(복합은 한 성분 null→면제, ReferenceSite sourceId 처리 완료).
+# 단 SourceCodeNode는 occam 버전-아카이브가 같은 sourcePath를 *영구* 보유(파일 이력) →
+# 단일키 sourcePath UNIQUE는 근본적으로 불가. constraint 후보에서 제외.
+UNCONSTRAINABLE: frozenset[str] = frozenset({"SourceCodeNode"})
 
 
 def constraint_bundle(*, include_pending: bool = False) -> list[str]:
     """stable-id 유니크 constraint DDL 번들.
 
-    기본은 NEEDS_DEDUP 제외(지금 설치하면 실패) — 즉시 설치 가능한 것만.
-    include_pending=True면 전체(주석/계획용).
+    기본은 NEEDS_DEDUP(설치하면 실패) + UNCONSTRAINABLE(archive-model 충돌) 제외 —
+    즉시 설치 가능한 것만. include_pending=True면 전체(주석/계획용).
     """
+    skip = NEEDS_DEDUP | UNCONSTRAINABLE
     return [
         constraint_cypher(label, key)
         for label, key in sorted(STABLE_IDS.items())
-        if include_pending or label not in NEEDS_DEDUP
+        if include_pending or label not in skip
     ]
 
 
-__all__ = ["NEEDS_DEDUP", "STABLE_IDS", "constraint_bundle"]
+__all__ = ["NEEDS_DEDUP", "STABLE_IDS", "UNCONSTRAINABLE", "constraint_bundle"]

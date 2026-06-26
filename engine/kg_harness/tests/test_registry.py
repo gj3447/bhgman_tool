@@ -5,7 +5,12 @@
 
 from __future__ import annotations
 
-from engine.kg_harness.registry import NEEDS_DEDUP, STABLE_IDS, constraint_bundle
+from engine.kg_harness.registry import (
+    NEEDS_DEDUP,
+    STABLE_IDS,
+    UNCONSTRAINABLE,
+    constraint_bundle,
+)
 
 
 def test_bundle_excludes_dirty_labels_by_default():
@@ -18,9 +23,18 @@ def test_bundle_excludes_dirty_labels_by_default():
     assert "kgh_ReferenceSite_sourceId_name_unique" in joined
     assert "REQUIRE (n.sourceId, n.name) IS UNIQUE" in joined
     # 아직 dedup 필요한 라벨은 제외
-    assert "SubagentTaskSpec" not in joined
+    # SubagentTaskSpec는 dedup 후 복합키 clean → 졸업(포함)
+    assert "kgh_SubagentTaskSpec_sourceId_name_unique" in joined
+    # SourceCodeNode는 archive-model상 단일키 영구충돌 → UNCONSTRAINABLE(제외)
     assert "SourceCodeNode" not in joined
-    assert len(bundle) == len(STABLE_IDS) - len(NEEDS_DEDUP)
+    assert len(bundle) == len(STABLE_IDS) - len(NEEDS_DEDUP | UNCONSTRAINABLE)
+
+
+def test_unconstrainable_excluded_even_with_no_dedup_pending():
+    # archive-model 충돌(SourceCodeNode)은 dedup으로 해결 불가 → 항상 제외
+    assert "SourceCodeNode" in UNCONSTRAINABLE
+    assert NEEDS_DEDUP == frozenset()  # 현재 dedup 백로그 0
+    assert "SourceCodeNode" not in "\n".join(constraint_bundle())
 
 
 def test_composite_key_emits_composite_unique_constraint():
