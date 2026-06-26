@@ -14,6 +14,30 @@ from pathlib import Path
 from engine.efficacy import apt_metrics_gen as M
 
 
+def test_absent_lean_root_is_flagged_not_zeroed(tmp_path: Path):
+    # A missing lean_root (tool-only clone) must be a SIGNAL — not silently fabricated as
+    # all-zero metrics that then drift against hand-typed doc counts.
+    absent = tmp_path / "nope_lean"  # never created → does not exist
+    agg = M.compute(absent)["aggregate"]
+    assert agg.get("lean_root_present") is False
+    assert agg["n_files"] == 0
+    # check_docs must NOT compare a hand-typed count against the fabricated zeros
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("the development proves 32 theorems in lean\n")
+    assert M.check_docs(docs, agg) == []  # no false drift when the source is absent
+
+
+def test_present_lean_root_still_flags_drift(tmp_path: Path):
+    # guard must not suppress REAL drift when the root is present (regression guard).
+    agg = M.compute(tmp_path)["aggregate"]  # tmp_path exists, no APT*.lean → present, 0 theorems
+    assert agg.get("lean_root_present") is True
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("the development proves 32 theorems in lean\n")
+    assert len(M.check_docs(docs, agg)) == 1  # 32 vs real 0 → genuine drift surfaced
+
+
 def test_strip_counts_only_live_proof_terms(tmp_path: Path):
     f = tmp_path / "APT_Fixture.lean"
     f.write_text(

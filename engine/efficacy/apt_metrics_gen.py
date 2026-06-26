@@ -164,6 +164,10 @@ def compute(lean_root: Path, glob: str = "APT*.lean", *, with_axioms: bool = Fal
     arch = [f for f in per_file if f["file"] not in NON_ARCHITECTURE_STREAM]
     stream = [f for f in per_file if f["file"] in NON_ARCHITECTURE_STREAM]
     agg = {
+        # presence SIGNAL: an absent lean_root (tool-only clone) yields all-zero counts that
+        # are fabricated, not measured — check_docs guards on this so it doesn't drift hand-typed
+        # doc counts against fake zeros.
+        "lean_root_present": lean_root.exists(),
         "n_files": len(per_file),
         "n_theorems": sum(f["theorems"] for f in per_file),
         "n_lemmas": sum(f["lemmas"] for f in per_file),
@@ -281,6 +285,10 @@ def _line_findings(md_name: str, i: int, line: str, agg: dict, tolerance: int) -
 
 def check_docs(docs_root: Path, agg: dict, tolerance: int = 0) -> list[dict]:
     """Return list of drift findings. A finding = a hand-typed count that mismatches agg."""
+    # the lean_root is absent → the agg counts are fabricated zeros, not measured. Comparing
+    # hand-typed doc counts against them would emit false drift, so skip the check entirely.
+    if not agg.get("lean_root_present", True):
+        return []
     findings: list[dict] = []
     for md in sorted(docs_root.glob("*.md")):
         try:
