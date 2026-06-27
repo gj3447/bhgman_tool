@@ -13,7 +13,8 @@ _run_durable_dbos 한 곳만 활성화하면 된다.
 
 지금 당장 실동작하는 durability 보강은 동반 모듈로 제공한다:
   - stuck_detector.StuckDetector — 무진전 정체 halt (깊이캡과 직교)
-  - realize_idempotency.RealizationLedger — at-least-once 실현 멱등 (이중 실현 차단)
+(하데스 실현 멱등은 기존 verdict_gate.KgVerdictLedger(:RealizedVerdict, 영속)/VerdictLedger
+ 를 재사용한다 — 중복 RealizationLedger 는 2026-06-27 제거.)
 
 # KG: durable-legion-fallback-2026-06-27 (durable-engines-deepdive §2 분류c=DBOS Transact)
 """
