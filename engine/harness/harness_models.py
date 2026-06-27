@@ -35,7 +35,8 @@ class Axis(str, Enum):
 
 
 class Presence(str, Enum):
-    PRESENT = "PRESENT"  # 신호 있음
+    PRESENT = "PRESENT"  # 강한 신호: framework primitive 보유 또는 explicit signal
+    INFERRED = "INFERRED"  # 약한 신호: free-text feature(9부품) 키워드 추론 (falsifiable, 반박가능)
     UNKNOWN = "UNKNOWN"  # 신호 없음 (부재 ≠ 능력 없음 — 정직)
 
 
@@ -66,7 +67,13 @@ class HarnessDiagnosis:
 
     @property
     def present_axes(self) -> tuple[Axis, ...]:
+        """강한 신호 축 (primitive/explicit). build_diagnosis_cypher의 presentAxes."""
         return tuple(f.axis for f in self.axes if f.presence is Presence.PRESENT)
+
+    @property
+    def inferred_axes(self) -> tuple[Axis, ...]:
+        """약한 신호 축 (free-text feature 추론). presentAxes와 분리해 정직 기록."""
+        return tuple(f.axis for f in self.axes if f.presence is Presence.INFERRED)
 
     @property
     def summary(self) -> str:

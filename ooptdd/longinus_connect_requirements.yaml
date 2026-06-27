@@ -1,0 +1,60 @@
+# bhgman_tool longinus 연결(connect) CREATE-binding — ooptdd-loop spec (the RED artifact).
+#
+# The CREATE half of 연결, DISTINCT from the detect-only slice (ooptdd/adapter.py). Four trace
+# gates, each Longinus-bound to a REAL emitting symbol in ooptdd/longinus_connect_adapter.py.
+# The adapter ships these events only by genuinely running
+# forward_binding_materialize.materialize + symbol_binding.bind_file. A gate goes DONE iff it
+# is GREEN *and* its bound symbol's body literally contains the must_emit event string — the
+# literals live in the ADAPTER, never in engine/longinus_drift_audit/ (the engine functions
+# return pure MaterializeResult/BindResult and stay literal-free).
+#
+# Run:   ooptdd-loop validate-spec ooptdd/longinus_connect_requirements.yaml
+#        ooptdd-loop run          ooptdd/longinus_connect_requirements.yaml --json
+name: bhgman-longinus-connect
+
+target:
+  mode: in_process
+  callable: ooptdd.longinus_connect_adapter:run_longinus_connect_pipeline  # (backend, cid)
+  backend: memory
+  root: .
+
+requirements:
+  - id: REQ-LON-CONNECT-RAN
+    description: the real longinus connect (materialize + symbol-bind) runs exactly once
+    gate:
+      - {event: longinus_connect_complete, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-longinus-connect-adapter-20260625
+      source: ooptdd/longinus_connect_adapter.py
+      symbol: run_longinus_connect_pipeline
+      must_emit: longinus_connect_complete
+
+  - id: REQ-LON-BINDING-MATERIALIZED
+    description: exactly one '# KG:' ref whose cited node pre-exists materializes to a binding
+    gate:
+      - {event: longinus_binding_materialized, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-longinus-connect-adapter-20260625
+      source: ooptdd/longinus_connect_adapter.py
+      symbol: emit_materialize_phase
+      must_emit: longinus_binding_materialized
+
+  - id: REQ-LON-ORPHAN-DISCRIMINATED
+    description: the un-seeded ref is discriminated as a node_absent orphan (not auto-created)
+    gate:
+      - {event: longinus_orphan_ref_skipped, where: {reason: node_absent}, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-longinus-connect-adapter-20260625
+      source: ooptdd/longinus_connect_adapter.py
+      symbol: emit_materialize_phase
+      must_emit: longinus_orphan_ref_skipped
+
+  - id: REQ-LON-SYMBOL-BOUND
+    description: exactly the public symbols lacking a '# KG:' header are bound (PROPOSE, 2)
+    gate:
+      - {event: longinus_symbol_bound, op: "==", count: 2}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-longinus-connect-adapter-20260625
+      source: ooptdd/longinus_connect_adapter.py
+      symbol: emit_symbol_bind_phase
+      must_emit: longinus_symbol_bound

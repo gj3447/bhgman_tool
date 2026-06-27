@@ -14,14 +14,17 @@ from .decorrelation import (
     flag_echo,
     prompt_echo_score,
 )
+from .kg_corroboration import KgCorroborationOracle, kg_corroboration_oracle
 
 __all__ = [
     "CriticKind",
     "CriticVerdict",
     "EnsembleResult",
+    "KgCorroborationOracle",
     "aggregate",
     "effective_n",
     "estimate_rho",
     "flag_echo",
+    "kg_corroboration_oracle",
     "prompt_echo_score",
 ]

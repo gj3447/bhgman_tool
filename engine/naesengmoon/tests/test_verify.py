@@ -47,7 +47,13 @@ def test_verify_unknown_kind_raises():
 
 
 def test_kinds_complete():
-    assert set(KINDS) == {"lean-goals", "pytest-ratio", "drift-recount", "occam-twins"}
+    assert set(KINDS) == {
+        "lean-goals",
+        "pytest-ratio",
+        "drift-recount",
+        "occam-twins",
+        "kg-corroborate",  # separate-source leg (q-naesengmoon-single-authority)
+    }
 
 
 def test_verify_occam_twins_passes_repo_root(monkeypatch):

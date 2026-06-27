@@ -84,7 +84,7 @@ def eval_g1_artifact_exists(run: LegionRun) -> GateVerdict:
 _REJECTING_ENSEMBLE = frozenset({"REJECT", "FAIL"})
 
 
-def eval_g2_adversary_ran(run: LegionRun) -> GateVerdict:
+def eval_g2_adversary_ran(run: LegionRun, gate: object | None = None) -> GateVerdict:
     verify = [o for o in run.outcomes if o.verb == VERIFY_VERB]
     if not verify:
         return GateVerdict(
@@ -102,6 +102,14 @@ def eval_g2_adversary_ran(run: LegionRun) -> GateVerdict:
             "G2_ADVERSARY_RAN",
             "FAIL",
             f"adversary ran but verdict not clean (oracle={oracle}, ensemble={ensemble})",
+        )
+    # R7/OQ1c: 게이트 주입 시 verdict 서명 진위도 요구 — 위조/미서명 final_verdict 탐지
+    # (clean-looking 한 oracle/ensemble 만으로는 G2 통과 불가).
+    if gate is not None and not gate.signature_valid(verdict):  # type: ignore[attr-defined]
+        return GateVerdict(
+            "G2_ADVERSARY_RAN",
+            "FAIL",
+            "adversary verdict signature invalid/absent (forged or unsigned)",
         )
     return GateVerdict(
         "G2_ADVERSARY_RAN",
@@ -142,7 +150,7 @@ def run_gated(
     run = legion.run(context=context, gate=per_stage_gate)
     gates = (
         eval_g1_artifact_exists(run),
-        eval_g2_adversary_ran(run),
+        eval_g2_adversary_ran(run, gate=context.get("verdict_gate")),
         eval_g3_ground_truth(ground_truth_cmd, cwd=gt_cwd),
     )
     verified = all(g.passed for g in gates)

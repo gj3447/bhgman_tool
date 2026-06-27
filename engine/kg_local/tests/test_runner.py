@@ -100,6 +100,42 @@ def test_hades_fetch_then_materialize(tmp_path):
     assert run(_HADES_FETCH, {}) == []
 
 
+# the REAL op1 (W3-I): a member is INSTANCE_OF the abstraction, NEVER itself an AbstractClass.
+_HADES_LINK_W3I = (
+    "UNWIND $members AS m MATCH (a:AbstractClass {name:$concept}) "
+    "MATCH (o {name:m}) WHERE NOT o:AbstractClass MERGE (o)-[:INSTANCE_OF]->(a)"
+)
+
+
+def test_has_seed_noop_when_anchor_absent(tmp_path):
+    # neo4j `MATCH (a {name:$anchor})` is a NO-OP when the anchor is absent, and the
+    # E1_ORPHAN_ANCHOR invariant exists to FLAG an absent anchor — so the local backend must
+    # not fabricate a phantom :Node anchor (which would create the orphan instead of flagging it).
+    from engine.jaebaeman.kg_adapter import _HAS_SEED_EDGE
+
+    s = _store(tmp_path)
+    s.nodes.append({"labels": ["SubagentTaskSpec"], "props": {"name": "seed1", "status": "READY"}})
+    n_before = len(s.nodes)
+    run = make_local_runner(s)
+    run(_HAS_SEED_EDGE, {"anchor": "ghost_anchor", "seed": "seed1"})
+    assert len(s.nodes) == n_before  # no phantom anchor node created
+    assert not any(e["type"] == "HAS_SEED" for e in s.edges)  # and no HAS_SEED edge
+
+
+def test_hades_link_excludes_abstractclass_members(tmp_path):
+    s = _store(tmp_path)
+    s.merge_node("AbstractClass", "name", "C", {"verdictStatus": "ACCEPTED"})
+    s.merge_node("AbstractClass", "name", "Sib", {"verdictStatus": "ACCEPTED"})  # NOT a member
+    s.merge_node("Node", "name", "plain", {})
+    run = make_local_runner(s)
+    run(_HADES_LINK_W3I, {"concept": "C", "members": ["Sib", "plain"]})
+    # only 'plain' links — the neo4j `WHERE NOT o:AbstractClass` guard must hold locally too.
+    instance_edges = [e for e in s.edges if e["type"] == "INSTANCE_OF"]
+    assert len(instance_edges) == 1
+    sib_idx = s.nodes.index(s.find_one("name", "Sib", "AbstractClass"))
+    assert not any(e["src"] == sib_idx and e["type"] == "INSTANCE_OF" for e in s.edges)
+
+
 def test_eureka_facet_read_builds_context(tmp_path):
     s = _store(tmp_path)
     o = s.merge_node("Topic", "name", "Topology", {})

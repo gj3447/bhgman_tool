@@ -126,6 +126,14 @@ class KgClient(ABC):
         Mock/Neo4j override. Non-abstract so existing subclasses stay valid."""
         raise NotImplementedError("merge_drift_check() not supported by this KgClient")
 
+    def count_recent_reinduction_triggers(self, within_days: int = 7) -> int:
+        """Count :ReinductionTrigger nodes created within the last ``within_days`` — the
+        rolling window the Goodhart cap (MAX_REINDUCTION_PER_WEEK) is enforced against.
+        Default raises; Mock/Neo4j override. Non-abstract so existing subclasses stay valid."""
+        raise NotImplementedError(
+            "count_recent_reinduction_triggers() not supported by this KgClient"
+        )
+
 
 class MockKgClient(KgClient):
     # KG: ATOM_Skill_longinus
@@ -150,7 +158,9 @@ class MockKgClient(KgClient):
                 self.hubs[h.name] = h
         self.drift_events: list[SourceCodeDriftEvent] = []
         self.drift_checks: list[dict[str, Any]] = []
-        self.reinduction_triggers: list[str] = []
+        self.reinduction_triggers: list[
+            dict[str, Any]
+        ] = []  # {name, createdAt} for the Goodhart window
         self.other_nodes: set[str] = set()
         self.run_rows: list[dict[str, Any]] = []
 
@@ -195,7 +205,28 @@ class MockKgClient(KgClient):
     def merge_drift_check(self, record: dict[str, Any], *, reinduction: bool = False) -> None:
         self.drift_checks.append(dict(record))
         if reinduction:
-            self.reinduction_triggers.append(record.get("name", ""))
+            # carry createdAt so count_recent_reinduction_triggers can enforce the rolling
+            # Goodhart window (was a bare name string → no timestamp to rate-limit against).
+            self.reinduction_triggers.append(
+                {"name": record.get("name", ""), "createdAt": record.get("createdAt")}
+            )
+
+    def count_recent_reinduction_triggers(self, within_days: int = 7) -> int:
+        import datetime as _dt  # noqa: PLC0415
+
+        cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=within_days)
+        n = 0
+        for t in self.reinduction_triggers:
+            created = t.get("createdAt") if isinstance(t, dict) else None
+            if created is None:  # no timestamp → treat as current (count it)
+                n += 1
+                continue
+            try:
+                if _dt.datetime.fromisoformat(created) >= cutoff:
+                    n += 1
+            except ValueError:
+                n += 1
+        return n
 
     def list_knowledge_hubs(self) -> list[KnowledgeHubRecord]:
         return list(self.hubs.values())
@@ -473,6 +504,19 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                     trigger_name=f"reinduction-{record.get('name')}",
                     created_at=record.get("createdAt"),
                 )
+
+    def count_recent_reinduction_triggers(self, within_days: int = 7) -> int:
+        import datetime as _dt  # noqa: PLC0415
+
+        cutoff = (
+            _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=within_days)
+        ).isoformat()  # created_at stored as ISO 8601 → lexical >= is chronological
+        with self._driver.session() as s:
+            row = s.run(
+                "MATCH (t:ReinductionTrigger) WHERE t.created_at >= $cutoff RETURN count(t) AS n",
+                cutoff=cutoff,
+            ).single()
+            return int(row["n"]) if row else 0
 
     def list_knowledge_hubs(self) -> list[KnowledgeHubRecord]:
         with self._driver.session() as s:

@@ -72,6 +72,9 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "occam_dedupe": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
     # kg_query can write/destroy the KG when called with mutate=true → integrity axis.
     "kg_query": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
+    # hades_realize materializes (write) an ACCEPTED abstraction into the KG, behind a
+    # verdict-provenance gate. Reads the KG to recompute artifact_id; can mutate on realize.
+    "hades_realize": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
     "gate_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "seed_germinate": frozenset({Capability.READS_PRIVATE_DATA}),
     "legion_roster": frozenset(),  # pure introspection (static roster)

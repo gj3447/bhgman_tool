@@ -46,11 +46,11 @@ G7: Lesson Candidate Surface  — improvement actions
 ```
 Q1: Primary user = developer?
   YES → Q2: IDE plugin / CLI?
-    YES → L_MC (IDE-host coding harness)
+    YES → L_IDE (IDE-host coding harness)
     NO  → L_RT 가능성
   NO → Q3: agent system designer 또는 infra engineer?
     designer → L_RT (application agent runtime)
-    infra    → L_IDE (managed cloud)
+    infra    → L_MC (managed cloud)
 ```
 
 **Evidence required**:

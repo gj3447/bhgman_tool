@@ -113,6 +113,12 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
         "exercising the full 7-commander deterministic loop without live Neo4j",
         "read",
     ),
+    (
+        "hades_realize",
+        "Realize (실현) an ACCEPTED abstraction behind a verified HMAC verdict gate (fail-closed).",
+        "materializing a single gated concept after naesengmoon verification (실현 종착)",
+        "write",
+    ),
 ]
 
 TOOL_CATALOG: dict[str, ToolMeta] = {

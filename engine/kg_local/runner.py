@@ -53,13 +53,55 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
             "line_count": n["props"]["lineCount"],
             "last_validated": n["props"].get("lastValidated"),
             "created_at": n["props"].get("createdAt"),
+            "invocation_count": n["props"].get(
+                "invocation_count"
+            ),  # oracle_backfill usage (--local parity)
             "inbound_edges": inbound.get(idx_of.get(id(n), -1), 0),
         }
         for n in matched
     ]
 
 
+# semantic_dedup._KEY_ALLOWLIST mirror — the generic-key supersede matches an *unlabeled*
+# node on any of these identity props (stale.{key} = $stale_id).
+_GENERIC_IDENTITY_KEYS = ("name", "findingId", "id")
+
+
+def _occam_supersede_generic(store: LocalKgStore, params: dict) -> list[dict]:
+    # semantic_dedup._SUPERSEDE_TMPL 변종: `MATCH (stale) WHERE stale.{key} = $stale_id`
+    # (key ∈ {name,findingId,id}, label 무관). params = {stale_id, current_id, reason}.
+    # 과거엔 _occam_supersede가 params['stale_path']를 읽어 KeyError → 로컬서 의미론 dedup이
+    # silent no-op였다 (applied=0). label-agnostic identity 매칭으로 그 seam을 닫는다.
+    def _by(ident: str) -> dict | None:
+        for n in store.nodes:
+            props = n.get("props", {})
+            if any(props.get(k) == ident for k in _GENERIC_IDENTITY_KEYS):
+                return n
+        return None
+
+    stale = _by(params["stale_id"])
+    current = _by(params["current_id"])
+    if stale is None or current is None or stale is current:
+        return []
+    stale["props"].update(
+        {
+            "status": "SUPERSEDED",
+            "supersededBy": params["current_id"],
+            "supersededReason": params.get("reason", ""),
+            "occamPass": "occam-semantic",
+        }
+    )
+    store.add_edge(stale, "SUPERSEDED_BY", current)
+    return [{"superseded": params["stale_id"], "current": params["current_id"]}]
+
+
 def _occam_supersede(store: LocalKgStore, params: dict) -> list[dict]:
+    # 두 supersede 변종 처리 (둘 다 cypher에 `stale.status = 'SUPERSEDED'` 포함 → 같은 라우트):
+    #  · generic-key (semantic_dedup, key∈{name,findingId,id}): params에 stale_id → 위 핸들러.
+    #  · path+sha (SourceCodeNode, adapter._SUPERSEDE_CYPHER): params에 stale_path/stale_sha.
+    if "stale_path" not in params:
+        return _occam_supersede_generic(store, params)
+
     # 복합키 (sourcePath, sha256) 매칭 — name은 schema상 nullable이라 키로 못 씀.
     # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약)
     def _by(path: str, sha: str) -> dict | None:
@@ -150,7 +192,13 @@ def _hades_link_members(store: LocalKgStore, params: dict) -> list[dict]:
     if ac is None:
         ac = store.merge_node("AbstractClass", "name", params["concept"], {})
     for m in params.get("members") or []:
-        member = store.find_one("name", m) or store.merge_node("Node", "name", m, {})
+        member = store.find_one("name", m)
+        # W3-I: mirror the neo4j op1 `WHERE NOT o:AbstractClass` — a member is INSTANCE_OF the
+        # abstraction, never itself an AbstractClass; don't link (or fabricate a Node for) one.
+        if member is not None and "AbstractClass" in member.get("labels", []):
+            continue
+        if member is None:
+            member = store.merge_node("Node", "name", m, {})
         store.add_edge(member, "INSTANCE_OF", ac)
     return []
 
@@ -270,13 +318,13 @@ def _jaebaeman_seed_merge(store: LocalKgStore, params: dict) -> list[dict]:
 
 
 def _jaebaeman_has_seed(store: LocalKgStore, params: dict) -> list[dict]:
-    # anchor↔씨앗 발아 엣지. anchor 노드 없으면 만들어 둔다(임의 라벨 Node, 스키마 자유).
+    # anchor↔씨앗 발아 엣지. neo4j `MATCH (a {name:$anchor})` 의미와 동일하게, anchor가 부재하면
+    # NO-OP — phantom :Node를 날조하지 않는다. 부재 anchor는 E1_ORPHAN_ANCHOR 불변식이 잡아야 할
+    # FK orphan이지, 조용히 메워 invariant를 무력화할 대상이 아니다.
     seed = store.find_one("name", params["seed"], "SubagentTaskSpec")
-    if seed is None:
+    anchor = store.find_one("name", params["anchor"])
+    if seed is None or anchor is None:
         return []
-    anchor = store.find_one("name", params["anchor"]) or store.merge_node(
-        "Node", "name", params["anchor"], {}
-    )
     store.add_edge(anchor, "HAS_SEED", seed)
     return [{"linked": params["seed"]}]
 
@@ -456,7 +504,17 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
     ),
     (lambda c: "q:OpenQuestion OR q:VerdictPending" in c, _gap_scan, False),
     (lambda c: "$facet_rels" in c, _eureka_facets, False),
-    (lambda c: "(a:AbstractClass)" in c and "verdictStatus" in c, _hades_fetch_accepted, False),
+    # both hades fetch variants: _FETCH_ALL `(a:AbstractClass)` and _FETCH_ONE
+    # `(a:AbstractClass {name: $concept})` (handler filters on params['concept']). The MERGE
+    # routes above match first, so the single-concept form can't be mis-routed here.
+    (
+        lambda c: (
+            ("(a:AbstractClass)" in c or "(a:AbstractClass {name: $concept})" in c)
+            and "verdictStatus" in c
+        ),
+        _hades_fetch_accepted,
+        False,
+    ),
     (
         lambda c: "(s:SourceCodeNode)" in c and "RETURN s.name AS name" in c,
         _fetch_source_nodes,

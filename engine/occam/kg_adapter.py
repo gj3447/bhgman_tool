@@ -38,6 +38,7 @@ _RETURN = (
     "RETURN s.name AS name, s.sourcePath AS source_path, "
     "s.sha256 AS sha256, s.lineCount AS line_count, "
     "s.lastValidated AS last_validated, s.createdAt AS created_at, "
+    "s.invocation_count AS invocation_count, "  # oracle_backfill usage → occam deadness signal
     "count(x) AS inbound_edges"
 )
 
@@ -67,6 +68,7 @@ def parse_node_records(rows: list[dict]) -> list[NodeRecord]:
         if r.get("source_path") is None or r.get("sha256") is None or r.get("line_count") is None:
             continue
         inbound = r.get("inbound_edges")
+        inv = r.get("invocation_count")
         out.append(
             NodeRecord(
                 name=r["name"],
@@ -76,6 +78,7 @@ def parse_node_records(rows: list[dict]) -> list[NodeRecord]:
                 inbound_edges=int(inbound) if inbound is not None else None,
                 last_validated=r.get("last_validated"),
                 created_at=r.get("created_at"),
+                invocation_count=int(inv) if inv is not None else None,
             )
         )
     return out

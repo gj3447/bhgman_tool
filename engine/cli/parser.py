@@ -252,10 +252,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_orc.add_argument(
         "--kind",
         required=True,
-        choices=["lean-goals", "pytest-ratio", "drift-recount", "occam-twins"],
+        choices=["lean-goals", "pytest-ratio", "drift-recount", "occam-twins", "kg-corroborate"],
         help="검증 oracle 종류.",
     )
-    p_orc.add_argument("--target", help="lean-goals: 자족 .lean 파일 / pytest-ratio: pytest 대상.")
+    p_orc.add_argument(
+        "--target",
+        help="lean-goals: 자족 .lean 파일 / pytest-ratio: pytest 대상 / kg-corroborate: 검증할 주장(claim).",
+    )
     p_orc.add_argument("--lean-dir", default="lean", help="lean-goals: .lean 파일 디렉터리.")
     p_orc.add_argument("--code-root", default=".", help="drift-recount: 코드 루트.")
     p_orc.add_argument("--scope", help="occam-twins: sourcePath CONTAINS 필터.")
@@ -372,6 +375,35 @@ def build_parser() -> argparse.ArgumentParser:
         "--local",
         action="store_true",
         help="Use the bundled neo4j-free local KG (~/.bhgman/kg.json) instead of Neo4j.",
+    )
+    p_eu.add_argument(
+        "--apply",
+        action="store_true",
+        help="Persist gated concepts to the KG as verdictStatus='VERDICT_PENDING' so hades "
+        "can see them (visible, NOT yet realizable). 생략 = dry-run (PROPOSE only, no write).",
+    )
+    p_eu.add_argument(
+        "--accept",
+        action="store_true",
+        help="명시적 PROPOSED→ACCEPTED: persist as verdictStatus='ACCEPTED' (the row hades "
+        "realizes). Implies --apply. covenant: 실현 게이트는 명시적 accept 신호에서만.",
+    )
+    p_eu.add_argument(
+        "--code",
+        action="store_true",
+        help="code-template path (Plotkin LGG anti-unification over snippets) — neo4j-free, "
+        "PROPOSE-only. Feed snippets via repeated --snippet or --code-file.",
+    )
+    p_eu.add_argument(
+        "--snippet",
+        action="append",
+        help="--code: one code snippet (repeat for N). Rule of Three: ≥3 to propose.",
+    )
+    p_eu.add_argument(
+        "--code-file", help="--code: file of snippets separated by blank lines (or one per line)."
+    )
+    p_eu.add_argument(
+        "--min-instances", type=int, default=3, help="--code: Rule-of-Three minimum (default 3)."
     )
     p_eu.set_defaults(func=commands.cmd_eureka)
 
