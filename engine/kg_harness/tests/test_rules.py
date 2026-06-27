@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from engine.kg_harness import RULES, Rule, Severity, Violation, validate_write
-from engine.kg_harness.rules import ApocCreateRule, BulkLoadRule, NakedCreateRule
+from engine.kg_harness.rules import BulkLoadRule, NakedCreateRule
 
 
 # ── #2: 정규식 우회 false-negative 차단 ──────────────────────────────────────
@@ -26,13 +26,17 @@ def test_apoc_create_addlabels_is_error():
 
 def test_apoc_merge_node_is_allowed():
     # 키 기반 MERGE 등가 → 정당, 미플래그
-    r = validate_write("CALL apoc.merge.node(['Apostle'], {roman:'IV'}, {}, {}) YIELD node RETURN node")
+    r = validate_write(
+        "CALL apoc.merge.node(['Apostle'], {roman:'IV'}, {}, {}) YIELD node RETURN node"
+    )
     assert r.ok
     assert not any(v.code == "APOC_CREATE" for v in r.violations)
 
 
 def test_load_csv_is_warned():
-    r = validate_write("LOAD CSV WITH HEADERS FROM 'file:///x.csv' AS row MERGE (n:Node {id: row.id})")
+    r = validate_write(
+        "LOAD CSV WITH HEADERS FROM 'file:///x.csv' AS row MERGE (n:Node {id: row.id})"
+    )
     assert r.ok  # WARN은 통과
     assert any(v.code == "BULK_LOAD" and v.severity is Severity.WARN for v in r.warnings)
 
@@ -40,7 +44,9 @@ def test_load_csv_is_warned():
 def test_apoc_create_respects_optout_marker():
     from engine.kg_harness import ALLOW_CREATE_MARKER
 
-    r = validate_write(f"CALL apoc.create.node(['Boot'], {{}}) YIELD node RETURN node {ALLOW_CREATE_MARKER}")
+    r = validate_write(
+        f"CALL apoc.create.node(['Boot'], {{}}) YIELD node RETURN node {ALLOW_CREATE_MARKER}"
+    )
     assert not any(v.code == "APOC_CREATE" for v in r.violations)
 
 
@@ -49,7 +55,13 @@ def test_apoc_create_respects_optout_marker():
 
 def test_registry_lists_rule_objects():
     codes = {r.code for r in RULES}
-    assert {"NAKED_CREATE", "APOC_CREATE", "BULK_LOAD", "VERSIONED_FIELD", "ORPHAN_TOMBSTONE"} <= codes
+    assert {
+        "NAKED_CREATE",
+        "APOC_CREATE",
+        "BULK_LOAD",
+        "VERSIONED_FIELD",
+        "ORPHAN_TOMBSTONE",
+    } <= codes
     assert all(isinstance(r, Rule) for r in RULES)
 
 

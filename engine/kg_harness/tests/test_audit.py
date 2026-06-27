@@ -20,6 +20,13 @@ def test_dup_id_cypher_shape():
     assert "c > 1" in cy and p == {}
 
 
+def test_dup_id_cypher_supports_composite_key():
+    cy, p = dup_id_cypher("ReferenceSite", ("sourceId", "name"))
+    assert "n.`sourceId` IS NOT NULL AND n.`name` IS NOT NULL" in cy
+    assert "WITH [n.`sourceId`, n.`name`] AS k" in cy
+    assert "c > 1" in cy and p == {}
+
+
 def test_orphan_tombstone_cypher_requires_missing_edge():
     cy, _ = orphan_tombstone_cypher()
     assert "n:Superseded" in cy and "NOT (n)-[:SUPERSEDED_BY]->()" in cy

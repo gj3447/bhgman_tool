@@ -33,11 +33,17 @@ class AuditFinding:
 # ── 순수 cypher 빌더 ──────────────────────────────────────────────────────────
 
 
-def dup_id_cypher(label: str, id_key: str) -> tuple[str, dict]:
-    """(label,id_key) 중복 id 그룹/노드 수."""
+def dup_id_cypher(label: str, id_key: str | tuple[str, ...]) -> tuple[str, dict]:
+    """(label,id_key) 중복 id 그룹/노드 수. ``id_key`` may be a composite key."""
+    if isinstance(id_key, tuple):
+        key_expr = "[" + ", ".join(f"n.`{key}`" for key in id_key) + "]"
+        present = " AND ".join(f"n.`{key}` IS NOT NULL" for key in id_key)
+    else:
+        key_expr = f"n.`{id_key}`"
+        present = f"{key_expr} IS NOT NULL"
     cy = (
-        f"MATCH (n:`{label}`) WHERE n.`{id_key}` IS NOT NULL "
-        f"WITH n.`{id_key}` AS k, count(*) AS c WHERE c > 1 "
+        f"MATCH (n:`{label}`) WHERE {present} "
+        f"WITH {key_expr} AS k, count(*) AS c WHERE c > 1 "
         f"RETURN count(*) AS dup_groups, coalesce(sum(c),0) AS dup_nodes"
     )
     return cy, {}
@@ -105,9 +111,7 @@ def audit_all(
 # ── cypher 코퍼스 lint (write-guard 룰 공유) ──────────────────────────────────
 
 
-def lint_statements(
-    statements: Iterable[str], *, warnings: bool = True
-) -> list[AuditFinding]:
+def lint_statements(statements: Iterable[str], *, warnings: bool = True) -> list[AuditFinding]:
     """cypher 문장들을 write-guard 룰(동일 RULES)로 사후 lint.
 
     그래프-상태 audit는 '어떤 cypher가 썼는지' 못 본다 — apoc.create/LOAD CSV는 write-time

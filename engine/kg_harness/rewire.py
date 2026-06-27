@@ -26,7 +26,7 @@ def rewire_script() -> str:
     단일 live 동명twin(라벨 1개 이상 공유)에만 SUPERSEDED_BY를 건다 — 모호한
     multi-twin/no-twin은 건드리지 않음(사람/Longinus 판단 대상).
     """
-    ignore = ", ".join(f'"{l}"' for l in _IGNORE_LABELS)
+    ignore = ", ".join(f'"{label}"' for label in _IGNORE_LABELS)
     return f"""// orphan-tombstone 추적가능화 — bolt 운영자 실행. 삭제 0, 가역.
 // 1) 임시 인덱스 (없으면 풀스캔 타임아웃)
 CREATE INDEX kgh_superseded_name IF NOT EXISTS FOR (n:Superseded) ON (n.name);
