@@ -10,6 +10,10 @@ def _present(diag, axis):
     return next(f for f in diag.axes if f.axis is axis).presence is Presence.PRESENT
 
 
+def _inferred(diag, axis):
+    return next(f for f in diag.axes if f.axis is axis).presence is Presence.INFERRED
+
+
 def test_known_runtime_framework_high_confidence():
     d = diagnose("LangGraph")
     assert d.tier is Tier.RUNTIME
@@ -41,11 +45,12 @@ def test_unknown_low():
 
 
 def test_axis_signal_extraction_from_text():
+    # free-text feature 신호 = INFERRED(약신호, 반박가능) — primitive/explicit 의 PRESENT 와 구분.
     d = diagnose("an agent runtime with retry loops, guardrails, and an eval suite")
-    assert _present(d, Axis.CORRECT)  # retry
-    assert _present(d, Axis.CONSTRAIN)  # guardrails
-    assert _present(d, Axis.VERIFY)  # eval
-    assert not _present(d, Axis.INFORM)  # no inform signal → UNKNOWN
+    assert _inferred(d, Axis.CORRECT)  # retry → feature 'retry'
+    assert _inferred(d, Axis.CONSTRAIN)  # guardrails → feature 'permission'
+    assert _inferred(d, Axis.VERIFY)  # eval → feature 'test-feedback'
+    assert not _present(d, Axis.INFORM) and not _inferred(d, Axis.INFORM)  # no inform → UNKNOWN
 
 
 def test_explicit_signals_override():
@@ -71,5 +76,36 @@ def test_build_diagnosis_cypher_persist_shape():
     assert "MERGE (h:HarnessDiagnosis {name: $subject})" in cypher
     assert params["subject"] == "LangGraph with retry"
     assert params["tier"] == "RUNTIME"
-    assert "CORRECT" in params["axes"]  # retry → CORRECT present
+    assert "CORRECT" in params["inferred"]  # retry → CORRECT (free-text feature = inferred)
+    assert "CONSTRAIN" in params["axes"] and "VERIFY" in params["axes"]  # LangGraph primitive = present
     assert isinstance(params["mcp"], bool)
+
+
+def test_present_vs_inferred_provenance():
+    """primitive 축=PRESENT(강), free-text feature 축=INFERRED(약), 각각 provenance 명시."""
+    d = diagnose("LangGraph with a retry loop")
+    constrain = next(f for f in d.axes if f.axis is Axis.CONSTRAIN)
+    correct = next(f for f in d.axes if f.axis is Axis.CORRECT)
+    assert constrain.presence is Presence.PRESENT and constrain.signal == "framework primitive"
+    assert correct.presence is Presence.INFERRED and "feature" in correct.signal
+    assert Axis.CONSTRAIN in d.present_axes and Axis.CORRECT in d.inferred_axes
+
+
+def test_new_oss_coding_harnesses_are_ide_host():
+    # 2026-06-27 OSS 확장: 코딩 하네스는 전부 L_IDE (IDE-host).
+    for name in ("swe-agent", "openhands", "cline", "opencode", "goose", "codex", "gemini cli", "crush"):
+        assert diagnose(name).tier is Tier.IDE_HOST, name
+
+
+def test_aider_now_has_verify_and_correct():
+    # aider INFORM-only → +VERIFY(auto-test/lint) +CORRECT(diff/reflection) 정정.
+    d = diagnose("Aider")
+    assert _present(d, Axis.INFORM) and _present(d, Axis.VERIFY) and _present(d, Axis.CORRECT)
+
+
+def test_every_known_framework_has_citation():
+    """external grounding 불변식: 모든 KNOWN_FRAMEWORKS 엔트리는 1차 source citation 보유."""
+    from engine.harness.harness import FRAMEWORK_CITATIONS, KNOWN_FRAMEWORKS
+
+    missing = [k for k in KNOWN_FRAMEWORKS if k not in FRAMEWORK_CITATIONS]
+    assert not missing, f"citation 누락: {missing}"

@@ -18,9 +18,9 @@
 
 | Tier | Examples |
 |------|----------|
-| L_MC | Cursor / Claude Code / Aider / SWE-agent / Cline / OpenHands |
+| L_IDE | Cursor / Claude Code / Aider / SWE-agent / Cline / OpenHands |
 | L_RT | Google ADK / LangGraph / CrewAI / AutoGen |
-| L_IDE | Anthropic Managed Agents / OpenAI Assistants / Vertex AI Agent Engine |
+| L_MC | Anthropic Managed Agents / OpenAI Assistants / Vertex AI Agent Engine |
 
 ## 4-Axis Score (0-3)
 

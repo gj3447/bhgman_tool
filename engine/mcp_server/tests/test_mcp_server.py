@@ -20,7 +20,7 @@ HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent.parent))  # mcp_server is at engine/mcp_server/
 
 from mcp_server.tools.longinus import longinus_audit_impl, CONFIDENCE_TIERS
-from mcp_server.tools.harness import harness_diagnose_impl, KNOWN_INSTANCES
+from mcp_server.tools.harness import harness_diagnose_impl
 from mcp_server.server import list_registered_tool_names
 
 
@@ -107,7 +107,9 @@ def test_harness_diagnose_anthropic_managed_returns_LMC():
 
 
 def test_harness_diagnose_unknown_target_returns_UNKNOWN():
-    result = harness_diagnose_impl("totally-fictional-framework-xyz-2026")
+    # 키워드-프리 + 이름 미매치 → 진짜 UNKNOWN. (구 'framework' 포함 타깃은 production 분류기가
+    # RUNTIME 키워드로 잡으므로 skeleton 행동을 인코딩하지 않도록 키워드 없는 타깃 사용.)
+    result = harness_diagnose_impl("totally-fictional-xyz-2026")
     assert result["tier"] == "UNKNOWN"
 
 
@@ -117,8 +119,16 @@ def test_harness_diagnose_axes_keys_present():
     assert set(result["axes"].keys()) == {"Inform", "Constrain", "Verify", "Correct"}
 
 
-def test_known_instances_all_have_valid_tier():
-    """Every entry in KNOWN_INSTANCES must have tier ∈ {L_MC, L_RT, L_IDE}."""
+def test_known_frameworks_map_to_valid_tier_labels():
+    """통합 registry: 모든 KNOWN_FRAMEWORKS 엔트리가 캐논 L_ tier 라벨로 진단돼야 한다.
+
+    (구 test_known_instances_all_have_valid_tier 대체 — facade가 별도 KNOWN_INSTANCES를
+    버리고 코어 KNOWN_FRAMEWORKS를 단일 SoT로 쓰도록 배선됨, 2026-06-27.)
+    """
+    from engine.harness.harness import KNOWN_FRAMEWORKS
+
     valid = {"L_MC", "L_RT", "L_IDE"}
-    for name, entry in KNOWN_INSTANCES.items():
-        assert entry["tier"] in valid, f"{name} has invalid tier {entry['tier']!r}"
+    for name in KNOWN_FRAMEWORKS:
+        result = harness_diagnose_impl(name)
+        assert result["tier"] in valid, f"{name} -> {result['tier']!r}"
+        assert set(result["axes"].keys()) == {"Inform", "Constrain", "Verify", "Correct"}
