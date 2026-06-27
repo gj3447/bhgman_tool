@@ -1,0 +1,90 @@
+{
+  "_about": "agent-coding 지식 코퍼스 SoT (로컬 KG GENERATED mirror). 라이브 적재는 agent-coding-kg-load.cypher. KG: agent-coding-survey-local-ingest-2026-06-27",
+  "nodes": [
+    {"label": "KnowledgeHub", "key": "name", "value": "AgentCodingSurvey_20260627", "props": {"title": "에이전트 루프+하네스 OSS 생태계 종합 서베이", "curatedAt": "2026-06-27"}},
+
+    {"label": "ResearchFinding", "key": "findingId", "value": "rf-agent-coding-survey-20260627", "props": {"oneLineSummary": "루프=두뇌패턴+하네스=끈질김; 6축 OSS 서베이", "citation_url": "file:///data/kjra/agent-coding-survey.md"}},
+    {"label": "ResearchFinding", "key": "findingId", "value": "rf-durable-engines-deepdive-20260627", "props": {"oneLineSummary": "내구성 실행 엔진 10종 코드레벨 비교 + 택소노미 a~e", "citation_url": "file:///data/kjra/durable-engines-deepdive.md"}},
+    {"label": "ResearchFinding", "key": "findingId", "value": "rf-coding-harness-deepdive-20260627", "props": {"oneLineSummary": "코딩 하네스 6종 해부 + 보편 9부품 + 미니멀 설계 10단계", "citation_url": "file:///data/kjra/coding-harness-deepdive.md"}},
+
+    {"label": "HarnessAxis", "key": "name", "value": "Inform", "props": {"level": "instance-internal"}},
+    {"label": "HarnessAxis", "key": "name", "value": "Constrain", "props": {"level": "instance-internal"}},
+    {"label": "HarnessAxis", "key": "name", "value": "Verify", "props": {"level": "instance-internal"}},
+    {"label": "HarnessAxis", "key": "name", "value": "Correct", "props": {"level": "instance-internal"}},
+
+    {"label": "HarnessTier", "key": "name", "value": "L_IDE", "props": {"fullName": "IDE-host coding harness"}},
+    {"label": "HarnessTier", "key": "name", "value": "L_RT", "props": {"fullName": "application agent runtime"}},
+    {"label": "HarnessTier", "key": "name", "value": "L_MC", "props": {"fullName": "managed cloud control plane"}},
+
+    {"label": "ReasoningTechnique", "key": "name", "value": "ReAct", "props": {"family": "reasoning", "repo": "https://github.com/ysymyth/ReAct"}},
+    {"label": "ReasoningTechnique", "key": "name", "value": "Reflexion", "props": {"family": "reflection", "repo": "https://github.com/noahshinn/reflexion"}},
+    {"label": "ReasoningTechnique", "key": "name", "value": "Self-Refine", "props": {"family": "reflection", "repo": "https://github.com/madaan/self-refine"}},
+    {"label": "ReasoningTechnique", "key": "name", "value": "LATS", "props": {"family": "search", "repo": "https://github.com/lapisrocks/LanguageAgentTreeSearch"}},
+
+    {"label": "ProgrammingModel", "key": "code", "value": "a", "props": {"coreIdea": "워크플로-as-코드 + 결정적 재생 (이벤트소싱)"}},
+    {"label": "ProgrammingModel", "key": "code", "value": "b", "props": {"coreIdea": "durable-promise / 저널 + 메모이제이션"}},
+    {"label": "ProgrammingModel", "key": "code", "value": "c", "props": {"coreIdea": "어노테이션 + DB 체크포인트"}},
+
+    {"label": "DurableEngine", "key": "name", "value": "Temporal", "props": {"persistBackend": "Cassandra/MySQL/PG+ES"}},
+    {"label": "DurableEngine", "key": "name", "value": "Restate", "props": {"persistBackend": "단일 바이너리(RocksDB)+S3"}},
+    {"label": "DurableEngine", "key": "name", "value": "DBOS Transact", "props": {"persistBackend": "Postgres만"}},
+    {"label": "DurableEngine", "key": "name", "value": "Inngest", "props": {"persistBackend": "Executor+Queue+state"}},
+    {"label": "DurableEngine", "key": "name", "value": "Trigger.dev", "props": {"persistBackend": "PG+Redis+CRIU", "note": "CRIU 스냅샷, 결정성 불필요"}},
+
+    {"label": "CodingHarness", "key": "name", "value": "OpenHands", "props": {"loopDriver": "이벤트 콜백 재진입"}},
+    {"label": "CodingHarness", "key": "name", "value": "Aider", "props": {"loopDriver": "reflection 루프"}},
+    {"label": "CodingHarness", "key": "name", "value": "Claude Code", "props": {"loopDriver": "도구호출 있는 한 반복"}},
+
+    {"label": "MemoryLayer", "key": "name", "value": "Mem0", "props": {"memoryKind": "hybrid(vector+graph+kv)"}},
+    {"label": "MemoryLayer", "key": "name", "value": "Graphiti", "props": {"memoryKind": "temporal knowledge graph"}},
+
+    {"label": "Lesson", "key": "name", "value": "durable-legion-fallback-2026-06-27", "props": {"summary": "Legion run durable seam: DBOS 있으면 사용/없으면 in-proc fallback (분류c). engine/legion/durable.py"}},
+    {"label": "Lesson", "key": "name", "value": "legion-stuck-detector-2026-06-27", "props": {"summary": "dispatch 정체감지(StuckDetector)는 깊이캡과 직교 — OpenHands 교훈. engine/legion/stuck_detector.py"}},
+    {"label": "Lesson", "key": "name", "value": "ooptdd-jsonl-queryable-backend-2026-06-27", "props": {"summary": "JSONL 영속·cross-process queryable backend — MemoryBackend process-global 갭 해소. ooptdd backends/jsonl.py"}},
+    {"label": "Lesson", "key": "name", "value": "gen-ai-emit-cid-trace-unify-2026-06-27", "props": {"summary": "gen_ai.* emit + cid≡W3C trace_id 통일 — 전 생태계 단일 트레이스 공간. ooptdd gen_ai_emit.py"}},
+    {"label": "Lesson", "key": "name", "value": "agent-coding-survey-local-ingest-2026-06-27", "props": {"summary": "지식 코퍼스 로컬 KG GENERATED mirror (method B, --verify/--apply). engine/kg_local/survey_sync.py"}}
+  ],
+  "edges": [
+    {"src": {"label": "KnowledgeHub", "value": "AgentCodingSurvey_20260627"}, "type": "HAS_NODE", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}},
+    {"src": {"label": "KnowledgeHub", "value": "AgentCodingSurvey_20260627"}, "type": "HAS_NODE", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
+    {"src": {"label": "KnowledgeHub", "value": "AgentCodingSurvey_20260627"}, "type": "HAS_NODE", "dst": {"label": "ResearchFinding", "value": "rf-coding-harness-deepdive-20260627"}},
+
+    {"src": {"label": "DurableEngine", "value": "Temporal"}, "type": "IMPLEMENTS", "dst": {"label": "ProgrammingModel", "value": "a"}},
+    {"src": {"label": "DurableEngine", "value": "Restate"}, "type": "IMPLEMENTS", "dst": {"label": "ProgrammingModel", "value": "b"}},
+    {"src": {"label": "DurableEngine", "value": "DBOS Transact"}, "type": "IMPLEMENTS", "dst": {"label": "ProgrammingModel", "value": "c"}},
+    {"src": {"label": "DurableEngine", "value": "Inngest"}, "type": "IMPLEMENTS", "dst": {"label": "ProgrammingModel", "value": "b"}},
+
+    {"src": {"label": "DurableEngine", "value": "Temporal"}, "type": "SITS_IN_TIER", "dst": {"label": "HarnessTier", "value": "L_RT"}},
+    {"src": {"label": "DurableEngine", "value": "Restate"}, "type": "SITS_IN_TIER", "dst": {"label": "HarnessTier", "value": "L_RT"}},
+    {"src": {"label": "DurableEngine", "value": "DBOS Transact"}, "type": "SITS_IN_TIER", "dst": {"label": "HarnessTier", "value": "L_RT"}},
+
+    {"src": {"label": "CodingHarness", "value": "OpenHands"}, "type": "SITS_IN_TIER", "dst": {"label": "HarnessTier", "value": "L_IDE"}},
+    {"src": {"label": "CodingHarness", "value": "Aider"}, "type": "SITS_IN_TIER", "dst": {"label": "HarnessTier", "value": "L_IDE"}},
+    {"src": {"label": "CodingHarness", "value": "Claude Code"}, "type": "SITS_IN_TIER", "dst": {"label": "HarnessTier", "value": "L_IDE"}},
+
+    {"src": {"label": "ReasoningTechnique", "value": "ReAct"}, "type": "STRENGTHENS", "dst": {"label": "HarnessAxis", "value": "Inform"}},
+    {"src": {"label": "ReasoningTechnique", "value": "Reflexion"}, "type": "STRENGTHENS", "dst": {"label": "HarnessAxis", "value": "Correct"}},
+    {"src": {"label": "ReasoningTechnique", "value": "Self-Refine"}, "type": "STRENGTHENS", "dst": {"label": "HarnessAxis", "value": "Correct"}},
+    {"src": {"label": "ReasoningTechnique", "value": "LATS"}, "type": "STRENGTHENS", "dst": {"label": "HarnessAxis", "value": "Verify"}},
+
+    {"src": {"label": "MemoryLayer", "value": "Mem0"}, "type": "STRENGTHENS", "dst": {"label": "HarnessAxis", "value": "Inform"}},
+    {"src": {"label": "MemoryLayer", "value": "Graphiti"}, "type": "STRENGTHENS", "dst": {"label": "HarnessAxis", "value": "Inform"}},
+
+    {"src": {"label": "DurableEngine", "value": "Temporal"}, "type": "RIVALS", "dst": {"label": "DurableEngine", "value": "DBOS Transact"}},
+    {"src": {"label": "DurableEngine", "value": "DBOS Transact"}, "type": "RIVALS", "dst": {"label": "DurableEngine", "value": "Restate"}},
+    {"src": {"label": "DurableEngine", "value": "Temporal"}, "type": "RIVALS", "dst": {"label": "DurableEngine", "value": "Restate"}},
+
+    {"src": {"label": "DurableEngine", "value": "Temporal"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
+    {"src": {"label": "DurableEngine", "value": "DBOS Transact"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
+    {"src": {"label": "CodingHarness", "value": "OpenHands"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-coding-harness-deepdive-20260627"}},
+    {"src": {"label": "CodingHarness", "value": "Aider"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-coding-harness-deepdive-20260627"}},
+    {"src": {"label": "ReasoningTechnique", "value": "ReAct"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}},
+    {"src": {"label": "MemoryLayer", "value": "Mem0"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}},
+
+    {"src": {"label": "Lesson", "value": "durable-legion-fallback-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
+    {"src": {"label": "Lesson", "value": "legion-stuck-detector-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-coding-harness-deepdive-20260627"}},
+    {"src": {"label": "Lesson", "value": "ooptdd-jsonl-queryable-backend-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
+    {"src": {"label": "Lesson", "value": "gen-ai-emit-cid-trace-unify-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}},
+    {"src": {"label": "Lesson", "value": "agent-coding-survey-local-ingest-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}}
+  ]
+}

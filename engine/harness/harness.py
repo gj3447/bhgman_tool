@@ -32,15 +32,53 @@ from engine.harness.harness_models import (
 KNOWN_FRAMEWORKS: dict[str, tuple[Tier, tuple[Axis, ...]]] = {
     "claude code": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.VERIFY)),  # hooks + 테스트 게이트
     "cursor": (Tier.IDE_HOST, (Axis.INFORM,)),
-    "aider": (Tier.IDE_HOST, (Axis.INFORM,)),
+    "aider": (
+        Tier.IDE_HOST,
+        (Axis.INFORM, Axis.VERIFY, Axis.CORRECT),
+    ),  # repo-map / auto-test·lint / diff·reflection
     "copilot": (Tier.IDE_HOST, (Axis.INFORM,)),
     "windsurf": (Tier.IDE_HOST, (Axis.INFORM,)),
     "continue": (Tier.IDE_HOST, (Axis.INFORM,)),
     "zed": (Tier.IDE_HOST, (Axis.INFORM,)),
+    # ── 2026-06-27 OSS 코딩-하네스 확장 (coding-harness-deepdive §4 근거; 축=deepdive 증거,
+    #    citation=repo 1차 source. 정밀 citation 재검증은 grounding-pass 대상). ──
+    "swe-agent": (
+        Tier.IDE_HOST,
+        (Axis.CONSTRAIN, Axis.VERIFY),
+    ),  # ACI + bash/test 게이트 (mini-swe-agent 포함)
+    "openhands": (
+        Tier.IDE_HOST,
+        (Axis.INFORM, Axis.CONSTRAIN, Axis.VERIFY, Axis.CORRECT),
+    ),  # condenser/sandbox/test/reflection
+    "cline": (
+        Tier.IDE_HOST,
+        (Axis.INFORM, Axis.CONSTRAIN, Axis.CORRECT),
+    ),  # context/Plan-Act 승인/checkpoint
+    "opencode": (
+        Tier.IDE_HOST,
+        (Axis.CONSTRAIN, Axis.VERIFY, Axis.CORRECT),
+    ),  # findLast 권한/LSP/9단 폴백 edit
+    "goose": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.CORRECT)),  # extension 권한/edit
+    "codex": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.CORRECT)),  # OpenAI Codex CLI 샌드박스/edit
+    "gemini cli": (Tier.IDE_HOST, (Axis.INFORM, Axis.CORRECT)),  # 1M 컨텍스트/edit
+    "crush": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.CORRECT)),  # Charm TUI 권한/edit
     "langgraph": (Tier.RUNTIME, (Axis.CONSTRAIN, Axis.VERIFY)),  # graph state-machine + checkpoint
     "crewai": (Tier.RUNTIME, (Axis.INFORM, Axis.CORRECT)),  # roles + delegation
     "autogen": (Tier.RUNTIME, (Axis.INFORM, Axis.CORRECT)),  # conversational + reflection
     "google adk": (Tier.RUNTIME, (Axis.CONSTRAIN,)),
+    # 통합 registry 마이그레이션 2026-06-27: 구 KNOWN_INSTANCES(facade)에만 있던 L_RT 형제.
+    # 축=미상(정직: 부재≠능력없음) — 축 부여는 OSS 확장 패스(item 3)에서 deepdive 근거로.
+    "claude-flow": (Tier.RUNTIME, ()),  # ruvnet/claude-flow (harness.md L_RT 형제)
+    "ruflo": (Tier.RUNTIME, ()),  # claude-flow 별칭(ruflo)
+    # ── 2026-06-27 OSS L_RT 프레임워크 확장 (survey §3 + deepdive 근거축). ──
+    "openai agents sdk": (Tier.RUNTIME, (Axis.CONSTRAIN,)),  # Runner agent-loop + guardrails
+    "smolagents": (Tier.RUNTIME, (Axis.CONSTRAIN,)),  # CodeAgent code-action
+    "vercel ai": (Tier.RUNTIME, (Axis.CONSTRAIN, Axis.CORRECT)),  # stopWhen + tool loop
+    "mastra": (Tier.RUNTIME, (Axis.CONSTRAIN, Axis.CORRECT)),  # durable workflow suspend/resume
+    "letta": (Tier.RUNTIME, (Axis.INFORM,)),  # tiered memory (MemGPT)
+    "agno": (Tier.RUNTIME, (Axis.INFORM,)),  # AgentOS memory/runtime
+    "microsoft agent framework": (Tier.RUNTIME, (Axis.CONSTRAIN, Axis.VERIFY)),  # AutoGen+SK 통합
+    "strands": (Tier.RUNTIME, (Axis.CONSTRAIN,)),  # AWS harness-sdk
     "langchain": (Tier.RUNTIME, (Axis.INFORM,)),
     "llamaindex": (Tier.RUNTIME, (Axis.INFORM,)),  # retrieval
     "dspy": (Tier.RUNTIME, (Axis.VERIFY, Axis.CORRECT)),  # optimizer/metric
@@ -68,10 +106,28 @@ FRAMEWORK_CITATIONS: dict[str, str] = {
     "windsurf": "https://docs.codeium.com/windsurf",
     "continue": "https://docs.continue.dev",
     "zed": "https://zed.dev/docs",
+    "swe-agent": "https://github.com/SWE-agent/SWE-agent",
+    "openhands": "https://github.com/OpenHands/OpenHands",
+    "cline": "https://github.com/cline/cline",
+    "opencode": "https://github.com/anomalyco/opencode",
+    "goose": "https://github.com/aaif-goose/goose",
+    "codex": "https://github.com/openai/codex",
+    "gemini cli": "https://github.com/google-gemini/gemini-cli",
+    "crush": "https://github.com/charmbracelet/crush",
     "langgraph": "https://langchain-ai.github.io/langgraph/",
     "crewai": "https://docs.crewai.com",
     "autogen": "https://microsoft.github.io/autogen/",
     "google adk": "https://google.github.io/adk-docs/",
+    "claude-flow": "https://github.com/ruvnet/claude-flow",
+    "ruflo": "https://github.com/ruvnet/claude-flow",
+    "openai agents sdk": "https://github.com/openai/openai-agents-python",
+    "smolagents": "https://github.com/huggingface/smolagents",
+    "vercel ai": "https://github.com/vercel/ai",
+    "mastra": "https://github.com/mastra-ai/mastra",
+    "letta": "https://github.com/letta-ai/letta",
+    "agno": "https://github.com/agno-agi/agno",
+    "microsoft agent framework": "https://github.com/microsoft/agent-framework",
+    "strands": "https://github.com/strands-agents/harness-sdk",
     "langchain": "https://python.langchain.com/docs/",
     "llamaindex": "https://docs.llamaindex.ai",
     "dspy": "https://dspy.ai",
@@ -98,30 +154,44 @@ _TIER_KEYWORDS: tuple[tuple[Tier, tuple[str, ...]], ...] = (
     (Tier.RUNTIME, ("framework", "orchestrat", "graph", "workflow", "library", "sdk", "runtime")),
 )
 
-# 축 신호 키워드 (free-text 추출).
-_AXIS_KEYWORDS: dict[Axis, tuple[str, ...]] = {
-    Axis.INFORM: ("context", "inject", "rag", "retriev", "memory", "prompt", "role", "embedding"),
-    Axis.CONSTRAIN: (
-        "gate",
-        "guardrail",
-        "state machine",
-        "state-machine",
-        "schema",
-        "valid",
-        "policy",
-        "permission",
-        "constrain",
-        "hook",
+# 4축 falsifiable feature 신호 — coding-harness-deepdive §1/§3.1 의 "보편 9부품"을 축별 신호로.
+# 각 신호 = (component 이름, 그 부품을 가리키는 free-text 키워드). text 매치 시 INFERRED(약 신호),
+# AxisFinding.signal 에 어느 부품이 근거인지 provenance 로 박는다 (단정 → 관찰 가능 구조신호).
+# 9부품 → 축 매핑: system-prompt/context-mgmt/repo-map→Inform, tool-ACI/sandbox/permission/
+# termination→Constrain, verify-feedback→Verify, edit-apply/reflection/checkpoint→Correct.
+_FEATURE_SIGNALS: dict[Axis, tuple[tuple[str, tuple[str, ...]], ...]] = {
+    Axis.INFORM: (
+        ("system-prompt", ("system prompt", "instruction")),
+        (
+            "context-management",
+            ("context", "compaction", "summariz", "memory", "subagent", "sub-agent"),
+        ),
+        ("repo-map", ("repo map", "repomap", "retriev", "rag", "embedding", "index")),
+        ("role-prompt", ("role", "persona", "inject", "prompt")),
     ),
-    Axis.VERIFY: ("test", "eval", "verif", "assert", "critic", "oracle", "lint"),
+    Axis.CONSTRAIN: (
+        ("tool-aci", ("aci", "tool schema", "tool definition", "function call", "function-call")),
+        ("sandbox", ("sandbox", "container", "docker", "isolat")),
+        (
+            "permission",
+            ("permission", "allow", "deny", "approve", "guardrail", "policy", "gate", "hook"),
+        ),
+        (
+            "termination",
+            ("step limit", "budget", "max turns", "max-iter", "timeout", "wall-time", "wall time"),
+        ),
+        ("state-machine", ("state machine", "state-machine", "schema", "valid", "constrain")),
+    ),
+    Axis.VERIFY: (
+        ("test-feedback", ("test", "eval", "assert")),
+        ("static-analysis", ("lint", "lsp", "type check", "typecheck", "formatter", "diagnostic")),
+        ("critic-oracle", ("critic", "review", "oracle", "verif")),
+    ),
     Axis.CORRECT: (
-        "retry",
-        "feedback",
-        "self-correct",
-        "self correct",
-        "repair",
-        "rollback",
-        "reflect",
+        ("edit-apply", ("edit", "diff", "search-replace", "search/replace", "patch", "fuzzy")),
+        ("reflection", ("reflect", "self-correct", "self correct", "feedback")),
+        ("retry", ("retry", "repair", "rollback")),
+        ("checkpoint", ("checkpoint", "snapshot", "resume")),
     ),
 }
 
@@ -141,7 +211,11 @@ def _classify_tier(text: str) -> tuple[Tier, Confidence, str, tuple[Axis, ...]]:
 def _axis_finding(
     axis: Axis, text: str, primitives: tuple[Axis, ...], signals: dict[str, bool] | None
 ) -> AxisFinding:
-    """축 PRESENT 판정. 우선순위: explicit signal > known primitive > 키워드. 없으면 UNKNOWN."""
+    """축 판정. 우선순위: explicit signal(PRESENT) > framework primitive(PRESENT)
+    > feature 추론(INFERRED, 9부품 provenance). 없으면 UNKNOWN.
+
+    PRESENT=강신호(반박 어려움), INFERRED=약신호(free-text feature 추론, 반박 가능).
+    """
     if signals is not None and axis.value.lower() in signals:
         present = signals[axis.value.lower()]
         return AxisFinding(
@@ -149,9 +223,10 @@ def _axis_finding(
         )
     if axis in primitives:
         return AxisFinding(axis, Presence.PRESENT, "framework primitive")
-    hit = next((k for k in _AXIS_KEYWORDS[axis] if k in text), None)
-    if hit:
-        return AxisFinding(axis, Presence.PRESENT, f"keyword '{hit}'")
+    for component, keywords in _FEATURE_SIGNALS[axis]:
+        hit = next((k for k in keywords if k in text), None)
+        if hit:
+            return AxisFinding(axis, Presence.INFERRED, f"feature '{component}' (keyword '{hit}')")
     return AxisFinding(axis, Presence.UNKNOWN, "no signal")
 
 
@@ -185,6 +260,7 @@ def build_diagnosis_cypher(diag: HarnessDiagnosis) -> tuple[str, dict]:
     cypher = (
         "MERGE (h:HarnessDiagnosis {name: $subject}) "
         "SET h.tier=$tier, h.tierConfidence=$conf, h.presentAxes=$axes, "
+        "h.inferredAxes=$inferred, "
         "h.mcpAdapter=$mcp, h.diagnosedAt=datetime(), h.diagnosedBy='harness' "
         "RETURN h.name AS diagnosed"
     )
@@ -192,7 +268,8 @@ def build_diagnosis_cypher(diag: HarnessDiagnosis) -> tuple[str, dict]:
         "subject": diag.subject,
         "tier": diag.tier.value,
         "conf": diag.tier_confidence.value,
-        "axes": [a.value for a in diag.present_axes],
+        "axes": [a.value for a in diag.present_axes],  # 강신호 (primitive/explicit)
+        "inferred": [a.value for a in diag.inferred_axes],  # 약신호 (feature 추론)
         "mcp": diag.mcp_adapter,
     }
     return cypher, params

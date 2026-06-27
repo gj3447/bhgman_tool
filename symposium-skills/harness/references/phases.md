@@ -27,9 +27,9 @@ Phase 7: Lesson candidate surface
 ## Phase 1 — Tier Identification
 
 **Decision**:
-- Primary user = developer + IDE plugin → L_MC
+- Primary user = developer + IDE plugin → L_IDE
 - Primary user = agent system designer + framework → L_RT
-- Primary user = infra engineer + cloud API → L_IDE
+- Primary user = infra engineer + cloud API → L_MC
 - Multi-tier sibling (Anthropic 3-tuple style) → 분해 진단
 
 **Evidence**: 호스트 type, persistence model, pricing model.
@@ -104,7 +104,7 @@ SET l.wrongAssumption = ap.wrong, l.truth = ap.truth, l.howToApply = ap.how,
 ## Comparison Mode (Multi-Instance)
 
 ```
-harness-diagnostician comparison_mode [Cursor, Claude Code, Aider, Cline] (all L_MC)
+harness-diagnostician comparison_mode [Cursor, Claude Code, Aider, Cline] (all L_IDE)
 ```
 
 **Output**:
