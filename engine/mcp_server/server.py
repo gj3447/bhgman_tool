@@ -44,6 +44,10 @@ def build_server() -> Any:
     # KG: adr-seven-commander-legion-architecture-2026-05-27
     from .tools.legion import register as register_legion
 
+    # hades_realize — 실현(materialize) behind the verdict-provenance gate (OQ1, 2026-06-20):
+    # KG: adr-legion-runtime-shape-review-2026-06-20
+    from .tools.hades import register as register_hades
+
     register_longinus(mcp)
     register_harness(mcp)
     register_apt(mcp)
@@ -53,6 +57,7 @@ def build_server() -> Any:
     register_occam(mcp)
     register_symposium(mcp)
     register_legion(mcp)
+    register_hades(mcp)
 
     # Security audit (PROM 16 lever ④): log the toolset's lethal-trifecta profile.
     # ⚠ This is a ONE-SHOT boot-time profiler, NOT a live guard: it runs once here
@@ -96,4 +101,6 @@ def list_registered_tool_names() -> list[str]:
         # 7-commander legion (비행기맨#4), 2026-06-18
         "legion_roster",
         "legion_run",
+        # hades_realize — gated 실현 (OQ1, 2026-06-20)
+        "hades_realize",
     ]

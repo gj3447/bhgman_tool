@@ -359,6 +359,7 @@ DEP001 = ["sentence_transformers", "hnswlib", "testcontainers",
           "prov", "rdflib", "lxml",  # 2026-05-30 — optional [provexport] extra, lazy import in engine/provexport
           "libcst",  # 2026-05-31 — optional [hades-cst] extra, lazy import in extract_superclass_cst
           "leidenalg", "igraph",  # 2026-05-31 — optional [eureka-leiden] extra, lazy import in leiden_true operator
+          "dbos",  # 2026-06-27 — optional durable_run backend; absent => in-process fallback
           "ooptdd", "ooptdd_loop",  # 2026-06-26 — dev-only methodology siblings (private, not on index);
                                     # importorskip'd in engine/**/test_*_ooptdd.py, no package-extra declaration
          ]
@@ -379,8 +380,7 @@ DEP002 = [
   "pytest-asyncio",   # pytest plugin (registered via marker, no import)
   "fakeredis",        # importorskip in engine/gate/tests/test_gate.py
   "structlog",        # placeholder for engine/gate audit log (TODO in gate_endpoint.py:237)
-  "cryptography",     # [verdict-asym] opt-in OQ1c AsymmetricVerdictGate (Ed25519) — declared ahead
-                      # of its still-WIP code; not imported by the committed engine yet
+  "cryptography",     # [verdict-asym] opt-in OQ1c AsymmetricVerdictGate (Ed25519), lazy import
   "pre-commit",       # wave11 — local 4-ratchet gate (uvx-invoked, no Python import)
   "opentelemetry-sdk",          # wave12 [otel] — importorskip in test_otel_channel.py
   "opentelemetry-exporter-otlp",# wave12 [otel] — runtime OTLP export, host-configured (no direct import)
