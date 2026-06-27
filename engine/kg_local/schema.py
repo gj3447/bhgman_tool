@@ -72,6 +72,10 @@ NODE_SCHEMAS: dict[str, NodeSchema] = {
     ),
     # 재배맨 씨앗. depth NOT NULL (SKILL v2.4 §p3 t_depth_not_null trigger 미러 — 로컬도 강제).
     # depth=0 (int)은 required 통과 (validate_node가 0을 NULL/'' 로 보지 않음).
+    # optional prop `traceId`: 이 씨앗을 emit 한 W3C trace (cid≡trace_id, gen-ai-emit-cid-trace-
+    # unify-2026-06-27). required 아님 — 비-required prop 은 validate_node 자유 통과(기존 씨앗
+    # 무회귀). 있으면 jaebaeman 출격이 ooptdd.gen_ai_emit.invoke_agent_event 와 같은 트레이스
+    # 공간에 묶인다.
     "SubagentTaskSpec": NodeSchema(
         label="SubagentTaskSpec",
         required=("name", "skill", "depth", "status"),
