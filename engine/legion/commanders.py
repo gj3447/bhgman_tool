@@ -201,6 +201,11 @@ def _run_verify(ctx: dict) -> dict:
         f"naesengmoon: oracle={out['oracle']} ensemble={ens.verdict} n_eff≈{ens.n_eff:.2f}"
         + (f" echo_excluded={ens.n_echo_excluded}" if ens.n_echo_excluded else "")
     )
+    # OQ1: verdict-provenance 서명 (게이트 주입 시). ctx["verdict_gate"] = VerdictGate.
+    # cycle_id/artifact_id 는 서버-held run state (caller 입력 아님). 미주입 → 기존 동작.
+    gate = ctx.get("verdict_gate")
+    if gate is not None:
+        out = gate.sign(out, ctx.get("cycle_id"), ctx.get("artifact_id"))
     return {"verdict": out}
 
 
@@ -209,6 +214,21 @@ def _run_realize(ctx: dict) -> dict:
     """검증 통과한 ACCEPTED 추상을 KG에 실현 (CANONICAL+INSTANCE_OF). 나생문 oracle FAIL
     또는 ensemble REJECT/FAIL이면 skip (적대 검증이 거부한 산물은 실현하지 않는다)."""
     verdict = ctx.get("verdict") or {}
+    # OQ1: verdict-provenance 게이트 (주입 시 authoritative, fail-closed). HMAC 서명 + positive
+    # PASS + cycle/artifact 바인딩 + 1회용 ledger 로 forge/replay/cross-artifact 차단. expected_*
+    # 는 서버-held — standalone MCP 경로에선 caller 입력 금지, realize-time rows 에서 재계산해야 함.
+    gate = ctx.get("verdict_gate")
+    if gate is not None:
+        res = gate.verify(verdict, ctx.get("cycle_id"), ctx.get("artifact_id"))
+        if not res.ok:
+            return {
+                "realized": {
+                    "mode": "skipped",
+                    "reason": res.reason,
+                    "summary": "hades: refused — verdict provenance not verified",
+                }
+            }
+    # legacy negative check — 게이트 아래 defense-in-depth floor (게이트 미주입 시 단독 동작).
     oracle = verdict.get("oracle")
     ensemble = verdict.get("ensemble")
     if oracle == "FAIL" or ensemble in {"REJECT", "FAIL"}:

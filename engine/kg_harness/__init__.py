@@ -15,6 +15,7 @@ degraded 상태는 첫 ``guarded_run``/``validate_write`` 호출 시 1회 stderr
 
 # KG: kg-harness-source-loss-stopgap-2026-06-27
 """
+
 from __future__ import annotations
 
 import sys

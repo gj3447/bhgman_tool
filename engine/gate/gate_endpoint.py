@@ -54,7 +54,8 @@ from tenacity import (
     wait_exponential_jitter,
 )
 
-from .circuit_breaker import CircuitBreaker, State, build_redis_client
+from . import circuit_breaker
+from .circuit_breaker import CircuitBreaker, State
 
 
 GATE_TIMEOUT_S = 0.5  # Resilience4j-style 500ms
@@ -125,8 +126,11 @@ def _build_kg_runner() -> Any:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 1. Redis
-    redis = build_redis_client()
+    # 1. Redis — call through the module (circuit_breaker.build_redis_client), NOT a direct
+    # `from … import build_redis_client` binding, so a test's monkeypatch on
+    # circuit_breaker.build_redis_client always reaches the lifespan regardless of import order
+    # (the bare-name binding was reached only when gate_endpoint was imported AFTER the patch).
+    redis = circuit_breaker.build_redis_client()
     app.state.redis = redis
     # 2. Neo4j run_cypher for the Phase B KG materializer (real APT phase-gate decisions).
     #    None when NEO4J_* is unset → _decide falls back to the legacy count-stub.

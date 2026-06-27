@@ -70,11 +70,30 @@ def legion_run_impl(cycle_id: str = "mcp-legion", kg_path: str | None = None) ->
     from engine.kg_local.runner import make_local_runner  # noqa: PLC0415
     from engine.kg_local.store import LocalKgStore  # noqa: PLC0415
     from engine.legion.commanders import build_default_legion  # noqa: PLC0415
+    from engine.legion.verdict_gate import (  # noqa: PLC0415
+        KgVerdictLedger,
+        WeakVerdictKeyError,
+        build_gate_from_env,
+        mint_cycle_id,
+    )
+
+    # R6: 서버-mint — 기본 sentinel 이면 run 마다 고유 cycle (ledger false-collision 방지).
+    if not cycle_id or cycle_id == "mcp-legion":
+        cycle_id = mint_cycle_id()
 
     store = LocalKgStore(kg_path) if kg_path else LocalKgStore()
     run_cypher = make_local_runner(store, autosave=False)
     legion = build_default_legion()
-    run = legion.run({"run_cypher": run_cypher, "cycle_id": cycle_id})
+    ctx: dict[str, Any] = {"run_cypher": run_cypher, "cycle_id": cycle_id}
+    # R7: verdict 키 설정 시 in-loop 게이트 주입 — _run_verify(producer 서명) + _run_realize
+    # (consumer 검증). 미설정 → legacy(게이트 없음, 비파괴). artifact_id 는 run-level 바인딩
+    # (per-node 바인딩은 OQ1b selection-node 서명 경로).
+    try:
+        ctx["verdict_gate"] = build_gate_from_env(ledger=KgVerdictLedger(store))
+        ctx["artifact_id"] = cycle_id
+    except WeakVerdictKeyError:
+        pass
+    run = legion.run(ctx)
 
     return {
         "cycle_id": cycle_id,

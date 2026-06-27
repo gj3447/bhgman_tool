@@ -71,9 +71,7 @@ def _to_report(diag: HarnessDiagnosis) -> dict[str, Any]:
     }
 
 
-def harness_diagnose_impl(
-    target: str, signals: dict[str, bool] | None = None
-) -> dict[str, Any]:
+def harness_diagnose_impl(target: str, signals: dict[str, bool] | None = None) -> dict[str, Any]:
     """Diagnose target's Harness placement + 4-axis profile (production classifier).
 
     Args:
@@ -106,9 +104,7 @@ def register(mcp: Any) -> None:
     """Attach `harness_diagnose` tool to the FastMCP instance."""
 
     @mcp.tool()
-    def harness_diagnose(
-        target: str, signals: dict[str, bool] | None = None
-    ) -> dict[str, Any]:
+    def harness_diagnose(target: str, signals: dict[str, bool] | None = None) -> dict[str, Any]:
         """Diagnose where a framework/agent sits in the Harness 3-tier family.
 
         Args:

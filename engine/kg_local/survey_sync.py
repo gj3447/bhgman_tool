@@ -11,6 +11,7 @@ unknown 라벨은 schema.validate_node 가 자유 통과(신규 라벨 보호 0,
 
 # KG: agent-coding-survey-local-ingest-2026-06-27
 """
+
 from __future__ import annotations
 
 import json

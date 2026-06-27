@@ -23,17 +23,21 @@ red()  { printf '  \033[31m✗ RED  %s\033[0m\n' "$1"; FAIL+=("$1"); }
 green(){ printf '  \033[32m✓ GREEN %s\033[0m\n' "$1"; PASS+=("$1"); }
 skip() { printf '  \033[33m· SKIP %s (%s)\033[0m\n' "$1" "$2"; SKIP+=("$1"); }
 
+# Only git-TRACKED engine *.py — CI checks out HEAD, so it never lints untracked WIP
+# (e.g. engine/kg_harness/). Scanning engine/ here would false-RED on files CI can't see.
+tracked_py() { git ls-files engine | grep '\.py$'; }
+
 # ── gate 1: ruff check engine/  (ci.yml: ruff, pinned 0.15.12) ───────────────
 if want ruff-check; then
-  echo "[ruff-check] ruff check engine/"
-  if "$VENV/ruff" check engine/ -q 2>/dev/null; then green ruff-check; else
-    "$VENV/ruff" check engine/ 2>&1 | grep -E "Found|error" | tail -3 | sed 's/^/      /'; red ruff-check; fi
+  echo "[ruff-check] ruff check (tracked engine/*.py)"
+  if "$VENV/ruff" check $(tracked_py) -q 2>/dev/null; then green ruff-check; else
+    "$VENV/ruff" check $(tracked_py) 2>&1 | grep -E "Found|error" | tail -3 | sed 's/^/      /'; red ruff-check; fi
 fi
 
 # ── gate 2: ruff format --check engine/  (ci.yml: ruff format check) ─────────
 if want ruff-format; then
-  echo "[ruff-format] ruff format --check engine/"
-  out=$("$VENV/ruff" format --check engine/ 2>&1)
+  echo "[ruff-format] ruff format --check (tracked engine/*.py)"
+  out=$("$VENV/ruff" format --check $(tracked_py) 2>&1)
   if echo "$out" | grep -q "would be reformatted"; then
     echo "$out" | tail -1 | sed 's/^/      /'; red ruff-format
   else green ruff-format; fi
@@ -71,10 +75,14 @@ fi
 # This runs the local engine suite; it passes here ONLY because the siblings are installed —
 # which is the very gap gate 5 guards. Treat green here as necessary-not-sufficient for CI.
 if want pytest; then
-  echo "[pytest] $VENV/pytest -q (local engine suite; CI runs --all-extras × py3.11-3.13)"
-  if "$VENV/pytest" -q -p no:cacheprovider >/tmp/.pt.$$ 2>&1; then
+  echo "[pytest] $VENV/pytest -q (tracked engine suite; CI runs --all-extras × py3.11-3.13)"
+  # --ignore every UNTRACKED .py — CI checks out HEAD, so untracked WIP tests (engine/kg_harness/
+  # tests, test_kg_guard_wiring.py, …) never run there; collecting them here is a false signal.
+  ig=()
+  while IFS= read -r p; do [ -n "$p" ] && ig+=("--ignore=$p"); done < <(git ls-files --others --exclude-standard engine | grep -E '\.py$')
+  if "$VENV/pytest" "${ig[@]}" -q -p no:cacheprovider >/tmp/.pt.$$ 2>&1; then
     tail -1 /tmp/.pt.$$ | sed 's/^/      /'; green pytest; else
-    grep -E "failed|error" /tmp/.pt.$$ | tail -3 | sed 's/^/      /'; red pytest; fi
+    grep -E "failed|error|Error" /tmp/.pt.$$ | tail -4 | sed 's/^/      /'; red pytest; fi
   rm -f /tmp/.pt.$$
 fi
 
@@ -88,6 +96,16 @@ if want oracle; then
   if "$VENV/bhgman-tool" oracle --kind pytest-ratio --target "$vf" --json >/dev/null 2>&1; then
     green oracle; else red oracle; fi
   rm -f "$vf"
+fi
+
+# ── gate 8: wip-leak — tracked code must not import untracked modules ─────────
+# CI never sees the dev tree's untracked WIP (e.g. engine/kg_harness/) or editable siblings,
+# so a committed `from engine.kg_harness import …` passes here but ModuleNotFoundErrors on CI.
+# The pytest gate (working tree) can't catch this; this static check does.
+if want wip-leak; then
+  echo "[wip-leak] tracked engine code importing untracked modules"
+  if out=$("$VENV/python" scripts/check_wip_leak.py 2>&1); then green wip-leak; else
+    echo "$out" | tail -6 | sed 's/^/      /'; red wip-leak; fi
 fi
 
 echo ""

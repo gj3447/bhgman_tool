@@ -32,17 +32,32 @@ from engine.harness.harness_models import (
 KNOWN_FRAMEWORKS: dict[str, tuple[Tier, tuple[Axis, ...]]] = {
     "claude code": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.VERIFY)),  # hooks + 테스트 게이트
     "cursor": (Tier.IDE_HOST, (Axis.INFORM,)),
-    "aider": (Tier.IDE_HOST, (Axis.INFORM, Axis.VERIFY, Axis.CORRECT)),  # repo-map / auto-test·lint / diff·reflection
+    "aider": (
+        Tier.IDE_HOST,
+        (Axis.INFORM, Axis.VERIFY, Axis.CORRECT),
+    ),  # repo-map / auto-test·lint / diff·reflection
     "copilot": (Tier.IDE_HOST, (Axis.INFORM,)),
     "windsurf": (Tier.IDE_HOST, (Axis.INFORM,)),
     "continue": (Tier.IDE_HOST, (Axis.INFORM,)),
     "zed": (Tier.IDE_HOST, (Axis.INFORM,)),
     # ── 2026-06-27 OSS 코딩-하네스 확장 (coding-harness-deepdive §4 근거; 축=deepdive 증거,
     #    citation=repo 1차 source. 정밀 citation 재검증은 grounding-pass 대상). ──
-    "swe-agent": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.VERIFY)),  # ACI + bash/test 게이트 (mini-swe-agent 포함)
-    "openhands": (Tier.IDE_HOST, (Axis.INFORM, Axis.CONSTRAIN, Axis.VERIFY, Axis.CORRECT)),  # condenser/sandbox/test/reflection
-    "cline": (Tier.IDE_HOST, (Axis.INFORM, Axis.CONSTRAIN, Axis.CORRECT)),  # context/Plan-Act 승인/checkpoint
-    "opencode": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.VERIFY, Axis.CORRECT)),  # findLast 권한/LSP/9단 폴백 edit
+    "swe-agent": (
+        Tier.IDE_HOST,
+        (Axis.CONSTRAIN, Axis.VERIFY),
+    ),  # ACI + bash/test 게이트 (mini-swe-agent 포함)
+    "openhands": (
+        Tier.IDE_HOST,
+        (Axis.INFORM, Axis.CONSTRAIN, Axis.VERIFY, Axis.CORRECT),
+    ),  # condenser/sandbox/test/reflection
+    "cline": (
+        Tier.IDE_HOST,
+        (Axis.INFORM, Axis.CONSTRAIN, Axis.CORRECT),
+    ),  # context/Plan-Act 승인/checkpoint
+    "opencode": (
+        Tier.IDE_HOST,
+        (Axis.CONSTRAIN, Axis.VERIFY, Axis.CORRECT),
+    ),  # findLast 권한/LSP/9단 폴백 edit
     "goose": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.CORRECT)),  # extension 권한/edit
     "codex": (Tier.IDE_HOST, (Axis.CONSTRAIN, Axis.CORRECT)),  # OpenAI Codex CLI 샌드박스/edit
     "gemini cli": (Tier.IDE_HOST, (Axis.INFORM, Axis.CORRECT)),  # 1M 컨텍스트/edit
@@ -147,15 +162,24 @@ _TIER_KEYWORDS: tuple[tuple[Tier, tuple[str, ...]], ...] = (
 _FEATURE_SIGNALS: dict[Axis, tuple[tuple[str, tuple[str, ...]], ...]] = {
     Axis.INFORM: (
         ("system-prompt", ("system prompt", "instruction")),
-        ("context-management", ("context", "compaction", "summariz", "memory", "subagent", "sub-agent")),
+        (
+            "context-management",
+            ("context", "compaction", "summariz", "memory", "subagent", "sub-agent"),
+        ),
         ("repo-map", ("repo map", "repomap", "retriev", "rag", "embedding", "index")),
         ("role-prompt", ("role", "persona", "inject", "prompt")),
     ),
     Axis.CONSTRAIN: (
         ("tool-aci", ("aci", "tool schema", "tool definition", "function call", "function-call")),
         ("sandbox", ("sandbox", "container", "docker", "isolat")),
-        ("permission", ("permission", "allow", "deny", "approve", "guardrail", "policy", "gate", "hook")),
-        ("termination", ("step limit", "budget", "max turns", "max-iter", "timeout", "wall-time", "wall time")),
+        (
+            "permission",
+            ("permission", "allow", "deny", "approve", "guardrail", "policy", "gate", "hook"),
+        ),
+        (
+            "termination",
+            ("step limit", "budget", "max turns", "max-iter", "timeout", "wall-time", "wall time"),
+        ),
         ("state-machine", ("state machine", "state-machine", "schema", "valid", "constrain")),
     ),
     Axis.VERIFY: (
@@ -202,9 +226,7 @@ def _axis_finding(
     for component, keywords in _FEATURE_SIGNALS[axis]:
         hit = next((k for k in keywords if k in text), None)
         if hit:
-            return AxisFinding(
-                axis, Presence.INFERRED, f"feature '{component}' (keyword '{hit}')"
-            )
+            return AxisFinding(axis, Presence.INFERRED, f"feature '{component}' (keyword '{hit}')")
     return AxisFinding(axis, Presence.UNKNOWN, "no signal")
 
 

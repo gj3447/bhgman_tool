@@ -77,7 +77,9 @@ def test_build_diagnosis_cypher_persist_shape():
     assert params["subject"] == "LangGraph with retry"
     assert params["tier"] == "RUNTIME"
     assert "CORRECT" in params["inferred"]  # retry → CORRECT (free-text feature = inferred)
-    assert "CONSTRAIN" in params["axes"] and "VERIFY" in params["axes"]  # LangGraph primitive = present
+    assert (
+        "CONSTRAIN" in params["axes"] and "VERIFY" in params["axes"]
+    )  # LangGraph primitive = present
     assert isinstance(params["mcp"], bool)
 
 
@@ -93,7 +95,16 @@ def test_present_vs_inferred_provenance():
 
 def test_new_oss_coding_harnesses_are_ide_host():
     # 2026-06-27 OSS 확장: 코딩 하네스는 전부 L_IDE (IDE-host).
-    for name in ("swe-agent", "openhands", "cline", "opencode", "goose", "codex", "gemini cli", "crush"):
+    for name in (
+        "swe-agent",
+        "openhands",
+        "cline",
+        "opencode",
+        "goose",
+        "codex",
+        "gemini cli",
+        "crush",
+    ):
         assert diagnose(name).tier is Tier.IDE_HOST, name
 
 

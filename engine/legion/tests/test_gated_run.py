@@ -162,3 +162,27 @@ def test_artifact_hash_deterministic_and_sensitive():
         outcomes=(_outcome("prometheus", "획득"),), completed=True, final_context_keys=("acquired",)
     )
     assert artifact_hash(different) != h1
+
+
+def test_g2_gate_requires_valid_verdict_signature():
+    # R7/OQ1c: 게이트 주입 시 위조 final_verdict(clean content + bad sig) 를 G2 가 거부.
+    from engine.legion.verdict_gate import VerdictGate, VerdictLedger
+
+    g = VerdictGate(b"k" * 40, ledger=VerdictLedger())
+    signed = g.sign({"oracle": "PASS", "ensemble": "PASS"}, "c", "a")
+    run_ok = LegionRun(outcomes=(_outcome("naesengmoon", "검증"),), final_verdict=signed)
+    assert eval_g2_adversary_ran(run_ok, gate=g).passed
+
+    forged = {
+        "oracle": "PASS",
+        "ensemble": "PASS",
+        "verdict_source": "naesengmoon-verify",
+        "cycle_id": "c",
+        "artifact_id": "a",
+        "hmac_signature": "deadbeef",
+    }
+    run_forged = LegionRun(outcomes=(_outcome("naesengmoon", "검증"),), final_verdict=forged)
+    v = eval_g2_adversary_ran(run_forged, gate=g)
+    assert not v.passed and "signature" in v.detail
+    # no gate → 후방 호환 (content-only 통과)
+    assert eval_g2_adversary_ran(run_forged).passed
