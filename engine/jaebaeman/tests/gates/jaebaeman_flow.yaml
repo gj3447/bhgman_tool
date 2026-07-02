@@ -1,0 +1,79 @@
+# The Red artifact for bhgman_tool's jaebaeman 출격(sortie) flow.
+#
+# Written as the EXPECTATION before the adapter existed (jbm-s1, the sole commander
+# without an ooptdd adapter — audit wf_376c327b-8f3 G1): it states what the store must
+# OBSERVE when the REAL engine chain plant_seeds -> read_ready_seeds -> drive_seeds
+# runs over the 3-seed fixture (1 self-anchored root depth=0 + 2 children depth=1).
+# The store is the judge — a green self-report that silently never reached the store
+# is exactly what this gate exists to catch (see test_jaebaeman_ooptdd.py).
+#
+# Thresholds are not invented: they match what the real engine lands in the seed store
+# for the fixture (3 seed MERGEs, 3 READY read-backs, 3 COLLECTED germinations,
+# dry_run=False in the apply wing). A dry-run plant lands NOTHING => read-back joins
+# to 0 => every ==N below is GENUINELY RED until the real chain populates the store.
+#
+# Strength: every gating check pins a field (where) or a cardinality (==), orders the
+# lifecycle (must_order — the novel axis: PLANTED before READY before GERMINATED), or
+# forbids errors (absent) — no existence-only check survives the VAC vacuity audit.
+cid_env: OOPTDD_CID
+service: bhgman.jaebaeman
+
+expect:
+  # ── cardinality, value-pinned (not existence-only) ───────────────────────
+  # exactly one sortie, identified by the real plant phase.
+  - event: jaebaeman_sortie_started
+    where: {phase: plant}
+    op: "=="
+    count: 1
+
+  # one seed_planted per seed PK the real plant_seeds landed in the store (==3).
+  # Drop one fixture seed and this collapses to 2 => RED (honest-count proof).
+  - event: jaebaeman_seed_planted
+    op: "=="
+    count: 3
+
+  # depth-pinned split: the plan tree shape survives into the store
+  # (1 root at depth 0, 2 children at depth 1 — coalesce($depth, 0) covenant).
+  - event: jaebaeman_seed_planted
+    where: {depth: 0}
+    op: "=="
+    count: 1
+  - event: jaebaeman_seed_planted
+    where: {depth: 1}
+    op: "=="
+    count: 2
+
+  # one seed_ready per SeedRecord the real read_ready_seeds JOINED back out of the
+  # store (==3). A dry-run plant leaves the store empty => read-back 0 => RED.
+  - event: jaebaeman_seed_ready
+    op: "=="
+    count: 3
+
+  # one seed_germinated per seed the real drive_seeds transitioned to COLLECTED via
+  # an applied status write observed at the store (==3, status-pinned).
+  - event: jaebaeman_seed_germinated
+    where: {status: COLLECTED}
+    op: "=="
+    count: 3
+
+  # the sortie closed in apply mode (dry_run False). A forgotten/dry close fails.
+  - event: jaebaeman_sortie_completed
+    where: {dry_run: false}
+    op: "=="
+    count: 1
+
+  # ── subset present, value-pinned via where (any order) ───────────────────
+  - present:
+      - {event: jaebaeman_sortie_started, where: {phase: plant}}
+      - {event: jaebaeman_seed_planted, where: {depth: 0}}
+      - {event: jaebaeman_sortie_completed, where: {dry_run: false}}
+
+  # ── sequencing (the NOVEL axis, judge-P2 independent of every count above):
+  # the lifecycle must emit in PLANTED -> READY -> GERMINATED order. An order-flipped
+  # counter-run keeps every ==N green yet turns exactly this check RED.
+  - must_order: [jaebaeman_sortie_started, jaebaeman_seed_planted, jaebaeman_seed_ready, jaebaeman_seed_germinated, jaebaeman_sortie_completed]
+    within_s: 60
+
+  # ── negative wing: the happy sortie flow logs no ERROR ───────────────────
+  - absent:
+      where: {level: ERROR}
