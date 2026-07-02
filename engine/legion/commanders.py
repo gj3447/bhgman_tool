@@ -89,6 +89,10 @@ def _run_acquire(ctx: dict) -> dict:
                 "mode": "kg-deterministic",
                 "gap_nodes": len(report.gaps),
                 "findings": len(report.findings),
+                # grounding-wire (백로그 #2): 실 findings 의 citation_url 을 노출해
+                # _measure_prometheus 가 external_grounding_ratio 를 실계산하게 한다
+                # (<0.3 self-recurse Goodhart 컨트롤의 런타임 입력 — 이전엔 dead 1.0 고정).
+                "citation_urls": [f.citation_url for f in report.findings],
                 "ingested": report.ingested,
                 "dry_run": report.dry_run,
                 "summary": report.summary,
@@ -285,7 +289,12 @@ def _measure_prometheus(ctx: dict):
     from engine.legion.measurement import PrometheusMeasurement  # noqa: PLC0415
 
     acquired = ctx.get("acquired") or {}
-    return PrometheusMeasurement(finding_count=int(acquired.get("findings", 0) or 0))
+    m = PrometheusMeasurement(finding_count=int(acquired.get("findings", 0) or 0))
+    # grounding-wire (백로그 #2): 결정론 브랜치가 노출한 실 citations 로 ratio 실계산 —
+    # 키 부재(LLM 브랜치=citations 미노출)면 정직 기본 유지(0.0 강제로 항상-발화시키지 않음).
+    if "citation_urls" in acquired:
+        m.update_grounding(acquired["citation_urls"])
+    return m
 
 
 # ── stage 빌더 + 기본 합성 ──────────────────────────────────────────────────
