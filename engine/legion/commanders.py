@@ -172,6 +172,14 @@ def _run_verify(ctx: dict) -> dict:
     critics: list[CriticVerdict] = [
         CriticVerdict(lens="upstream-completeness", kind=CriticKind.ORACLE, passed=oracle_pass)
     ]
+    # kg-corroborate 배선 (q-naesengmoon-single-authority): 별도-소스 정전 대조 oracle 을
+    # 자동화 경로에 합류 — grounding(GroundingSource) + claim 이 있을 때만 (vacuous critic 금지).
+    # oracle 은 Kish n_eff 에 독립 가산이라 LLM 부재 시의 n_eff=1.0 퇴화가 해소된다.
+    _corroborate_claim = ctx.get("claim") or ctx.get("topic")
+    if ctx.get("grounding") is not None and _corroborate_claim:
+        from engine.naesengmoon.kg_corroboration import kg_corroboration_oracle  # noqa: PLC0415
+
+        critics.append(kg_corroboration_oracle(ctx["grounding"]).evaluate(str(_corroborate_claim)))
     out: dict[str, Any] = {
         "oracle": "PASS" if oracle_pass else "FAIL",
         "degraded_upstream": degraded,
@@ -216,6 +224,8 @@ def _run_verify(ctx: dict) -> dict:
     out["n_eff"] = round(ens.n_eff, 2)
     out["rho"] = ens.rho
     out["n_echo_excluded"] = ens.n_echo_excluded
+    # 공시: 어떤 ORACLE leg 들이 실제로 표결했나 — leg 조작(빼기/본 척)을 관측 가능하게.
+    out["oracle_legs"] = [c.lens for c in critics if c.kind is CriticKind.ORACLE]
     out["summary"] = (
         f"naesengmoon: oracle={out['oracle']} ensemble={ens.verdict} n_eff≈{ens.n_eff:.2f}"
         + (f" echo_excluded={ens.n_echo_excluded}" if ens.n_echo_excluded else "")

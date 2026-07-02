@@ -98,7 +98,16 @@ def legion_run_impl(
     if store is None:
         store = LocalKgStore(kg_path) if kg_path else LocalKgStore()
     run_cypher = make_local_runner(store, autosave=False)
-    ctx: dict[str, Any] = {"run_cypher": run_cypher, "cycle_id": cycle_id}
+    # kg-corroborate 배선 (q-naesengmoon-single-authority): infra-0 MCP 경로에도 별도-소스
+    # 정전 대조 oracle leg 를 공급 — LLM 없이도 나생문 verify 가 n_eff≥2 (1.0 퇴화 해소).
+    from engine.agents.grounding import LocalGroundingSource  # noqa: PLC0415
+
+    ctx: dict[str, Any] = {
+        "run_cypher": run_cypher,
+        "cycle_id": cycle_id,
+        "grounding": LocalGroundingSource(store),
+        "claim": f"legion closed loop completed for {cycle_id}",
+    }
     # R7: verdict 키 설정 시 in-loop 게이트 주입 — _run_verify(producer 서명) + _run_realize
     # (consumer 검증). 미설정 → legacy(게이트 없음, 비파괴). artifact_id 는 run-level 바인딩
     # (per-node 바인딩은 OQ1b selection-node 서명 경로).
@@ -127,6 +136,8 @@ def legion_run_impl(
             for o in run.outcomes
         ],
         "final_context_keys": list(run.final_context_keys),
+        # 나생문 최종 verdict 노출 (ensemble/n_eff/oracle_legs) — MCP 표면에서 verify 실체 관측.
+        "verdict": dict(run.final_verdict),
         "jaebaeman": {
             "run_id": record.run_id,
             "planned_seeds": record.planned_seeds,
