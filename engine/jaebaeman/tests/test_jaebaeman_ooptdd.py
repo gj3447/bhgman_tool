@@ -163,9 +163,7 @@ def test_drop_the_seed_breaks_value_pinned_count(monkeypatch):
         for c in _failed(result)
         if c.get("event") == "jaebaeman_seed_planted" and c.get("got") == 2
     ]
-    assert broke, (
-        f"seed_planted should read got=2 against the ==3 pin; checks={result['checks']}"
-    )
+    assert broke, f"seed_planted should read got=2 against the ==3 pin; checks={result['checks']}"
 
 
 def test_dry_run_plant_breaks_readback_join(monkeypatch):
@@ -207,11 +205,18 @@ def test_lifecycle_order_flip_is_discriminated(monkeypatch):
     monkeypatch.setenv("OOPTDD_CID", cid)
     store, readback, plant, _lifecycle = _run_real_sortie()
     flipped = MemoryBackend()
-    flipped.ship([
-        _ev(cid, "jaebaeman_sortie_completed", dry_run=plant.dry_run,
-            planted=len(store.seeds), ready=len(readback),
-            germinated=sum(1 for r in store.seeds.values() if r["status"] == "COLLECTED"))
-    ])
+    flipped.ship(
+        [
+            _ev(
+                cid,
+                "jaebaeman_sortie_completed",
+                dry_run=plant.dry_run,
+                planted=len(store.seeds),
+                ready=len(readback),
+                germinated=sum(1 for r in store.seeds.values() if r["status"] == "COLLECTED"),
+            )
+        ]
+    )
     emit_germinate_phase(flipped, cid, store)
     emit_ready_phase(flipped, cid, readback)
     emit_plant_phase(flipped, cid, store)
@@ -255,6 +260,5 @@ def test_engine_stays_literal_free():
         src = py.read_text(encoding="utf-8")
         offenders.extend(f"{py.name}:{lit}" for lit in _EVENT_LITERALS if lit in src)
     assert not offenders, (
-        f"event literals must live ONLY in {_ADAPTER_SRC}, never in engine/jaebaeman/: "
-        f"{offenders}"
+        f"event literals must live ONLY in {_ADAPTER_SRC}, never in engine/jaebaeman/: {offenders}"
     )
