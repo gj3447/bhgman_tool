@@ -117,12 +117,27 @@ def _run_induce(ctx: dict) -> dict:
         )
         pr = pipeline.run_from_kg(rc, cfg)
         ok = sum(1 for s in pr.stages if s.ok)
+
+        # earned counts (실체감사 유레카 갭): 보고의 머리는 stage payload 에서 재도출한 산출
+        # 카운트 — stages_ok 는 빈 KG 에서도 green 으로 도는 fake-green 축(ooptdd 어댑터가
+        # 증명: empty CypherRunner → stages_ok=5, concepts=0)이라 진단 필드로 강등.
+        def _earned(prefix: str, key: str) -> int:
+            for s in pr.stages:
+                if s.stage.startswith(prefix) and isinstance(s.payload, dict):
+                    return int(s.payload.get(key, 0) or 0)
+            return 0
+
+        induced = _earned("4-induce", "abstract_classes")
+        survived = _earned("4.5-quality-gate", "survived")
         return {
             "abstractions": {
                 "mode": "fca",
+                "induced": induced,
+                "survived": survived,
                 "stages_ok": ok,
                 "stages_total": len(pr.stages),
-                "summary": f"eureka[fca]: {ok}/{len(pr.stages)} stages ok (PROPOSE only)",
+                "summary": f"eureka[fca]: induced={induced} survived={survived} "
+                f"(PROPOSE only; 진단 {ok}/{len(pr.stages)} stages)",
             }
         }
     except Exception as e:  # noqa: BLE001

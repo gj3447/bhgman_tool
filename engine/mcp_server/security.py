@@ -69,6 +69,8 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "taliban_lens_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "tpa_drift_audit": frozenset({Capability.READS_PRIVATE_DATA}),
     "prometheus_research": frozenset({Capability.READS_PRIVATE_DATA}),
+    # eureka_induce reads the (local) KG to build the formal context; PROPOSE-only, no writes.
+    "eureka_induce": frozenset({Capability.READS_PRIVATE_DATA}),
     "occam_dedupe": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
     # kg_query can write/destroy the KG when called with mutate=true → integrity axis.
     "kg_query": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),

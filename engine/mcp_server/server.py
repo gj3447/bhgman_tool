@@ -36,6 +36,10 @@ def build_server() -> Any:
     from .tools.prometheus import register as register_prometheus  # Legion step 6 (획득)
     from .tools.occam import register as register_occam
 
+    # eureka_induce — 창조(FCA induction, PROPOSE-only, EARNED counts) 단독 노출 (실체감사 유레카 갭):
+    # KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/eureka_mcp_earned_counts
+    from .tools.eureka import register as register_eureka
+
     # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):
     # KG: rs-mcp-symposium-absorb-2026-05-14
     from .tools.symposium import register as register_symposium
@@ -55,6 +59,7 @@ def build_server() -> Any:
     register_tpa(mcp)
     register_prometheus(mcp)
     register_occam(mcp)
+    register_eureka(mcp)
     register_symposium(mcp)
     register_legion(mcp)
     register_hades(mcp)
@@ -93,6 +98,7 @@ def list_registered_tool_names() -> list[str]:
         "tpa_drift_audit",
         "prometheus_research",  # Legion step 6 — 획득(knowledge-first), 2026-05-27
         "occam_dedupe",
+        "eureka_induce",  # 창조(FCA induction, EARNED counts) — 실체감사 유레카 갭, 2026-07-03
         # SYMPOSIUM dispatch tools (Wave 7 P2-A absorbed 2026-05-14)
         "apt_dispatch",
         "kg_query",
