@@ -1555,6 +1555,57 @@ def _germinate_after_plant(
         print(f"    [{mark}] {o.seed_name}: {o.detail[:80]}")
 
 
+def _jaebaeman_decompose(
+    method: str | None,
+    run_cypher,
+    *,
+    llm_complete=None,
+    task_type: str = "research",
+):
+    # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s6_orphan_wire_or_prune
+    # KG: lesson-jaebaeman-engine-impl-prom16-2026-06-01
+    """--method → (DecomposeFn|None, 사용자 표시용 note|None). None = run_jaebaeman auto 규칙 위임.
+
+    jbm-s6 G6 배선: kg-htn = htn.kg_method_decompose (HAS_METHOD/DECOMPOSES_TO method 계층),
+    llm = llm_decompose (LLM=untrusted generator + 결정론 gate, C5 정전). llm runtime 부재 시
+    결정론 fallback(kg_decompose|leaf)으로 *정직 강등* — 사유를 note로 반환 (무음 극장 금지).
+    ``llm_complete`` 는 테스트/판정용 주입 seam (기본 = 실 AgentClient 어댑터).
+    """
+    if method in (None, "", "auto"):
+        return None, None
+    if method in ("kg", "kg-htn") and run_cypher is None:
+        return None, (
+            f"[jaebaeman] --method {method}는 KG가 필요 (NEO4J_* 또는 --local) → auto로 진행."
+        )
+    if method == "kg":
+        from engine.jaebaeman.kg_adapter import kg_decompose  # noqa: PLC0415
+
+        return kg_decompose(run_cypher, task_type=task_type), None
+    if method == "kg-htn":
+        from engine.jaebaeman.htn import kg_method_decompose  # noqa: PLC0415
+
+        return kg_method_decompose(run_cypher, task_type=task_type), None
+    if method == "llm":
+        from engine.jaebaeman.llm_decompose import from_agent_client, llm_decompose  # noqa: PLC0415
+
+        fallback = None
+        if run_cypher is not None:
+            from engine.jaebaeman.kg_adapter import kg_decompose  # noqa: PLC0415
+
+            fallback = kg_decompose(run_cypher, task_type=task_type)
+        complete = llm_complete
+        if complete is None:
+            agents, reason = _agent_runtime()
+            if agents is None:
+                return fallback, (
+                    f"[jaebaeman] --method llm 요청했으나 LLM runtime 불가 ({reason}) → "
+                    "결정론 fallback으로 정직 강등."
+                )
+            complete = from_agent_client(agents.AgentClient())
+        return llm_decompose(complete, fallback=fallback, task_type=task_type), None
+    return None, f"[jaebaeman] unknown --method {method!r} → auto로 진행."
+
+
 def cmd_jaebaeman(args: argparse.Namespace) -> int:
     # KG: 재배맨-v2-subagent-runtime-protocol
     """재배맨 — 계획→씨앗 결정화. 목표를 계획 트리로 unfold하고 SubagentTaskSpec 씨앗으로 심는다.
@@ -1592,6 +1643,15 @@ def cmd_jaebaeman(args: argparse.Namespace) -> int:
         )
         return 2
 
+    # jbm-s6 G6 배선: --method가 htn/llm_decompose를 production 경로로 라우팅.
+    decompose, method_note = _jaebaeman_decompose(
+        getattr(args, "method", "auto"),
+        run_cypher,
+        task_type=getattr(args, "task_type", None) or "research",
+    )
+    if method_note:
+        print(method_note, file=sys.stderr)
+
     cycle_id = _resolve_cycle_id(args)  # plant + germinate가 공유 (per-run scope)
     try:
         res = run_jaebaeman(
@@ -1602,6 +1662,7 @@ def cmd_jaebaeman(args: argparse.Namespace) -> int:
             cycle_id=cycle_id,
             apply=getattr(args, "apply", False),
             max_depth=getattr(args, "depth", 3),
+            decompose=decompose,
             coinductive=getattr(args, "coinductive", False),
             fuel=getattr(args, "fuel", None),
         )
