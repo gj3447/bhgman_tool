@@ -1,1 +1,0 @@
-../../../SYMPOSIUM/THEORY/TPA/SOURCES.md

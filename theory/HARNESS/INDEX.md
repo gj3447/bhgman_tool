@@ -4,20 +4,24 @@
 
 ## 자료
 
+> ⚠ **미보유 공시 (2026-07-03 jbm-s7)**: *(미보유)* 표시 파일들은 홈 박스 정본
+> (`/Users/lagyeongjun/CD/SYMPOSIUM/THEORY/HARNESS/`)에 있고 이 박스엔 없다 —
+> 참조하려면 vendor 실복사만(심링크 금지, oracle: engine/tests/test_theory_canon.py).
+
 | 파일 | 내용 |
 |---|---|
 | [`SOURCES.md`](./SOURCES.md) | 1차 소스 + 핵심 인용 + 발전 축 (Böckeler citation 정정 2026-04-30) |
-| [`HARNESS_BODY_REWRITE_SPEC.md`](./HARNESS_BODY_REWRITE_SPEC.md) | **F11 close-out (2026-04-30)** — 3계층 family ↔ Böckeler 2축 ↔ SYMPOSIUM 4축 정합 명세 + SKILL.md 재작성 acceptance criteria |
-| [`PROM_32_AUTONOMOUS_LOOP_REPORT.md`](./PROM_32_AUTONOMOUS_LOOP_REPORT.md) | **메인 PROM 사이클 보고서** — Claude Code 자율 실행 4-layer stack |
+| `HARNESS_BODY_REWRITE_SPEC.md` *(미보유)* | **F11 close-out (2026-04-30)** — 3계층 family ↔ Böckeler 2축 ↔ SYMPOSIUM 4축 정합 명세 + SKILL.md 재작성 acceptance criteria |
+| `PROM_32_AUTONOMOUS_LOOP_REPORT.md` *(미보유)* | **메인 PROM 사이클 보고서** — Claude Code 자율 실행 4-layer stack |
 
 ## Axis-split (PROM_32 cycle, N=32, 4×8 matrix)
 
 | 축 | 파일 | 8 sub-axis |
 |---|---|---|
-| **A** settings.json | [`A_settings_json.md`](./A_settings_json.md) | official / community / benchmarks / alternatives / pitfalls / trends_2026 / theory / critique |
-| **B** stop_hook + /loop | [`B_stop_hook_loop.md`](./B_stop_hook_loop.md) | 동일 8 sub-axis |
-| **C** CLAUDE.md overrides | [`C_claude_md_overrides.md`](./C_claude_md_overrides.md) | 동일 8 sub-axis |
-| **D** external harness | [`D_external_harness.md`](./D_external_harness.md) | 동일 8 sub-axis |
+| **A** settings.json | `A_settings_json.md` *(미보유)* | official / community / benchmarks / alternatives / pitfalls / trends_2026 / theory / critique |
+| **B** stop_hook + /loop | `B_stop_hook_loop.md` *(미보유)* | 동일 8 sub-axis |
+| **C** CLAUDE.md overrides | `C_claude_md_overrides.md` *(미보유)* | 동일 8 sub-axis |
+| **D** external harness | `D_external_harness.md` *(미보유)* | 동일 8 sub-axis |
 
 ## Lesson KG 노드
 

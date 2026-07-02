@@ -1,1 +1,0 @@
-../../../SYMPOSIUM/THEORY/재배맨/PROM_64_REPORT_v2.md

@@ -1,1 +1,0 @@
-../../../SYMPOSIUM/THEORY/APT/magic_number_table.md
