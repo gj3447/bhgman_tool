@@ -72,6 +72,12 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
         "read",
     ),
     (
+        "eureka_induce",
+        "KG 패턴→추상 개념 FCA induction (창조, PROPOSE-only) — EARNED counts (stages_ok 아님).",
+        "inducing candidate abstractions from the local KG with honest earned counts",
+        "read",
+    ),
+    (
         "occam_dedupe",
         "Occam KG dedup / reversible supersession pass, dry-run by default.",
         "finding duplicate or stale SourceCodeNode records and planning archive-only supersessions",
