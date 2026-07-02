@@ -342,6 +342,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="--coinductive와 함께: productive 전개할 최대 노드 수 (observation budget). 생략=depth까지 전부.",
     )
     p_jb.add_argument(
+        "--method",
+        choices=["auto", "kg", "kg-htn", "llm"],
+        default="auto",
+        help="분해 방법 (jbm-s6 G6 배선): auto=기존 규칙(anchor+KG면 kg, 아니면 단일 루트) / "
+        "kg=kg_decompose 강제 / kg-htn=HTN method 계층(KG HAS_METHOD→DECOMPOSES_TO, "
+        "htn.kg_method_decompose) / llm=LLM generate-and-check(결정론 gate, C5; runtime 없으면 "
+        "결정론 fallback으로 정직 강등).",
+    )
+    p_jb.add_argument(
         "--apply",
         action="store_true",
         help="씨앗 MERGE write (멱등/reversible). 생략 = dry-run (planned only).",

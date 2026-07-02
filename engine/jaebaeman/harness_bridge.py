@@ -1,5 +1,10 @@
 """harness → 재배맨 seed 브릿지 — '하네스 자체가 재배맨 씨앗'을 닫는 배선.
 
+STATUS: G6-DEMOTED (jbm-s6, 2026-07-03) — bench/실험 전용, 프로덕션 소비자 0
+(7군단장 실체감사 wf_376c327b-8f3 G6; engine/harness 는 이 모듈을 호출하지 않는다).
+승격하려면 실제 배선 + 이 마커 제거 + engine/jaebaeman/tests/test_orphan_wiring.py
+oracle 갱신이 *함께* 필요하다 (무음 승격 불가).
+
 재배맨 v2 = subagent-runtime-protocol: 씨앗 = ``:SubagentTaskSpec`` = 하네스(subagent) 컨텍스트
 (``lifecycle.agent_dispatcher`` 가 씨앗 → ``SubagentSpec`` 으로 컴파일). 하지만 harness *진단*
 (``engine.harness`` 의 3계층/4축 ``HarnessDiagnosis``)과 재배맨 *씨앗* 은 직접 안 묶여 있었다
