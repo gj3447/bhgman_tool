@@ -119,4 +119,36 @@ producer(나생문 stage, `commanders.py:250` 직전)가 verdict에 append: `cyc
 ### 마이그레이션 (요약)
 `measurement.py` 헬퍼+키+ledger 추가(단위테스트 9종 + artifact 포함 golden-vector) → producer 배선(`commanders.py:250`) → cycle_id 서버-mint 강제 → consumer 교체(`_run_realize` blind read) → run-level G2 업그레이드 → **OQ1b 동시 랜딩** → MCP `hades_realize` 3-file 등록(`catalog_is_consistent_with_security` 통과) → e2e(forge/empty/replay/cross-artifact/ledger/keyless 전부 REFUSED).
 
-# KG: adr-legion-runtime-shape-review-2026-06-20, adr-seven-commander-engine-cli-mcp-vllm-2026-06-18, adr-bhgman-tool-in-process-default-2026-05-19, adr-seven-commander-legion-architecture-2026-05-27, hades-canonical-2026-05-27, bihaenggiman-harness-demoted-3layer-2026-05-27, vp-hades-harness-indexed-pair-formalization-2026-05-28, finding-addressability-mis-target-7of7-2026-06-20, finding-warm-not-equal-cold-hnsw-2026-06-20, finding-dispatch-routing-cusum-collision-2026-06-20, finding-hades-harness-not-1to1-indexed-pair-2026-06-20, design-oq1-hades-verdict-gate-2026-06-20, oq-hades-verdict-provenance-standalone-realize-2026-06-20, oq-semantic-equal-vs-runtime-equal-commanders-2026-06-20, oq-cross-run-state-placement-warm-runtime-2026-06-20, oq-hades-verdict-selection-node-signing-2026-06-20, oq-hades-verdict-asymmetric-key-2026-06-20
+---
+
+## G5 Addendum (2026-07-03) — 출격(dispatch) 정체성의 정직 강등: legion 경로 = retrospective (jbm-s4)
+
+7군단장 실체감사(wf_376c327b-8f3) G5 지적의 해소. "재배맨(출격) = Legion.run 루프 자체"라는
+정체성 주장에서, legion 경로의 재배맨 substrate가 실제로 무엇을 하고 무엇을 하지 *않는지*를
+ADR 수준에서 기록하고 기계 oracle로 고정한다 (이전엔 `jaebaeman_substrate.py` docstring 한 줄뿐
+— 무음 승격도 무음 극장도 막지 못하는 상태였다).
+
+- **G5-C1 (retrospective, not dispatch)**: `run_legion_via_jaebaeman`의 Dispatcher는
+  legion.run이 *완료된 뒤* stage outcome을 seed status로 사후 매핑하는 retrospective lambda다
+  — legion 경로에서 씨앗은 단 하나도 Dispatcher lifecycle로 실제 출격하지 않는다.
+  **legion.run이 유일한 executor**이며, 이는 Contract-bound handoff + stage 간 oracle gate
+  의미론을 보존하기 위한 *의도된* 설계다 (dispatcher-driven 승격은 legion.run 재구현일 뿐,
+  게이트 의미론을 Dispatcher 안으로 복제하는 비용만 남는다).
+- **G5-C2 (no in-flight status)**: 따라서 legion 경로의 lifecycle status write에는
+  `DISPATCHED` 중간 전이가 없다 — `planned_status_writes`는 terminal(COLLECTED/FAILED)만
+  담는다. mid-run 실시간 가시성은 이 경로의 계약이 아니며, 사후 halt-연쇄 FAILED 매핑
+  (중간 stage 실패 시 미도달 seed 전부 FAILED)은 보장된다.
+- **G5-C3 (real dispatch = germinate path)**: dispatcher-driven 실행의 정본 경로는
+  germinate다 — `cmd_jaebaeman germinate` → `read_ready_seeds` → `agent_dispatcher` →
+  `engine.agents.dispatch.dispatch_parallel` (실 LLM 병렬 출격; `test_germinate_handoff`가
+  실 store 라운드트립을 고정, 실 Qwen 폐루프 동작 실증 있음). 출격 정체성은 두 경로의
+  분업이다: germinate = 실 출격, legion substrate = plan·lifecycle·audit 층.
+- **G5-C4 (falsifiability — 무음 승격 불가)**: 이 강등은 기계 oracle로 고정된다 —
+  `engine/legion/tests/test_dispatch_identity.py`가 (a) 본 절의 클로즈 마커 존재,
+  (b) legion 경로 status write의 terminal-only 사실(실측), (c) 사후 매핑이 전 stage 실행
+  *이후*임(순서 probe 실측)을 assert한다. dispatcher-driven으로 승격하려면 본 절을 대체하는
+  새 ADR + oracle 교체가 함께 필요하다.
+
+<!-- KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s4_dispatch_identity_honest -->
+
+# KG: adr-legion-runtime-shape-review-2026-06-20, adr-seven-commander-engine-cli-mcp-vllm-2026-06-18, adr-bhgman-tool-in-process-default-2026-05-19, adr-seven-commander-legion-architecture-2026-05-27, hades-canonical-2026-05-27, bihaenggiman-harness-demoted-3layer-2026-05-27, vp-hades-harness-indexed-pair-formalization-2026-05-28, finding-addressability-mis-target-7of7-2026-06-20, finding-warm-not-equal-cold-hnsw-2026-06-20, finding-dispatch-routing-cusum-collision-2026-06-20, finding-hades-harness-not-1to1-indexed-pair-2026-06-20, design-oq1-hades-verdict-gate-2026-06-20, oq-hades-verdict-provenance-standalone-realize-2026-06-20, oq-semantic-equal-vs-runtime-equal-commanders-2026-06-20, oq-cross-run-state-placement-warm-runtime-2026-06-20, oq-hades-verdict-selection-node-signing-2026-06-20, oq-hades-verdict-asymmetric-key-2026-06-20, jbm-s4-dispatch-identity-honest-2026-07-03
