@@ -61,15 +61,29 @@ def legion_roster_impl() -> dict[str, Any]:
     }
 
 
-def legion_run_impl(cycle_id: str = "mcp-legion", kg_path: str | None = None) -> dict[str, Any]:
-    """Run the closed legion loop on the bundled LocalKgStore (deterministic, infra-0).
+def legion_run_impl(
+    cycle_id: str = "mcp-legion", kg_path: str | None = None, store: Any | None = None
+) -> dict[str, Any]:
+    # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s3_mcp_substrate_parity
+    # KG: 재배맨-v2-subagent-runtime-protocol
+    """Run the closed legion loop via the 재배맨 substrate (deterministic, infra-0).
 
-    Returns a per-commander outcome summary + whether the Contract chain completed.
+    jbm-s3 (audit wf_376c327b-8f3 gap G4): this used to call
+    ``build_default_legion().run(ctx)`` directly, bypassing
+    ``run_legion_via_jaebaeman`` — so the 재배맨 planner/lifecycle/``:JaebaemanRun``
+    telemetry existed only on the CLI path and were structurally unreachable from
+    MCP. Now MCP and CLI share the one substrate code path: the response carries
+    the RunRecord surface (``jaebaeman`` block) and one ``:JaebaemanRun`` audit
+    record lands in the LocalKgStore per run (MERGE-only covenant; the bundled
+    store is ephemeral unless ``kg_path`` is given, so this stays read-mostly).
+
+    ``store`` is a DIP seam for tests (inject a LocalKgStore and observe the
+    telemetry arrival side); it is not exposed over the MCP tool signature.
     Does not require live Neo4j or an API key.
     """
     from engine.kg_local.runner import make_local_runner  # noqa: PLC0415
     from engine.kg_local.store import LocalKgStore  # noqa: PLC0415
-    from engine.legion.commanders import build_default_legion  # noqa: PLC0415
+    from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
     from engine.legion.verdict_gate import (  # noqa: PLC0415
         KgVerdictLedger,
         WeakVerdictKeyError,
@@ -81,9 +95,9 @@ def legion_run_impl(cycle_id: str = "mcp-legion", kg_path: str | None = None) ->
     if not cycle_id or cycle_id == "mcp-legion":
         cycle_id = mint_cycle_id()
 
-    store = LocalKgStore(kg_path) if kg_path else LocalKgStore()
+    if store is None:
+        store = LocalKgStore(kg_path) if kg_path else LocalKgStore()
     run_cypher = make_local_runner(store, autosave=False)
-    legion = build_default_legion()
     ctx: dict[str, Any] = {"run_cypher": run_cypher, "cycle_id": cycle_id}
     # R7: verdict 키 설정 시 in-loop 게이트 주입 — _run_verify(producer 서명) + _run_realize
     # (consumer 검증). 미설정 → legacy(게이트 없음, 비파괴). artifact_id 는 run-level 바인딩
@@ -93,7 +107,15 @@ def legion_run_impl(cycle_id: str = "mcp-legion", kg_path: str | None = None) ->
         ctx["artifact_id"] = cycle_id
     except WeakVerdictKeyError:
         pass
-    run = legion.run(ctx)
+
+    # G4 봉합: CLI cmd_legion 과 동일한 substrate 경로 — legion.run 은 여전히 executor,
+    # 재배맨은 그 위 plan(7 seeds)·lifecycle(출격→수확)·audit(:JaebaemanRun) 층.
+    result = run_legion_via_jaebaeman(
+        ctx, run_id=f"mcp-{cycle_id}", write_cypher=run_cypher, apply=True
+    )
+    run = result["legion_run"]
+    lifecycle = result["lifecycle"]
+    record = result["run_record"]
 
     return {
         "cycle_id": cycle_id,
@@ -105,6 +127,16 @@ def legion_run_impl(cycle_id: str = "mcp-legion", kg_path: str | None = None) ->
             for o in run.outcomes
         ],
         "final_context_keys": list(run.final_context_keys),
+        "jaebaeman": {
+            "run_id": record.run_id,
+            "planned_seeds": record.planned_seeds,
+            "dispatched": record.dispatched,
+            "collected": record.collected,
+            "failed": record.failed,
+            "seed_outcomes": [
+                {"seed": o.seed_name, "status": o.status.value} for o in lifecycle.outcomes
+            ],
+        },
         "backend": "local-kg (infra-0; pass NEO4J_* to the engine for live KG)",
     }
 
