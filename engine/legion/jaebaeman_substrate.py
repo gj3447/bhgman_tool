@@ -9,6 +9,9 @@ unwired였던 새 재배맨 엔진(planner/lifecycle/telemetry)을 legion 실행
 
 이로써 planner/lifecycle/telemetry가 `bhgman-tool legion` 경로에서 *실제로 실행*된다.
 재배맨이 stage 실행을 *재구현*하지 않음(legion.run이 executor) — 재배맨은 plan·lifecycle·audit 층.
+이 retrospective 한계는 ADR 수준으로 강등 기록 + 기계 oracle 고정됨 (jbm-s4 G5):
+ADRs/legion-runtime-shape-review-2026-06-20.md §G5 Addendum (G5-C1~C4),
+oracle = engine/legion/tests/test_dispatch_identity.py. 무음 승격 불가.
 
 # KG: bihaenggiman-legioncommanders-2026-05-26 (재배맨=출격 substrate),
 #     jaebaeman-planfirst-essence-reframe-2026-05-27, lesson-jaebaeman-engine-impl-prom16-2026-06-01,
