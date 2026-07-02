@@ -1,1 +1,0 @@
-../../../SYMPOSIUM/THEORY/APT/SOURCES.md

@@ -21,22 +21,21 @@
 
 ## 1. 파일 지도
 
+**이 박스 실재 (2026-07-03 jbm-s7 정직화 — 실재/미보유 분리):**
+
 | 파일 | 내용 |
 |---|---|
 | `SOURCES.md` | 1차 소스 + 7 axis 학문 grounding |
 | `INDEX.md` | 본 파일 |
-| `ABSTRACT.md` | 5 단락 |
-| `PAPER_SKELETON.md` | 논문 골격 |
-| `AXIS_DEEP_GROUNDING.md` | 7 axis (GAN/Popper/Lakatos/D20/HR11/Ensemble/Adversarial ML) |
-| `COMPARISON_METHODOLOGIES.md` | vs Constitutional AI / Critic agent / Self-RAG critique / Reflexion / RLHF / property-based / mutation testing / fuzzing / TLA+ / Alloy |
-| `CITATION_TABLE.md` | 인용 표 |
-| `GLOSSARY.md` | 용어집 |
-| `FINAL_VERDICT.md` | verdict + 후속 sprint |
-| `LEAN_REGRESSION_AUDIT.md` | Lean 4 6 theorem group / 24 verified |
-| `113_LENS_TAXONOMY.md` | 113 mathematical lens 정전 (legacy) |
-| `taliban_adversarial_runtime_prototype/` | Python 3.11+ runtime (53 pytest PASS) |
-| `lean_audit/TalibanAudit.lean` | 24 theorem, 0 sorry |
-| `PROM_32_REPORT.md` + axis_findings | legacy cycle |
+
+**홈 박스 정본 (이 박스 미보유 — `/Users/lagyeongjun/CD/SYMPOSIUM/THEORY/나생문/`; 참조하려면 vendor 실복사만, 심링크 금지):**
+ABSTRACT.md(5 단락) · PAPER_SKELETON.md(논문 골격) · AXIS_DEEP_GROUNDING.md(7 axis:
+GAN/Popper/Lakatos/D20/HR11/Ensemble/Adversarial ML) · COMPARISON_METHODOLOGIES.md ·
+CITATION_TABLE.md · GLOSSARY.md · FINAL_VERDICT.md · LEAN_REGRESSION_AUDIT.md(Lean 4,
+24 verified) · 113_LENS_TAXONOMY.md(113 lens 정전, legacy) ·
+taliban_adversarial_runtime_prototype/(Python runtime, 53 pytest) ·
+lean_audit/TalibanAudit.lean(24 theorem, 0 sorry) · PROM_32_REPORT.md + axis_findings(legacy).
+이 박스의 실행 정본은 `engine/naesengmoon/` + `ooptdd/naesengmoon_adapter.py`.
 
 ---
 
