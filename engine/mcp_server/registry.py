@@ -91,9 +91,9 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
     ),
     (
         "seed_germinate",
-        "Emit a 재배맨 SubagentTaskSpec seed (jaebaeman protocol).",
-        "creating a reusable subagent task-spec seed",
-        "write",
+        "Plan 재배맨 seeds via the REAL engine (fail-closed invariant gate → dry-run MERGE plans).",
+        "planning SubagentTaskSpec seeds with engine-verified invariants before an explicit KG write",
+        "read",
     ),
     (
         "apt_dispatch",

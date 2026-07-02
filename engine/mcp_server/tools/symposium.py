@@ -9,7 +9,9 @@ Exposes 4 SYMPOSIUM core tools that thin-wrap the SYMPOSIUM/bhgman-tool infrastr
   apt_dispatch    — APT phase routing (sa | sp | st | scw | meta_review)
   kg_query        — Neo4j Cypher wrapper, fail-open via ssh dgx → data/neo4j-0
   gate_check      — apt-gate-check.sh wrapper (Resilience4j 4-layer chain)
-  seed_germinate  — 재배맨 SubagentTaskSpec emission (jaebaeman protocol)
+  seed_germinate  — 재배맨 seed planning via the REAL engine (jbm-s2 promotion):
+                    validate_seed_invariants fail-closed → plant_seeds dry-run
+                    MERGE plans (the former sha256 shim never touched the engine)
 
 Design contract (longinus 7-layer ref binding):
   L1 (Filesystem):  this file
@@ -27,6 +29,11 @@ Honest limitations (Goodhart safeguard):
   fallback is sound but not guaranteed across drift events.
 - `kg_query` requires `ssh dgx` reachable; absent that, returns degraded dict.
 - `gate_check` requires `bin/cypher_validate.sh` on disk; same fallback rules.
+- `seed_germinate` is a dry-run planner: it NEVER writes (registry category 'read').
+  The parent applies the returned MERGE-only planned_cyphers explicitly (e.g.
+  kg_query mutate=true) — the write decision stays at the caller, PROPOSE-style.
+  E1 (orphan anchor in the live KG) is not checked here (no run_cypher seam wired);
+  the local 4 invariants (dup/depth/dangling/E3) are always enforced fail-closed.
 """
 
 from __future__ import annotations
@@ -41,6 +48,10 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from engine.jaebaeman.invariants import validate_seed_invariants
+from engine.jaebaeman.jaebaeman_models import SeedRecord
+from engine.jaebaeman.kg_adapter import plant_seeds
 
 logger = logging.getLogger("bhgman_tool.mcp.symposium")
 
@@ -293,21 +304,111 @@ def _gate_check_impl(req: GateCheckRequest) -> dict[str, Any]:
         return {"verdict": "WOULD_FAIL", "reason": f"gate-check exec failed: {e}", "degraded": True}
 
 
-def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:
-    """Emits a SubagentTaskSpec seed and returns its identifier.
+def seeds_from_payload(spec_name: str, payload: dict[str, Any]) -> list[SeedRecord]:
+    # KG: 재배맨-v2-subagent-runtime-protocol
+    # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s2_seed_germinate_engine
+    """Parse the tool payload into engine ``SeedRecord``s — the SHARED parser.
 
-    Parent claude is responsible for the KG write (재배맨 MIC_v1.SubagentSeeder slot).
+    Tests recompute engine plans over the very same records this returns, so the
+    MCP==engine parity assertion never depends on a second, drifting parser.
+
+    ``payload["seeds"]`` is a list of seed dicts; a payload without ``"seeds"`` is
+    treated as one single-seed spec. A seed without ``anchor``/``source_id`` is
+    self-anchored (root). A non-integer ``depth`` coerces to -1 so the invariant
+    gate flags it as E4 (fail-closed) instead of raising a transport error.
+    """
+    raw = payload.get("seeds")
+    if raw is None:
+        raw = [payload] if payload else [{}]
+    seeds: list[SeedRecord] = []
+    for i, entry in enumerate(raw):
+        name = str(entry.get("name") or f"{spec_name}-seed-{i}")
+        anchor = str(entry.get("anchor") or entry.get("source_id") or name)
+        try:
+            depth = int(entry.get("depth", 0))
+        except (TypeError, ValueError):
+            depth = -1  # out of [0, MAX_DEPTH] => E4 violation => BLOCKED, never a 500
+        parent = entry.get("parent")
+        seeds.append(
+            SeedRecord(
+                name=name,
+                skill=str(entry.get("skill") or "jaebaeman"),
+                source_id=anchor,
+                display_name=str(entry.get("display_name") or name),
+                task_type=str(entry.get("task_type") or "research"),
+                target_domain=str(entry.get("target_domain") or ""),
+                expected_outcome=str(entry.get("expected_outcome") or ""),
+                germination_method=str(entry.get("germination_method") or "manual"),
+                depth=depth,
+                parent=str(parent) if parent is not None else None,
+            )
+        )
+    return seeds
+
+
+def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:
+    # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s2_seed_germinate_engine
+    # KG: lesson-jaebaeman-engine-impl-prom16-2026-06-01
+    # KG: 재배맨-v2-subagent-runtime-protocol
+    """Plan 재배맨 seeds via the REAL engine — fail-closed invariant gate, dry-run plans.
+
+    Promotion of the former sha256 shim (7-commander substance audit wf_376c327b-8f3,
+    gap G3: the shim hashed inputs and never imported ``engine.jaebaeman``). The
+    response now carries engine-derived artifacts only:
+
+      * ``validate_seed_invariants`` gates the batch FIRST — any violation returns
+        status 'BLOCKED' with the exact codes and plans NOTHING (fail-closed).
+      * a clean batch returns status 'PLANNED' with the MERGE-only cyphers the real
+        ``plant_seeds(dry_run=True)`` derived (covenant: seeds are planted, never
+        uprooted — the engine asserts DELETE/DETACH/REMOVE absence).
+      * this tool itself writes nothing (registry category 'read'); the parent
+        applies the plans explicitly, PROPOSE-style, keeping the write decision at
+        the caller.
+
+    The shim-era surface (seed_id / spec_name / payload_keys) is preserved.
     """
     digest = hashlib.sha256(
         json.dumps({"spec": req.spec_name, "payload": req.payload}, sort_keys=True).encode()
     ).hexdigest()[:16]
     seed_id = f"seed_{req.spec_name}_{digest}"
-    return {
+    cycle_id = req.parent_cycle_id or f"seed-germinate-{digest}"
+
+    seeds = seeds_from_payload(req.spec_name, req.payload)
+    violations = validate_seed_invariants(seeds)
+    base: dict[str, Any] = {
         "seed_id": seed_id,
         "spec_name": req.spec_name,
         "payload_keys": list(req.payload.keys()),
         "parent_cycle_id": req.parent_cycle_id,
-        "next_action": "parent MUST KG-write before dispatching subagents (jaebaeman protocol)",
+        "engine": {
+            "seeds_planned": len(seeds),
+            "seed_names": [s.name for s in seeds],
+            "cycle_id": cycle_id,
+            "dry_run": True,
+        },
+    }
+    if violations:
+        return {
+            **base,
+            "status": "BLOCKED",
+            "planned_cyphers": [],
+            "violations": [
+                {"code": v.code.value, "seed_id": v.seed_id, "detail": v.detail} for v in violations
+            ],
+            "next_action": (
+                "fix the invariant violations and re-germinate (fail-closed: nothing was planned)"
+            ),
+        }
+    plan = plant_seeds(seeds, write_cypher=None, cycle_id=cycle_id, dry_run=True)
+    return {
+        **base,
+        "status": "PLANNED",
+        "planned_cyphers": [{"cypher": c, "params": p} for c, p in plan.planned_cyphers],
+        "violations": [],
+        "next_action": (
+            "apply the MERGE-only planned_cyphers explicitly (e.g. kg_query mutate=true) "
+            "before dispatching subagents (jaebaeman protocol — this tool writes nothing)"
+        ),
     }
 
 
@@ -361,7 +462,7 @@ def register(mcp: Any) -> None:
         payload: dict[str, Any],
         parent_cycle_id: str | None = None,
     ) -> dict[str, Any]:
-        """Emit a 재배맨 SubagentTaskSpec seed (jaebaeman protocol)."""
+        """Plan 재배맨 seeds via the real engine (fail-closed invariants, dry-run MERGE plans)."""
         return _seed_germinate_impl(
             SeedGerminateRequest(
                 spec_name=spec_name, payload=payload, parent_cycle_id=parent_cycle_id
