@@ -32,8 +32,9 @@ Honest limitations (Goodhart safeguard):
 - `seed_germinate` is a dry-run planner: it NEVER writes (registry category 'read').
   The parent applies the returned MERGE-only planned_cyphers explicitly (e.g.
   kg_query mutate=true) — the write decision stays at the caller, PROPOSE-style.
-  E1 (orphan anchor in the live KG) is not checked here (no run_cypher seam wired);
-  the local 4 invariants (dup/depth/dangling/E3) are always enforced fail-closed.
+  E1 (orphan anchor) is checked ONLY when a KG is provided (kg_path param / store
+  seam, jbm-s8) — without it the local 4 invariants (dup/depth/dangling/E3) are
+  enforced and the response discloses the E1-unchecked scope honestly.
 """
 
 from __future__ import annotations
@@ -346,8 +347,9 @@ def seeds_from_payload(spec_name: str, payload: dict[str, Any]) -> list[SeedReco
     return seeds
 
 
-def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:
+def _seed_germinate_impl(req: SeedGerminateRequest, store: Any | None = None) -> dict[str, Any]:
     # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s2_seed_germinate_engine
+    # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s8_germinate_e1_kg_seam
     # KG: lesson-jaebaeman-engine-impl-prom16-2026-06-01
     # KG: 재배맨-v2-subagent-runtime-protocol
     """Plan 재배맨 seeds via the REAL engine — fail-closed invariant gate, dry-run plans.
@@ -366,6 +368,12 @@ def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:
         the caller.
 
     The shim-era surface (seed_id / spec_name / payload_keys) is preserved.
+
+    jbm-s8 (E1 KG-seam): ``store``(테스트 DIP seam) 또는 MCP ``kg_path`` 로 KG 를 주면
+    ``validate_seed_invariants`` 에 run_cypher 가 배선되어 **E1(orphan anchor — 외부
+    anchor 의 KG 실존)** 까지 5개 불변식 전종을 MCP 경계에서 fail-closed 로 판별한다.
+    KG 미제공이면 현행 로컬-4 유지 — 응답 ``engine.invariants`` 가 어느 쪽인지 공시
+    (E1 을 본 척하는 조용한 범위 과장 금지, infra-0 covenant 보존).
     """
     digest = hashlib.sha256(
         json.dumps({"spec": req.spec_name, "payload": req.payload}, sort_keys=True).encode()
@@ -373,8 +381,14 @@ def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:
     seed_id = f"seed_{req.spec_name}_{digest}"
     cycle_id = req.parent_cycle_id or f"seed-germinate-{digest}"
 
+    run_cypher = None
+    if store is not None:
+        from engine.kg_local.runner import make_local_runner  # noqa: PLC0415
+
+        run_cypher = make_local_runner(store, autosave=False)
+
     seeds = seeds_from_payload(req.spec_name, req.payload)
-    violations = validate_seed_invariants(seeds)
+    violations = validate_seed_invariants(seeds, run_cypher=run_cypher)
     base: dict[str, Any] = {
         "seed_id": seed_id,
         "spec_name": req.spec_name,
@@ -385,6 +399,9 @@ def _seed_germinate_impl(req: SeedGerminateRequest) -> dict[str, Any]:
             "seed_names": [s.name for s in seeds],
             "cycle_id": cycle_id,
             "dry_run": True,
+            "invariants": "local-4+E1"
+            if run_cypher is not None
+            else "local-4 (E1 미검 — kg_path 미제공)",
         },
     }
     if violations:
@@ -461,10 +478,21 @@ def register(mcp: Any) -> None:
         spec_name: str,
         payload: dict[str, Any],
         parent_cycle_id: str | None = None,
+        kg_path: str = "",
     ) -> dict[str, Any]:
-        """Plan 재배맨 seeds via the real engine (fail-closed invariants, dry-run MERGE plans)."""
+        """Plan 재배맨 seeds via the real engine (fail-closed invariants, dry-run MERGE plans).
+
+        kg_path: optional LocalKgStore JSON — 주면 E1(orphan anchor)까지 5개 불변식 전종을
+        MCP 경계에서 판별 (미제공=로컬-4, 응답 engine.invariants 에 공시).
+        """
+        store = None
+        if kg_path:
+            from engine.kg_local.store import LocalKgStore  # noqa: PLC0415
+
+            store = LocalKgStore(kg_path)
         return _seed_germinate_impl(
             SeedGerminateRequest(
                 spec_name=spec_name, payload=payload, parent_cycle_id=parent_cycle_id
-            )
+            ),
+            store=store,
         )
