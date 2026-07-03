@@ -292,9 +292,10 @@ def _run_realize(ctx: dict) -> dict:
 
 # ── measurement factories (W2-A) — derive a commander's metrics from its stage output ──
 # Only metrics the deterministic pipeline actually EXPOSES are wired (no fabricated values):
-# prometheus surfaces a finding count, so its research_finding_count → naesengmoon dispatch
-# threshold is measurable at runtime. The other commanders' metrics aren't exposed by the
-# current outputs (a follow-up to surface them); their stages carry no measure factory.
+# prometheus surfaces a finding count + citation grounding, occam surfaces per-candidate σ +
+# a stale-node count — both measurable at runtime. The remaining commanders (longinus/eureka/
+# naesengmoon/hades) don't yet expose their metrics through the stage output; their stages
+# carry no measure factory until they do (no fabricated constants).
 def _measure_prometheus(ctx: dict):
     from engine.legion.measurement import PrometheusMeasurement  # noqa: PLC0415
 
@@ -305,6 +306,35 @@ def _measure_prometheus(ctx: dict):
     if "citation_urls" in acquired:
         m.update_grounding(acquired["citation_urls"])
     return m
+
+
+def _measure_occam(ctx: dict):
+    """occam 스테이지 산출(hygiene summary)에서 supersession σ + stale-node 카운트를 뽑아
+    OccamMeasurement 를 구성 — measurement-driven dispatch 를 런타임에 살린다.
+
+    이전엔 occam 스테이지가 measure= 없이 등록돼(_stage_from_engine 기본 None) OccamMeasurement
+    가 한 번도 인스턴스화되지 않았고, 설령 됐어도 supersession_confidence 는 생성자 기본 1.0 에
+    고정 → <0.7 naesengmoon verify dispatch 가 원리적으로 발화 불가(1.0<0.7=False). 이 팩토리가
+    실 σ 로 그 값을 실계산한다 (prometheus grounding-wire 와 동형 규율).
+
+      supersession_confidence = min(candidate σ) — 배치는 가장 낮은(최약) supersession 만큼만
+                                확신. 후보 없음/무점수 → 1.0(검증 불필요, 정직 기본).
+      dead_node_count         = 이 패스가 식별한 stale 노드 수(>10 = 대규모 정리 백로그 →
+                                후속 self-supersede batch).
+    degraded/부재 hygiene(=candidates 키 없음) → None: dispatch 없음, crash 없음."""
+    from engine.legion.measurement import OccamMeasurement  # noqa: PLC0415
+
+    hygiene = ctx.get("hygiene")
+    if not isinstance(hygiene, dict) or "candidates" not in hygiene:
+        return None  # degraded stub 또는 미제공 — 측정 근거 없음, 상수 날조 금지
+    sigmas = [
+        c["sigma"]
+        for c in hygiene.get("candidates", ())
+        if isinstance(c, dict) and c.get("sigma") is not None
+    ]
+    confidence = min(sigmas) if sigmas else 1.0
+    dead = int(hygiene.get("superseded_candidates", 0) or 0)
+    return OccamMeasurement(supersession_confidence=confidence, dead_node_count=dead)
 
 
 # ── stage 빌더 + 기본 합성 ──────────────────────────────────────────────────
@@ -319,7 +349,7 @@ _STAGES: tuple[CommanderStage, ...] = (
     ),
     _stage_from_engine(LonginusEngine()),
     CommanderStage("eureka", "창조", ("run_cypher",), ("abstractions",), _run_induce),
-    _stage_from_engine(OccamEngine()),
+    _stage_from_engine(OccamEngine(), measure=_measure_occam),
     CommanderStage(
         "naesengmoon",
         "검증",
