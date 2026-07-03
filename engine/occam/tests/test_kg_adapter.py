@@ -175,3 +175,25 @@ def test_apply_no_write_cypher_forces_dry_run():
     result = apply_supersessions(report, write_cypher=None, dry_run=False)
     assert result.dry_run is True
     assert result.applied_count == 0
+
+
+def test_supersede_cypher_guards_against_already_archived_nodes():
+    """H3 (Tier-1 write-safety): the supersede write must refuse to touch a node that is
+    already SUPERSEDED — on BOTH sides.
+
+    stale-guard  → idempotency: a re-run (or a parse that doesn't status-filter) can't
+                   re-archive an already-archived node; the write matches 0 rows instead.
+    current-guard→ no-survivor prevention: two concurrent passes that pick opposite
+                   directions (A: Y→X, B: X→Y) can otherwise both fire and leave a
+                   SUPERSEDED_BY cycle with no live node. Once one side is archived, the
+                   reverse write must match 0 current rows and no-op.
+
+    Enforced by the DB WHERE clause (the injected fake runner can't interpret it), so —
+    consistent with test_fetch_cypher_excludes_already_superseded — we assert the guard
+    clause is present. Removing it reverts this test to RED (revert-proof)."""
+    report = _dup_report()
+    cypher, _ = build_supersede(report.candidates[0])
+    up = cypher.upper()
+    assert "STALE.STATUS" in up and "CURRENT.STATUS" in up, "missing not-archived guard"
+    # both guards must gate on SUPERSEDED (not merely mention .status somewhere)
+    assert up.count("<> 'SUPERSEDED'") >= 2, "guard must exclude SUPERSEDED on both sides"

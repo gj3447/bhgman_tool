@@ -19,6 +19,7 @@ cosine ≥ θ 쌍을 near-duplicate 후보로 surface한다.
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -30,6 +31,19 @@ FORBIDDEN_TOKENS = ("DELETE", "DETACH", "REMOVE")
 
 # 키 prop allowlist (cypher 주입 차단). 노드 identity 키.
 _KEY_ALLOWLIST = frozenset({"name", "findingId", "id"})
+
+# 라벨은 cypher에 직접 보간되므로(파라미터화 불가) 엄격 검증 — 유효 Neo4j 라벨만 (주입 차단).
+_LABEL_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
+
+
+def _validate_label(label: str) -> None:
+    """H5 covenant: supersede MATCH 를 노드 라벨로 스코핑한다. 라벨 없는 bare `name` MATCH 는
+    전 KG 동명 노드를 SET 하므로 금지. 라벨은 파라미터화 불가 → allowlist-정규식으로 주입 차단."""
+    if not isinstance(label, str) or not _LABEL_RE.fullmatch(label):
+        raise ValueError(
+            f"label must be a valid Neo4j label [A-Za-z][A-Za-z0-9_]*, got {label!r} "
+            "(covenant: unlabeled bare-name MATCH would SET status on every same-named node)"
+        )
 
 
 def cosine(a: list[float], b: list[float]) -> float:
@@ -86,10 +100,14 @@ def find_near_duplicates(
     return pairs
 
 
+# H5 (Tier-1): stale/current MATCH 를 {label} 로 스코핑 + 상태가드(H3). 예전 템플릿은 라벨 없는
+# bare `(stale)` 였고 `WHERE ... WHERE ...` 연속이라 실 Neo4j 문법오류(로컬 러너가 가려 미검출).
 _SUPERSEDE_TMPL = (
-    "MATCH (stale) WHERE stale.{key} = $stale_id "
-    "MATCH (current) WHERE current.{key} = $current_id "
-    "WHERE stale <> current "
+    "MATCH (stale:{label}) WHERE stale.{key} = $stale_id "
+    "AND (stale.status IS NULL OR stale.status <> 'SUPERSEDED') "
+    "MATCH (current:{label}) WHERE current.{key} = $current_id "
+    "AND (current.status IS NULL OR current.status <> 'SUPERSEDED') "
+    "AND stale <> current "
     "SET stale.status = 'SUPERSEDED', stale.supersededBy = $current_id, "
     "stale.supersededReason = $reason, stale.supersededAt = datetime(), "
     "stale.occamPass = 'occam-semantic' "
@@ -98,12 +116,14 @@ _SUPERSEDE_TMPL = (
 )
 
 
-def plan_supersession(pair: NearDupPair, *, key: str = "name") -> tuple[str, dict]:
+def plan_supersession(pair: NearDupPair, *, key: str = "name", label: str) -> tuple[str, dict]:
     # KG: occam-kam-canonical-2026-05-26
-    """near-dup 쌍 → supersede write cypher + params. covenant: 파괴 토큰 부재 assert."""
+    """near-dup 쌍 → supersede write cypher + params. covenant: 파괴 토큰 부재 assert +
+    라벨 스코핑(bare-name over-supersede 차단, H5)."""
     if key not in _KEY_ALLOWLIST:
         raise ValueError(f"key must be one of {sorted(_KEY_ALLOWLIST)}, got {key!r}")
-    cypher = _SUPERSEDE_TMPL.format(key=key)
+    _validate_label(label)
+    cypher = _SUPERSEDE_TMPL.format(key=key, label=label)
     violations = [tok for tok in FORBIDDEN_TOKENS if tok in cypher.upper()]
     if violations:
         raise AssertionError(f"occam covenant violation: {violations}")
@@ -138,6 +158,7 @@ def run_semantic_dedup(
     items: list[tuple[str, str]],
     *,
     embed_fn: EmbedFn,
+    label: str,
     threshold: float = 0.95,
     key: str = "name",
     weight: dict[str, float] | None = None,
@@ -145,7 +166,11 @@ def run_semantic_dedup(
     apply: bool = False,
 ) -> SemanticDedupReport:
     # KG: occam-kam-canonical-2026-05-26
-    """(id, text) 목록 → embed → near-dup → PROPOSE/apply. dry-run 기본 (archive-only)."""
+    """(id, text) 목록 → embed → near-dup → PROPOSE/apply. dry-run 기본 (archive-only).
+
+    label = supersede MATCH 스코프(H5 covenant: 라벨 없는 bare-name MATCH 금지). 호출자는
+    스캔한 노드 타입 라벨(예: 'ResearchFinding'/'Lesson')을 넘긴다."""
+    _validate_label(label)  # dry-run 이어도 조기 검증 — planned cypher 도 스코프됨
     ids = [i for i, _ in items]
     texts = [t for _, t in items]
     vectors = embed_fn(texts) if texts else []
@@ -155,7 +180,7 @@ def run_semantic_dedup(
     applied = 0
     do_write = apply and write_cypher is not None
     for pair in pairs:
-        cypher, params = plan_supersession(pair, key=key)
+        cypher, params = plan_supersession(pair, key=key, label=label)
         planned.append(cypher)
         if do_write:
             try:

@@ -102,6 +102,12 @@ _SUPERSEDE_CYPHER = (
     "MATCH (stale:SourceCodeNode {sourcePath: $stale_path, sha256: $stale_sha}) "
     "MATCH (current:SourceCodeNode {sourcePath: $current_path, sha256: $current_sha}) "
     "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동일키 no-op)
+    # Tier-1 write-safety (H3): 이미 아카이브된 노드는 어느 쪽도 건드리지 않는다.
+    # stale-guard = 멱등(재-아카이브 금지, parse가 status 미필터해도 write는 0-row no-op).
+    # current-guard = no-survivor 방지: 병렬 두 패스가 Y→X, X→Y 로 엇갈려도 한쪽이 먼저
+    #   아카이브되면 반대 write 의 current 매치가 0 → SUPERSEDED_BY 사이클(생존자 0) 불가.
+    "AND (stale.status IS NULL OR stale.status <> 'SUPERSEDED') "
+    "AND (current.status IS NULL OR current.status <> 'SUPERSEDED') "
     "SET stale.status = 'SUPERSEDED', "
     "stale.supersededBy = $current_path, "
     "stale.supersededReason = $reason, "
