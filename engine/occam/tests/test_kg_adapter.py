@@ -7,8 +7,12 @@ covenant 핵심: write cypher에 DELETE/DETACH/REMOVE 토큰 부재 (archive-onl
 
 from __future__ import annotations
 
+import pytest
+
 from engine.occam.kg_adapter import (
     FORBIDDEN_TOKENS,
+    _SUPERSEDE_CYPHER,
+    _assert_archive_only,
     apply_supersessions,
     build_supersede,
     fetch_cypher,
@@ -175,6 +179,31 @@ def test_apply_no_write_cypher_forces_dry_run():
     result = apply_supersessions(report, write_cypher=None, dry_run=False)
     assert result.dry_run is True
     assert result.applied_count == 0
+
+
+# ── covenant reject 브랜치 (여태 무테스트 — G1) + 파괴 프로시저 (Tier-4) ────────
+
+
+def test_covenant_helper_rejects_destructive_token_cypher():
+    """G1: covenant 의 REJECT 브랜치는 여태 무테스트였다(clean 상수만 확인). 파괴 토큰이 든
+    cypher 는 AssertionError 로 실제로 막혀야 — 이게 archive-only 의 이빨."""
+    with pytest.raises(AssertionError, match="covenant"):
+        _assert_archive_only("MATCH (n:SourceCodeNode) DETACH DELETE n")
+
+
+def test_covenant_helper_rejects_apoc_destructive_procedure():
+    """Tier-4: DELETE/DETACH/REMOVE 토큰이 하나도 없이 노드를 파괴하는 프로시저
+    (apoc.refactor.mergeNodes 는 노드를 병합/파괴) 도 차단돼야 — 예전 substring 3-토큰
+    denylist 로는 통과하던 우회로."""
+    with pytest.raises(AssertionError, match="covenant"):
+        _assert_archive_only(
+            "MATCH (a),(b) CALL apoc.refactor.mergeNodes([a,b]) YIELD node RETURN node"
+        )
+
+
+def test_covenant_helper_passes_real_supersede_cypher():
+    """판별 반대쪽: 실제 archive-only supersede cypher 는 통과(항상-거부 장식 아님)."""
+    _assert_archive_only(_SUPERSEDE_CYPHER)  # no raise
 
 
 def test_supersede_cypher_guards_against_already_archived_nodes():

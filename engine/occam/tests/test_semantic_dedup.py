@@ -97,6 +97,22 @@ def test_plan_supersession_guards_already_archived():
     assert up.count("<> 'SUPERSEDED'") >= 2
 
 
+def test_semantic_covenant_rejects_apoc_destructive_procedure():
+    """Tier-4: semantic supersede covenant 도 DELETE/DETACH/REMOVE 토큰 없이 노드를 파괴하는
+    프로시저(apoc.refactor.mergeNodes)를 차단해야."""
+    from engine.occam.semantic_dedup import _assert_archive_only
+
+    with pytest.raises(AssertionError, match="covenant"):
+        _assert_archive_only("CALL apoc.refactor.mergeNodes([a,b]) YIELD node RETURN node")
+
+
+def test_semantic_covenant_passes_real_template():
+    """판별 반대쪽: 실제 라벨-스코핑 supersede 템플릿은 통과."""
+    from engine.occam.semantic_dedup import _SUPERSEDE_TMPL, _assert_archive_only
+
+    _assert_archive_only(_SUPERSEDE_TMPL.format(key="name", label="Lesson"))  # no raise
+
+
 # ── 파이프라인 (fake embed_fn) ───────────────────────────────────────────────
 def _fake_embed(texts: list[str]) -> list[list[float]]:
     """결정론 fake: 같은 텍스트→같은 벡터, 'dup' 포함 텍스트끼리 거의 동일."""

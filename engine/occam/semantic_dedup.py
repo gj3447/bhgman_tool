@@ -28,6 +28,18 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 
 # occam covenant — 파괴적 토큰 금지 (kg_adapter와 동일).
 FORBIDDEN_TOKENS = ("DELETE", "DETACH", "REMOVE")
+# archive-only 우회 차단(Tier-4): 토큰 없이 노드를 파괴하는 프로시저 (kg_adapter와 동일).
+_DESTRUCTIVE_PROCEDURES = ("MERGENODES", "APOC.REFACTOR", "APOC.NODES.DELETE")
+
+
+def _assert_archive_only(cypher: str) -> None:
+    """covenant: 파괴 토큰(DELETE/DETACH/REMOVE) + 노드-파괴 프로시저(apoc.refactor.mergeNodes
+    등)를 차단. archive-only supersede 만 통과."""
+    up = cypher.upper()
+    violations = [t for t in (*FORBIDDEN_TOKENS, *_DESTRUCTIVE_PROCEDURES) if t in up]
+    if violations:
+        raise AssertionError(f"occam covenant violation: {violations}")
+
 
 # 키 prop allowlist (cypher 주입 차단). 노드 identity 키.
 _KEY_ALLOWLIST = frozenset({"name", "findingId", "id"})
@@ -124,9 +136,7 @@ def plan_supersession(pair: NearDupPair, *, key: str = "name", label: str) -> tu
         raise ValueError(f"key must be one of {sorted(_KEY_ALLOWLIST)}, got {key!r}")
     _validate_label(label)
     cypher = _SUPERSEDE_TMPL.format(key=key, label=label)
-    violations = [tok for tok in FORBIDDEN_TOKENS if tok in cypher.upper()]
-    if violations:
-        raise AssertionError(f"occam covenant violation: {violations}")
+    _assert_archive_only(cypher)  # 파괴 토큰 + apoc 파괴 프로시저 부재 강제 (archive-only)
     params = {
         "stale_id": pair.drop_id,
         "current_id": pair.keep_id,

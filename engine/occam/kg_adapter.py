@@ -24,6 +24,20 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 
 # covenant: 오캄은 archive만 — 이 토큰들이 write cypher에 있으면 위반.
 FORBIDDEN_TOKENS = ("DELETE", "DETACH", "REMOVE")
+# archive-only covenant 우회 차단(Tier-4): DELETE/DETACH/REMOVE 토큰 하나 없이도 노드를
+# 파괴하는 프로시저. apoc.refactor.*(mergeNodes/deleteAndReconnect 등 구조 파괴)와
+# apoc.nodes.delete(직접 삭제)는 archive-only supersede 엔 결코 없어야 한다.
+_DESTRUCTIVE_PROCEDURES = ("MERGENODES", "APOC.REFACTOR", "APOC.NODES.DELETE")
+
+
+def _assert_archive_only(cypher: str) -> None:
+    """covenant: supersede cypher 는 status 플래그 + SUPERSEDED_BY 엣지만 — 노드 파괴 금지.
+    파괴 토큰(DELETE/DETACH/REMOVE) + 노드-파괴 프로시저(apoc.refactor.mergeNodes 등)를 차단.
+    고정 템플릿의 회귀 트립와이어 — 향후 cypher 편집이 covenant 를 깨면 여기서 막힌다."""
+    up = cypher.upper()
+    violations = [t for t in (*FORBIDDEN_TOKENS, *_DESTRUCTIVE_PROCEDURES) if t in up]
+    if violations:
+        raise AssertionError(f"occam covenant violation: {violations} in supersede cypher")
 
 # ── READ ────────────────────────────────────────────────────────────────────
 
@@ -134,12 +148,9 @@ def _is_exact_dup(candidate: SupersessionCandidate) -> bool:
 
 def build_supersede(candidate: SupersessionCandidate) -> tuple[str, dict]:
     # KG: occam-kam-canonical-2026-05-26
-    """supersede write cypher + params. covenant: 파괴적 토큰 부재를 assert로 강제."""
+    """supersede write cypher + params. covenant: 파괴적 토큰/프로시저 부재를 assert로 강제."""
     cypher = _SUPERSEDE_CYPHER
-    up = cypher.upper()
-    violations = [tok for tok in FORBIDDEN_TOKENS if tok in up]
-    if violations:  # 방어 — 향후 cypher 편집 시 covenant 회귀 차단
-        raise AssertionError(f"occam covenant violation: {violations} in supersede cypher")
+    _assert_archive_only(cypher)  # 파괴 토큰 + apoc 파괴 프로시저 부재 강제 (archive-only)
     params = {
         "stale_path": candidate.stale.source_path,
         "stale_sha": candidate.stale.sha256,
