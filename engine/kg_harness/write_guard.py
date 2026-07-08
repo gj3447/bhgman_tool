@@ -24,6 +24,10 @@ CypherRunner = Callable[[str, dict], "list[dict]"]
 # raw CREATE가 정당한 드문 경우(스키마 부트스트랩 등) 명시적 opt-out 주석.
 ALLOW_CREATE_MARKER = "// kgh:allow-create"
 
+# 파괴 연산이 정당한 극히 드문 경우(로컬 KG 테스트 픽스처 청소 등) 명시적 opt-out 주석.
+# 공유 KG covenant 는 archive-only — supersede_node 가 정답이고 이 마커는 감사 가능한 예외다.
+ALLOW_DESTRUCTIVE_MARKER = "// kgh:allow-destructive"
+
 
 class Severity(str, Enum):
     ERROR = "ERROR"  # 실행 거부
@@ -71,18 +75,67 @@ _IDENT = re.compile(r"^[A-Za-z_]\w*$")
 _DIRTY_KEY = re.compile(r"(_v\d+$|_old$|_stale$|^superseded)", re.IGNORECASE)
 
 
+# `// kgh:` 가드 지시 주석(ALLOW_* 마커)은 프로토콜의 일부 — 스트립에서 보존.
+_KGH_DIRECTIVE = re.compile(r"^//\s*kgh:")
+
+
+def strip_cypher_comments(cypher: str) -> str:
+    """cypher 주석 제거(문자열 리터럴 인지) — lint 전처리.
+
+    정규식 룰의 두 결함을 동시에 없앤다 (2026-07-08 감사):
+      우회: `CREATE /* x */ (n:Foo)` 가 `CREATE\\s*\\(` 매치를 피함 → 스트립 후 매치.
+      오탐: 주석 *텍스트* 속 단어(DELETE 등)가 룰에 걸림 → 스트립 후 소멸.
+    따옴표(' " `) 안의 // 와 /* 는 주석이 아니다('http://...') — 문자열을 자르면
+    그 *뒤*의 실제 위반을 놓친다. `// kgh:` 가드 지시 주석만 보존.
+    """
+    out: list[str] = []
+    i, n = 0, len(cypher)
+    quote: str | None = None
+    while i < n:
+        c = cypher[i]
+        if quote is not None:
+            out.append(c)
+            if c == "\\" and quote != "`" and i + 1 < n:
+                out.append(cypher[i + 1])
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+            i += 1
+        elif c in "'\"`":
+            quote = c
+            out.append(c)
+            i += 1
+        elif c == "/" and cypher.startswith("//", i):
+            j = cypher.find("\n", i)
+            j = n if j == -1 else j
+            comment = cypher[i:j]
+            out.append(comment if _KGH_DIRECTIVE.match(comment) else " ")
+            i = j
+        elif c == "/" and cypher.startswith("/*", i):
+            j = cypher.find("*/", i + 2)
+            i = n if j == -1 else j + 2
+            out.append(" ")
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def validate_write(cypher: str, rules: "list | None" = None) -> GuardReport:
     """write cypher를 룰 레지스트리로 정적 검증. ERROR/WARN을 GuardReport로.
 
     rules=None이면 engine.kg_harness.rules.RULES(정전) 사용. 호출자가 직접 룰 리스트를
     주입하면 그것만 적용(테스트/특수 게이트). 새 불변식 = RULES에 Rule 추가(OCP).
+    룰은 주석-스트립된 텍스트를 본다(우회/오탐 동시 제거) — 보고서의 cypher 는 원문.
     """
     from engine.kg_harness.rules import RULES  # noqa: PLC0415 — lazy(순환 회피)
 
     active = RULES if rules is None else rules
+    lint_text = strip_cypher_comments(cypher)
     violations: list[Violation] = []
     for rule in active:
-        violations.extend(rule.check(cypher))
+        violations.extend(rule.check(lint_text))
     return GuardReport(cypher=cypher, violations=tuple(violations))
 
 
@@ -204,6 +257,7 @@ def guarded_run(run_cypher: CypherRunner, cypher: str, params: dict | None = Non
 
 __all__ = [
     "ALLOW_CREATE_MARKER",
+    "ALLOW_DESTRUCTIVE_MARKER",
     "CypherRunner",
     "GuardReport",
     "Severity",
@@ -211,6 +265,7 @@ __all__ = [
     "WriteGuardError",
     "constraint_cypher",
     "guarded_run",
+    "strip_cypher_comments",
     "supersede_node",
     "upsert_node",
     "validate_write",

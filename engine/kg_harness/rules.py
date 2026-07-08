@@ -15,7 +15,12 @@ from __future__ import annotations
 
 import re
 
-from engine.kg_harness.write_guard import ALLOW_CREATE_MARKER, Severity, Violation
+from engine.kg_harness.write_guard import (
+    ALLOW_CREATE_MARKER,
+    ALLOW_DESTRUCTIVE_MARKER,
+    Severity,
+    Violation,
+)
 
 
 class Rule:
@@ -25,6 +30,47 @@ class Rule:
 
     def check(self, cypher: str) -> list[Violation]:  # pragma: no cover - 추상
         raise NotImplementedError
+
+
+# ── INV0: anti-destruction (archive-only covenant 의 chokepoint 승격) ─────────
+
+
+class DestructiveWriteRule(Rule):
+    """파괴 연산 = ERROR. 공유 KG covenant 는 archive-only(supersede+SUPERSEDED_BY) —
+    guarded 경로에 정당한 delete/drop/remove 는 없다 (2026-07-08 감사 confirmed-high:
+    DETACH DELETE 등이 chokepoint 를 ALLOWED 로 통과하던 delete-blind 봉합).
+
+    occam/jaebaeman 의 raise-covenant 는 자기 고정 템플릿만 지킨다 — 이 룰이 raw-cypher
+    전체를 커버한다. 문자열 리터럴 *내부* 토큰(apoc.periodic.iterate 의 내부 쿼리 등)도
+    의도적으로 매치한다(거부 우선). 드문 정당 사례(로컬 픽스처 청소)는 마커로 opt-out."""
+
+    code = "DESTRUCTIVE_WRITE"
+    _res = (
+        re.compile(r"\b(?:DETACH\s+)?DELETE\b", re.IGNORECASE),
+        re.compile(r"\bDROP\s+(?:CONSTRAINT|INDEX|DATABASE)\b", re.IGNORECASE),
+        re.compile(r"\bREMOVE\b", re.IGNORECASE),
+        re.compile(
+            r"\bapoc\.(?:nodes\.delete|refactor\.(?:mergeNodes|deleteAndReconnect)"
+            r"|periodic\.commit)\b",
+            re.IGNORECASE,
+        ),
+    )
+
+    def check(self, cypher: str) -> list[Violation]:
+        if ALLOW_DESTRUCTIVE_MARKER in cypher:
+            return []
+        return [
+            Violation(
+                self.code,
+                Severity.ERROR,
+                f"파괴 연산 '{m.group(0)}' — archive-only covenant: 삭제/드랍/제거는 복구 "
+                "불가(묘비도 계보도 안 남음). supersede_node 로 archive 하라. "
+                f"정당하면 '{ALLOW_DESTRUCTIVE_MARKER}' 주석으로 opt-out.",
+                m.group(0),
+            )
+            for rx in self._res
+            if (m := rx.search(cypher))
+        ]
 
 
 # ── INV1: anti-dup (생성 경로) ────────────────────────────────────────────────
@@ -77,10 +123,11 @@ class ApocCreateRule(Rule):
 
 
 class BulkLoadRule(Rule):
-    """#2: LOAD CSV — 벌크 ingest는 Python 빌더/엔진 chokepoint를 우회한다."""
+    """#2: LOAD CSV / apoc.periodic.iterate — 벌크 경로는 빌더/엔진 chokepoint를 우회한다.
+    (iterate 의 내부 쿼리가 파괴적이면 DestructiveWriteRule 이 ERROR 로 따로 잡는다.)"""
 
     code = "BULK_LOAD"
-    _re = re.compile(r"\bLOAD\s+CSV\b", re.IGNORECASE)
+    _re = re.compile(r"\bLOAD\s+CSV\b|\bapoc\.periodic\.iterate\b", re.IGNORECASE)
 
     def check(self, cypher: str) -> list[Violation]:
         m = self._re.search(cypher)
@@ -179,6 +226,7 @@ class OrphanTombstoneRule(Rule):
 
 # 활성 룰 레지스트리 — 순서 = 보고 순서. 새 불변식은 여기 한 줄 추가하면 끝(OCP).
 RULES: list[Rule] = [
+    DestructiveWriteRule(),
     NakedCreateRule(),
     ApocCreateRule(),
     BulkLoadRule(),
@@ -193,6 +241,7 @@ __all__ = [
     "RULES",
     "ApocCreateRule",
     "BulkLoadRule",
+    "DestructiveWriteRule",
     "MergeWithoutKeyRule",
     "NakedCreateRule",
     "OrphanTombstoneRule",
