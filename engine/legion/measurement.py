@@ -250,18 +250,24 @@ def _is_external_citation(url) -> bool:
     return parts.scheme in ("http", "https") and bool(parts.netloc)
 
 
-def compute_external_grounding_ratio(citation_urls) -> float:
+def compute_external_grounding_ratio(citation_urls) -> float | None:
     """Fraction of citations backed by a REAL external source (http/https + host).
 
     The Goodhart-mitigation control ``external_grounding_ratio < 0.3 → self-recurse`` can only
     fire if this is COMPUTED from real findings: the field defaulted to 1.0 and was never
     derived, so ``1.0 < 0.3`` was always False and the control was dead. Empty / non-http /
-    host-less citations are NOT external grounding; an empty findings set is 0.0 (no grounding
-    witnessed), never a vacuous 1.0 — that vacuous 1.0 was the hole.
+    host-less citations are NOT external grounding.
+
+    v2 (seam-integrity 2026-07-08): an EMPTY citation set is ``None`` (unmeasured) — there are
+    no findings to ground, so neither constant is honest. The v1 choice of 0.0 was the vacuous
+    1.0's mirror image: on the infra-0/MCP path (no fetcher → findings structurally empty) it
+    made the self-recurse fire on EVERY run — an always-firing control carries exactly as much
+    information as a never-firing one (zero). Unmeasured flows as a MISSING metric key, which
+    ``decide_dispatch`` skips.
     """
     urls = list(citation_urls)
     if not urls:
-        return 0.0
+        return None
     grounded = sum(1 for u in urls if _is_external_citation(u))
     return grounded / len(urls)
 
@@ -287,7 +293,11 @@ class PrometheusMeasurement(CommanderBase):
         ),
     )
 
-    def __init__(self, finding_count: int = 0, external_grounding_ratio: float = 1.0) -> None:
+    def __init__(
+        self, finding_count: int = 0, external_grounding_ratio: float | None = None
+    ) -> None:
+        # 기본 None = 미측정 — v1 의 기본 1.0 은 측정 없이 '완전 접지'를 위장하는 죽은 상수였다
+        # (LLM 브랜치에서 영구 불-발화). 미측정은 measure() 키 부재로 흘러 dispatch 가 스킵한다.
         super().__init__()
         self._finding_count = finding_count
         self._external_grounding_ratio = external_grounding_ratio
@@ -304,7 +314,8 @@ class PrometheusMeasurement(CommanderBase):
 
     def update_grounding(self, citation_urls) -> None:
         """Compute external_grounding_ratio from THIS cycle's finding citations and set it, so
-        the <0.3 self-recurse control reflects REAL grounding instead of the dead 1.0 default.
+        the <0.3 self-recurse control reflects REAL grounding instead of a dead constant.
+        Empty citations (no findings) → None = unmeasured, and the metric key disappears.
         Pass e.g. ``[f.citation_url for f in report.findings]``."""
         ratio = compute_external_grounding_ratio(citation_urls)
         with self._lock:
@@ -312,10 +323,11 @@ class PrometheusMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "research_finding_count": float(self._finding_count),
-            "external_grounding_ratio": self._external_grounding_ratio,
-        }
+        metrics = {"research_finding_count": float(self._finding_count)}
+        # 미측정(None) = 키 부재 — decide_dispatch 는 없는 메트릭을 스킵한다(발화 없음).
+        if self._external_grounding_ratio is not None:
+            metrics["external_grounding_ratio"] = self._external_grounding_ratio
+        return metrics
 
 
 class EurekaMeasurement(CommanderBase):

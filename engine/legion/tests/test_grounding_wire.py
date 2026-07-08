@@ -42,10 +42,11 @@ def test_measure_computes_ratio_from_real_citations():
     assert m.measure()["external_grounding_ratio"] == 0.5
 
 
-def test_measure_without_citations_keeps_honest_default():
-    """LLM 브랜치 공시: citation_urls 미노출이면 기본 유지 (0.0 강제로 항상-발화시키지 않음)."""
+def test_measure_without_citations_is_unmeasured():
+    """LLM 브랜치 공시 v2 (seam-integrity 20260708): citation_urls 미노출 = 미측정(키 부재) —
+    v1 의 '기본 1.0 유지'는 측정 없이 완전-접지를 위장하는 영구 불-발화 상수였다."""
     m = _measure_prometheus({"acquired": {"findings": 3, "mode": "llm"}})
-    assert m.measure()["external_grounding_ratio"] == 1.0
+    assert "external_grounding_ratio" not in m.measure()
 
 
 def test_self_recurse_fires_on_all_ungrounded():

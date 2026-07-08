@@ -41,9 +41,14 @@ from engine.legion.measurement import (
 
 class TestMeasureShape:
     def test_prometheus_measure_keys(self):
+        # v2 (seam-integrity 20260708): 기본 상태의 external_grounding_ratio 는 미측정 = 키 부재
+        # (상수 위장 금지); update_grounding 으로 실측되면 키가 나타난다.
         m = PrometheusMeasurement().measure()
-        assert set(m) == {"research_finding_count", "external_grounding_ratio"}
+        assert set(m) == {"research_finding_count"}
         assert all(isinstance(v, float) for v in m.values())
+        measured = PrometheusMeasurement()
+        measured.update_grounding(["http://a.test/x"])
+        assert set(measured.measure()) == {"research_finding_count", "external_grounding_ratio"}
 
     def test_eureka_measure_keys(self):
         m = EurekaMeasurement().measure()
