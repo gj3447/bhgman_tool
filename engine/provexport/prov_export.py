@@ -135,14 +135,18 @@ def build_prov_document(
 
 def serialize(doc: ProvDocument, fmt: str = "turtle") -> str:
     if fmt in ("turtle", "ttl"):
-        return doc.serialize(format="rdf", rdf_format="turtle")
-    if fmt in ("jsonld", "json-ld"):
-        return doc.serialize(format="rdf", rdf_format="json-ld")
-    if fmt == "provjson":
-        return doc.serialize(format="json")
-    if fmt == "xml":
-        return doc.serialize(format="xml")
-    raise ValueError(f"unknown format: {fmt}")
+        out = doc.serialize(format="rdf", rdf_format="turtle")
+    elif fmt in ("jsonld", "json-ld"):
+        out = doc.serialize(format="rdf", rdf_format="json-ld")
+    elif fmt == "provjson":
+        out = doc.serialize(format="json")
+    elif fmt == "xml":
+        out = doc.serialize(format="xml")
+    else:
+        raise ValueError(f"unknown format: {fmt}")
+    if out is None:  # prov>=2.2 types serialize() Optional — None only with a destination arg
+        raise RuntimeError("prov serialize() returned None for in-memory serialization")
+    return out
 
 
 # ---- nanopublication (TriG, 4 named graphs) --------------------------------
