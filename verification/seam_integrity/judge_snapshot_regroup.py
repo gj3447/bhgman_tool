@@ -1,13 +1,15 @@
 """judge J-A2 — 재그룹핑 불변(마이그레이션 게이트): 새 normalize_path 가 라이브 공유 KG 의
 기존 노드 키를 하나라도 바꾸는가.
 
-라이브 KG distinct sourcePath 스냅샷(2026-07-10, read-only 추출, fixture 고정) 전수에
-구(old rfind marker)·신(세그먼트-앵커 정규식) 정규화를 나란히 적용 — 결과가 다른 경로 수
-== 0 이어야 D1(R2′ 개방) 진행 가능. 델타 >0 이면 그 목록을 영수증에 남기고 착지 중단.
+시점-고정 fixture(2026-07-10 라이브 KG 에서 read-only 1회 추출한 distinct sourcePath —
+fetch-적격 노드 스코프: sha256/lineCount/sourcePath 전부 non-null, occam 이 만지는 정확히
+그 집합) 전수에 구(old rfind marker)·신(세그먼트-앵커 정규식) 정규화를 나란히 적용 —
+결과가 다른 경로 수 == 0 이어야 D1(R2′ 개방) 진행 가능. 델타 >0 이면 목록 검토 전 착지 중단.
 
-예외적으로 허용되는 델타: `-wt-` 경로(현 KG 0건 전제 — 실측 재확인 포함)와
-비-세그먼트 접미 오매치(예: Xbhgman_tool/ — 구 rfind 의 *결함*이 만든 키; 실재하면
-그 자체가 발견이라 목록으로 표면화).
+정직 한계 (적대검증 2026-07-10): 이 judge 는 *fixture 시점*의 불변을 증명한다 — 라이브
+재조회는 하지 않으며(스냅샷 이후 신규 경로는 범위 밖), fetch-부적격(필수필드 null) 노드도
+범위 밖이다(occam write 경로가 그 노드를 만지지 않으므로 게이트 목적상 충분). -wt- 경로
+존재 여부는 fixture 내 검사(wt_paths_in_live_kg)로 표면화.
 
 사용: .venv/bin/python verification/seam_integrity/judge_snapshot_regroup.py
 """

@@ -42,22 +42,28 @@ def test_selftest_passes_in_convention_checkout():
 
 def test_unnormalizable_checkout_is_refused(monkeypatch, tmp_path):
     """무규약 클론(~/clones/foo 류) 시뮬레이션: selftest 실패 → 공유 KG apply 소비 rc=2.
-    (러너 해석 전에 게이트가 서야 하므로 fake 러너 주입으로 그 순서까지 고정)"""
+
+    주의(적대검증 정정): 게이트는 러너 *해석 후*에 선다 — fake 러너는 게이트 앞 단계가
+    2 이외의 사유로 조기 종료하지 않게 하는 비계일 뿐, 순서 고정 장치가 아니다. 거부가
+    러너-불가(rc=2 동일값)가 아니라 게이트에서 남을 stderr 문구로 판별한다."""
+    import contextlib
+    import io
+
     clone = tmp_path / "someclone"
     (clone / "engine").mkdir(parents=True)
     monkeypatch.setattr(commands, "_repo_root", lambda: clone)
 
-    calls: list[int] = []
-
     def _fake_runners(_args):
-        calls.append(1)
         runner = lambda _c, _p=None: []  # noqa: E731
         return runner, runner, lambda: None
 
     monkeypatch.setattr(commands, "_resolve_kg_runners", _fake_runners)
 
-    rc = cmd_legion(_args())
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = cmd_legion(_args())
     assert rc == 2, "정규화 불가 체크아웃의 공유 KG apply 소비는 거부돼야 (R2′)"
+    assert "정규화 불가" in err.getvalue(), "rc=2 의 출처가 R2′ 게이트임을 문구로 판별"
 
 
 def test_local_mode_needs_no_selftest(monkeypatch, tmp_path):

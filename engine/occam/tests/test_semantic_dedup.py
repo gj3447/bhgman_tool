@@ -81,7 +81,8 @@ def test_plan_supersession_scopes_match_to_label():
     # both MATCH legs must carry the label — never a bare (s)/(c) match
     # (collect/size=1 재작성 후 MATCH 변수는 s/c — H5 라벨 스코핑 속성은 동일)
     assert "(s:Lesson)" in cypher and "(c:Lesson)" in cypher
-    assert "(s)" not in cypher.replace("(s:Lesson)", "") or True  # no bare unlabeled match legs
+    # bare unlabeled match leg 부재 (적대검증: `or True` 공허 assert 를 실 검사로 교체)
+    assert "MATCH (s)" not in cypher and "MATCH (c)" not in cypher
     assert "MATCH (stale) " not in cypher and "MATCH (current) " not in cypher
 
 

@@ -50,9 +50,23 @@ def normalize_path(path: str) -> str:
 
 
 def _in_repo(path: str) -> bool:
-    """path가 이 repo 소속인가 (디스크-aware 판정 대상). 세그먼트 없는 외부 노드는
-    이 repo 디스크로 실존 여부를 판단할 수 없으므로 move/orphan 평가에서 제외."""
+    """path가 이 repo 소속인가 (정체성 통합 대상 — 워크트리 lineage 포함)."""
     return _REPO_SEGMENT.search(path) is not None
+
+
+_WT_SEGMENT = re.compile(r"(?:^|(?<=/))bhgman_tool-wt-[^/]+/")
+
+
+def _existence_judgeable(path: str) -> bool:
+    """디스크-실존 판정(mode-2 이동/mode-3 orphan) 대상인가.
+
+    정체성은 워크트리를 통합하지만(mode-1 같은-키 dedup), *실존*은 체크아웃-로컬 진실이다 —
+    워크트리 lineage(-wt-)는 병렬 세션의 미머지 in-flight 작업이라, 다른 체크아웃의 디스크
+    부재를 근거로 stale(mode-2 auto-supersede)/orphan(mode-3 Longinus 노이즈) 단정하면
+    살아있는 병렬 작업을 아카이브한다 (적대검증 2026-07-10 high 실증: 미머지 rename 노드가
+    σ=0.87 HIGH·SUPERSEDE 로 escalation 없이 통과). mode-1 은 이 면제와 무관 — 같은
+    정규화 키의 중복 *기록* 정리는 σ strict + 결정론 disk-truth 가 지킨다."""
+    return _in_repo(path) and _WT_SEGMENT.search(path) is None
 
 
 def _current_rank(n: NodeRecord) -> tuple:
@@ -96,7 +110,7 @@ def _detect_sha_moves(
     """동일 sha·다른 경로 = 이동. 디스크에 없는 경로 노드를 살아있는 twin으로 supersede (HIGH)."""
     by_sha: dict[str, list[NodeRecord]] = defaultdict(list)
     for node in nodes:
-        if id(node) not in superseded_ids and _in_repo(node.source_path):
+        if id(node) not in superseded_ids and _existence_judgeable(node.source_path):
             by_sha[node.sha256].append(node)
 
     out: list[SupersessionCandidate] = []
@@ -140,7 +154,8 @@ def _detect_disk_orphans(
     for node in nodes:
         if id(node) in superseded_ids:
             continue
-        if not _in_repo(node.source_path):  # 외부 노드는 이 repo 디스크로 판정 불가
+        # 외부 노드 + 워크트리 lineage = 이 체크아웃 디스크로 실존 판정 불가/금지.
+        if not _existence_judgeable(node.source_path):
             continue
         if normalize_path(node.source_path) in disk_paths:
             continue

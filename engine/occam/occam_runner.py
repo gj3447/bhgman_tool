@@ -84,21 +84,27 @@ def _compute_disk_truth(repo_root: str | Path, nodes: list) -> dict[str, str]:
     production: run_occam advertised disk-aware mode via repo_root but never built
     disk_truth, so the line-count heuristic (MEDIUM) was the sole arbiter (W3-B). Purely
     additive — files that don't resolve are skipped (MEDIUM fallback, unchanged behavior)."""
-    root = Path(repo_root)
+    root = Path(repo_root).resolve()
     out: dict[str, str] = {}
     for n in nodes:
         sp = getattr(n, "source_path", None)
         if not sp:
             continue
-        # 해상 후보 3순: abs 그대로 → root/원경로 → root/정규화-상대. 셋째가 없으면
-        # rel-lineage(`bhgman_tool/engine/x.py`)는 root/'bhgman_tool/...' 미실존으로
-        # disk-sha HIGH 중재가 죽는다 (seam-integrity 2026-07-10, 순수 가산적).
+        # 해상 규율 (적대검증 2026-07-10 high 봉합): disk truth 의 권위는 *실행 체크아웃*이다.
+        # 1순위 root/정규화-상대 = 같은 정규화 키의 모든 노드가 같은 파일로 해상(결정론) —
+        # 옛 raw-abs 1순위는 (a) 형제 워크트리 파일을 읽어 그 WIP sha 가 이 체크아웃의
+        # 'disk truth' 가 되는 탈출, (b) 같은 키에 dict last-wins 로 fetch 순서 비결정을
+        # 만들었다. abs 후보는 root *안*일 때만(픽스처의 중첩 레이아웃 등 폴백), 밖이면 거부.
+        raw = Path(sp) if Path(sp).is_absolute() else root / sp
+        try:
+            raw_in_root = raw.resolve().is_relative_to(root)
+        except OSError:
+            raw_in_root = False
         for cand in (
-            (Path(sp) if Path(sp).is_absolute() else root / sp),
-            Path(sp),
             root / normalize_path(sp),
+            (raw if raw_in_root else None),
         ):
-            if cand.is_file():
+            if cand is not None and cand.is_file():
                 try:
                     out[normalize_path(sp)] = hashlib.sha256(cand.read_bytes()).hexdigest()
                 except OSError:
