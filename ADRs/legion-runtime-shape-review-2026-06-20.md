@@ -131,9 +131,11 @@ ADR 수준에서 기록하고 기계 oracle로 고정한다 (이전엔 `jaebaema
 - **G5-C1 (retrospective, not dispatch)**: `run_legion_via_jaebaeman`의 Dispatcher는
   legion.run이 *완료된 뒤* stage outcome을 seed status로 사후 매핑하는 retrospective lambda다
   — legion 경로에서 씨앗은 단 하나도 Dispatcher lifecycle로 실제 출격하지 않는다.
-  **legion.run이 유일한 executor**이며, 이는 Contract-bound handoff + stage 간 oracle gate
-  의미론을 보존하기 위한 *의도된* 설계다 (dispatcher-driven 승격은 legion.run 재구현일 뿐,
-  게이트 의미론을 Dispatcher 안으로 복제하는 비용만 남는다).
+  **legion.run이 stage 실행의 유일한 in-run executor**이며, 이는 Contract-bound handoff +
+  stage 간 oracle gate 의미론을 보존하기 위한 *의도된* 설계다 (dispatcher-driven 승격은
+  legion.run 재구현일 뿐, 게이트 의미론을 Dispatcher 안으로 복제하는 비용만 남는다).
+  run 완료 *후*의 DispatchDecision 소비는 아래 C5의 유계 경로로만 한정된다 — in-run 실행
+  유일성(본 조항)과 사후 소비(C5)는 별개 축이며 양립한다.
 - **G5-C2 (no in-flight status)**: 따라서 legion 경로의 lifecycle status write에는
   `DISPATCHED` 중간 전이가 없다 — `planned_status_writes`는 terminal(COLLECTED/FAILED)만
   담는다. mid-run 실시간 가시성은 이 경로의 계약이 아니며, 사후 halt-연쇄 FAILED 매핑
@@ -148,7 +150,23 @@ ADR 수준에서 기록하고 기계 oracle로 고정한다 (이전엔 `jaebaema
   (b) legion 경로 status write의 terminal-only 사실(실측), (c) 사후 매핑이 전 stage 실행
   *이후*임(순서 probe 실측)을 assert한다. dispatcher-driven으로 승격하려면 본 절을 대체하는
   새 ADR + oracle 교체가 함께 필요하다.
+- **G5-C5 (2026-07-10 개정 — 유계 post-run 소비)**: DispatchDecision의 소비(측정-주도
+  dispatch의 폐루프)는 다음 유계 안에서만 존재한다 — `engine/legion/dispatch_consumer.py`,
+  `LakatosTree_BhgmanDispatchLoop_20260710`:
+  (i) 소비자는 legion.run 완료 **후에만**(post-run) 진입점(CLI `--consume-dispatch` /
+  MCP `consume=True`)의 명시 opt-in으로 실행된다 — Legion.run 내부에 소비를 심지 않는다.
+  (ii) 실행 가능 엣지는 명시 **allowlist**(`EXECUTABLE_EDGES`, v1: occam→occam
+  self-supersede janitor)뿐 — 그 외 결정은 실행 없이 provenance-only skip. allowlist의
+  무음 확장 금지: 확장은 본 조항 개정 + oracle 개정을 동반해야 한다.
+  (iii) 재귀는 **depth** 전파(d.depth+1 → `MAX_DISPATCH_DEPTH` 기계 종결) +
+  `max_executions` 총예산으로 이중 유계다.
+  (iv) deferred/불확실셋 실행 절대 금지 — 소비자의 유일한 write 경로는 stage.run
+  (`apply_supersessions(should_apply=is_confident_supersede)` σ게이트 상속)이며, ctx의
+  apply 값을 승격하지 않는다. 이는 C3(germinate=seed 출격의 정본)과 무간섭이다:
+  DispatchDecision 소비 ≠ seed 출격. KG-큐 소비로의 확장은 `verify_signature` 필수를
+  전제 조건으로 본 조항의 개정을 요구한다.
 
 <!-- KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s4_dispatch_identity_honest -->
+<!-- KG: LakatosTree_BhgmanDispatchLoop_20260710/dispatch_consumer_keystone -->
 
 # KG: adr-legion-runtime-shape-review-2026-06-20, adr-seven-commander-engine-cli-mcp-vllm-2026-06-18, adr-bhgman-tool-in-process-default-2026-05-19, adr-seven-commander-legion-architecture-2026-05-27, hades-canonical-2026-05-27, bihaenggiman-harness-demoted-3layer-2026-05-27, vp-hades-harness-indexed-pair-formalization-2026-05-28, finding-addressability-mis-target-7of7-2026-06-20, finding-warm-not-equal-cold-hnsw-2026-06-20, finding-dispatch-routing-cusum-collision-2026-06-20, finding-hades-harness-not-1to1-indexed-pair-2026-06-20, design-oq1-hades-verdict-gate-2026-06-20, oq-hades-verdict-provenance-standalone-realize-2026-06-20, oq-semantic-equal-vs-runtime-equal-commanders-2026-06-20, oq-cross-run-state-placement-warm-runtime-2026-06-20, oq-hades-verdict-selection-node-signing-2026-06-20, oq-hades-verdict-asymmetric-key-2026-06-20, jbm-s4-dispatch-identity-honest-2026-07-03

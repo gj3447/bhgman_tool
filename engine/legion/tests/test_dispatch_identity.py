@@ -48,6 +48,9 @@ REQUIRED_CLAUSES: dict[str, list[str]] = {
     "G5-C2": ["DISPATCHED"],
     "G5-C3": ["germinate"],
     "G5-C4": ["oracle"],
+    # 2026-07-10 개정(삭제 아님): C1~C4 강등은 전부 존치 — C5 가 유일하게 *유계* post-run
+    # 소비 경로를 연다 (dispatch_consumer.py, LakatosTree_BhgmanDispatchLoop_20260710).
+    "G5-C5": ["post-run", "allowlist", "depth"],
 }
 
 
@@ -143,6 +146,84 @@ def test_mapping_happens_after_legion_completed(monkeypatch):
     assert events.index("drive_seeds") > max(events.index(e) for e in stage_events), (
         f"mapping must run AFTER all stages: {events}"
     )
+
+
+def test_consumer_runs_only_after_stages(monkeypatch):
+    """G5-C5(i) behavioral pin: 소비는 post-run — consume_dispatch 는 모든 stage 실행과
+    drive_seeds(사후 매핑)보다 엄격히 *뒤에* 호출된다 (순서 probe 실측). stage 수 6 은
+    불변(소비자가 in-run 실행을 늘리지 않음)."""
+    from engine.legion import dispatch_consumer
+    from engine.mcp_server.tools.legion import legion_run_impl
+
+    events: list[str] = []
+    real_build = jaebaeman_substrate.build_default_legion
+    real_drive = jaebaeman_substrate.drive_seeds
+    real_consume = dispatch_consumer.consume_dispatch
+
+    def probed_build() -> Legion:
+        legion = Legion()
+        for s in real_build()._stages:  # noqa: SLF001 — probe wraps the real stages 1:1
+
+            def make_run(stage: CommanderStage):
+                def run(ctx: dict) -> dict:
+                    events.append(f"stage:{stage.name}")
+                    return stage.run(ctx)
+
+                return run
+
+            legion.register(
+                CommanderStage(
+                    name=s.name,
+                    verb=s.verb,
+                    requires=s.requires,
+                    provides=s.provides,
+                    run=make_run(s),
+                    measure=s.measure,
+                )
+            )
+        return legion
+
+    def probed_drive(*args, **kwargs):
+        events.append("drive_seeds")
+        return real_drive(*args, **kwargs)
+
+    def probed_consume(*args, **kwargs):
+        events.append("consume_dispatch")
+        return real_consume(*args, **kwargs)
+
+    monkeypatch.setattr(jaebaeman_substrate, "build_default_legion", probed_build)
+    monkeypatch.setattr(jaebaeman_substrate, "drive_seeds", probed_drive)
+    monkeypatch.setattr(dispatch_consumer, "consume_dispatch", probed_consume)
+
+    legion_run_impl(cycle_id="jbm-s4-c5-order", consume=True)
+
+    assert "consume_dispatch" in events, "consume=True 면 소비자가 호출돼야"
+    stage_events = [e for e in events if e.startswith("stage:")]
+    assert len(stage_events) == 6, "소비자가 in-run stage 실행 수를 바꾸면 안 됨"
+    consume_idx = events.index("consume_dispatch")
+    assert consume_idx > max(events.index(e) for e in stage_events), (
+        f"소비는 모든 stage 이후여야: {events}"
+    )
+    assert consume_idx > events.index("drive_seeds"), (
+        f"소비는 사후 매핑(drive_seeds)보다도 뒤여야: {events}"
+    )
+
+
+def test_consumer_is_opt_in(monkeypatch):
+    """G5-C5(i) 나머지 절반: 기본(consume 미지정)은 소비자 호출 0 — 무음 활성화 금지."""
+    from engine.legion import dispatch_consumer
+    from engine.mcp_server.tools.legion import legion_run_impl
+
+    calls: list[int] = []
+    real_consume = dispatch_consumer.consume_dispatch
+
+    def probed_consume(*args, **kwargs):
+        calls.append(1)
+        return real_consume(*args, **kwargs)
+
+    monkeypatch.setattr(dispatch_consumer, "consume_dispatch", probed_consume)
+    legion_run_impl(cycle_id="jbm-s4-c5-optin")
+    assert not calls, "consume 미지정 기본 경로에서 소비자가 호출되면 무음 활성화"
 
 
 def test_degrade_still_terminal_only(monkeypatch):
