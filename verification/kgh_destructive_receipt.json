@@ -1,0 +1,10 @@
+{
+  "tree": "LakatosTree_BhgmanSeamIntegrity_20260708",
+  "node": "kgh_destructive_rule",
+  "metric": "destructive_allowed_plus_benign_refused",
+  "value": 0,
+  "destructive_corpus": 10,
+  "destructive_allowed": [],
+  "benign_corpus": 5,
+  "benign_refused": []
+}
