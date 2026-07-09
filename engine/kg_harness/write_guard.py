@@ -209,9 +209,20 @@ def supersede_node(
     """
     _require_ident(label, "label")
     _require_ident(id_key, "id_key")
+    # H3 패리티 + 유일성 가드 (seam-integrity 2026-07-10): occam adapter 와 동형 —
+    # (a) 양측 status 가드: 이미 아카이브된 노드 무접촉 + 교차 write(X→Y, Y→X)의 두 번째가
+    #     0-row no-op 이 되어 SUPERSEDED_BY 사이클(생존자 0) 불가. 옛 cypher 는 이 가드가
+    #     없어 kg_harness 경로가 occam 이 H3 로 막은 바로 그 모드를 열어뒀다.
+    # (b) collect/size=1: {id_key} 는 비유일 가능 — 다중매치는 write 대신 0-row fail-closed.
     cypher = (
-        f"MATCH (stale:{label} {{{id_key}: $stale}}) "
-        f"MATCH (current:{label} {{{id_key}: $current}}) "
+        f"MATCH (s:{label} {{{id_key}: $stale}}) "
+        f"WHERE (s.status IS NULL OR s.status <> 'SUPERSEDED') "
+        f"WITH collect(s) AS ss "
+        f"MATCH (c:{label} {{{id_key}: $current}}) "
+        f"WHERE (c.status IS NULL OR c.status <> 'SUPERSEDED') "
+        f"WITH ss, collect(c) AS cs "
+        f"WHERE size(ss) = 1 AND size(cs) = 1 "
+        f"WITH ss[0] AS stale, cs[0] AS current "
         f"WHERE stale <> current "
         f"SET stale:Superseded, stale.status = 'SUPERSEDED', "
         f"stale.supersededBy = $current, stale.supersededReason = $reason, "

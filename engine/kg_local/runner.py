@@ -67,58 +67,74 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
 _GENERIC_IDENTITY_KEYS = ("name", "findingId", "id")
 
 
+def _not_superseded(props: dict) -> bool:
+    """H3 status 가드 미러 — 실서버 cypher 의 (status IS NULL OR status <> 'SUPERSEDED')."""
+    return props.get("status") != "SUPERSEDED"
+
+
 def _occam_supersede_generic(store: LocalKgStore, params: dict) -> list[dict]:
-    # semantic_dedup._SUPERSEDE_TMPL 변종: `MATCH (stale) WHERE stale.{key} = $stale_id`
-    # (key ∈ {name,findingId,id}, label 무관). params = {stale_id, current_id, reason}.
+    # semantic_dedup._SUPERSEDE_TMPL / kg_harness.supersede_node 변종.
+    # params = {stale_id, current_id, reason} (semantic) 또는 {stale, current, reason}(harness).
     # 과거엔 _occam_supersede가 params['stale_path']를 읽어 KeyError → 로컬서 의미론 dedup이
     # silent no-op였다 (applied=0). label-agnostic identity 매칭으로 그 seam을 닫는다.
-    def _by(ident: str) -> dict | None:
-        for n in store.nodes:
-            props = n.get("props", {})
-            if any(props.get(k) == ident for k in _GENERIC_IDENTITY_KEYS):
-                return n
-        return None
-
-    stale = _by(params["stale_id"])
-    current = _by(params["current_id"])
-    if stale is None or current is None or stale is current:
+    #
+    # 충실도 (seam-integrity 2026-07-10): first-match(next(iter,...)) 는 실서버의 다중매치
+    # 의미론을 가려 비유일키 결함의 RED 재현을 불가능하게 했다(위조 green 통로) — 전수 매치
+    # 후 양측 정확히 1개일 때만 변이 (신 cypher 의 collect/size=1 + H3 가드 미러).
+    stale_id = params.get("stale_id", params.get("stale"))
+    current_id = params.get("current_id", params.get("current"))
+    if stale_id is None or current_id is None:
         return []
+
+    def _matches(ident: str) -> list[dict]:
+        return [
+            n
+            for n in store.nodes
+            if any(n.get("props", {}).get(k) == ident for k in _GENERIC_IDENTITY_KEYS)
+            and _not_superseded(n.get("props", {}))
+        ]
+
+    ss, cs = _matches(stale_id), _matches(current_id)
+    if len(ss) != 1 or len(cs) != 1 or ss[0] is cs[0]:
+        return []  # 부재/다중매치/자기 = fail-closed 무변이 (0-row)
+    stale, current = ss[0], cs[0]
     stale["props"].update(
         {
             "status": "SUPERSEDED",
-            "supersededBy": params["current_id"],
+            "supersededBy": current_id,
             "supersededReason": params.get("reason", ""),
             "occamPass": "occam-semantic",
         }
     )
     store.add_edge(stale, "SUPERSEDED_BY", current)
-    return [{"superseded": params["stale_id"], "current": params["current_id"]}]
+    return [{"superseded": stale_id, "current": current_id}]
 
 
 def _occam_supersede(store: LocalKgStore, params: dict) -> list[dict]:
-    # 두 supersede 변종 처리 (둘 다 cypher에 `stale.status = 'SUPERSEDED'` 포함 → 같은 라우트):
+    # 세 supersede 변종 처리 (전부 cypher에 `stale.status = 'SUPERSEDED'` 포함 → 같은 라우트):
     #  · generic-key (semantic_dedup, key∈{name,findingId,id}): params에 stale_id → 위 핸들러.
+    #  · harness-key (kg_harness.supersede_node): params에 stale/current → 위 핸들러.
     #  · path+sha (SourceCodeNode, adapter._SUPERSEDE_CYPHER): params에 stale_path/stale_sha.
     if "stale_path" not in params:
         return _occam_supersede_generic(store, params)
 
     # 복합키 (sourcePath, sha256) 매칭 — name은 schema상 nullable이라 키로 못 씀.
-    # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약)
-    def _by(path: str, sha: str) -> dict | None:
-        return next(
-            iter(
-                store.find_nodes(
-                    "SourceCodeNode",
-                    lambda p: p.get("sourcePath") == path and p.get("sha256") == sha,
-                )
-            ),
-            None,
-        )
+    # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약 + collect/size=1 + H3 가드 미러)
+    def _matches(path: str, sha: str) -> list[dict]:
+        return [
+            n
+            for n in store.find_nodes(
+                "SourceCodeNode",
+                lambda p: p.get("sourcePath") == path and p.get("sha256") == sha,
+            )
+            if _not_superseded(n.get("props", {}))
+        ]
 
-    stale = _by(params["stale_path"], params["stale_sha"])
-    current = _by(params["current_path"], params["current_sha"])
-    if stale is None or current is None or stale is current:
-        return []
+    ss = _matches(params["stale_path"], params["stale_sha"])
+    cs = _matches(params["current_path"], params["current_sha"])
+    if len(ss) != 1 or len(cs) != 1 or ss[0] is cs[0]:
+        return []  # 부재/다중매치/자기 = fail-closed 무변이 (0-row)
+    stale, current = ss[0], cs[0]
     stale["props"].update(
         {
             "status": "SUPERSEDED",
