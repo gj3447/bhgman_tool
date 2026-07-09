@@ -6,9 +6,9 @@
 
 routing 규칙 (어느 케이스가 어느 무기로 가는가):
   · candidate, verdict=VERIFY (σ 회색지대) 또는 FLAG_ONLY        → 나생문 /tlb constitutional
-  · candidate, verdict 미부착 + confidence=MEDIUM (디스크 truth   → 나생문 /tlb constitutional
-    부재, line-count 휴리스틱 추정)                                 (자동 supersede 전 검증)
-  · candidate, confidence=HIGH + verdict=SUPERSEDE/None          → escalation 없음 (확정, 안전)
+  · candidate, verdict 미부착(None — σ 미계산) 은 confidence 무관  → 나생문 /tlb constitutional
+    (seam-integrity 2026-07-10: None 관용 제거 — σ 없는 확신은 없다)  (자동 supersede 전 검증)
+  · candidate, confidence=HIGH + verdict=SUPERSEDE                → escalation 없음 (확정, 안전)
   · disk-orphan (flag-only, machloket/Eilu va-Eilu)             → Longinus drift audit
     (진짜 dead인지 / 의도적 보존인지 KG↔disk 정합으로 판정)
   · semantic near-dup (byte identity 없음, embedding cosine)     → 나생문 /tlb constitutional
@@ -75,18 +75,24 @@ def _ident(node) -> str:
 def is_confident_supersede(c: SupersessionCandidate) -> bool:
     """이 후보를 *확신*하고 자동 supersede해도 되는가 (apply gate ↔ escalation gate 단일 기준).
 
-    확신 = ① σ verdict가 SUPERSEDE이거나 미배선(None), AND ② archive 대상을 추측 없이 고를 수
-    있음 — disk-truth가 current를 확정(HIGH)했거나, stale/current가 byte-동일(같은 sha → 어느 쪽을
-    남겨도 무손실). 그 외(σ가 VERIFY/KEEP/FLAG_ONLY, 또는 SUPERSEDE인데 MEDIUM·비동일) = 불확실.
+    확신 = ① σ verdict가 SUPERSEDE (None=σ 미계산은 확신 아님 — escalate), AND ② archive
+    대상을 추측 없이 고를 수 있음 — disk-truth가 current를 확정(HIGH)했거나, stale/current가
+    byte-동일(같은 sha → 어느 쪽을 남겨도 무손실). 그 외(σ가 VERIFY/KEEP/FLAG_ONLY/None,
+    또는 SUPERSEDE인데 MEDIUM·비동일) = 불확실.
 
-    apply는 확신 케이스만 자동 write, escalation은 그 여집합(불확실)을 나생문/Longinus로 보낸다 —
-    둘이 같은 술어를 공유해 'auto-apply ∩ escalate = ∅' partition을 보장한다.
+    None 관용 제거 (seam-integrity 2026-07-10): 옛 술어는 verdict=None 이면 거부절을 우회해
+    HIGH/same-sha 만으로 확신 처리했다 — σ 가 계산되지 않은(무명 노드 meta 별칭 등) 후보가
+    auto-apply 로 직행하는 구멍. 이 술어는 apply 와 escalation 이 *같은 함수 객체*를 공유하므로
+    의미 교체만으로 'auto-apply ∩ escalate = ∅' partition 이 by-construction 보존된다 —
+    lenient 를 꽂을 모드 스위치 자체를 두지 않는다(fail-closed, local=공유KG 패리티).
+    프로덕션에서 verdict=None 은 복합키 score_meta(occam_runner._build_score_meta)로 생성
+    자체가 소멸 — 이 절은 비-프로덕션/미주입 경로의 최후 방어선.
 
     Tier-3: indistinguishable exact-dup(동일 sourcePath AND sha256)은 apply 가 REFUSE 하는
     케이스 — 복합키로 어느 노드를 아카이브할지 못 고른다. same-sha 만 보고 확신 처리하면 apply
     도 escalation 도 못 받고 notes 로만 사라지므로(silent drop), 여기서 명시 제외해 escalate 로
     보낸다. disk-truth 가 HIGH 로 current 를 확정해도 두 동일 KG 노드는 여전히 못 가른다."""
-    if c.verdict is not None and c.verdict != "SUPERSEDE":
+    if c.verdict != "SUPERSEDE":
         return False
     same_sha = c.stale.sha256 == c.current.sha256
     if same_sha and c.stale.source_path == c.current.source_path:

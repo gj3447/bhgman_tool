@@ -68,7 +68,12 @@ def scan_disk_paths(repo_root: str | Path) -> frozenset[str]:
         for fn in filenames:
             # 확장자 무관 전부 포함: disk_paths는 "디스크 실존 경로" 집합.
             # 과대포함은 occam을 더 보수적으로만 만든다(false-orphan 차단 > true-orphan 누락 위험).
-            paths.add(normalize_path(str(Path(dirpath) / fn)))
+            # relpath 합성 (seam-integrity 2026-07-10): abs 경로를 그대로 normalize 하면
+            # root 디렉터리명이 규약(bhgman_tool[-wt-*])일 때만 키가 나온다 — 워크트리든
+            # 어떤 이름의 체크아웃이든 root-상대 경로가 곧 repo-상대 키가 되도록 합성해
+            # checkout-이름 무관으로 만든다 (normalize 재적용은 tmp/bhgman_tool/... 같은
+            # 픽스처 relpath 의 marker 를 마저 벗기는 기존-테스트 호환 경로).
+            paths.add(normalize_path(os.path.relpath(os.path.join(dirpath, fn), root_str)))
     return frozenset(paths)
 
 
@@ -85,7 +90,14 @@ def _compute_disk_truth(repo_root: str | Path, nodes: list) -> dict[str, str]:
         sp = getattr(n, "source_path", None)
         if not sp:
             continue
-        for cand in ((Path(sp) if Path(sp).is_absolute() else root / sp), Path(sp)):
+        # 해상 후보 3순: abs 그대로 → root/원경로 → root/정규화-상대. 셋째가 없으면
+        # rel-lineage(`bhgman_tool/engine/x.py`)는 root/'bhgman_tool/...' 미실존으로
+        # disk-sha HIGH 중재가 죽는다 (seam-integrity 2026-07-10, 순수 가산적).
+        for cand in (
+            (Path(sp) if Path(sp).is_absolute() else root / sp),
+            Path(sp),
+            root / normalize_path(sp),
+        ):
             if cand.is_file():
                 try:
                     out[normalize_path(sp)] = hashlib.sha256(cand.read_bytes()).hexdigest()
@@ -115,19 +127,22 @@ def _age_days(node: NodeRecord, now: datetime) -> float:
     return max((now - parsed).total_seconds() / 86400.0, 0.0)
 
 
-def _build_score_meta(nodes: list[NodeRecord]) -> dict[str, NodeScoreMeta]:
-    """fetch한 NodeRecord → name별 NodeScoreMeta (occam_pass가 σ/verdict 부착에 사용).
+def _build_score_meta(nodes: list[NodeRecord]) -> dict[tuple[str, str], NodeScoreMeta]:
+    """fetch한 NodeRecord → (source_path, sha256) 복합키별 NodeScoreMeta.
+
+    키 교체 (seam-integrity 2026-07-10): 옛 name 키는 (a) name=None 노드를 제외해 verdict=None
+    후보(σ-None 관용 게이트 직행)의 생산원이었고, (b) 동명 이노드 시 last-wins 로 타 노드의
+    σ가 별칭 부착됐다. 복합키는 무명 노드에도 σ를 주고 별칭을 없앤다 — 잔여: 동일 (path,sha)
+    쌍둥이는 meta 공유(그 쌍은 exact-dup REFUSE/escalate 대상이라 무해).
 
     redundancy는 _score_candidates가 권위로 override. invocation_count=None: occam은 usage
     로그가 없으므로 deadness 기여 0 (사용기록 부재를 'dead'로 saturate하지 않음 — 그래야 부분중복
     MEDIUM 후보가 σ=1.0 SUPERSEDE로 잘못 떠 escalation을 건너뛰는 일이 없다). age는 recency
     타임스탬프에서, inbound_edges는 KG 참조 수에서."""
     now = datetime.now(timezone.utc)
-    meta: dict[str, NodeScoreMeta] = {}
+    meta: dict[tuple[str, str], NodeScoreMeta] = {}
     for n in nodes:
-        if n.name is None:  # _score_candidates는 stale.name으로 키잉 — 무명 노드는 unscored
-            continue
-        meta[n.name] = NodeScoreMeta(
+        meta[(n.source_path, n.sha256)] = NodeScoreMeta(
             redundancy=0.0,  # _score_candidates override
             age_days=_age_days(n, now),
             # KG-backfilled usage (oracle_backfill writes s.invocation_count). Absent → None

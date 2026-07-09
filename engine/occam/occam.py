@@ -23,27 +23,33 @@ disk_paths=None이면 1번만 (기존 동작 불변).
 from __future__ import annotations
 
 import dataclasses
+import re
 from collections import defaultdict
 
 from engine.occam.occam_models import Confidence, NodeRecord, OccamReport, SupersessionCandidate
 from engine.occam.scoring import NodeScoreMeta, ScoringConfig, score_node
 
-_REPO_MARKER = "bhgman_tool/"
+# 세그먼트-앵커 (seam-integrity 2026-07-10): 옛 rfind("bhgman_tool/")는 (a) git worktree
+# 체크아웃(bhgman_tool-wt-*)에 비매치 → 워크트리 실행이 KG 키와 미조인(라이브 dry-run 실측
+# 274중 270 false-orphan), (b) 비-세그먼트 접미(Xbhgman_tool/)에 오매치 가능. 정체성 결정:
+# 워크트리 = 같은 논리 파일 = 같은 키 (Longinus repo_identity 의 체크아웃-독립 정본과 정합).
+_REPO_SEGMENT = re.compile(r"(?:^|/)bhgman_tool(-wt-[^/]+)?/")
 
 
 def normalize_path(path: str) -> str:
     # KG: occam-kam-canonical-2026-05-26
-    """abs/rel lineage 통합: repo marker 이후만 남김. marker 없으면 원본."""
-    idx = path.rfind(_REPO_MARKER)
-    if idx == -1:
-        return path
-    return path[idx + len(_REPO_MARKER) :]
+    """abs/rel/워크트리 lineage 통합: repo 세그먼트 이후만 남김. 비매치면 원본.
+    rfind 패리티 = *마지막* 세그먼트 매치 기준 (기존 매치군 결과 불변)."""
+    m = None
+    for m in _REPO_SEGMENT.finditer(path):
+        pass
+    return path if m is None else path[m.end() :]
 
 
 def _in_repo(path: str) -> bool:
-    """path가 이 repo 소속인가 (디스크-aware 판정 대상). marker 없는 외부 노드는
+    """path가 이 repo 소속인가 (디스크-aware 판정 대상). 세그먼트 없는 외부 노드는
     이 repo 디스크로 실존 여부를 판단할 수 없으므로 move/orphan 평가에서 제외."""
-    return _REPO_MARKER in path
+    return _REPO_SEGMENT.search(path) is not None
 
 
 def _current_rank(n: NodeRecord) -> tuple:
@@ -160,15 +166,17 @@ def _redundancy(stale: NodeRecord, current: NodeRecord) -> float:
 
 def _score_candidates(
     candidates: list[SupersessionCandidate],
-    score_meta: dict[str, NodeScoreMeta],
+    score_meta: dict[tuple[str, str], NodeScoreMeta],
     cfg: ScoringConfig,
 ) -> list[SupersessionCandidate]:
     """후보별 σ 부착. redundancy는 occam dedup이 권위(meta 값 override), 나머지는 caller meta.
 
+    키는 (source_path, sha256) 복합키 — name 키의 무명-제외/동명-별칭 결함 봉합
+    (seam-integrity 2026-07-10, occam_runner._build_score_meta 와 동형).
     candidate는 정의상 current(후속자)가 있으므로 has_successor=True 강제."""
     out: list[SupersessionCandidate] = []
     for c in candidates:
-        meta = score_meta.get(c.stale.name)
+        meta = score_meta.get((c.stale.source_path, c.stale.sha256))
         if meta is None:
             out.append(c)
             continue
@@ -188,7 +196,7 @@ def occam_pass(
     nodes: list[NodeRecord],
     disk_truth: dict[str, str] | None = None,
     disk_paths: frozenset[str] | None = None,
-    score_meta: dict[str, NodeScoreMeta] | None = None,
+    score_meta: dict[tuple[str, str], NodeScoreMeta] | None = None,
     scoring_config: ScoringConfig | None = None,
 ) -> OccamReport:
     # KG: occam-kam-canonical-2026-05-26
@@ -197,8 +205,8 @@ def occam_pass(
     disk_paths(정규화된 디스크 실존 경로 집합) 주면 sha-이동(mode-2)+disk-orphan(mode-3) 추가 탐지.
     None이면 same-path 중복(mode-1)만 — 기존 호출자 동작 불변.
 
-    score_meta(노드이름→NodeScoreMeta) 주면 각 후보에 연속 σ + verdict 부착 (scoring.py).
-    None이면 score=verdict=None (기존 호출자 동작 불변).
+    score_meta((source_path, sha256) 복합키→NodeScoreMeta) 주면 각 후보에 연속 σ + verdict
+    부착 (scoring.py). None이면 score=verdict=None (기존 호출자 동작 불변).
     """
     disk_truth = disk_truth or {}
     groups: dict[str, list[NodeRecord]] = defaultdict(list)
