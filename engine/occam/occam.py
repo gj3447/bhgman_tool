@@ -33,7 +33,10 @@ from engine.occam.scoring import NodeScoreMeta, ScoringConfig, score_node
 # 체크아웃(bhgman_tool-wt-*)에 비매치 → 워크트리 실행이 KG 키와 미조인(라이브 dry-run 실측
 # 274중 270 false-orphan), (b) 비-세그먼트 접미(Xbhgman_tool/)에 오매치 가능. 정체성 결정:
 # 워크트리 = 같은 논리 파일 = 같은 키 (Longinus repo_identity 의 체크아웃-독립 정본과 정합).
-_REPO_SEGMENT = re.compile(r"(?:^|/)bhgman_tool(-wt-[^/]+)?/")
+# 선행 구분자는 lookbehind — `(?:^|/)`처럼 소비하면 인접 세그먼트(GH Actions 의
+# .../bhgman_tool/bhgman_tool/... 중첩 체크아웃)에서 두 번째 매치의 선행 `/`가 첫 매치의
+# 트레일링 `/`에 잡아먹혀 '마지막 매치'가 rfind 와 어긋난다 (CI 실측 2026-07-10).
+_REPO_SEGMENT = re.compile(r"(?:^|(?<=/))bhgman_tool(-wt-[^/]+)?/")
 
 
 def normalize_path(path: str) -> str:
