@@ -1315,6 +1315,18 @@ def cmd_acquire(args: argparse.Namespace) -> int:
     return 0
 
 
+def _consume_pathkey_selftest() -> bool:
+    """R2′ 속성 게이트의 술어: 이 체크아웃의 파일 경로가 occam KG 키로 정규화되는가.
+
+    normalize_path 가 repo 세그먼트(bhgman_tool[-wt-*])를 못 찾는 체크아웃(무규약 클론)에서
+    apply-모드 janitor 를 공유 KG 에 물리면, occam 이 KG 키와 다른 세계를 보고 재실행된다 —
+    그 조합만 거부한다 (블랭킷 --local 강제의 정직한 후속, seam-integrity 2026-07-10)."""
+    from engine.occam.occam import normalize_path  # noqa: PLC0415
+
+    probe = str(_repo_root() / "engine" / "__probe__.py")
+    return normalize_path(probe) == "engine/__probe__.py"
+
+
 def cmd_legion(args: argparse.Namespace) -> int:
     # KG: adr-seven-commander-legion-architecture-2026-05-27
     """레기온 — 6 군단장 통일 닫힌 루프 (획득→연결→창조→정리→검증→실현) 1회 실행.
@@ -1367,15 +1379,18 @@ def cmd_legion(args: argparse.Namespace) -> int:
 
     run_id = "legion-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
     consume = getattr(args, "consume_dispatch", False)
-    # R2 fail-closed: occam normalize_path 워크트리 결함이 main에 잔존하는 동안, 공유
-    # KG(비-local)에 apply-모드 janitor 재실행을 물리지 않는다 (--local은 ephemeral라 안전).
+    # R2′ 속성 게이트 (seam-integrity 2026-07-10): 옛 블랭킷 금지("--local 에서만")의 명시
+    # 전제였던 normalize_path 워크트리 결함이 착지로 소멸 — fail-closed 정신은 *능력 속성*
+    # 체크로 보존한다: 이 체크아웃의 경로가 KG 키로 정규화되지 않으면(무규약 클론 등) 공유 KG
+    # apply-모드 소비를 여전히 거부. 미래에 체크아웃 규약이 깨지면 자동으로 다시 닫힌다.
     if consume and getattr(args, "apply", False) and not getattr(args, "local", False):
-        print(
-            "[legion] --consume-dispatch + --apply 는 --local 에서만 허용 "
-            "(공유 KG 보호: occam normalize_path 착지 전까지 R2 fail-closed).",
-            file=sys.stderr,
-        )
-        return 2
+        if not _consume_pathkey_selftest():
+            print(
+                "[legion] 이 체크아웃 경로는 KG 키로 정규화 불가 — 공유 KG apply 소비 거부 "
+                "(R2′ 속성 게이트: bhgman_tool[-wt-*] 규약 체크아웃에서 실행하라).",
+                file=sys.stderr,
+            )
+            return 2
     consume_report = None
     try:
         result = run_legion_via_jaebaeman(

@@ -23,27 +23,50 @@ disk_paths=None이면 1번만 (기존 동작 불변).
 from __future__ import annotations
 
 import dataclasses
+import re
 from collections import defaultdict
 
 from engine.occam.occam_models import Confidence, NodeRecord, OccamReport, SupersessionCandidate
 from engine.occam.scoring import NodeScoreMeta, ScoringConfig, score_node
 
-_REPO_MARKER = "bhgman_tool/"
+# 세그먼트-앵커 (seam-integrity 2026-07-10): 옛 rfind("bhgman_tool/")는 (a) git worktree
+# 체크아웃(bhgman_tool-wt-*)에 비매치 → 워크트리 실행이 KG 키와 미조인(라이브 dry-run 실측
+# 274중 270 false-orphan), (b) 비-세그먼트 접미(Xbhgman_tool/)에 오매치 가능. 정체성 결정:
+# 워크트리 = 같은 논리 파일 = 같은 키 (Longinus repo_identity 의 체크아웃-독립 정본과 정합).
+# 선행 구분자는 lookbehind — `(?:^|/)`처럼 소비하면 인접 세그먼트(GH Actions 의
+# .../bhgman_tool/bhgman_tool/... 중첩 체크아웃)에서 두 번째 매치의 선행 `/`가 첫 매치의
+# 트레일링 `/`에 잡아먹혀 '마지막 매치'가 rfind 와 어긋난다 (CI 실측 2026-07-10).
+_REPO_SEGMENT = re.compile(r"(?:^|(?<=/))bhgman_tool(-wt-[^/]+)?/")
 
 
 def normalize_path(path: str) -> str:
     # KG: occam-kam-canonical-2026-05-26
-    """abs/rel lineage 통합: repo marker 이후만 남김. marker 없으면 원본."""
-    idx = path.rfind(_REPO_MARKER)
-    if idx == -1:
-        return path
-    return path[idx + len(_REPO_MARKER) :]
+    """abs/rel/워크트리 lineage 통합: repo 세그먼트 이후만 남김. 비매치면 원본.
+    rfind 패리티 = *마지막* 세그먼트 매치 기준 (기존 매치군 결과 불변)."""
+    m = None
+    for m in _REPO_SEGMENT.finditer(path):
+        pass
+    return path if m is None else path[m.end() :]
 
 
 def _in_repo(path: str) -> bool:
-    """path가 이 repo 소속인가 (디스크-aware 판정 대상). marker 없는 외부 노드는
-    이 repo 디스크로 실존 여부를 판단할 수 없으므로 move/orphan 평가에서 제외."""
-    return _REPO_MARKER in path
+    """path가 이 repo 소속인가 (정체성 통합 대상 — 워크트리 lineage 포함)."""
+    return _REPO_SEGMENT.search(path) is not None
+
+
+_WT_SEGMENT = re.compile(r"(?:^|(?<=/))bhgman_tool-wt-[^/]+/")
+
+
+def _existence_judgeable(path: str) -> bool:
+    """디스크-실존 판정(mode-2 이동/mode-3 orphan) 대상인가.
+
+    정체성은 워크트리를 통합하지만(mode-1 같은-키 dedup), *실존*은 체크아웃-로컬 진실이다 —
+    워크트리 lineage(-wt-)는 병렬 세션의 미머지 in-flight 작업이라, 다른 체크아웃의 디스크
+    부재를 근거로 stale(mode-2 auto-supersede)/orphan(mode-3 Longinus 노이즈) 단정하면
+    살아있는 병렬 작업을 아카이브한다 (적대검증 2026-07-10 high 실증: 미머지 rename 노드가
+    σ=0.87 HIGH·SUPERSEDE 로 escalation 없이 통과). mode-1 은 이 면제와 무관 — 같은
+    정규화 키의 중복 *기록* 정리는 σ strict + 결정론 disk-truth 가 지킨다."""
+    return _in_repo(path) and _WT_SEGMENT.search(path) is None
 
 
 def _current_rank(n: NodeRecord) -> tuple:
@@ -87,7 +110,7 @@ def _detect_sha_moves(
     """동일 sha·다른 경로 = 이동. 디스크에 없는 경로 노드를 살아있는 twin으로 supersede (HIGH)."""
     by_sha: dict[str, list[NodeRecord]] = defaultdict(list)
     for node in nodes:
-        if id(node) not in superseded_ids and _in_repo(node.source_path):
+        if id(node) not in superseded_ids and _existence_judgeable(node.source_path):
             by_sha[node.sha256].append(node)
 
     out: list[SupersessionCandidate] = []
@@ -131,7 +154,8 @@ def _detect_disk_orphans(
     for node in nodes:
         if id(node) in superseded_ids:
             continue
-        if not _in_repo(node.source_path):  # 외부 노드는 이 repo 디스크로 판정 불가
+        # 외부 노드 + 워크트리 lineage = 이 체크아웃 디스크로 실존 판정 불가/금지.
+        if not _existence_judgeable(node.source_path):
             continue
         if normalize_path(node.source_path) in disk_paths:
             continue
@@ -160,15 +184,17 @@ def _redundancy(stale: NodeRecord, current: NodeRecord) -> float:
 
 def _score_candidates(
     candidates: list[SupersessionCandidate],
-    score_meta: dict[str, NodeScoreMeta],
+    score_meta: dict[tuple[str, str], NodeScoreMeta],
     cfg: ScoringConfig,
 ) -> list[SupersessionCandidate]:
     """후보별 σ 부착. redundancy는 occam dedup이 권위(meta 값 override), 나머지는 caller meta.
 
+    키는 (source_path, sha256) 복합키 — name 키의 무명-제외/동명-별칭 결함 봉합
+    (seam-integrity 2026-07-10, occam_runner._build_score_meta 와 동형).
     candidate는 정의상 current(후속자)가 있으므로 has_successor=True 강제."""
     out: list[SupersessionCandidate] = []
     for c in candidates:
-        meta = score_meta.get(c.stale.name)
+        meta = score_meta.get((c.stale.source_path, c.stale.sha256))
         if meta is None:
             out.append(c)
             continue
@@ -188,7 +214,7 @@ def occam_pass(
     nodes: list[NodeRecord],
     disk_truth: dict[str, str] | None = None,
     disk_paths: frozenset[str] | None = None,
-    score_meta: dict[str, NodeScoreMeta] | None = None,
+    score_meta: dict[tuple[str, str], NodeScoreMeta] | None = None,
     scoring_config: ScoringConfig | None = None,
 ) -> OccamReport:
     # KG: occam-kam-canonical-2026-05-26
@@ -197,8 +223,8 @@ def occam_pass(
     disk_paths(정규화된 디스크 실존 경로 집합) 주면 sha-이동(mode-2)+disk-orphan(mode-3) 추가 탐지.
     None이면 same-path 중복(mode-1)만 — 기존 호출자 동작 불변.
 
-    score_meta(노드이름→NodeScoreMeta) 주면 각 후보에 연속 σ + verdict 부착 (scoring.py).
-    None이면 score=verdict=None (기존 호출자 동작 불변).
+    score_meta((source_path, sha256) 복합키→NodeScoreMeta) 주면 각 후보에 연속 σ + verdict
+    부착 (scoring.py). None이면 score=verdict=None (기존 호출자 동작 불변).
     """
     disk_truth = disk_truth or {}
     groups: dict[str, list[NodeRecord]] = defaultdict(list)

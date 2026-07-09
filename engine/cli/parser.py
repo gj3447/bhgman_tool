@@ -504,7 +504,8 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="G5-C5 post-run 소비 (opt-in): 발화된 DispatchDecision 중 allowlist 엣지"
         "(occam janitor)만 depth-cap 안에서 실행, 나머지는 provenance-only skip. "
-        "--apply 와 병용은 --local 에서만 (R2: normalize_path 착지 전 공유 KG 보호).",
+        "--apply 병용은 경로 정규화 selftest 통과 체크아웃에서만 (R2\u2032 속성 게이트 — "
+        "bhgman_tool[-wt-*] 규약 밖 클론이면 공유 KG apply 소비 거부).",
     )
     p_lg.set_defaults(func=commands.cmd_legion)
 

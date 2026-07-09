@@ -18,6 +18,8 @@ whitespace에 견고(정확 문자열 매칭 아님). 미지 쿼리는 조용히
 
 from __future__ import annotations
 
+import re
+
 from collections.abc import Callable
 
 from engine.kg_local.store import LocalKgStore
@@ -67,58 +69,97 @@ def _fetch_source_nodes(store: LocalKgStore, params: dict) -> list[dict]:
 _GENERIC_IDENTITY_KEYS = ("name", "findingId", "id")
 
 
-def _occam_supersede_generic(store: LocalKgStore, params: dict) -> list[dict]:
-    # semantic_dedup._SUPERSEDE_TMPL 변종: `MATCH (stale) WHERE stale.{key} = $stale_id`
-    # (key ∈ {name,findingId,id}, label 무관). params = {stale_id, current_id, reason}.
+def _not_superseded(props: dict) -> bool:
+    """H3 status 가드 미러 — 실서버 cypher 의 (status IS NULL OR status <> 'SUPERSEDED')."""
+    return props.get("status") != "SUPERSEDED"
+
+
+# 신 supersede cypher(semantic _SUPERSEDE_TMPL / kg_harness.supersede_node)의 라벨·키 추출 —
+# 로컬 미러가 label 스코프와 특정 id_key 를 무시하면 실서버가 0-row 낼 write 를 적용해
+# 위조 green 을 만든다 (적대검증 2026-07-10 high).
+_TMPL_LABEL_KEY = re.compile(r"MATCH \(s:(\w+)\)\s+WHERE s\.(\w+) = \$stale_id")
+_HARNESS_LABEL_KEY = re.compile(r"MATCH \(s:(\w+) \{(\w+): \$stale\}\)")
+
+
+def _occam_supersede_generic(store: LocalKgStore, params: dict, cypher: str = "") -> list[dict]:
+    # semantic_dedup._SUPERSEDE_TMPL / kg_harness.supersede_node 변종.
+    # params = {stale_id, current_id, reason} (semantic) 또는 {stale, current, reason}(harness).
     # 과거엔 _occam_supersede가 params['stale_path']를 읽어 KeyError → 로컬서 의미론 dedup이
-    # silent no-op였다 (applied=0). label-agnostic identity 매칭으로 그 seam을 닫는다.
-    def _by(ident: str) -> dict | None:
+    # silent no-op였다 (applied=0).
+    #
+    # 충실도 (seam-integrity 2026-07-10): (a) first-match(next(iter,...)) 는 실서버의 다중매치
+    # 의미론을 가려 비유일키 결함의 RED 재현을 불가능하게 했다(위조 green 통로) — 전수 매치
+    # 후 양측 정확히 1개일 때만 변이 (신 cypher 의 collect/size=1 + H3 가드 미러).
+    # (b) cypher 에서 label·id_key 를 추출해 실서버와 같은 스코프로 매칭 — 못 읽는 모양이면
+    # 레거시 label-무관/generic-key 폴백 (기지 템플릿은 전부 파싱됨).
+    stale_id = params.get("stale_id", params.get("stale"))
+    current_id = params.get("current_id", params.get("current"))
+    if stale_id is None or current_id is None:
+        return []
+
+    label: str | None = None
+    key: str | None = None
+    m = _TMPL_LABEL_KEY.search(cypher) or _HARNESS_LABEL_KEY.search(cypher)
+    if m:
+        label, key = m.group(1), m.group(2)
+
+    def _matches(ident: str) -> list[dict]:
+        out = []
         for n in store.nodes:
             props = n.get("props", {})
-            if any(props.get(k) == ident for k in _GENERIC_IDENTITY_KEYS):
-                return n
-        return None
+            if label is not None and label not in n.get("labels", []):
+                continue
+            if key is not None:
+                hit = props.get(key) == ident
+            else:
+                hit = any(props.get(k) == ident for k in _GENERIC_IDENTITY_KEYS)
+            if hit and _not_superseded(props):
+                out.append(n)
+        return out
 
-    stale = _by(params["stale_id"])
-    current = _by(params["current_id"])
-    if stale is None or current is None or stale is current:
-        return []
+    ss, cs = _matches(stale_id), _matches(current_id)
+    if len(ss) != 1 or len(cs) != 1 or ss[0] is cs[0]:
+        return []  # 부재/다중매치/자기 = fail-closed 무변이 (0-row)
+    stale, current = ss[0], cs[0]
     stale["props"].update(
         {
             "status": "SUPERSEDED",
-            "supersededBy": params["current_id"],
+            "supersededBy": current_id,
             "supersededReason": params.get("reason", ""),
             "occamPass": "occam-semantic",
         }
     )
+    if "stale:Superseded" in cypher and "Superseded" not in stale.get("labels", []):
+        stale["labels"].append("Superseded")  # kg_harness 의 라벨 SET 미러
     store.add_edge(stale, "SUPERSEDED_BY", current)
-    return [{"superseded": params["stale_id"], "current": params["current_id"]}]
+    return [{"superseded": stale_id, "current": current_id}]
 
 
 def _occam_supersede(store: LocalKgStore, params: dict) -> list[dict]:
-    # 두 supersede 변종 처리 (둘 다 cypher에 `stale.status = 'SUPERSEDED'` 포함 → 같은 라우트):
+    # 세 supersede 변종 처리 (전부 cypher에 `stale.status = 'SUPERSEDED'` 포함 → 같은 라우트):
     #  · generic-key (semantic_dedup, key∈{name,findingId,id}): params에 stale_id → 위 핸들러.
+    #  · harness-key (kg_harness.supersede_node): params에 stale/current → 위 핸들러.
     #  · path+sha (SourceCodeNode, adapter._SUPERSEDE_CYPHER): params에 stale_path/stale_sha.
     if "stale_path" not in params:
-        return _occam_supersede_generic(store, params)
+        return _occam_supersede_generic(store, params, params.get("__cypher__", ""))
 
     # 복합키 (sourcePath, sha256) 매칭 — name은 schema상 nullable이라 키로 못 씀.
-    # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약)
-    def _by(path: str, sha: str) -> dict | None:
-        return next(
-            iter(
-                store.find_nodes(
-                    "SourceCodeNode",
-                    lambda p: p.get("sourcePath") == path and p.get("sha256") == sha,
-                )
-            ),
-            None,
-        )
+    # (adapter._SUPERSEDE_CYPHER와 동일 식별 계약 + collect/size=1 + H3 가드 미러)
+    def _matches(path: str, sha: str) -> list[dict]:
+        return [
+            n
+            for n in store.find_nodes(
+                "SourceCodeNode",
+                lambda p: p.get("sourcePath") == path and p.get("sha256") == sha,
+            )
+            if _not_superseded(n.get("props", {}))
+        ]
 
-    stale = _by(params["stale_path"], params["stale_sha"])
-    current = _by(params["current_path"], params["current_sha"])
-    if stale is None or current is None or stale is current:
-        return []
+    ss = _matches(params["stale_path"], params["stale_sha"])
+    cs = _matches(params["current_path"], params["current_sha"])
+    if len(ss) != 1 or len(cs) != 1 or ss[0] is cs[0]:
+        return []  # 부재/다중매치/자기 = fail-closed 무변이 (0-row)
+    stale, current = ss[0], cs[0]
     stale["props"].update(
         {
             "status": "SUPERSEDED",
@@ -534,7 +575,12 @@ def make_local_runner(store: LocalKgStore, autosave: bool = True) -> CypherRunne
     def run_cypher(cypher: str, params: dict) -> list[dict]:
         for matches, handler, is_write in _ROUTES:
             if matches(cypher):
-                rows = handler(store, params)
+                # supersede 미러만 cypher 를 본다 (label/id_key 스코프 추출) — 사본 동봉이라
+                # 타 핸들러(전 params 를 props 로 복사하는 dispatch_event 등)는 오염 없음.
+                if handler is _occam_supersede:
+                    rows = handler(store, {**params, "__cypher__": cypher})
+                else:
+                    rows = handler(store, params)
                 if is_write and autosave:
                     store.save()
                 return rows

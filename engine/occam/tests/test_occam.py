@@ -58,9 +58,13 @@ def test_disk_confirmed_current_drives_supersede_via_evidence_vector():
     # 위임하므로 _score_candidates의 disk_current/blob_match 근거가 실제로 σ에 반영됨을 고정.
     stale = NodeRecord("stale", "bhgman_tool/x.py", "old", 999)
     current = NodeRecord("cur", "bhgman_tool/x.py", "diskwins", 5)
-    meta = {
-        "stale": NodeScoreMeta(redundancy=0.0, age_days=0.0, invocation_count=None),
-        "cur": NodeScoreMeta(redundancy=0.0, age_days=0.0, invocation_count=None),
+    meta = {  # (source_path, sha256) 복합키 (seam-integrity 2026-07-10)
+        ("bhgman_tool/x.py", "old"): NodeScoreMeta(
+            redundancy=0.0, age_days=0.0, invocation_count=None
+        ),
+        ("bhgman_tool/x.py", "diskwins"): NodeScoreMeta(
+            redundancy=0.0, age_days=0.0, invocation_count=None
+        ),
     }
     report = occam_pass([stale, current], disk_truth={"x.py": "diskwins"}, score_meta=meta)
     cand = report.candidates[0]
@@ -250,7 +254,7 @@ def test_exact_dup_old_unused_scores_supersede():
     a = NodeRecord("dup.py", "/Users/x/bhgman_tool/dup.py", "same", 50)
     b = NodeRecord("dup.py", "/Users/x/bhgman_tool/dup.py", "same", 50)
     meta = {
-        "dup.py": NodeScoreMeta(
+        ("/Users/x/bhgman_tool/dup.py", "same"): NodeScoreMeta(
             redundancy=0.0,  # occam이 _redundancy로 1.0 override
             age_days=3650,
             invocation_count=0,
@@ -269,7 +273,7 @@ def test_score_meta_redundancy_overridden_by_occam_dedup():
     stub = NodeRecord("s.py", "bhgman_tool/m.py", "s", 10)
     impl = NodeRecord("i.py", "bhgman_tool/m.py", "i", 100)
     meta = {
-        "s.py": NodeScoreMeta(
+        ("bhgman_tool/m.py", "s"): NodeScoreMeta(
             redundancy=0.99,
             age_days=1.0,
             invocation_count=100,
@@ -288,7 +292,7 @@ def test_disk_confirmed_candidate_scores_as_hard_support():
     stale = NodeRecord("old.py", "bhgman_tool/m.py", "old", 10)
     current = NodeRecord("new.py", "bhgman_tool/m.py", "new", 100)
     meta = {
-        "old.py": NodeScoreMeta(
+        ("bhgman_tool/m.py", "old"): NodeScoreMeta(
             redundancy=0.0,
             age_days=1.0,
             invocation_count=100,

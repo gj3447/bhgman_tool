@@ -223,6 +223,9 @@ def test_supersede_cypher_guards_against_already_archived_nodes():
     report = _dup_report()
     cypher, _ = build_supersede(report.candidates[0])
     up = cypher.upper()
-    assert "STALE.STATUS" in up and "CURRENT.STATUS" in up, "missing not-archived guard"
+    # collect/size=1 재작성(seam-integrity 2026-07-10) 후 MATCH 변수는 s/c — 가드 속성은 동일.
+    assert "S.STATUS" in up and "C.STATUS" in up, "missing not-archived guard"
     # both guards must gate on SUPERSEDED (not merely mention .status somewhere)
     assert up.count("<> 'SUPERSEDED'") >= 2, "guard must exclude SUPERSEDED on both sides"
+    # 유일성 가드: 비유일 (path,sha) 다중매치는 write 대신 0-row 로 fail-close 해야 한다.
+    assert "SIZE(SS) = 1" in up and "SIZE(CS) = 1" in up, "missing uniqueness guard"

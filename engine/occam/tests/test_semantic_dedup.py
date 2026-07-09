@@ -78,8 +78,11 @@ def test_plan_supersession_scopes_match_to_label():
     so it can only touch the intended type."""
     pair = NearDupPair(keep_id="canon", drop_id="stale", similarity=0.97)
     cypher, _ = plan_supersession(pair, key="name", label="Lesson")
-    # both stale and current MATCH must carry the label — never a bare (stale)/(current)
-    assert "(stale:Lesson" in cypher and "(current:Lesson" in cypher
+    # both MATCH legs must carry the label — never a bare (s)/(c) match
+    # (collect/size=1 재작성 후 MATCH 변수는 s/c — H5 라벨 스코핑 속성은 동일)
+    assert "(s:Lesson)" in cypher and "(c:Lesson)" in cypher
+    # bare unlabeled match leg 부재 (적대검증: `or True` 공허 assert 를 실 검사로 교체)
+    assert "MATCH (s)" not in cypher and "MATCH (c)" not in cypher
     assert "MATCH (stale) " not in cypher and "MATCH (current) " not in cypher
 
 
@@ -95,7 +98,8 @@ def test_plan_supersession_guards_already_archived():
     node — guard both sides on status."""
     cypher, _ = plan_supersession(NearDupPair("a", "b", 0.99), key="name", label="Lesson")
     up = cypher.upper()
-    assert "STALE.STATUS" in up and "CURRENT.STATUS" in up
+    # collect/size=1 재작성 후 MATCH 변수는 s/c — 양측 status 가드 속성은 동일.
+    assert "S.STATUS" in up and "C.STATUS" in up
     assert up.count("<> 'SUPERSEDED'") >= 2
 
 

@@ -114,12 +114,19 @@ def find_near_duplicates(
 
 # H5 (Tier-1): stale/current MATCH 를 {label} 로 스코핑 + 상태가드(H3). 예전 템플릿은 라벨 없는
 # bare `(stale)` 였고 `WHERE ... WHERE ...` 연속이라 실 Neo4j 문법오류(로컬 러너가 가려 미검출).
+# 유일성 가드 (seam-integrity 2026-07-10): {key} 는 비유일(동명 이노드 실재) — 옛 템플릿은
+# 다중매치 전부 SET + 동명 쌍이면 stale/current 가 대칭 매치돼 양쪽 SUPERSEDED(생존자 0).
+# collect/size=1 로 양측 정확히 1개일 때만 write, 다중매치 = 0-row fail-closed.
 _SUPERSEDE_TMPL = (
-    "MATCH (stale:{label}) WHERE stale.{key} = $stale_id "
-    "AND (stale.status IS NULL OR stale.status <> 'SUPERSEDED') "
-    "MATCH (current:{label}) WHERE current.{key} = $current_id "
-    "AND (current.status IS NULL OR current.status <> 'SUPERSEDED') "
-    "AND stale <> current "
+    "MATCH (s:{label}) WHERE s.{key} = $stale_id "
+    "AND (s.status IS NULL OR s.status <> 'SUPERSEDED') "
+    "WITH collect(s) AS ss "
+    "MATCH (c:{label}) WHERE c.{key} = $current_id "
+    "AND (c.status IS NULL OR c.status <> 'SUPERSEDED') "
+    "WITH ss, collect(c) AS cs "
+    "WHERE size(ss) = 1 AND size(cs) = 1 "
+    "WITH ss[0] AS stale, cs[0] AS current "
+    "WHERE stale <> current "
     "SET stale.status = 'SUPERSEDED', stale.supersededBy = $current_id, "
     "stale.supersededReason = $reason, stale.supersededAt = datetime(), "
     "stale.occamPass = 'occam-semantic' "
@@ -131,7 +138,15 @@ _SUPERSEDE_TMPL = (
 def plan_supersession(pair: NearDupPair, *, key: str = "name", label: str) -> tuple[str, dict]:
     # KG: occam-kam-canonical-2026-05-26
     """near-dup 쌍 → supersede write cypher + params. covenant: 파괴 토큰 부재 assert +
-    라벨 스코핑(bare-name over-supersede 차단, H5)."""
+    라벨 스코핑(bare-name over-supersede 차단, H5) + keep==drop fail-closed."""
+    if pair.keep_id == pair.drop_id:
+        # seam-integrity 2026-07-10: 동명 동률 쌍의 tiebreak 가 keep==drop 을 만들 수 있고,
+        # 그 write 는 실서버 의미론에서 자기-supersede 대칭 매치 = 양쪽 SUPERSEDED(생존자 0).
+        # plan 단계에서 거부 — indistinguishable 쌍은 escalation(나생문)의 몫이다.
+        raise ValueError(
+            f"keep==drop ({pair.keep_id!r}) — 무생존 supersede 금지; "
+            "indistinguishable near-dup 쌍은 escalation 으로 라우팅하라"
+        )
     if key not in _KEY_ALLOWLIST:
         raise ValueError(f"key must be one of {sorted(_KEY_ALLOWLIST)}, got {key!r}")
     _validate_label(label)
@@ -154,6 +169,8 @@ class SemanticDedupReport:
     dry_run: bool
     applied: int = 0
     planned_cyphers: tuple[str, ...] = field(default_factory=tuple)
+    # keep==drop(무생존 위험) 쌍 — plan 에서 제외되고 escalation(나생문) 몫으로 표면화.
+    indistinguishable: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def summary(self) -> str:
@@ -188,8 +205,13 @@ def run_semantic_dedup(
 
     planned: list[str] = []
     applied = 0
+    indistinguishable: list[str] = []
     do_write = apply and write_cypher is not None
     for pair in pairs:
+        if pair.keep_id == pair.drop_id:
+            # seam-integrity 2026-07-10: 무생존 supersede 위험 — plan 제외, escalation 몫.
+            indistinguishable.append(pair.keep_id)
+            continue
         cypher, params = plan_supersession(pair, key=key, label=label)
         planned.append(cypher)
         if do_write:
@@ -209,6 +231,7 @@ def run_semantic_dedup(
         dry_run=not do_write,
         applied=applied,
         planned_cyphers=tuple(planned),
+        indistinguishable=tuple(indistinguishable),
     )
 
 

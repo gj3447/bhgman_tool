@@ -113,16 +113,24 @@ def fetch_source_nodes(run_cypher: CypherRunner, scope: str | None = None) -> li
 # required 필드(sourcePath/sha256)로 모든 occam dup 모드를 disambiguate — same-path dup은
 # sha256가, abs/rel·sha-이동 dup은 sourcePath가 가른다.
 # # KG: challenge-occam-supersede-name-key-not-required-nullable-2026-06-02
+# 유일성 가드 (seam-integrity 2026-07-10): SourceCodeNode 는 UNCONSTRAINABLE(nullable 키)이라
+# 동일 (sourcePath, sha256) 쌍둥이가 실재 가능 — 옛 cypher 는 stale 매치 *전부*를 SET 했다
+# (다중매치 over-archive, LIMIT/유일성 가드 부재). collect/size=1 로 양측 정확히 1개 매치일
+# 때만 write — 다중매치는 0-row = 기존 no_match WARN 경로로 fail-closed. RETURN shape 불변.
 _SUPERSEDE_CYPHER = (
-    "MATCH (stale:SourceCodeNode {sourcePath: $stale_path, sha256: $stale_sha}) "
-    "MATCH (current:SourceCodeNode {sourcePath: $current_path, sha256: $current_sha}) "
-    "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동일키 no-op)
+    "MATCH (s:SourceCodeNode {sourcePath: $stale_path, sha256: $stale_sha}) "
     # Tier-1 write-safety (H3): 이미 아카이브된 노드는 어느 쪽도 건드리지 않는다.
     # stale-guard = 멱등(재-아카이브 금지, parse가 status 미필터해도 write는 0-row no-op).
+    "WHERE (s.status IS NULL OR s.status <> 'SUPERSEDED') "
+    "WITH collect(s) AS ss "
+    "MATCH (c:SourceCodeNode {sourcePath: $current_path, sha256: $current_sha}) "
     # current-guard = no-survivor 방지: 병렬 두 패스가 Y→X, X→Y 로 엇갈려도 한쪽이 먼저
     #   아카이브되면 반대 write 의 current 매치가 0 → SUPERSEDED_BY 사이클(생존자 0) 불가.
-    "AND (stale.status IS NULL OR stale.status <> 'SUPERSEDED') "
-    "AND (current.status IS NULL OR current.status <> 'SUPERSEDED') "
+    "WHERE (c.status IS NULL OR c.status <> 'SUPERSEDED') "
+    "WITH ss, collect(c) AS cs "
+    "WHERE size(ss) = 1 AND size(cs) = 1 "
+    "WITH ss[0] AS stale, cs[0] AS current "
+    "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동일키 no-op)
     "SET stale.status = 'SUPERSEDED', "
     "stale.supersededBy = $current_path, "
     "stale.supersededReason = $reason, "
@@ -249,8 +257,8 @@ def apply_supersessions(
         )
     if no_match:
         notes.append(
-            f"WARN {len(no_match)} planned supersession(s) matched 0 rows (node absent or "
-            f"already superseded) — NOT applied: {no_match}"
+            f"WARN {len(no_match)} planned supersession(s) matched 0 rows (node absent, "
+            f"already superseded, or non-unique key match refused) — NOT applied: {no_match}"
         )
     return ApplyResult(
         superseded=tuple(applied),

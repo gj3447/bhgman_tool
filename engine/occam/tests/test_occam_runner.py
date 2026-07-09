@@ -337,3 +337,99 @@ def test_run_occam_computes_disk_truth_from_repo_root(tmp_path):
     assert cand.current.sha256 == disk_sha  # disk truth beats the line-count heuristic
     assert cand.stale.sha256 == "OLDSHA"
     assert cand.confidence is Confidence.HIGH
+
+
+# ─── seam-integrity 2026-07-10 적대검증 봉합: 워크트리 실존-면제 + disk-truth 결정론 ───
+
+
+def test_true_orphan_still_detected_from_worktree_root(tmp_path):
+    """양성 대조(적대검증: J-A1 은 false-orphan=0 만 봐서 orphan 평가 전체를 죽여도
+    green) — 디스크에 없는 정본-lineage 노드는 워크트리명 root 에서도 여전히 orphan."""
+    wt_root = tmp_path / "bhgman_tool-wt-probe"
+    (wt_root / "engine").mkdir(parents=True)
+    (wt_root / "engine" / "alive.py").write_text("x=1\n")
+    rows = [
+        {
+            "name": "alive",
+            "source_path": "bhgman_tool/engine/alive.py",
+            "sha256": "s1",
+            "line_count": 1,
+        },
+        {
+            "name": "ghost",
+            "source_path": "bhgman_tool/engine/ghost.py",
+            "sha256": "s2",
+            "line_count": 9,
+        },
+    ]
+    res = run_occam(_Runner(rows), repo_root=wt_root)
+    orphan_names = {o.name for o in res.report.orphans}
+    assert "ghost" in orphan_names, "실제 orphan 탐지는 살아 있어야 (평가 전멸=위조 green)"
+    assert "alive" not in orphan_names
+
+
+def test_worktree_lineage_exempt_from_move_and_orphan(tmp_path):
+    """병렬-세션 보호(적대검증 high): -wt- lineage 노드는 이 체크아웃 디스크로 실존을
+    판정하지 않는다 — mode-2 sha-move 의 orphan 측도, mode-3 disk-orphan 도 금지.
+    (미머지 rename/신규 파일이 타 체크아웃 janitor 에 아카이브/노이즈 되는 사고 차단)"""
+    root = tmp_path / "bhgman_tool"
+    (root / "engine").mkdir(parents=True)
+    (root / "engine" / "kept.py").write_text("same content\n")
+    import hashlib as _h
+
+    sha = _h.sha256((root / "engine" / "kept.py").read_bytes()).hexdigest()
+    rows = [
+        # 정본 lineage: 디스크 실재 (live twin)
+        {
+            "name": "kept",
+            "source_path": "bhgman_tool/engine/kept.py",
+            "sha256": sha,
+            "line_count": 1,
+        },
+        # 병렬 워크트리의 미머지 rename 기록: 같은 sha, 이 체크아웃 디스크엔 없음
+        {
+            "name": "renamed",
+            "source_path": "/x/bhgman_tool-wt-other/engine/renamed.py",
+            "sha256": sha,
+            "line_count": 1,
+        },
+        # 병렬 워크트리 전용 신규 파일 기록: 이 체크아웃 디스크엔 없음
+        {
+            "name": "newfile",
+            "source_path": "/x/bhgman_tool-wt-other/engine/newfile.py",
+            "sha256": "zz",
+            "line_count": 5,
+        },
+    ]
+    res = run_occam(_Runner(rows), repo_root=root)
+    stale_names = {c.stale.name for c in res.report.candidates}
+    orphan_names = {o.name for o in res.report.orphans}
+    assert "renamed" not in stale_names, "-wt- 노드가 mode-2 로 아카이브 후보가 되면 병렬 작업 파괴"
+    assert "renamed" not in orphan_names and "newfile" not in orphan_names, (
+        "-wt- 노드는 mode-3 orphan 노이즈로도 흐르면 안 됨"
+    )
+
+
+def test_disk_truth_is_order_deterministic_and_root_anchored(tmp_path):
+    """disk-truth 결정론(적대검증 high): 같은 정규화 키의 노드 순서가 바뀌어도, 그리고
+    형제 체크아웃에 divergent 파일이 실재해도 — disk truth 는 *실행 root* 파일의 sha."""
+    import hashlib as _h
+
+    main_root = tmp_path / "bhgman_tool"
+    sibling = tmp_path / "bhgman_tool-wt-sib"
+    for r, body in ((main_root, "main body\n"), (sibling, "sibling WIP body\n")):
+        (r / "engine").mkdir(parents=True)
+        (r / "engine" / "f.py").write_text(body)
+    main_sha = _h.sha256((main_root / "engine" / "f.py").read_bytes()).hexdigest()
+
+    from engine.occam.occam_runner import _compute_disk_truth
+    from engine.occam.occam_models import NodeRecord
+
+    n_main = NodeRecord("m", str(main_root / "engine" / "f.py"), "a" * 64, 1)
+    n_sib = NodeRecord("s", str(sibling / "engine" / "f.py"), "b" * 64, 1)
+    for order in ([n_main, n_sib], [n_sib, n_main]):
+        dt = _compute_disk_truth(main_root, order)
+        assert dt.get("engine/f.py") == main_sha, (
+            f"order={[''.join(n.name) for n in order]}: 실행 root 의 sha 여야 "
+            "(형제 워크트리 WIP 탈출/last-wins 비결정 금지)"
+        )
