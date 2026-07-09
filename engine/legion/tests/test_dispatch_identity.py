@@ -209,6 +209,18 @@ def test_consumer_runs_only_after_stages(monkeypatch):
     )
 
 
+def test_allowlist_content_is_pinned():
+    """G5-C5(ii) 나머지 절반: allowlist 는 문구가 아니라 *내용*이 기계 고정돼야 무음 확장이
+    불가하다 (적대검증 2026-07-10: SET 자체가 미고정이면 엣지를 늘려도 모든 oracle 이
+    통과 = C5 형해화). 확장 = ADR G5-C5 개정 + 이 pin 갱신을 같은 커밋에."""
+    from engine.legion.dispatch_consumer import EXECUTABLE_EDGES
+
+    assert EXECUTABLE_EDGES == frozenset({("occam", "occam")}), (
+        f"allowlist 무음 확장 감지: {sorted(EXECUTABLE_EDGES)} — ADR G5-C5 와 이 pin 을 "
+        "함께 개정하지 않는 확장은 금지"
+    )
+
+
 def test_consumer_is_opt_in(monkeypatch):
     """G5-C5(i) 나머지 절반: 기본(consume 미지정)은 소비자 호출 0 — 무음 활성화 금지."""
     from engine.legion import dispatch_consumer

@@ -113,16 +113,116 @@ def test_fired_decision_is_executed_and_kg_records_consumption():
 
 
 def test_janitor_clears_own_trigger_with_apply():
-    """폐루프의 기능 증명: apply=True 실행 후 같은 조건이 재발화하지 않는다 (자기해소)."""
+    """폐루프의 기능 증명 — *인과 분리* 버전(적대검증 2026-07-10): run1 의 in-run apply 가
+    원 백로그를 닦으므로, janitor 몫의 백로그를 소비 직전 재주입해 '닫은 것이 janitor'임을
+    분리 증명한다. (no-op counter 는 아래 test_do_nothing_janitor_does_not_clear.)"""
     store = LocalKgStore()
     _seed_confident(store)
     ctx = _ctx(store, apply=True)
     run = build_default_legion().run(dict(ctx))
+    _seed_confident(store, tag="regen")  # janitor 몫 재주입 — run1 은 이미 지나갔다
+
     consume_dispatch(run.dispatch_decisions, ctx)
 
     run2 = build_default_legion().run(dict(ctx))
     refired = [d for d in run2.dispatch_decisions if d.metric_name == "dead_node_count"]
-    assert not refired, "janitor 가 백로그를 닫았으면 dead_node_count 재발화는 없어야"
+    assert not refired, "janitor 가 재주입 백로그를 닫았으면 dead_node_count 재발화는 없어야"
+
+
+def test_do_nothing_janitor_does_not_clear():
+    """인과 counter: 유효한 hygiene 모양만 반환하고 아무 일도 안 하는 janitor 면 재주입
+    백로그가 남아 재발화한다 — 자기해소 green 이 run1 의 in-run apply 공로가 아니라
+    janitor 실행의 인과임을 판별 (적대검증 2026-07-10 high 의 봉합)."""
+    store = LocalKgStore()
+    _seed_confident(store)
+    ctx = _ctx(store, apply=True)
+    run = build_default_legion().run(dict(ctx))
+    fired = [d for d in run.dispatch_decisions if d.metric_name == "dead_node_count"]
+    assert fired
+    _seed_confident(store, tag="regen")
+
+    noop = CommanderStage(
+        "occam",
+        "정리",
+        ("run_cypher",),
+        ("hygiene",),
+        lambda _ctx: {"hygiene": {"mode": "occam", "candidates": [], "superseded_candidates": 0}},
+        measure=None,
+    )
+    report = consume_dispatch(run.dispatch_decisions, ctx, stages={"occam": noop})
+    assert report.executed, "no-op 도 실행 자체는 된다 (실행≠효능의 분리)"
+
+    run2 = build_default_legion().run(dict(ctx))
+    refired = [d for d in run2.dispatch_decisions if d.metric_name == "dead_node_count"]
+    assert refired, "no-op janitor 면 백로그가 남아 재발화해야 — 아니면 배터리가 인과를 못 가름"
+
+
+def test_depth_capped_outcome_is_not_vacuous_success():
+    """outcome 정직성(적대검증 2026-07-10 high): 전량 deferred(σ게이트가 막는) 백로그는
+    apply=True 여도 janitor 가 못 닫는다 — 체인은 depth-cap 종결되고, 그 지점의 outcome 은
+    재측정값 대조로 0 이어야 한다 (children=[] 공허 판정이면 1 로 날조된다)."""
+
+    class _Log:
+        def __init__(self):
+            self.rows = []
+
+        def record(self, **kw):
+            self.rows.append(kw)
+
+    store = LocalKgStore()
+    # 12그룹 전부 불확실(동일 정규화경로+상이 sha) → 후보는 잡히되 전량 deferred.
+    for i in range(12):
+        for k, prefix in enumerate(("/Users/old/bhgman_tool/", "bhgman_tool/")):
+            store.nodes.append(
+                {
+                    "labels": ["SourceCodeNode"],
+                    "props": {
+                        "name": f"dfr_{i}_{k}",
+                        "sourcePath": f"{prefix}pkg/dfr_{i}.py",
+                        "sha256": f"{(2000 + i * 10 + k):064x}",
+                        "lineCount": 10 + k,
+                    },
+                }
+            )
+    ctx = _ctx(store, apply=True)
+    run = build_default_legion().run(dict(ctx))
+    fired = [d for d in run.dispatch_decisions if d.metric_name == "dead_node_count"]
+    assert fired, "deferred 후보도 dead_node_count 로 계수되어 발화해야 (전제)"
+
+    log = _Log()
+    report = consume_dispatch(run.dispatch_decisions, ctx, instrument_log=log)
+
+    assert report.depth_capped, "σ게이트가 막는 백로그는 depth-cap 으로 종결돼야"
+    for rec in report.executed + report.depth_capped:
+        assert rec.outcome == 0, (
+            f"조건이 명백히 잔존하는데 outcome={rec.outcome} — 재측정 대조가 아니라 "
+            "공허 판정이면 여기서 1 이 나온다"
+        )
+    assert log.rows and all(r["outcome"] == 0 for r in log.rows), (
+        "instrument ground-truth 도 전부 0 이어야 (성공 날조 금지)"
+    )
+    # 불확실셋은 여전히 무접촉 (σ counter 재확인).
+    assert not _superseded_names(store)
+
+
+def test_degraded_output_is_exec_failed():
+    """fail-soft 봉합(적대검증 2026-07-10 high): occam 류 엔진은 내부 예외를 삼키고
+    degraded stub 을 반환한다 — 소비자는 그것을 EXECUTED 성공이 아니라 EXEC_FAILED 로
+    실명 처분해야 한다."""
+
+    def _degraded_run(_ctx: dict) -> dict:
+        return {"hygiene": {"mode": "degraded", "reason": "kg unreachable", "summary": "x"}}
+
+    broken = CommanderStage(
+        "occam", "정리", ("run_cypher",), ("hygiene",), _degraded_run, measure=None
+    )
+    store = LocalKgStore()
+    ctx = _ctx(store, apply=True)
+    report = consume_dispatch([_decision("occam", "occam")], ctx, stages={"occam": broken})
+    assert not report.executed
+    assert [r.status for r in report.failed] == [EXEC_FAILED]
+    assert "degraded" in report.failed[0].detail
+    assert report.failed[0].outcome == 0
 
 
 def test_outcome_recorded_only_on_apply():

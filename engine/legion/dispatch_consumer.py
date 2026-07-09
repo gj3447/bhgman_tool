@@ -126,12 +126,39 @@ def _write_provenance(ctx: dict, record: ConsumedRecord, cycle_id: str | None) -
         pass
 
 
-def _judge_outcome(decision: DispatchDecision, children: list[DispatchDecision]) -> int:
-    """dispatch 효능의 최소 정의: 실행 후 재측정에서 같은 metric 이 재발화하지 않으면 1.
+def _judge_outcome(decision: DispatchDecision, measurement: Any) -> int | None:
+    """dispatch 효능: 실행 후 *재측정값*으로 발화 조건의 소멸을 직접 판정 — 잔존 0, 소멸 1,
+    재측정 불가(측정 None/metric 부재/rule 부재) None(기록 안 함 — 아는 척 금지).
 
-    (재발화 = 발화 조건이 해소되지 않음 = 이번 dispatch 는 조건을 못 닫음 → 0.)"""
-    refired = any(c.metric_name == decision.metric_name for c in children)
-    return 0 if refired else 1
+    (적대검증 2026-07-10: children 리스트로 판정하면 depth-cap 이 decide_dispatch 를
+    측정 *전에* 끊었을 때 children=[] 가 공허하게 '성공 1'로 읽힌다 — 조건이 명백히
+    잔존하는 지점에서 ground-truth 1 을 날조. 재측정값 대조는 cap 과 무관하게 정직하다.)"""
+    if measurement is None:
+        return None
+    value = measurement.measure().get(decision.metric_name)
+    if value is None:
+        return None
+    rule = next(
+        (
+            r
+            for r in measurement.dispatch_thresholds
+            if r.source == decision.source_commander
+            and r.target == decision.target_commander
+            and r.metric == decision.metric_name
+        ),
+        None,
+    )
+    if rule is None:
+        return None
+    return 0 if rule.triggered(value) else 1
+
+
+def _degraded_keys(output: dict) -> list[str]:
+    """stage 출력에서 graceful-degrade stub 키를 찾는다 — occam 등 CommanderEngine 은
+    내부 예외를 삼키고 {'mode': 'degraded'} 를 반환하므로(fail-soft), stage.run 예외만
+    잡아서는 EXEC_FAILED 가 구조적으로 도달 불가다(적대검증 2026-07-10). degraded 출력
+    = 실행 실패로 실명 처분해야 '실패가 성공으로 위장'하지 않는다."""
+    return [k for k, v in output.items() if isinstance(v, dict) and v.get("mode") == "degraded"]
 
 
 def consume_dispatch(
@@ -203,6 +230,20 @@ def consume_dispatch(
             _write_provenance(ctx, rec, cycle_id)
             continue
 
+        # fail-soft 엔진의 degraded stub = 실행 실패 (예외만 잡으면 EXEC_FAILED 도달 불가).
+        broken = _degraded_keys(output)
+        if broken:
+            reason = output[broken[0]].get("reason", "")
+            rec = ConsumedRecord(
+                d,
+                EXEC_FAILED,
+                outcome=0 if apply_mode else None,
+                detail=f"degraded output {broken}: {reason}",
+            )
+            failed.append(rec)
+            _write_provenance(ctx, rec, cycle_id)
+            continue
+
         # 재측정 — 매 반복 fresh measurement(epoch-cache stale 방지), depth 는 d.depth+1
         # 로 전파 (MAX_DISPATCH_DEPTH 도달 시 기계 종결 = depth_capped).
         merged = {**ctx, **output}
@@ -219,8 +260,10 @@ def consume_dispatch(
 
         outcome: int | None = None
         if apply_mode and status in (EXECUTED, DEPTH_CAPPED):
-            outcome = _judge_outcome(d, children)
-            if measurement is not None and instrument_log is not None:
+            # 효능은 children 이 아니라 재측정값으로 직접 판정 — depth-cap 이 측정 전에
+            # 재귀를 끊어도 공허한 '성공 1'이 나오지 않는다. None(재측정 불가)은 기록 생략.
+            outcome = _judge_outcome(d, measurement)
+            if measurement is not None and instrument_log is not None and outcome is not None:
                 measurement.set_instrument_log(instrument_log)
                 measurement.record_outcome(
                     d,

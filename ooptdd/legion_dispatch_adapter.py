@@ -38,7 +38,7 @@ def _ev(cid: str, event: str, **attrs) -> dict:
     }
 
 
-def seed_confident_dups(store: LocalKgStore, n: int = N_CONFIDENT) -> None:
+def seed_confident_dups(store: LocalKgStore, n: int = N_CONFIDENT, tag: str = "ldc") -> None:
     """abs/rel lineage 쌍(정규화 동일 경로+동일 sha=byte-동일) n그룹 — occam mode-1 이
     그룹핑하고 σ게이트가 확신 처리하는 케이스 → superseded_candidates == n."""
     for i in range(n):
@@ -47,8 +47,8 @@ def seed_confident_dups(store: LocalKgStore, n: int = N_CONFIDENT) -> None:
                 {
                     "labels": ["SourceCodeNode"],
                     "props": {
-                        "name": f"ldc_{i}",
-                        "sourcePath": f"{prefix}pkg/ldc_{i}.py",
+                        "name": f"{tag}_{i}",
+                        "sourcePath": f"{prefix}pkg/{tag}_{i}.py",
                         "sha256": f"{i:064x}",
                         "lineCount": 10 + i,
                     },
@@ -59,7 +59,12 @@ def seed_confident_dups(store: LocalKgStore, n: int = N_CONFIDENT) -> None:
 def _run_real_loop(
     n_groups: int = N_CONFIDENT, apply: bool = True
 ) -> tuple[LocalKgStore, list, DispatchConsumeReport, list]:
-    """REAL 체인 1회: seed → legion run(발화) → consume(실행) → 재run(재발화 실측)."""
+    """REAL 체인 1회: seed → legion run(발화) → **재주입** → consume(실행) → 재run(재발화).
+
+    재주입(인과 분리, 적대검증 2026-07-10): run1 의 in-run occam apply 가 원 백로그를
+    이미 닦으므로, janitor 몫의 백로그를 소비 직전 다시 심는다 — trigger_cleared 가
+    run1 공로가 아니라 *janitor 실행*의 인과임을 보장(no-op janitor 면 재발화 잔존).
+    fired/refired 는 legion run 관측(결정 리스트), consumed 는 KG 상태 재도출."""
     store = LocalKgStore()
     seed_confident_dups(store, n_groups)
     runner = make_local_runner(store, autosave=False)
@@ -71,6 +76,7 @@ def _run_real_loop(
     }
     run = build_default_legion().run(dict(ctx))
     fired = [d for d in run.dispatch_decisions if d.metric_name == "dead_node_count"]
+    seed_confident_dups(store, n_groups, tag="ldc_regen")  # janitor 몫 재주입
     report = consume_dispatch(run.dispatch_decisions, ctx)
     run2 = build_default_legion().run(dict(ctx))
     refired = [d for d in run2.dispatch_decisions if d.metric_name == "dead_node_count"]
