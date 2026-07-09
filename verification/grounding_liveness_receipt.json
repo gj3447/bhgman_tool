@@ -1,0 +1,11 @@
+{
+  "tree": "LakatosTree_BhgmanSeamIntegrity_20260708",
+  "node": "grounding_measurement_liveness",
+  "metric": "grounding_dead_signal_count",
+  "value": 0,
+  "fires_on_empty_acquisition": 0,
+  "default_exposed_ratio": null,
+  "dead_default": 0,
+  "discrimination_alive": true,
+  "not_alive_penalty": 0
+}

@@ -300,8 +300,10 @@ def _measure_prometheus(ctx: dict):
 
     acquired = ctx.get("acquired") or {}
     m = PrometheusMeasurement(finding_count=int(acquired.get("findings", 0) or 0))
-    # grounding-wire (백로그 #2): 결정론 브랜치가 노출한 실 citations 로 ratio 실계산 —
-    # 키 부재(LLM 브랜치=citations 미노출)면 정직 기본 유지(0.0 강제로 항상-발화시키지 않음).
+    # grounding-wire v2 (seam-integrity 20260708): 결정론 브랜치가 노출한 실 citations 로
+    # ratio 실계산. 빈 목록(획득 0건) → 미측정(None, 키 부재) — v1 의 0.0 은 infra-0 경로에서
+    # 매 run 오발화를 만들었다. 키 부재(LLM 브랜치=citations 미노출)도 미측정 공시 — v1 의
+    # '기본 1.0 유지'는 측정 없이 완전-접지를 위장하는 영구 불-발화였다.
     if "citation_urls" in acquired:
         m.update_grounding(acquired["citation_urls"])
     return m
