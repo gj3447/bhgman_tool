@@ -499,6 +499,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="획득(prometheus) 결정론 코어에 실제 웹 fetcher 주입 (DDG → fetch → ingest). "
         "없으면 gap+query PROPOSE만 (no network).",
     )
+    p_lg.add_argument(
+        "--consume-dispatch",
+        action="store_true",
+        help="G5-C5 post-run 소비 (opt-in): 발화된 DispatchDecision 중 allowlist 엣지"
+        "(occam janitor)만 depth-cap 안에서 실행, 나머지는 provenance-only skip. "
+        "--apply 와 병용은 --local 에서만 (R2: normalize_path 착지 전 공유 KG 보호).",
+    )
     p_lg.set_defaults(func=commands.cmd_legion)
 
     p_bot = sub.add_parser(

@@ -151,8 +151,8 @@ def test_longinus_binding_status_literals():
     lives verbatim inside _seed_germinate_impl's body — AST-checked, and a renamed
     literal goes UNBOUND (the binding discriminates)."""
     pytest.importorskip("ooptdd_loop")
-    from ooptdd_loop.longinus import verify_binding
-    from ooptdd_loop.spec import Longinus
+    from ooptdd_loop.engine.longinus import verify_binding
+    from ooptdd_loop.domain.spec import Longinus
 
     for literal in ("PLANNED", "BLOCKED"):
         bound = verify_binding(_ROOT, Longinus(_KG_ANCHOR, _SRC, "_seed_germinate_impl", literal))

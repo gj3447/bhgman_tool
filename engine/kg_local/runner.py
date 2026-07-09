@@ -157,10 +157,15 @@ def _hades_merge_concept(store: LocalKgStore, params: dict) -> list[dict]:
 
 
 def _dispatch_event_merge(store: LocalKgStore, params: dict) -> list[dict]:
-    """legion W2-A — MERGE a :DispatchEvent (runtime measurement-driven dispatch decision)."""
+    """legion W2-A — MERGE a :DispatchEvent (runtime measurement-driven dispatch decision).
+
+    key 는 neo4j MERGE identity(5키: source/target/metric/epoch/decided_at)와 동형이어야
+    한다 — decided_at 을 빼면 fresh measurement 마다 epoch=0 이라 dispatch 체인의 부모/자식
+    처분이 한 노드로 붕괴해 서로를 덮어쓴다(적대검증 2026-07-10: 로컬 provenance 파괴 +
+    consumed 카운트 과소)."""
     key = (
         f"dispatch-{params.get('source_commander')}-{params.get('target_commander')}-"
-        f"{params.get('metric_name')}-{params.get('epoch')}"
+        f"{params.get('metric_name')}-{params.get('epoch')}-{params.get('decided_at')}"
     )
     store.merge_node("DispatchEvent", "name", key, {k: v for k, v in params.items()})
     return [{"src": params.get("source_commander")}]
