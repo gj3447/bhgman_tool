@@ -62,7 +62,10 @@ def legion_roster_impl() -> dict[str, Any]:
 
 
 def legion_run_impl(
-    cycle_id: str = "mcp-legion", kg_path: str | None = None, store: Any | None = None
+    cycle_id: str = "mcp-legion",
+    kg_path: str | None = None,
+    store: Any | None = None,
+    consume: bool = False,
 ) -> dict[str, Any]:
     # KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s3_mcp_substrate_parity
     # KG: 재배맨-v2-subagent-runtime-protocol
@@ -126,6 +129,28 @@ def legion_run_impl(
     lifecycle = result["lifecycle"]
     record = result["run_record"]
 
+    # G5-C5: post-run 유계 소비 (opt-in). LocalKgStore 전용 경로라 janitor write 도
+    # 공유 KG 에 닿을 수 없다 — apply=True 는 substrate 호출과 동일한 ephemeral 범위.
+    consumed_block: list[dict[str, Any]] = []
+    if consume:
+        from engine.legion.dispatch_consumer import consume_dispatch  # noqa: PLC0415
+
+        consume_ctx = {**ctx, "write_cypher": run_cypher, "apply": True}
+        report = consume_dispatch(run.dispatch_decisions, consume_ctx)
+        consumed_block = [
+            {
+                "source": r.decision.source_commander,
+                "target": r.decision.target_commander,
+                "metric": r.decision.metric_name,
+                "status": r.status,
+                "depth": r.decision.depth,
+                "children": r.child_decision_count,
+                "outcome": r.outcome,
+                "detail": r.detail,
+            }
+            for r in report.all_records
+        ]
+
     return {
         "cycle_id": cycle_id,
         "completed": bool(run.completed),
@@ -152,6 +177,8 @@ def legion_run_impl(
             }
             for d in run.dispatch_decisions
         ],
+        # G5-C5 소비 관측면 (opt-in; 기본 [] — 기존 응답 스키마는 additive 확장만).
+        "dispatch_consumed": consumed_block,
         "jaebaeman": {
             "run_id": record.run_id,
             "planned_seeds": record.planned_seeds,
@@ -178,16 +205,20 @@ def register(mcp: Any) -> None:
         return legion_roster_impl()
 
     @mcp.tool()
-    def legion_run(cycle_id: str = "mcp-legion", kg_path: str = "") -> dict[str, Any]:
+    def legion_run(
+        cycle_id: str = "mcp-legion", kg_path: str = "", consume: bool = False
+    ) -> dict[str, Any]:
         """Run the closed legion loop (획득→…→실현) on the bundled local KG (no infra).
 
         Args:
             cycle_id: label for this run.
             kg_path: optional path to a LocalKgStore JSON; empty = default bundle.
+            consume: opt-in post-run dispatch consumption (G5-C5 — allowlist·depth-capped;
+                the occam janitor edge executes, everything else is provenance-only skip).
 
-        Returns: run summary {completed, ran[], contract_violation, ...}.
+        Returns: run summary {completed, ran[], dispatch[], dispatch_consumed[], ...}.
         """
-        return legion_run_impl(cycle_id=cycle_id, kg_path=kg_path or None)
+        return legion_run_impl(cycle_id=cycle_id, kg_path=kg_path or None, consume=consume)
 
 
 __all__ = ["register", "legion_roster_impl", "legion_run_impl"]

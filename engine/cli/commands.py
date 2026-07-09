@@ -1366,10 +1366,26 @@ def cmd_legion(args: argparse.Namespace) -> int:
     from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
 
     run_id = "legion-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+    consume = getattr(args, "consume_dispatch", False)
+    # R2 fail-closed: occam normalize_path 워크트리 결함이 main에 잔존하는 동안, 공유
+    # KG(비-local)에 apply-모드 janitor 재실행을 물리지 않는다 (--local은 ephemeral라 안전).
+    if consume and getattr(args, "apply", False) and not getattr(args, "local", False):
+        print(
+            "[legion] --consume-dispatch + --apply 는 --local 에서만 허용 "
+            "(공유 KG 보호: occam normalize_path 착지 전까지 R2 fail-closed).",
+            file=sys.stderr,
+        )
+        return 2
+    consume_report = None
     try:
         result = run_legion_via_jaebaeman(
             ctx, run_id=run_id, write_cypher=write_cypher, apply=getattr(args, "apply", False)
         )
+        if consume:
+            # G5-C5 post-run 소비 — runner 가 닫히기 전(try 안)에 실행해야 한다.
+            from engine.legion.dispatch_consumer import consume_dispatch  # noqa: PLC0415
+
+            consume_report = consume_dispatch(result["legion_run"].dispatch_decisions, ctx)
     finally:
         close()
         close_g()
@@ -1391,6 +1407,20 @@ def cmd_legion(args: argparse.Namespace) -> int:
         f"[재배맨 substrate] {rec.run_id}: dispatched={len(lc.outcomes)} "
         f"collected={lc.collected} failed={lc.failed} (planner→lifecycle→record)"
     )
+    if consume_report is not None:
+        for r in consume_report.all_records:
+            print(
+                f"  [consume:{r.status}] {r.decision.source_commander}→"
+                f"{r.decision.target_commander} {r.decision.metric_name} "
+                f"depth={r.decision.depth} children={r.child_decision_count}"
+                + (f" outcome={r.outcome}" if r.outcome is not None else "")
+            )
+        print(
+            f"[dispatch consume] executed={len(consume_report.executed)} "
+            f"skipped={len(consume_report.skipped)} "
+            f"depth_capped={len(consume_report.depth_capped)} "
+            f"failed={len(consume_report.failed)} (G5-C5 post-run, allowlist·depth-capped)"
+        )
     return 0 if run.completed else 1
 
 
