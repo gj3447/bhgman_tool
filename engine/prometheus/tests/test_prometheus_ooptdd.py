@@ -37,8 +37,8 @@ pytest.importorskip("ooptdd_loop")
 
 from ooptdd.backends.memory import MemoryBackend, reset
 from ooptdd.engine.gate import evaluate, load_gate
-from ooptdd_loop.longinus import verify_binding
-from ooptdd_loop.spec import Longinus
+from ooptdd_loop.engine.longinus import verify_binding
+from ooptdd_loop.domain.spec import Longinus
 
 from ooptdd.prometheus_adapter import _CORPUS, _KG_ANCHOR, run_prometheus_pipeline
 

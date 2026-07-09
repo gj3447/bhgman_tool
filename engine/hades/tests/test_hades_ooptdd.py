@@ -38,8 +38,8 @@ pytest.importorskip("ooptdd_loop")
 
 from ooptdd.backends.memory import MemoryBackend, reset  # noqa: E402
 from ooptdd.engine.gate import evaluate, load_gate  # noqa: E402
-from ooptdd_loop.longinus import verify_binding  # noqa: E402
-from ooptdd_loop.spec import Longinus  # noqa: E402
+from ooptdd_loop.engine.longinus import verify_binding  # noqa: E402
+from ooptdd_loop.domain.spec import Longinus  # noqa: E402
 
 from ooptdd.hades_adapter import _KG_ANCHOR, run_hades_pipeline  # noqa: E402
 

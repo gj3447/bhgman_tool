@@ -7,6 +7,7 @@ merging the two locations, ``import ooptdd.adapter`` resolves to the installed p
 fails (ModuleNotFoundError). ``extend_path`` unions both directories under the one
 ``ooptdd`` package so BOTH resolve: ``ooptdd.adapter`` (here) and ``ooptdd.backends`` (lib).
 """
+
 from __future__ import annotations
 
 from pkgutil import extend_path
@@ -25,4 +26,19 @@ try:  # pragma: no cover - environment-dependent
         if _p not in __path__:
             __path__.append(_p)
 except Exception:  # noqa: BLE001 - never break import on a discovery miss
+    pass
+
+# Re-export the installed library's public API through the merged path. This shim file
+# SHADOWS the installed distribution's __init__ (the first ``ooptdd`` on sys.path wins),
+# so without these the documented public surface (``from ooptdd import evaluate`` …)
+# breaks in every sibling-installed dev venv — 2026-07-09 audit: 8 receipt suites RED
+# locally while CI stayed green with the sibling absent (reverse fake-green). The names
+# mirror exactly what ooptdd_loop imports from the top level; submodules resolve through
+# the merged __path__ above.
+try:  # pragma: no cover - only bites when the sibling lib is installed
+    from ooptdd.backends import get_backend  # noqa: F401
+    from ooptdd.domain.ontology import Ontology  # noqa: F401
+    from ooptdd.engine.gate import evaluate, evaluate_events  # noqa: F401
+    from ooptdd.engine.verify import verify_trace  # noqa: F401
+except ImportError:  # sibling lib absent → repo-local adapter-only mode (CI)
     pass
