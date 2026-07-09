@@ -125,16 +125,17 @@ def to_prov(rec: RunRecord, fmt: str = "turtle") -> str | None:
 
     doc = ProvDocument()
     doc.add_namespace("jbm", "https://bhgman.tool/jaebaeman#")
-    plan_act = doc.activity(f"jbm:plan/{rec.run_id}", other_attributes={"jbm:goal": rec.goal})
+    # prov>=2.2 attribute dicts are invariant-typed — tuple lists satisfy the Iterable overload
+    plan_act = doc.activity(f"jbm:plan/{rec.run_id}", other_attributes=[("jbm:goal", rec.goal)])
     seeds_ent = doc.entity(
         f"jbm:seeds/{rec.run_id}",
-        {"jbm:plannedSeeds": rec.planned_seeds, "jbm:depthMax": rec.depth_max},
+        [("jbm:plannedSeeds", rec.planned_seeds), ("jbm:depthMax", rec.depth_max)],
     )
     doc.wasGeneratedBy(seeds_ent, plan_act)
     if rec.dispatched:
         disp_act = doc.activity(
             f"jbm:dispatch/{rec.run_id}",
-            other_attributes={"jbm:collected": rec.collected, "jbm:failed": rec.failed},
+            other_attributes=[("jbm:collected", rec.collected), ("jbm:failed", rec.failed)],
         )
         doc.used(disp_act, seeds_ent)
     return serialize(doc, fmt)
