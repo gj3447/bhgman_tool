@@ -1,0 +1,10 @@
+{
+  "gate": "live-kg-worktree-dryrun",
+  "worktree_root": "bhgman_tool-wt-writesafety",
+  "scanned_nodes": 2229,
+  "groups_with_dups": 4,
+  "superseded_candidates": 4,
+  "orphan_count": 83,
+  "deferred_count": 1,
+  "note": "정찰 baseline(main, 워크트리 실행): in-repo 274 중 false-orphan 270 — A수리 후 값과 대조"
+}

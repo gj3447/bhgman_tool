@@ -1,0 +1,10 @@
+{
+  "metric_name": "worktree_false_orphans",
+  "metric_value": 0.0,
+  "n_seeded": 6,
+  "in_repo_on_worktree_path": true,
+  "normalize_on_worktree_path": "engine/jnw_0.py",
+  "worktree_in_repo": 1.0,
+  "false_orphan_paths": [],
+  "note": "시드 전원 디스크 실존 — orphan 은 전부 false-orphan. RED=6(전원, 워크트리 root 가 KG 키와 미조인), GREEN=0 + _in_repo(-wt-)=True."
+}

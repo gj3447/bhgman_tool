@@ -1,0 +1,24 @@
+{
+  "metric_name": "nonunique_safe_refusals",
+  "metric_value": 3.0,
+  "zero_survivor_scenarios": 0.0,
+  "c1_composite_twins": {
+    "safe": 1,
+    "archived": 0,
+    "applied_count": 0,
+    "notes": [
+      "applied 0/2 supersession(s) — reversible via status+edge",
+      "WARN 2 planned supersession(s) matched 0 rows (node absent, already superseded, or non-unique key match refused) — NOT applied: ['jc1_stale', 'jc1_stale']"
+    ]
+  },
+  "c2_keep_eq_drop": {
+    "safe": 1,
+    "mode": "raised (fail-closed)"
+  },
+  "c3_harness_cycle": {
+    "safe": 1,
+    "survivors": 1,
+    "mode": "executed"
+  },
+  "note": "RED=0(전 시나리오 unsafe — 로컬 마스킹 포함), GREEN=3 + zero_survivor 0."
+}

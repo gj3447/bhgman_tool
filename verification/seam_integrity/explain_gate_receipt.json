@@ -1,0 +1,9 @@
+{
+  "gate": "real-neo4j-explain",
+  "server": "bolt://10.147.17.7:55200",
+  "results": {
+    "occam_composite": "PLAN OK",
+    "semantic_tmpl": "PLAN OK",
+    "harness_tmpl": "PLAN OK"
+  }
+}

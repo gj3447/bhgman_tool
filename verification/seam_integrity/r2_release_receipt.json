@@ -1,0 +1,9 @@
+{
+  "metric_name": "r2_normalizable_allowed",
+  "metric_value": 1.0,
+  "r2_unnormalizable_refused": 1.0,
+  "rc_convention_checkout": 0,
+  "rc_unconvention_clone": 2,
+  "checkout_root": "/data/kjra/PROJECT/PI/bhgman_tool-wt-writesafety",
+  "note": "RED(main): 블랭킷 금지 — 규약 체크아웃도 rc=2 (allowed=0). GREEN: 규약=개방(rc≠2, allowed=1) ∧ 무규약=거부(rc=2, refused=1) 동시 성립."
+}

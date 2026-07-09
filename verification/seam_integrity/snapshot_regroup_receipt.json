@@ -1,0 +1,8 @@
+{
+  "metric_name": "changed_normalize_keys",
+  "metric_value": 0.0,
+  "snapshot_size": 2379,
+  "wt_paths_in_live_kg": 0,
+  "changed": [],
+  "note": "0 = 기존 라이브 KG 노드의 그룹핑 키가 신 정규화로 불변 — 마이그레이션 위험 없음. >0 이면 목록 검토 전 D1 진행 금지."
+}
