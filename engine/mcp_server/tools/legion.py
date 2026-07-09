@@ -138,6 +138,20 @@ def legion_run_impl(
         "final_context_keys": list(run.final_context_keys),
         # 나생문 최종 verdict 노출 (ensemble/n_eff/oracle_legs) — MCP 표면에서 verify 실체 관측.
         "verdict": dict(run.final_verdict),
+        # 측정-주도 dispatch 관측면 (seam-integrity 20260708): 결정이 :DispatchEvent 로만
+        # 가라앉으면 오발화(예: 접지 ratio 구조적 0.0 의 매 run self-recurse)가 MCP 표면에서
+        # 보이지 않는다 — 어떤 컨트롤이 언제 발화했는지 caller 가 직접 관측한다.
+        "dispatch": [
+            {
+                "source": d.source_commander,
+                "target": d.target_commander,
+                "metric": d.metric_name,
+                "value": d.metric_value,
+                "threshold": d.threshold,
+                "reason": d.reason,
+            }
+            for d in run.dispatch_decisions
+        ],
         "jaebaeman": {
             "run_id": record.run_id,
             "planned_seeds": record.planned_seeds,
