@@ -33,8 +33,10 @@ def _hygiene(candidates=(), superseded=0) -> dict:
     """summarize_occam_result 모양의 최소 hygiene dict."""
     return {
         "mode": "occam",
-        "candidates": [{"stale": f"n{i}", "current": "cur", "sigma": s, "verdict": "SUPERSEDE"}
-                       for i, s in enumerate(candidates)],
+        "candidates": [
+            {"stale": f"n{i}", "current": "cur", "sigma": s, "verdict": "SUPERSEDE"}
+            for i, s in enumerate(candidates)
+        ],
         "superseded_candidates": superseded,
     }
 
@@ -79,8 +81,11 @@ def test_measure_occam_degraded_returns_none():
 # ── 배선 3 (NOVEL): 낮은 σ → naesengmoon verify dispatch 가 실제로 발화 ────────
 def test_low_sigma_fires_naesengmoon_verify():
     m = _measure_occam({"hygiene": _hygiene(candidates=(0.5,))})
-    fired = [d for d in m.decide_dispatch(cycle_id="omw-fire")
-             if d.metric_name == "supersession_confidence"]
+    fired = [
+        d
+        for d in m.decide_dispatch(cycle_id="omw-fire")
+        if d.metric_name == "supersession_confidence"
+    ]
     assert fired, "낮은 σ 는 <0.7 naesengmoon verify dispatch 를 발화해야"
     assert fired[0].target_commander == "naesengmoon"
 
@@ -88,15 +93,21 @@ def test_low_sigma_fires_naesengmoon_verify():
 def test_all_confident_no_dispatch():
     """판별 반대쪽: 전부 σ≥0.7 → supersession_confidence dispatch 미발화."""
     m = _measure_occam({"hygiene": _hygiene(candidates=(0.8, 0.95), superseded=1)})
-    fired = [d for d in m.decide_dispatch(cycle_id="omw-nofire")
-             if d.metric_name == "supersession_confidence"]
+    fired = [
+        d
+        for d in m.decide_dispatch(cycle_id="omw-nofire")
+        if d.metric_name == "supersession_confidence"
+    ]
     assert not fired
 
 
 def test_many_stale_fires_self_supersede():
     m = _measure_occam({"hygiene": _hygiene(candidates=(0.9,), superseded=15)})
-    targets = {d.target_commander for d in m.decide_dispatch(cycle_id="omw-batch")
-               if d.metric_name == "dead_node_count"}
+    targets = {
+        d.target_commander
+        for d in m.decide_dispatch(cycle_id="omw-batch")
+        if d.metric_name == "dead_node_count"
+    }
     assert "occam" in targets, ">10 stale 는 occam self-supersede batch 를 발화해야"
 
 
@@ -105,12 +116,18 @@ def test_legion_run_collects_occam_dispatch_decision():
     """end-to-end: _measure_and_dispatch 가 occam 스테이지의 measure= 를 집어 낮은 σ 에서
     naesengmoon decision 을 LegionRun.dispatch_decisions 로 수집한다(런타임 배선 증명)."""
     stage = CommanderStage(
-        "occam", "정리", ("run_cypher",), ("hygiene",),
+        "occam",
+        "정리",
+        ("run_cypher",),
+        ("hygiene",),
         lambda ctx: {"hygiene": _hygiene(candidates=(0.4,))},
         measure=_measure_occam,
     )
     run = Legion().register(stage).run({"run_cypher": lambda c, p: [], "cycle_id": "omw-e2e"})
     assert run.completed
-    fired = [d for d in run.dispatch_decisions
-             if d.metric_name == "supersession_confidence" and d.target_commander == "naesengmoon"]
+    fired = [
+        d
+        for d in run.dispatch_decisions
+        if d.metric_name == "supersession_confidence" and d.target_commander == "naesengmoon"
+    ]
     assert fired, f"legion.run 이 occam dispatch 를 수집해야; got {run.dispatch_decisions}"
