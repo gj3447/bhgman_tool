@@ -33,7 +33,9 @@ def test_local_runner_handles_generic_key_supersede() -> None:
     store = _store_with("dup_stale", "dup_current")
     run = make_local_runner(store, autosave=False)
     cypher, params = plan_supersession(
-        NearDupPair(keep_id="dup_current", drop_id="dup_stale", similarity=0.99), key="name"
+        NearDupPair(keep_id="dup_current", drop_id="dup_stale", similarity=0.99),
+        key="name",
+        label="Concept",
     )
     rows = run(cypher, params)  # was: KeyError('stale_path') inside _occam_supersede
     assert rows == [{"superseded": "dup_stale", "current": "dup_current"}]
@@ -51,6 +53,7 @@ def test_run_semantic_dedup_applies_on_local_backend() -> None:
         embed_fn=lambda texts: [[1.0, 0.0] for _ in texts],  # identical → cosine 1.0
         threshold=0.95,
         key="name",
+        label="Concept",
         write_cypher=run,
         apply=True,
     )

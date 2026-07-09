@@ -36,6 +36,27 @@ def _cand(name, *, confidence, verdict=None):
     )
 
 
+def test_exact_duplicate_is_escalated_not_silently_dropped():
+    """Tier-3: apply 가 REFUSE 하는 exact-dup(동일 sourcePath+sha256)은 indistinguishable —
+    여태 is_confident_supersede 가 same-sha 만 보고 True 를 반환해 escalation 에서도 skip →
+    apply·escalation 어디에도 안 가고 notes 로만 사라졌다. disk-truth 가 HIGH 로 current 를
+    확정해도 두 동일 KG 노드는 못 가르므로, 확신이 아니라 escalate 돼야(silent drop 금지)."""
+    stale = NodeRecord("dup", "bhgman_tool/dup.py", "same_sha", 10)
+    current = NodeRecord("dup_twin", "bhgman_tool/dup.py", "same_sha", 10)
+    cand = SupersessionCandidate(
+        stale=stale,
+        current=current,
+        normalized_path="dup.py",
+        reason="exact duplicate node (identical sha) — redundant",
+        confidence=Confidence.HIGH,  # disk-truth 확정이어도 KG-노드 중복은 못 가름
+        verdict=None,
+    )
+    plan = build_escalation_plan(OccamReport(candidates=(cand,)))
+    assert any(i.subject == "dup" and i.target == TARGET_NAESENGMOON for i in plan.items), (
+        "exact-dup 은 나생문으로 escalate 돼야 (silent drop 금지)"
+    )
+
+
 def test_high_confidence_supersede_does_not_escalate():
     # disk-sha 확정 + SUPERSEDE = 자동 supersede 안전, escalation 불필요
     report = OccamReport(candidates=(_cand("a", confidence=Confidence.HIGH, verdict="SUPERSEDE"),))

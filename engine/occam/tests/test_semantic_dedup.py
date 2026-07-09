@@ -59,7 +59,7 @@ def test_keep_drop_deterministic_tiebreak_and_weight():
 
 def test_plan_supersession_covenant_no_destructive_tokens():
     pair = NearDupPair(keep_id="canon", drop_id="stale", similarity=0.97)
-    cypher, params = plan_supersession(pair, key="name")
+    cypher, params = plan_supersession(pair, key="name", label="Lesson")
     up = cypher.upper()
     assert not any(tok in up for tok in FORBIDDEN_TOKENS)  # archive-only
     assert "SUPERSEDED" in up and "SUPERSEDED_BY" in up
@@ -68,7 +68,51 @@ def test_plan_supersession_covenant_no_destructive_tokens():
 
 def test_plan_supersession_rejects_bad_key():
     with pytest.raises(ValueError, match="key must be one of"):
-        plan_supersession(NearDupPair("a", "b", 0.99), key="; DROP")
+        plan_supersession(NearDupPair("a", "b", 0.99), key="; DROP", label="Lesson")
+
+
+def test_plan_supersession_scopes_match_to_label():
+    """H5 (Tier-1 write-safety): the covenant forbids matching by bare `name` — an
+    unlabeled `MATCH (stale) WHERE stale.name=$id` SETs status on EVERY node of ANY type
+    in the KG that shares that name. The supersede MATCH must be scoped to the node label
+    so it can only touch the intended type."""
+    pair = NearDupPair(keep_id="canon", drop_id="stale", similarity=0.97)
+    cypher, _ = plan_supersession(pair, key="name", label="Lesson")
+    # both stale and current MATCH must carry the label — never a bare (stale)/(current)
+    assert "(stale:Lesson" in cypher and "(current:Lesson" in cypher
+    assert "MATCH (stale) " not in cypher and "MATCH (current) " not in cypher
+
+
+def test_plan_supersession_rejects_injection_in_label():
+    with pytest.raises(ValueError, match="label"):
+        plan_supersession(
+            NearDupPair("a", "b", 0.99), key="name", label="Lesson) DETACH DELETE n //"
+        )
+
+
+def test_plan_supersession_guards_already_archived():
+    """H3: even the semantic supersede must not re-archive / point at an already-SUPERSEDED
+    node — guard both sides on status."""
+    cypher, _ = plan_supersession(NearDupPair("a", "b", 0.99), key="name", label="Lesson")
+    up = cypher.upper()
+    assert "STALE.STATUS" in up and "CURRENT.STATUS" in up
+    assert up.count("<> 'SUPERSEDED'") >= 2
+
+
+def test_semantic_covenant_rejects_apoc_destructive_procedure():
+    """Tier-4: semantic supersede covenant 도 DELETE/DETACH/REMOVE 토큰 없이 노드를 파괴하는
+    프로시저(apoc.refactor.mergeNodes)를 차단해야."""
+    from engine.occam.semantic_dedup import _assert_archive_only
+
+    with pytest.raises(AssertionError, match="covenant"):
+        _assert_archive_only("CALL apoc.refactor.mergeNodes([a,b]) YIELD node RETURN node")
+
+
+def test_semantic_covenant_passes_real_template():
+    """판별 반대쪽: 실제 라벨-스코핑 supersede 템플릿은 통과."""
+    from engine.occam.semantic_dedup import _SUPERSEDE_TMPL, _assert_archive_only
+
+    _assert_archive_only(_SUPERSEDE_TMPL.format(key="name", label="Lesson"))  # no raise
 
 
 # ── 파이프라인 (fake embed_fn) ───────────────────────────────────────────────
@@ -93,7 +137,9 @@ def test_run_semantic_dedup_propose_default():
         ("f2", "Koide relation precision lepton mass"),  # near-dup of f1
         ("f3", "Eureka induces abstractions"),
     ]
-    report = run_semantic_dedup(items, embed_fn=_fake_embed, threshold=0.95)
+    report = run_semantic_dedup(
+        items, embed_fn=_fake_embed, threshold=0.95, label="ResearchFinding"
+    )
     assert report.scanned == 3
     assert len(report.pairs) == 1
     assert {report.pairs[0].keep_id, report.pairs[0].drop_id} == {"f1", "f2"}
@@ -111,7 +157,13 @@ def test_run_semantic_dedup_apply_writes():
 
     items = [("f1", "Koide a"), ("f2", "Koide b")]
     report = run_semantic_dedup(
-        items, embed_fn=_fake_embed, threshold=0.9, key="findingId", write_cypher=write, apply=True
+        items,
+        embed_fn=_fake_embed,
+        threshold=0.9,
+        key="findingId",
+        label="ResearchFinding",
+        write_cypher=write,
+        apply=True,
     )
     assert report.dry_run is False
     assert report.applied == 1
@@ -127,20 +179,26 @@ def test_run_semantic_dedup_no_match_not_counted_applied():
 
     items = [("f1", "Koide a"), ("f2", "Koide b")]
     report = run_semantic_dedup(
-        items, embed_fn=_fake_embed, threshold=0.9, key="name", write_cypher=write, apply=True
+        items,
+        embed_fn=_fake_embed,
+        threshold=0.9,
+        key="name",
+        label="Lesson",
+        write_cypher=write,
+        apply=True,
     )
     assert report.applied == 0
 
 
 def test_run_semantic_dedup_idempotent_proposal():
     items = [("f1", "Koide a"), ("f2", "Koide b")]
-    r1 = run_semantic_dedup(items, embed_fn=_fake_embed, threshold=0.9)
-    r2 = run_semantic_dedup(items, embed_fn=_fake_embed, threshold=0.9)
+    r1 = run_semantic_dedup(items, embed_fn=_fake_embed, threshold=0.9, label="Lesson")
+    r2 = run_semantic_dedup(items, embed_fn=_fake_embed, threshold=0.9, label="Lesson")
     assert [(p.keep_id, p.drop_id) for p in r1.pairs] == [(p.keep_id, p.drop_id) for p in r2.pairs]
 
 
 def test_empty_input_safe():
-    report = run_semantic_dedup([], embed_fn=_fake_embed)
+    report = run_semantic_dedup([], embed_fn=_fake_embed, label="Lesson")
     assert report.scanned == 0 and report.pairs == ()
 
 

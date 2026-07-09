@@ -7,8 +7,12 @@ covenant 핵심: write cypher에 DELETE/DETACH/REMOVE 토큰 부재 (archive-onl
 
 from __future__ import annotations
 
+import pytest
+
 from engine.occam.kg_adapter import (
     FORBIDDEN_TOKENS,
+    _SUPERSEDE_CYPHER,
+    _assert_archive_only,
     apply_supersessions,
     build_supersede,
     fetch_cypher,
@@ -175,3 +179,50 @@ def test_apply_no_write_cypher_forces_dry_run():
     result = apply_supersessions(report, write_cypher=None, dry_run=False)
     assert result.dry_run is True
     assert result.applied_count == 0
+
+
+# ── covenant reject 브랜치 (여태 무테스트 — G1) + 파괴 프로시저 (Tier-4) ────────
+
+
+def test_covenant_helper_rejects_destructive_token_cypher():
+    """G1: covenant 의 REJECT 브랜치는 여태 무테스트였다(clean 상수만 확인). 파괴 토큰이 든
+    cypher 는 AssertionError 로 실제로 막혀야 — 이게 archive-only 의 이빨."""
+    with pytest.raises(AssertionError, match="covenant"):
+        _assert_archive_only("MATCH (n:SourceCodeNode) DETACH DELETE n")
+
+
+def test_covenant_helper_rejects_apoc_destructive_procedure():
+    """Tier-4: DELETE/DETACH/REMOVE 토큰이 하나도 없이 노드를 파괴하는 프로시저
+    (apoc.refactor.mergeNodes 는 노드를 병합/파괴) 도 차단돼야 — 예전 substring 3-토큰
+    denylist 로는 통과하던 우회로."""
+    with pytest.raises(AssertionError, match="covenant"):
+        _assert_archive_only(
+            "MATCH (a),(b) CALL apoc.refactor.mergeNodes([a,b]) YIELD node RETURN node"
+        )
+
+
+def test_covenant_helper_passes_real_supersede_cypher():
+    """판별 반대쪽: 실제 archive-only supersede cypher 는 통과(항상-거부 장식 아님)."""
+    _assert_archive_only(_SUPERSEDE_CYPHER)  # no raise
+
+
+def test_supersede_cypher_guards_against_already_archived_nodes():
+    """H3 (Tier-1 write-safety): the supersede write must refuse to touch a node that is
+    already SUPERSEDED — on BOTH sides.
+
+    stale-guard  → idempotency: a re-run (or a parse that doesn't status-filter) can't
+                   re-archive an already-archived node; the write matches 0 rows instead.
+    current-guard→ no-survivor prevention: two concurrent passes that pick opposite
+                   directions (A: Y→X, B: X→Y) can otherwise both fire and leave a
+                   SUPERSEDED_BY cycle with no live node. Once one side is archived, the
+                   reverse write must match 0 current rows and no-op.
+
+    Enforced by the DB WHERE clause (the injected fake runner can't interpret it), so —
+    consistent with test_fetch_cypher_excludes_already_superseded — we assert the guard
+    clause is present. Removing it reverts this test to RED (revert-proof)."""
+    report = _dup_report()
+    cypher, _ = build_supersede(report.candidates[0])
+    up = cypher.upper()
+    assert "STALE.STATUS" in up and "CURRENT.STATUS" in up, "missing not-archived guard"
+    # both guards must gate on SUPERSEDED (not merely mention .status somewhere)
+    assert up.count("<> 'SUPERSEDED'") >= 2, "guard must exclude SUPERSEDED on both sides"

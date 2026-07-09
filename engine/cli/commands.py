@@ -940,6 +940,7 @@ def cmd_occam_semantic(args: argparse.Namespace) -> int:
             embed_fn=lambda texts: [emb.encode(t) for t in texts],
             threshold=getattr(args, "threshold", 0.75),
             key=key,
+            label=label,  # H5: supersede MATCH 를 스캔한 노드 라벨로 스코핑 (bare-name over-supersede 차단)
             write_cypher=write_cypher,
             apply=getattr(args, "apply", False),
         )

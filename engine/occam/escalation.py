@@ -80,10 +80,18 @@ def is_confident_supersede(c: SupersessionCandidate) -> bool:
     남겨도 무손실). 그 외(σ가 VERIFY/KEEP/FLAG_ONLY, 또는 SUPERSEDE인데 MEDIUM·비동일) = 불확실.
 
     apply는 확신 케이스만 자동 write, escalation은 그 여집합(불확실)을 나생문/Longinus로 보낸다 —
-    둘이 같은 술어를 공유해 'auto-apply ∩ escalate = ∅' partition을 보장한다."""
+    둘이 같은 술어를 공유해 'auto-apply ∩ escalate = ∅' partition을 보장한다.
+
+    Tier-3: indistinguishable exact-dup(동일 sourcePath AND sha256)은 apply 가 REFUSE 하는
+    케이스 — 복합키로 어느 노드를 아카이브할지 못 고른다. same-sha 만 보고 확신 처리하면 apply
+    도 escalation 도 못 받고 notes 로만 사라지므로(silent drop), 여기서 명시 제외해 escalate 로
+    보낸다. disk-truth 가 HIGH 로 current 를 확정해도 두 동일 KG 노드는 여전히 못 가른다."""
     if c.verdict is not None and c.verdict != "SUPERSEDE":
         return False
-    return c.confidence is Confidence.HIGH or c.stale.sha256 == c.current.sha256
+    same_sha = c.stale.sha256 == c.current.sha256
+    if same_sha and c.stale.source_path == c.current.source_path:
+        return False  # indistinguishable exact-dup → 확신 아님, escalate
+    return c.confidence is Confidence.HIGH or same_sha
 
 
 def _candidate_needs_verify(c: SupersessionCandidate) -> bool:
