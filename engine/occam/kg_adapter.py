@@ -39,6 +39,7 @@ def _assert_archive_only(cypher: str) -> None:
     if violations:
         raise AssertionError(f"occam covenant violation: {violations} in supersede cypher")
 
+
 # ── READ ────────────────────────────────────────────────────────────────────
 
 # 이미 SUPERSEDED된 노드는 제외 — 아카이브된 과거를 재-아카이브하지 않는다 (dogfood 교훈 2026-05-27).

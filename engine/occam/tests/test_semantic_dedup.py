@@ -85,7 +85,9 @@ def test_plan_supersession_scopes_match_to_label():
 
 def test_plan_supersession_rejects_injection_in_label():
     with pytest.raises(ValueError, match="label"):
-        plan_supersession(NearDupPair("a", "b", 0.99), key="name", label="Lesson) DETACH DELETE n //")
+        plan_supersession(
+            NearDupPair("a", "b", 0.99), key="name", label="Lesson) DETACH DELETE n //"
+        )
 
 
 def test_plan_supersession_guards_already_archived():
@@ -135,7 +137,9 @@ def test_run_semantic_dedup_propose_default():
         ("f2", "Koide relation precision lepton mass"),  # near-dup of f1
         ("f3", "Eureka induces abstractions"),
     ]
-    report = run_semantic_dedup(items, embed_fn=_fake_embed, threshold=0.95, label="ResearchFinding")
+    report = run_semantic_dedup(
+        items, embed_fn=_fake_embed, threshold=0.95, label="ResearchFinding"
+    )
     assert report.scanned == 3
     assert len(report.pairs) == 1
     assert {report.pairs[0].keep_id, report.pairs[0].drop_id} == {"f1", "f2"}

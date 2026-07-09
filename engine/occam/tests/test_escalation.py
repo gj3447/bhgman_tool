@@ -52,9 +52,9 @@ def test_exact_duplicate_is_escalated_not_silently_dropped():
         verdict=None,
     )
     plan = build_escalation_plan(OccamReport(candidates=(cand,)))
-    assert any(
-        i.subject == "dup" and i.target == TARGET_NAESENGMOON for i in plan.items
-    ), "exact-dup 은 나생문으로 escalate 돼야 (silent drop 금지)"
+    assert any(i.subject == "dup" and i.target == TARGET_NAESENGMOON for i in plan.items), (
+        "exact-dup 은 나생문으로 escalate 돼야 (silent drop 금지)"
+    )
 
 
 def test_high_confidence_supersede_does_not_escalate():
