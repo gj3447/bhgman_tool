@@ -54,9 +54,7 @@ def test_partial_measurement_exposes_only_measured_keys():
     """부분 측정 = 측정된 키만 등장 — 미측정 형제 메트릭이 상수로 딸려 나오지 않는다."""
     assert OccamMeasurement(dead_node_count=3).measure() == {"dead_node_count": 3.0}
     assert EurekaMeasurement(novelty_score=0.9).measure() == {"novelty_score": 0.9}
-    assert LonginusMeasurement(kg_node_unbound_count=2).measure() == {
-        "kg_node_unbound_count": 2.0
-    }
+    assert LonginusMeasurement(kg_node_unbound_count=2).measure() == {"kg_node_unbound_count": 2.0}
 
 
 def test_naesengmoon_empty_distribution_omits_mean():
@@ -107,9 +105,7 @@ _FIRING_CASES = [
 ]
 
 
-@pytest.mark.parametrize(
-    "build,metric,target", _FIRING_CASES, ids=[c[1] for c in _FIRING_CASES]
-)
+@pytest.mark.parametrize("build,metric,target", _FIRING_CASES, ids=[c[1] for c in _FIRING_CASES])
 def test_measured_value_preserves_firing(build, metric, target):
     """실측정 값이 threshold 를 넘으면 발화한다 — keystone 은 기존 발화를 죽이지 않는다."""
     fired = [

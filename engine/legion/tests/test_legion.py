@@ -139,7 +139,9 @@ def test_runtime_measurement_emits_dispatch_decision():
         "획득",
         (),
         ("acquired",),
-        run=lambda _ctx: {"acquired": {"mode": "kg-deterministic", "findings": 20}},
+        run=lambda _ctx: {
+            "acquired": {"mode": "kg-deterministic", "fetched": True, "findings": 20}
+        },
         measure=_measure_prometheus,
     )
     run = Legion().register(over).run(context={})
@@ -182,7 +184,7 @@ def test_dispatch_decision_emitted_via_write_cypher():
         "획득",
         (),
         ("acquired",),
-        run=lambda _ctx: {"acquired": {"findings": 20}},
+        run=lambda _ctx: {"acquired": {"fetched": True, "findings": 20}},
         measure=_measure_prometheus,
     )
     run = Legion().register(over).run(context={"write_cypher": wc})
@@ -202,7 +204,7 @@ def test_dispatch_event_persisted_to_local_kg(tmp_path):
         "획득",
         (),
         ("acquired",),
-        run=lambda _ctx: {"acquired": {"findings": 20}},
+        run=lambda _ctx: {"acquired": {"fetched": True, "findings": 20}},
         measure=_measure_prometheus,
     )
     Legion().register(over).run(context={"write_cypher": runner})

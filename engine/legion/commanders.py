@@ -89,6 +89,10 @@ def _run_acquire(ctx: dict) -> dict:
                 "mode": "kg-deterministic",
                 "gap_nodes": len(report.gaps),
                 "findings": len(report.findings),
+                # fetched 실행 게이트 (정정 3, 측정 재배선 2026-07-10): 주입≠실행 —
+                # gaps==() 면 fetcher 가 있어도 fetch 루프는 안 돌았다. finding_count 가
+                # '측정된 0건'인지 '미측정'인지를 _measure_prometheus 가 이 키로 판별.
+                "fetched": report.fetch_executed,
                 # grounding-wire (백로그 #2): 실 findings 의 citation_url 을 노출해
                 # _measure_prometheus 가 external_grounding_ratio 를 실계산하게 한다
                 # (<0.3 self-recurse Goodhart 컨트롤의 런타임 입력 — 이전엔 dead 1.0 고정).
@@ -300,7 +304,13 @@ def _measure_prometheus(ctx: dict):
     from engine.legion.measurement import PrometheusMeasurement  # noqa: PLC0415
 
     acquired = ctx.get("acquired") or {}
-    m = PrometheusMeasurement(finding_count=int(acquired.get("findings", 0) or 0))
+    m = PrometheusMeasurement()
+    # fetched 실행 게이트 (정정 3, 측정 재배선 2026-07-10): finding_count 는 fetch 루프가
+    # 실제 실행됐을 때만 측정이다(0건도 '측정된 영'). fetcher 미주입·gap 0건·LLM 브랜치
+    # (fetched 키 부재)는 경계 I/O 가 없었으므로 미측정 — 옛 int(get("findings", 0)) 은
+    # fetch 가 돌지 않았는데 '측정된 0건'을 위장하는 상수였다.
+    if acquired.get("fetched"):
+        m.update(finding_count=int(acquired.get("findings", 0) or 0))
     # grounding-wire v2 (seam-integrity 20260708): 결정론 브랜치가 노출한 실 citations 로
     # ratio 실계산. 빈 목록(획득 0건) → 미측정(None, 키 부재) — v1 의 0.0 은 infra-0 경로에서
     # 매 run 오발화를 만들었다. 키 부재(LLM 브랜치=citations 미노출)도 미측정 공시 — v1 의
