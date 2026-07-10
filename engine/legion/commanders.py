@@ -321,18 +321,24 @@ def _measure_prometheus(ctx: dict):
 
 
 def _measure_occam(ctx: dict):
-    """occam 스테이지 산출(hygiene summary)에서 supersession σ + stale-node 카운트를 뽑아
-    OccamMeasurement 를 구성 — measurement-driven dispatch 를 런타임에 살린다.
+    """occam 스테이지 산출(hygiene summary)에서 supersession σ + 확신-supersede 카운트를
+    뽑아 OccamMeasurement 를 구성 — measurement-driven dispatch 를 런타임에 살린다.
 
     이전엔 occam 스테이지가 measure= 없이 등록돼(_stage_from_engine 기본 None) OccamMeasurement
     가 한 번도 인스턴스화되지 않았고, 설령 됐어도 supersession_confidence 는 생성자 기본 1.0 에
     고정 → <0.7 naesengmoon verify dispatch 가 원리적으로 발화 불가(1.0<0.7=False). 이 팩토리가
     실 σ 로 그 값을 실계산한다 (prometheus grounding-wire 와 동형 규율).
 
-      supersession_confidence = min(candidate σ) — 배치는 가장 낮은(최약) supersession 만큼만
-                                확신. 후보 없음/무점수 → 1.0(검증 불필요, 정직 기본).
-      dead_node_count         = 이 패스가 식별한 stale 노드 수(>10 = 대규모 정리 백로그 →
-                                후속 self-supersede batch).
+    v2 정정 2종 (측정 재배선 2026-07-10, 적대검증 정정 2):
+      supersession_confidence = min(candidate σ), 단 sigma=None(σ 미계산)은 최고 불확실
+                                (0.0)로 계수 — 옛 min 은 None 을 버려 위로 편향됐고
+                                escalation 규율("σ 없는 확신은 없다")과 모순. 후보 0건 =
+                                min 정의역 공집합 = 미측정(키 부재; 옛 1.0 상수 금지).
+      dead_node_count         = len(hygiene["superseded"]) — 확신-supersede 셋(occam σ게이트
+                                통과분; apply=실적용, dry-run=계획)만. 옛 소스
+                                superseded_candidates(=len(candidates), KEEP/VERIFY/deferred
+                                전량 포함)는 전량-불확실 배치도 >10 self-supersede 를
+                                오발화시키는 과대계수였다.
     degraded/부재 hygiene(=candidates 키 없음) → None: dispatch 없음, crash 없음."""
     from engine.legion.measurement import OccamMeasurement  # noqa: PLC0415
 
@@ -340,12 +346,13 @@ def _measure_occam(ctx: dict):
     if not isinstance(hygiene, dict) or "candidates" not in hygiene:
         return None  # degraded stub 또는 미제공 — 측정 근거 없음, 상수 날조 금지
     sigmas = [
-        c["sigma"]
+        (c["sigma"] if c.get("sigma") is not None else 0.0)
         for c in hygiene.get("candidates", ())
-        if isinstance(c, dict) and c.get("sigma") is not None
+        if isinstance(c, dict)
     ]
-    confidence = min(sigmas) if sigmas else 1.0
-    dead = int(hygiene.get("superseded_candidates", 0) or 0)
+    confidence = min(sigmas) if sigmas else None  # 공집합 → 미측정 (1.0 위장 금지)
+    superseded = hygiene.get("superseded")
+    dead = len(superseded) if isinstance(superseded, (list, tuple)) else None
     return OccamMeasurement(supersession_confidence=confidence, dead_node_count=dead)
 
 

@@ -14,8 +14,18 @@ prometheus grounding-wire(test_grounding_wire.py)와 동형으로 이 배선을 
   3. (NOVEL) 낮은 σ 후보 → <0.7 naesengmoon verify dispatch 가 *실제로 발화* — runtime-dead
      시절엔 구조적으로 불가능했던 사건. 판별 반대쪽(전부 확신)은 미발화.
 
+v2 정정 2종 (광역 측정 재배선 2026-07-10, 적대검증 정정 2 — RED-first 이중가드):
+  a. dead_node_count 과대계수 봉합: 옛 소스 superseded_candidates(=len(candidates),
+     KEEP/VERIFY/deferred 전량 포함)는 '정리 백로그'가 아니라 '스캔에 걸린 후보 수'였다 —
+     전량-불확실 배치도 >10 self-supersede 를 오발화시켰다. 정직 소스 =
+     len(hygiene["superseded"]) (확신-supersede 셋: apply 모드=실제 적용, dry-run=계획).
+  b. σ-None 상향 편향 봉합: min(σ) 가 sigma=None(σ 미계산=최고 불확실) 후보를 버려
+     배치 confidence 가 위로 편향됐다 — escalation 규율("σ 없는 확신은 없다")과 동형으로
+     None 은 최고 불확실(0.0)로 계수한다. 후보 0건 = min 정의역 공집합 = 미측정(키 부재).
+
 # KG: LakatosTree_Bhgman6CommanderOoptdd_20260624 (measurement-driven conditional dispatch),
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30
+# KG: bhgman-measurement-rewire-design-20260709 (정정 2: occam 과대계수·σ-None 편향)
 """
 
 from __future__ import annotations
@@ -30,14 +40,17 @@ def _occam_stage() -> CommanderStage:
 
 
 def _hygiene(candidates=(), superseded=0) -> dict:
-    """summarize_occam_result 모양의 최소 hygiene dict."""
+    """summarize_occam_result 모양의 최소 hygiene dict — superseded 는 확신-supersede
+    식별자 *목록*(실제 summarize 와 동형; 여기선 개수로 합성), superseded_candidates 는
+    옛 과대계수 축(=len(candidates), KEEP/VERIFY 포함)을 그대로 재현한다."""
     return {
         "mode": "occam",
         "candidates": [
             {"stale": f"n{i}", "current": "cur", "sigma": s, "verdict": "SUPERSEDE"}
             for i, s in enumerate(candidates)
         ],
-        "superseded_candidates": superseded,
+        "superseded_candidates": len(candidates),
+        "superseded": [f"sup_{i}" for i in range(superseded)],
     }
 
 
@@ -54,22 +67,50 @@ def test_measure_occam_confidence_is_min_candidate_sigma():
     assert m.measure()["supersession_confidence"] == 0.5
 
 
-def test_measure_occam_dead_count_from_superseded():
+def test_measure_occam_dead_count_from_confident_supersede_set():
+    """정정 2a: dead_node_count 의 정직 소스는 확신-supersede 목록 len(superseded) —
+    후보 수(superseded_candidates)가 아니다."""
     m = _measure_occam({"hygiene": _hygiene(candidates=(0.9,), superseded=12)})
     assert m.measure()["dead_node_count"] == 12.0
 
 
-def test_measure_occam_no_candidates_keeps_honest_default():
-    """후보 없음/무점수 → 1.0 (검증 불필요, 항상-발화 장식 아님)."""
+def test_deferred_only_batch_does_not_overcount_dead():
+    """guard_defect(정정 2a, 음성 오라클): 전량 KEEP/VERIFY/deferred(확신-supersede 0)
+    배치 12건 → dead_node_count 는 0(측정된 영)이어야 하고 >10 self-supersede 는 침묵.
+    옛 소스(superseded_candidates=12)는 여기서 오발화했다."""
+    m = _measure_occam({"hygiene": _hygiene(candidates=(0.9,) * 12, superseded=0)})
+    assert m.measure()["dead_node_count"] == 0.0
+    fired = [
+        d for d in m.decide_dispatch(cycle_id="omw-overcount") if d.metric_name == "dead_node_count"
+    ]
+    assert not fired, "불확실 백로그가 self-supersede 배치를 오발화시키면 안 된다"
+
+
+def test_measure_occam_no_candidates_is_unmeasured_confidence():
+    """후보 0건 = min(σ) 정의역 공집합 = supersession_confidence 미측정(키 부재) —
+    keystone HARD-CORE(빈집합축약 금지): '검증 불필요'조차 1.0 상수로 위장하지 않는다.
+    dead_node_count 는 실행된 스캔의 카운트라 측정된 영(0.0)으로 남는다(None≠0.0)."""
     m = _measure_occam({"hygiene": _hygiene(candidates=(), superseded=0)})
-    assert m.measure()["supersession_confidence"] == 1.0
+    metrics = m.measure()
+    assert "supersession_confidence" not in metrics
+    assert metrics["dead_node_count"] == 0.0
+    assert m.decide_dispatch(cycle_id="omw-empty") == []
 
 
-def test_measure_occam_ignores_none_sigma():
+def test_measure_occam_none_sigma_counts_as_most_uncertain():
+    """guard_defect(정정 2b, 음성 오라클): sigma=None(σ 미계산) 후보는 최고 불확실로
+    계수한다 — 옛 min(σ) 은 None 을 버려 confidence 가 0.6 으로 위로 편향됐고,
+    'σ 없는 확신은 없다'(escalation 규율)와 모순됐다."""
     hyg = _hygiene(candidates=(0.6,))
     hyg["candidates"].append({"stale": "x", "current": "c", "sigma": None, "verdict": None})
     m = _measure_occam({"hygiene": hyg})
-    assert m.measure()["supersession_confidence"] == 0.6  # None 무시, 0.6 유지
+    assert m.measure()["supersession_confidence"] == 0.0  # None = 최고 불확실
+    fired = [
+        d
+        for d in m.decide_dispatch(cycle_id="omw-nonesigma")
+        if d.metric_name == "supersession_confidence"
+    ]
+    assert fired and fired[0].target_commander == "naesengmoon"
 
 
 def test_measure_occam_degraded_returns_none():

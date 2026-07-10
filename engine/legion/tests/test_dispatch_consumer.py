@@ -157,18 +157,11 @@ def test_do_nothing_janitor_does_not_clear():
     assert refired, "no-op janitor 면 백로그가 남아 재발화해야 — 아니면 배터리가 인과를 못 가름"
 
 
-def test_depth_capped_outcome_is_not_vacuous_success():
-    """outcome 정직성(적대검증 2026-07-10 high): 전량 deferred(σ게이트가 막는) 백로그는
-    apply=True 여도 janitor 가 못 닫는다 — 체인은 depth-cap 종결되고, 그 지점의 outcome 은
-    재측정값 대조로 0 이어야 한다 (children=[] 공허 판정이면 1 로 날조된다)."""
-
-    class _Log:
-        def __init__(self):
-            self.rows = []
-
-        def record(self, **kw):
-            self.rows.append(kw)
-
+def test_all_deferred_backlog_does_not_fire_dead_node_count():
+    """정정 2a (측정 재배선 2026-07-10, 과대계수 봉합): 전량 deferred(σ게이트가 막는)
+    백로그는 확신-supersede 0건 = dead_node_count 0(측정된 영) — >10 self-supersede 를
+    오발화시키면 안 된다. 옛 소스(superseded_candidates=후보 전량)는 여기서 발화해
+    janitor 를 '닫을 수 없는 일'에 출격시켰다."""
     store = LocalKgStore()
     # 12그룹 전부 불확실(동일 정규화경로+상이 sha) → 후보는 잡히되 전량 deferred.
     for i in range(12):
@@ -187,12 +180,41 @@ def test_depth_capped_outcome_is_not_vacuous_success():
     ctx = _ctx(store, apply=True)
     run = build_default_legion().run(dict(ctx))
     fired = [d for d in run.dispatch_decisions if d.metric_name == "dead_node_count"]
-    assert fired, "deferred 후보도 dead_node_count 로 계수되어 발화해야 (전제)"
+    assert not fired, f"전량-불확실 백로그의 self-supersede 오발화(과대계수 회귀): {fired}"
+    # 불확실셋은 in-run occam 에서도 무접촉 (σ counter 재확인).
+    assert not _superseded_names(store)
+
+
+def test_depth_capped_outcome_is_not_vacuous_success():
+    """outcome 정직성(적대검증 2026-07-10 high): janitor 가 닫을 수 없는 트리거 —
+    확신 백로그인데 write 경로 부재(write_cypher 미주입, apply=True 여도 계획만) —
+    에서 체인은 depth-cap 종결되고, 그 지점의 outcome 은 재측정값 대조로 0 이어야
+    한다 (children=[] 공허 판정이면 1 로 날조된다).
+
+    (v2 시나리오 교체, 측정 재배선 2026-07-10: 옛 시나리오는 전량-deferred 백로그의
+    dead_node_count *과대계수 오발화*에 기생했다 — 정정 2a 가 그 오발화 자체를
+    봉합했으므로, '닫을 수 없음'의 정직 재현은 write-차단 확신 백로그다.)"""
+
+    class _Log:
+        def __init__(self):
+            self.rows = []
+
+        def record(self, **kw):
+            self.rows.append(kw)
+
+    store = LocalKgStore()
+    _seed_confident(store)
+    runner = make_local_runner(store, autosave=False)
+    # write_cypher 부재: occam 은 확신 12건을 '계획'만 하고 쓰지 못한다 → 트리거 잔존.
+    ctx = {"run_cypher": runner, "apply": True, "cycle_id": "test-dispatch-consumer"}
+    run = build_default_legion().run(dict(ctx))
+    fired = [d for d in run.dispatch_decisions if d.metric_name == "dead_node_count"]
+    assert fired, "전제: 확신 백로그(계획 12건)는 dead_node_count 를 발화시킨다"
 
     log = _Log()
     report = consume_dispatch(run.dispatch_decisions, ctx, instrument_log=log)
 
-    assert report.depth_capped, "σ게이트가 막는 백로그는 depth-cap 으로 종결돼야"
+    assert report.depth_capped, "write 가 막힌 백로그는 depth-cap 으로 종결돼야"
     for rec in report.executed + report.depth_capped:
         assert rec.outcome == 0, (
             f"조건이 명백히 잔존하는데 outcome={rec.outcome} — 재측정 대조가 아니라 "
@@ -201,7 +223,7 @@ def test_depth_capped_outcome_is_not_vacuous_success():
     assert log.rows and all(r["outcome"] == 0 for r in log.rows), (
         "instrument ground-truth 도 전부 0 이어야 (성공 날조 금지)"
     )
-    # 불확실셋은 여전히 무접촉 (σ counter 재확인).
+    # write 경로가 없었으니 supersede write 도 0 (계획≠실행).
     assert not _superseded_names(store)
 
 
