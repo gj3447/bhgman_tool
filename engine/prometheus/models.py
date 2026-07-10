@@ -78,6 +78,10 @@ class AcquireReport:
     dry_run: bool
     ingested: int
     planned_cyphers: tuple[str, ...] = ()
+    # 주입≠실행 (측정 재배선 정정 3, 2026-07-10): fetch 루프가 실제로 돌았는가 —
+    # fetcher 가 주입돼도 gaps==() 면 False. finding 카운트가 '측정'인지(실행됨,
+    # 0건도 측정된 영) '미측정'인지(경계 I/O 자체가 없었음)를 소비자가 판별하는 근거.
+    fetch_executed: bool = False
 
     @property
     def summary(self) -> str:

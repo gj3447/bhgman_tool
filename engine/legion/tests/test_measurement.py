@@ -40,34 +40,49 @@ from engine.legion.measurement import (
 
 
 class TestMeasureShape:
+    """v3 keystone (측정 재배선 2026-07-10): 기본 상태 = 미측정 = 키 부재 (상수 위장 금지).
+    측정된 값만 키로 등장한다. 기본-상태 공집합 자체는 test_measurement_keystone.py 가
+    7 클래스 전수로 핀하고, 여기서는 측정-시-키-등장(양성 모양)을 핀한다."""
+
     def test_prometheus_measure_keys(self):
-        # v2 (seam-integrity 20260708): 기본 상태의 external_grounding_ratio 는 미측정 = 키 부재
-        # (상수 위장 금지); update_grounding 으로 실측되면 키가 나타난다.
-        m = PrometheusMeasurement().measure()
+        assert PrometheusMeasurement().measure() == {}
+        measured = PrometheusMeasurement(finding_count=3)
+        m = measured.measure()
         assert set(m) == {"research_finding_count"}
         assert all(isinstance(v, float) for v in m.values())
-        measured = PrometheusMeasurement()
         measured.update_grounding(["http://a.test/x"])
         assert set(measured.measure()) == {"research_finding_count", "external_grounding_ratio"}
 
     def test_eureka_measure_keys(self):
-        m = EurekaMeasurement().measure()
+        m = EurekaMeasurement(
+            binding_density=1.0, novelty_score=1.0, colimit_termination_depth=0
+        ).measure()
         assert set(m) == {"binding_density", "novelty_score", "colimit_termination_depth"}
 
     def test_longinus_measure_keys(self):
-        m = LonginusMeasurement().measure()
+        m = LonginusMeasurement(
+            sha256_drift_count=0, reference_orphan_count=0, kg_node_unbound_count=0
+        ).measure()
         assert set(m) == {"sha256_drift_count", "reference_orphan_count", "kg_node_unbound_count"}
 
     def test_occam_measure_keys(self):
-        m = OccamMeasurement().measure()
+        m = OccamMeasurement(
+            supersession_confidence=1.0, dead_node_count=0, twin_status_score=1.0
+        ).measure()
         assert set(m) == {"supersession_confidence", "dead_node_count", "twin_status_score"}
 
     def test_naesengmoon_measure_keys(self):
-        m = NaesengmoonMeasurement().measure()
+        m = NaesengmoonMeasurement(
+            claim_confidence_distribution=(0.9,), lens_agreement_ratio=1.0, RTI_FVR_pass_rate=1.0
+        ).measure()
         assert set(m) == {"claim_confidence_mean", "lens_disagreement_ratio", "RTI_FVR_pass_rate"}
 
     def test_jaebaeman_measure_keys(self):
-        m = JaebaemanMeasurement().measure()
+        m = JaebaemanMeasurement(
+            subagent_collect_drift=0.0,
+            seed_freshness_score=1.0,
+            dispatch_intent_completeness=1.0,
+        ).measure()
         assert set(m) == {
             "subagent_collect_drift",
             "seed_freshness_score",
@@ -75,7 +90,9 @@ class TestMeasureShape:
         }
 
     def test_hades_measure_keys(self):
-        m = HadesMeasurement().measure()
+        m = HadesMeasurement(
+            spec_ambiguity_score=0.0, TDD_GREEN_failure_count=0, binding_completeness=1.0
+        ).measure()
         assert set(m) == {"spec_ambiguity_score", "TDD_GREEN_failure_count", "binding_completeness"}
 
 

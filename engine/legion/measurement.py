@@ -12,6 +12,15 @@ v2 (2026-05-30 P1 mitigations per PROM 16 A4S4):
 - max_depth recursion cap (Lawvere-Tierney 1971)
 - DispatchEvent HMAC-SHA256 signing (W3C PROV)
 - threading.Lock critical section (Eswaran 1976 2PL)
+
+v3 keystone (측정 재배선 2026-07-10, 설계 2026-07-09): 3-상태 측정 — None=미측정
+(unmeasured) ≠ 0.0=측정된 영. 모든 메트릭의 __init__ 기본은 None 이고,
+``_measure_uncached`` 는 None 키를 생략한다(``CommanderBase._metrics``). ``decide_dispatch``
+는 없는 키를 스킵하므로 미측정은 어떤 게이트도 통과시키지 않되 측정실패로도 위장하지
+않는다. HARD-CORE: threshold 는 EXECUTED 측정값에만 발화; 부재(빈집합축약·infra없음·
+경계I/O없음·stage없음)=None/omit, 어느 방향 상수도 금지 — v2 까지의 '비발화쪽 상수'
+기본값(1.0/0.0)은 측정 없이 전-정상을 위장하는 죽은 상수였다(PR#61/PR#63 국소 봉합의
+base-class 통일).
 """
 # KG: bihaenggiman-legioncommanders-2026-05-26
 
@@ -180,6 +189,15 @@ class CommanderBase(ABC):
             self._epoch += 1
             self._cached_snapshot = None
 
+    @staticmethod
+    def _metrics(**pairs: float | int | None) -> dict[str, float]:
+        """3-상태 측정 규율(v3 keystone)의 단일 지점: None=미측정은 키 부재로 흐른다.
+
+        PR#61(occam else-1.0)·PR#63(grounding empty-0.0)이 국소로 봉합한 규칙의
+        base-class 통일 — 서브클래스 ``_measure_uncached`` 는 이 헬퍼로만 dict 를 만들어
+        어느 방향의 상수 위장도 구조적으로 불가능하게 한다."""
+        return {k: float(v) for k, v in pairs.items() if v is not None}
+
     @abstractmethod
     def _measure_uncached(self) -> dict[str, float]:
         """Subclass: pure self-measurement, no caching."""
@@ -294,10 +312,12 @@ class PrometheusMeasurement(CommanderBase):
     )
 
     def __init__(
-        self, finding_count: int = 0, external_grounding_ratio: float | None = None
+        self, finding_count: int | None = None, external_grounding_ratio: float | None = None
     ) -> None:
-        # 기본 None = 미측정 — v1 의 기본 1.0 은 측정 없이 '완전 접지'를 위장하는 죽은 상수였다
-        # (LLM 브랜치에서 영구 불-발화). 미측정은 measure() 키 부재로 흘러 dispatch 가 스킵한다.
+        # 기본 None = 미측정(v3 keystone) — ratio 의 기본 1.0 은 측정 없이 '완전 접지'를
+        # 위장하는 죽은 상수였고(LLM 브랜치 영구 불-발화), finding_count 의 기본 0 은
+        # fetch 가 실행되지도 않았는데 '측정된 0건'을 위장했다(fetched=주입≠실행, 정정 3).
+        # 미측정은 measure() 키 부재로 흘러 dispatch 가 스킵한다.
         super().__init__()
         self._finding_count = finding_count
         self._external_grounding_ratio = external_grounding_ratio
@@ -323,11 +343,11 @@ class PrometheusMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        metrics = {"research_finding_count": float(self._finding_count)}
         # 미측정(None) = 키 부재 — decide_dispatch 는 없는 메트릭을 스킵한다(발화 없음).
-        if self._external_grounding_ratio is not None:
-            metrics["external_grounding_ratio"] = self._external_grounding_ratio
-        return metrics
+        return self._metrics(
+            research_finding_count=self._finding_count,
+            external_grounding_ratio=self._external_grounding_ratio,
+        )
 
 
 class EurekaMeasurement(CommanderBase):
@@ -353,10 +373,14 @@ class EurekaMeasurement(CommanderBase):
 
     def __init__(
         self,
-        binding_density: float = 1.0,
-        novelty_score: float = 1.0,
-        colimit_termination_depth: int = 0,
+        binding_density: float | None = None,
+        novelty_score: float | None = None,
+        colimit_termination_depth: int | None = None,
     ) -> None:
+        # 기본 None = 미측정(v3 keystone). binding_density 는 구조적 DEAD 임이 확정됐다
+        # (정정 1, 2026-07-09): 유도 floor fca_min_stability=0.5(pipeline→fca) 와 게이트
+        # floor FCA_STABILITY_MIN=0.5(quality_gate) 가 동일 → survived≡induced →
+        # ratio∈{1.0,미측정}, <0.5 발화 절대 불가. floor 분리 전까지 미측정 유지가 정직.
         super().__init__()
         self._binding_density = binding_density
         self._novelty_score = novelty_score
@@ -370,11 +394,11 @@ class EurekaMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "binding_density": self._binding_density,
-            "novelty_score": self._novelty_score,
-            "colimit_termination_depth": float(self._colimit_termination_depth),
-        }
+        return self._metrics(
+            binding_density=self._binding_density,
+            novelty_score=self._novelty_score,
+            colimit_termination_depth=self._colimit_termination_depth,
+        )
 
 
 class LonginusMeasurement(CommanderBase):
@@ -400,10 +424,12 @@ class LonginusMeasurement(CommanderBase):
 
     def __init__(
         self,
-        sha256_drift_count: int = 0,
-        reference_orphan_count: int = 0,
-        kg_node_unbound_count: int = 0,
+        sha256_drift_count: int | None = None,
+        reference_orphan_count: int | None = None,
+        kg_node_unbound_count: int | None = None,
     ) -> None:
+        # 기본 None = 미측정(v3 keystone). drift/orphan 실카운트는 full-audit(kg+code_root
+        # infra)에서만 나온다 — in-loop float 모드에선 kg_node_unbound_count 만 실측 가능.
         super().__init__()
         self._sha256_drift_count = sha256_drift_count
         self._reference_orphan_count = reference_orphan_count
@@ -417,11 +443,11 @@ class LonginusMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "sha256_drift_count": float(self._sha256_drift_count),
-            "reference_orphan_count": float(self._reference_orphan_count),
-            "kg_node_unbound_count": float(self._kg_node_unbound_count),
-        }
+        return self._metrics(
+            sha256_drift_count=self._sha256_drift_count,
+            reference_orphan_count=self._reference_orphan_count,
+            kg_node_unbound_count=self._kg_node_unbound_count,
+        )
 
 
 class OccamMeasurement(CommanderBase):
@@ -447,10 +473,12 @@ class OccamMeasurement(CommanderBase):
 
     def __init__(
         self,
-        supersession_confidence: float = 1.0,
-        dead_node_count: int = 0,
-        twin_status_score: float = 1.0,
+        supersession_confidence: float | None = None,
+        dead_node_count: int | None = None,
+        twin_status_score: float | None = None,
     ) -> None:
+        # 기본 None = 미측정(v3 keystone) — 옛 기본 1.0(전-확신)/0(무-백로그)은 측정 없이
+        # 비발화를 위장했다. 후보 없음 = min(σ) 정의역 공집합 = 미측정(1.0 상수 금지).
         super().__init__()
         self._supersession_confidence = supersession_confidence
         self._dead_node_count = dead_node_count
@@ -464,11 +492,11 @@ class OccamMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "supersession_confidence": self._supersession_confidence,
-            "dead_node_count": float(self._dead_node_count),
-            "twin_status_score": self._twin_status_score,
-        }
+        return self._metrics(
+            supersession_confidence=self._supersession_confidence,
+            dead_node_count=self._dead_node_count,
+            twin_status_score=self._twin_status_score,
+        )
 
 
 class NaesengmoonMeasurement(CommanderBase):
@@ -500,33 +528,40 @@ class NaesengmoonMeasurement(CommanderBase):
     def __init__(
         self,
         claim_confidence_distribution: tuple[float, ...] = (),
-        lens_agreement_ratio: float = 1.0,
-        RTI_FVR_pass_rate: float = 1.0,
+        lens_agreement_ratio: float | None = None,
+        RTI_FVR_pass_rate: float | None = None,
     ) -> None:
+        # 기본 None = 미측정(v3 keystone) — 옛 기본(agreement 1.0/RTI 1.0/빈 분포 mean 1.0)
+        # 은 렌즈가 한 표도 없는데 만장일치·전-통과를 위장했다(LLM 조건부 측정).
         super().__init__()
         self._claim_confidence_distribution = claim_confidence_distribution
-        self._lens_disagreement_ratio = 1.0 - lens_agreement_ratio
+        self._lens_disagreement_ratio: float | None = (
+            None if lens_agreement_ratio is None else 1.0 - lens_agreement_ratio
+        )
         self._RTI_FVR_pass_rate = RTI_FVR_pass_rate
 
     def update(self, **kwargs) -> None:
         with self._lock:
             if "lens_agreement_ratio" in kwargs:
-                self._lens_disagreement_ratio = 1.0 - kwargs.pop("lens_agreement_ratio")
+                agreement = kwargs.pop("lens_agreement_ratio")
+                self._lens_disagreement_ratio = None if agreement is None else 1.0 - agreement
             for k, v in kwargs.items():
                 if hasattr(self, f"_{k}"):
                     setattr(self, f"_{k}", v)
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "claim_confidence_mean": (
-                sum(self._claim_confidence_distribution) / len(self._claim_confidence_distribution)
-                if self._claim_confidence_distribution
-                else 1.0
-            ),
-            "lens_disagreement_ratio": self._lens_disagreement_ratio,
-            "RTI_FVR_pass_rate": self._RTI_FVR_pass_rate,
-        }
+        # 빈집합축약 금지: 분포가 비면 mean 은 미측정(키 부재) — 상수 1.0 금지.
+        mean = (
+            sum(self._claim_confidence_distribution) / len(self._claim_confidence_distribution)
+            if self._claim_confidence_distribution
+            else None
+        )
+        return self._metrics(
+            claim_confidence_mean=mean,
+            lens_disagreement_ratio=self._lens_disagreement_ratio,
+            RTI_FVR_pass_rate=self._RTI_FVR_pass_rate,
+        )
 
 
 class JaebaemanMeasurement(CommanderBase):
@@ -552,11 +587,11 @@ class JaebaemanMeasurement(CommanderBase):
 
     def __init__(
         self,
-        subagent_collect_drift: float = 0.0,
-        seed_freshness_score: float = 1.0,
-        dispatch_intent_completeness: float = 1.0,
+        subagent_collect_drift: float | None = None,
+        seed_freshness_score: float | None = None,
+        dispatch_intent_completeness: float | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__()  # 기본 None = 미측정 (v3 keystone)
         self._subagent_collect_drift = subagent_collect_drift
         self._seed_freshness_score = seed_freshness_score
         self._dispatch_intent_completeness = dispatch_intent_completeness
@@ -569,11 +604,11 @@ class JaebaemanMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "subagent_collect_drift": self._subagent_collect_drift,
-            "seed_freshness_score": self._seed_freshness_score,
-            "dispatch_intent_completeness": self._dispatch_intent_completeness,
-        }
+        return self._metrics(
+            subagent_collect_drift=self._subagent_collect_drift,
+            seed_freshness_score=self._seed_freshness_score,
+            dispatch_intent_completeness=self._dispatch_intent_completeness,
+        )
 
 
 class HadesMeasurement(CommanderBase):
@@ -609,11 +644,11 @@ class HadesMeasurement(CommanderBase):
 
     def __init__(
         self,
-        spec_ambiguity_score: float = 0.0,
-        TDD_GREEN_failure_count: int = 0,
-        binding_completeness: float = 1.0,
+        spec_ambiguity_score: float | None = None,
+        TDD_GREEN_failure_count: int | None = None,
+        binding_completeness: float | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__()  # 기본 None = 미측정 (v3 keystone)
         self._spec_ambiguity_score = spec_ambiguity_score
         self._TDD_GREEN_failure_count = TDD_GREEN_failure_count
         self._binding_completeness = binding_completeness
@@ -626,11 +661,11 @@ class HadesMeasurement(CommanderBase):
         self._bump_epoch()
 
     def _measure_uncached(self) -> dict[str, float]:
-        return {
-            "spec_ambiguity_score": self._spec_ambiguity_score,
-            "TDD_GREEN_failure_count": float(self._TDD_GREEN_failure_count),
-            "binding_completeness": self._binding_completeness,
-        }
+        return self._metrics(
+            spec_ambiguity_score=self._spec_ambiguity_score,
+            TDD_GREEN_failure_count=self._TDD_GREEN_failure_count,
+            binding_completeness=self._binding_completeness,
+        )
 
 
 # ─────────────────────────────────────────────────────────────

@@ -35,6 +35,9 @@ def run_acquire(
     queries = tuple(derive_query(g) for g in gaps)
 
     findings: list[Finding] = []
+    # 정직 실행 게이트 (정정 3, 2026-07-10): '실행됨' = fetcher 주입 ∧ gap 존재.
+    # gaps==() 면 아래 루프는 0회 — fetcher 가 있어도 fetch 는 일어나지 않았다.
+    fetch_executed = fetcher is not None and bool(gaps)
     if fetcher is not None:
         for gap, query in zip(gaps, queries):
             docs = fetcher.fetch(query)
@@ -50,6 +53,7 @@ def run_acquire(
         dry_run=not (apply and write_cypher is not None),
         ingested=written,
         planned_cyphers=planned,
+        fetch_executed=fetch_executed,
     )
 
 

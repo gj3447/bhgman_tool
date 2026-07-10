@@ -89,6 +89,10 @@ def _run_acquire(ctx: dict) -> dict:
                 "mode": "kg-deterministic",
                 "gap_nodes": len(report.gaps),
                 "findings": len(report.findings),
+                # fetched 실행 게이트 (정정 3, 측정 재배선 2026-07-10): 주입≠실행 —
+                # gaps==() 면 fetcher 가 있어도 fetch 루프는 안 돌았다. finding_count 가
+                # '측정된 0건'인지 '미측정'인지를 _measure_prometheus 가 이 키로 판별.
+                "fetched": report.fetch_executed,
                 # grounding-wire (백로그 #2): 실 findings 의 citation_url 을 노출해
                 # _measure_prometheus 가 external_grounding_ratio 를 실계산하게 한다
                 # (<0.3 self-recurse Goodhart 컨트롤의 런타임 입력 — 이전엔 dead 1.0 고정).
@@ -226,6 +230,14 @@ def _run_verify(ctx: dict) -> dict:
     out["n_echo_excluded"] = ens.n_echo_excluded
     # 공시: 어떤 ORACLE leg 들이 실제로 표결했나 — leg 조작(빼기/본 척)을 관측 가능하게.
     out["oracle_legs"] = [c.lens for c in critics if c.kind is CriticKind.ORACLE]
+    # 판단렌즈 표결 관측면 (측정 재배선 slice 3, 2026-07-10): aggregate 의 집계값만으론
+    # 렌즈 불일치율을 재도출할 수 없다 — _measure_naesengmoon 의 유일한 정직 입력.
+    # LLM 부재 = 빈 목록(표결 0 공시), echo_suspect 는 flag_echo 판정 그대로 운반.
+    out["judgment_lens_verdicts"] = [
+        {"lens": c.lens, "passed": c.passed, "echo_suspect": c.echo_suspect}
+        for c in critics
+        if c.kind is CriticKind.JUDGMENT
+    ]
     out["summary"] = (
         f"naesengmoon: oracle={out['oracle']} ensemble={ens.verdict} n_eff≈{ens.n_eff:.2f}"
         + (f" echo_excluded={ens.n_echo_excluded}" if ens.n_echo_excluded else "")
@@ -292,15 +304,26 @@ def _run_realize(ctx: dict) -> dict:
 
 # ── measurement factories (W2-A) — derive a commander's metrics from its stage output ──
 # Only metrics the deterministic pipeline actually EXPOSES are wired (no fabricated values):
-# prometheus surfaces a finding count + citation grounding, occam surfaces per-candidate σ +
-# a stale-node count — both measurable at runtime. The remaining commanders (longinus/eureka/
-# naesengmoon/hades) don't yet expose their metrics through the stage output; their stages
-# carry no measure factory until they do (no fabricated constants).
+# prometheus(획득 실행 시 finding count + citation grounding), occam(후보 σ + 확신-supersede
+# 카운트), longinus(float 모드 부동 카운트 / full-audit 실카운트), naesengmoon(LLM 조건부
+# 렌즈 불일치율). eureka/hades 는 *의도적 비배선* (측정 재배선 2026-07-10):
+#   eureka — binding_density 는 구조적 DEAD(유도 floor fca_min_stability=0.5 == 게이트
+#     floor FCA_STABILITY_MIN=0.5 → survived≡induced, <0.5 발화 불가; 발화해도 bind 대상
+#     ≠측정 대상인 Goodhart). floor 분리 전 배선은 죽은 장식이다 (별건).
+#   hades — 스테이지 출력에 측정 가능한 런타임 소스가 없다 (spec_ambiguity 등은
+#     오라클 신설이 선행돼야 함). 상수 날조 금지 → 미측정.
+# 이 비배선은 test_intentionally_unwired_stages(빈-KG 정직성 가드)가 잠근다.
 def _measure_prometheus(ctx: dict):
     from engine.legion.measurement import PrometheusMeasurement  # noqa: PLC0415
 
     acquired = ctx.get("acquired") or {}
-    m = PrometheusMeasurement(finding_count=int(acquired.get("findings", 0) or 0))
+    m = PrometheusMeasurement()
+    # fetched 실행 게이트 (정정 3, 측정 재배선 2026-07-10): finding_count 는 fetch 루프가
+    # 실제 실행됐을 때만 측정이다(0건도 '측정된 영'). fetcher 미주입·gap 0건·LLM 브랜치
+    # (fetched 키 부재)는 경계 I/O 가 없었으므로 미측정 — 옛 int(get("findings", 0)) 은
+    # fetch 가 돌지 않았는데 '측정된 0건'을 위장하는 상수였다.
+    if acquired.get("fetched"):
+        m.update(finding_count=int(acquired.get("findings", 0) or 0))
     # grounding-wire v2 (seam-integrity 20260708): 결정론 브랜치가 노출한 실 citations 로
     # ratio 실계산. 빈 목록(획득 0건) → 미측정(None, 키 부재) — v1 의 0.0 은 infra-0 경로에서
     # 매 run 오발화를 만들었다. 키 부재(LLM 브랜치=citations 미노출)도 미측정 공시 — v1 의
@@ -311,18 +334,24 @@ def _measure_prometheus(ctx: dict):
 
 
 def _measure_occam(ctx: dict):
-    """occam 스테이지 산출(hygiene summary)에서 supersession σ + stale-node 카운트를 뽑아
-    OccamMeasurement 를 구성 — measurement-driven dispatch 를 런타임에 살린다.
+    """occam 스테이지 산출(hygiene summary)에서 supersession σ + 확신-supersede 카운트를
+    뽑아 OccamMeasurement 를 구성 — measurement-driven dispatch 를 런타임에 살린다.
 
     이전엔 occam 스테이지가 measure= 없이 등록돼(_stage_from_engine 기본 None) OccamMeasurement
     가 한 번도 인스턴스화되지 않았고, 설령 됐어도 supersession_confidence 는 생성자 기본 1.0 에
     고정 → <0.7 naesengmoon verify dispatch 가 원리적으로 발화 불가(1.0<0.7=False). 이 팩토리가
     실 σ 로 그 값을 실계산한다 (prometheus grounding-wire 와 동형 규율).
 
-      supersession_confidence = min(candidate σ) — 배치는 가장 낮은(최약) supersession 만큼만
-                                확신. 후보 없음/무점수 → 1.0(검증 불필요, 정직 기본).
-      dead_node_count         = 이 패스가 식별한 stale 노드 수(>10 = 대규모 정리 백로그 →
-                                후속 self-supersede batch).
+    v2 정정 2종 (측정 재배선 2026-07-10, 적대검증 정정 2):
+      supersession_confidence = min(candidate σ), 단 sigma=None(σ 미계산)은 최고 불확실
+                                (0.0)로 계수 — 옛 min 은 None 을 버려 위로 편향됐고
+                                escalation 규율("σ 없는 확신은 없다")과 모순. 후보 0건 =
+                                min 정의역 공집합 = 미측정(키 부재; 옛 1.0 상수 금지).
+      dead_node_count         = len(hygiene["superseded"]) — 확신-supersede 셋(occam σ게이트
+                                통과분; apply=실적용, dry-run=계획)만. 옛 소스
+                                superseded_candidates(=len(candidates), KEEP/VERIFY/deferred
+                                전량 포함)는 전량-불확실 배치도 >10 self-supersede 를
+                                오발화시키는 과대계수였다.
     degraded/부재 hygiene(=candidates 키 없음) → None: dispatch 없음, crash 없음."""
     from engine.legion.measurement import OccamMeasurement  # noqa: PLC0415
 
@@ -330,13 +359,74 @@ def _measure_occam(ctx: dict):
     if not isinstance(hygiene, dict) or "candidates" not in hygiene:
         return None  # degraded stub 또는 미제공 — 측정 근거 없음, 상수 날조 금지
     sigmas = [
-        c["sigma"]
+        (c["sigma"] if c.get("sigma") is not None else 0.0)
         for c in hygiene.get("candidates", ())
-        if isinstance(c, dict) and c.get("sigma") is not None
+        if isinstance(c, dict)
     ]
-    confidence = min(sigmas) if sigmas else 1.0
-    dead = int(hygiene.get("superseded_candidates", 0) or 0)
+    confidence = min(sigmas) if sigmas else None  # 공집합 → 미측정 (1.0 위장 금지)
+    superseded = hygiene.get("superseded")
+    dead = len(superseded) if isinstance(superseded, (list, tuple)) else None
     return OccamMeasurement(supersession_confidence=confidence, dead_node_count=dead)
+
+
+def _measure_longinus(ctx: dict):
+    """롱기누스 정직-None 팩토리 (측정 재배선 slice 4, 2026-07-10).
+
+    drift/orphan 실카운트는 full-audit(kg+code_root infra)이 실제로 돌았을 때만
+    존재한다 — in-loop float 모드(kg-deterministic)는 kg_node_unbound_count(부동
+    노드 수; dispatch threshold 없음 = 발화 불가 정직 텔레메트리)만 실측하고
+    sha256_drift_count/reference_orphan_count 는 미측정 유지: full-audit 없이
+    '측정된 0 drift'를 위장하지 않는다(실값 급여 = 별도 infra 캠페인).
+    degraded/부재/구식(카운트 미공시) → None."""
+    from engine.legion.measurement import LonginusMeasurement  # noqa: PLC0415
+
+    bindings = ctx.get("bindings")
+    if not isinstance(bindings, dict):
+        return None
+    m = LonginusMeasurement()
+    if bindings.get("mode") == "full-audit":
+        counts = {
+            k: int(bindings[k])
+            for k in ("sha256_drift_count", "reference_orphan_count")
+            if isinstance(bindings.get(k), (int, float))
+        }
+        if not counts:
+            return None  # 구식 full-audit 출력 — 측정 근거 없음, 상수 날조 금지
+        m.update(**counts)
+        return m
+    if bindings.get("mode") == "kg-deterministic":
+        floating = bindings.get("floating_nodes")
+        if not isinstance(floating, (int, float)):
+            return None
+        m.update(kg_node_unbound_count=int(floating))
+        return m
+    return None  # degraded 등 — 측정 근거 없음
+
+
+def _measure_naesengmoon(ctx: dict):
+    """나생문 렌즈 불일치율 — LLM 조건부 측정 (측정 재배선 slice 3, 2026-07-10).
+
+    lens_disagreement_ratio = 소수파 비율(minority fraction), 표본 = echo-배제 후의
+    독립 판단렌즈 표결(verdict["judgment_lens_verdicts"]). 2표 미만이면 '불일치'가
+    정의되지 않으므로 미측정(None) — vacuous 0.0(전-일치 위장) 금지. 기본 결정론
+    루프(LLM 부재)에서는 항상 None = 이 메트릭은 정직하게 'LLM 조건부'다.
+    RTI_FVR_pass_rate/claim_confidence 는 런타임 소스가 없어 미측정 유지."""
+    from engine.legion.measurement import NaesengmoonMeasurement  # noqa: PLC0415
+
+    verdict = ctx.get("verdict")
+    if not isinstance(verdict, dict):
+        return None
+    lenses = verdict.get("judgment_lens_verdicts")
+    if not isinstance(lenses, list):
+        return None  # 관측면 부재 (구식 verdict) — 측정 근거 없음
+    voters = [v for v in lenses if isinstance(v, dict) and not v.get("echo_suspect")]
+    if len(voters) < 2:
+        return None  # 독립 2표 미만 — 불일치 정의 불가 (빈집합축약 금지)
+    n_pass = sum(1 for v in voters if v.get("passed"))
+    disagreement = 1.0 - max(n_pass, len(voters) - n_pass) / len(voters)
+    m = NaesengmoonMeasurement()
+    m.update(lens_disagreement_ratio=disagreement)
+    return m
 
 
 # ── stage 빌더 + 기본 합성 ──────────────────────────────────────────────────
@@ -349,7 +439,7 @@ _STAGES: tuple[CommanderStage, ...] = (
         _run_acquire,
         measure=_measure_prometheus,
     ),
-    _stage_from_engine(LonginusEngine()),
+    _stage_from_engine(LonginusEngine(), measure=_measure_longinus),
     CommanderStage("eureka", "창조", ("run_cypher",), ("abstractions",), _run_induce),
     _stage_from_engine(OccamEngine(), measure=_measure_occam),
     CommanderStage(
@@ -358,6 +448,7 @@ _STAGES: tuple[CommanderStage, ...] = (
         ("acquired", "bindings", "abstractions", "hygiene"),
         ("verdict",),
         _run_verify,
+        measure=_measure_naesengmoon,
     ),
     CommanderStage("hades", "실현", ("verdict",), ("realized",), _run_realize),
 )
