@@ -42,6 +42,12 @@ def skills_dir(bhgman_root: Path) -> Path:
     return bhgman_root / "skills"
 
 
+@pytest.fixture(autouse=True)
+def disable_direct_kg_for_transport_tests(monkeypatch):
+    """Keep these tests on the mocked ssh transport instead of the workstation KG."""
+    monkeypatch.setenv("BHGMAN_KG_DIRECT", "0")
+
+
 @pytest.fixture
 def mock_kg(monkeypatch):
     """Replace _ssh_cypher with an in-memory mock for fail-closed-free tests.

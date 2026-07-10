@@ -95,6 +95,7 @@ def _resolve_repo_root() -> Path:
 
 
 DGX_HOST = os.environ.get("SYMPOSIUM_DGX_HOST", "dgx")
+_DEFAULT_NEO4J_ENV_FILE = Path.home() / ".config" / "lakatotree" / "server.env"
 
 
 # ─── DTOs ──────────────────────────────────────────────────────────────────
@@ -149,6 +150,98 @@ class SeedGerminateRequest:
 # ─── transport (fail-open) ─────────────────────────────────────────────────
 
 
+def _load_env_file(path: Path) -> dict[str, str]:
+    """Parse a simple KEY=VALUE env file without exporting secrets to process env."""
+    out: dict[str, str] = {}
+    if not path.is_file():
+        return out
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        out[key.strip()] = value.strip().strip("'\"")
+    return out
+
+
+def _resolve_neo4j_direct_config() -> tuple[str, str, str] | None:
+    """Resolve direct Neo4j config.
+
+    Env wins. If env is absent, use the local Lakatotree env file as a pragmatic
+    workstation fallback. Tests can disable this with BHGMAN_KG_DIRECT=0.
+    """
+    if os.environ.get("BHGMAN_KG_DIRECT", "").lower() in {"0", "false", "no"}:
+        return None
+
+    env_file = Path(os.environ.get("BHGMAN_NEO4J_ENV_FILE", _DEFAULT_NEO4J_ENV_FILE)).expanduser()
+    file_env = _load_env_file(env_file)
+
+    uri = (
+        os.environ.get("BHGMAN_STATUS_NEO4J_URI")
+        or os.environ.get("NEO4J_URI")
+        or file_env.get("NEO4J_URI")
+    )
+    user = (
+        os.environ.get("BHGMAN_STATUS_NEO4J_USER")
+        or os.environ.get("NEO4J_USER")
+        or file_env.get("NEO4J_USER")
+        or "neo4j"
+    )
+    password = (
+        os.environ.get("BHGMAN_STATUS_NEO4J_PASSWORD")
+        or os.environ.get("NEO4J_PASSWORD")
+        or os.environ.get("SYMPOSIUM_KG_PASSWORD")
+        or file_env.get("NEO4J_PASSWORD")
+    )
+    if not uri or not password:
+        return None
+    return uri, user, password
+
+
+def _direct_cypher(
+    cypher: str, params: dict[str, Any] | None = None, timeout_s: float = 5.0
+) -> dict[str, Any] | None:
+    """Run Cypher through the Neo4j Python driver when direct config is available."""
+    config = _resolve_neo4j_direct_config()
+    if config is None:
+        return None
+    uri, user, password = config
+    try:
+        from neo4j import GraphDatabase
+    except ImportError:
+        return None
+
+    try:
+        with GraphDatabase.driver(uri, auth=(user, password), connection_timeout=timeout_s) as drv:
+            records, summary, _keys = drv.execute_query(
+                cypher,
+                {"p": params or {}},
+                database_=os.environ.get("NEO4J_DATABASE"),
+            )
+        rows = [record.data() for record in records]
+        return {
+            "ok": True,
+            "stdout": json.dumps(rows, ensure_ascii=False),
+            "stderr": "",
+            "returncode": 0,
+            "transport": "neo4j-python",
+            "summary": {
+                "database": getattr(summary, "database", None),
+                "query_type": getattr(summary, "query_type", None),
+                "counters": dict(summary.counters) if hasattr(summary.counters, "__iter__") else {},
+            },
+        }
+    except Exception as exc:  # noqa: BLE001 - transport fallback must not raise.
+        return {
+            "ok": False,
+            "error": type(exc).__name__,
+            "stderr": str(exc),
+            "returncode": 1,
+            "transport": "neo4j-python",
+            "degraded": True,
+        }
+
+
 def _ssh_cypher(
     cypher: str, params: dict[str, Any] | None = None, timeout_s: float = 5.0
 ) -> dict[str, Any]:
@@ -169,27 +262,54 @@ def _ssh_cypher(
         or os.environ.get("SYMPOSIUM_KG_PASSWORD")
         or "neo4jpassword"
     )
-    cmd = [
-        "ssh",
-        DGX_HOST,
-        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
+    legacy_cmd = (
+        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -i -- "
         f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} "
-        f"--format plain --param {param_arg}",
-    ]
-    try:
-        result = subprocess.run(
-            cmd,
-            input=cypher,
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
-            check=False,
+        f"--format plain --param {param_arg}"
+    )
+    restored_cmd = (
+        "kubectl exec -n services deploy/neo4j -i -- sh -lc "
+        + shlex.quote(
+            "PASS=${NEO4J_AUTH#*/}; "
+            "/var/lib/neo4j/bin/cypher-shell -u neo4j -p \"$PASS\" "
+            f"--format plain --param {param_arg}"
         )
+    )
+    commands = [legacy_cmd]
+    if os.environ.get("BHGMAN_KG_TRY_RESTORED_K8S", "1").lower() not in {"0", "false", "no"}:
+        commands.append(restored_cmd)
+
+    last_result: subprocess.CompletedProcess[str] | None = None
+    try:
+        for remote_cmd in commands:
+            cmd = ["ssh", DGX_HOST, remote_cmd]
+            result = subprocess.run(
+                cmd,
+                input=cypher,
+                capture_output=True,
+                text=True,
+                timeout=timeout_s,
+                check=False,
+            )
+            if result.returncode == 0:
+                return {
+                    "ok": True,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "returncode": result.returncode,
+                    "transport": "ssh-kubectl",
+                }
+            last_result = result
+        result = last_result
+        if result is None:
+            return {"ok": False, "error": "no_ssh_kubectl_command", "degraded": True}
         return {
-            "ok": result.returncode == 0,
+            "ok": False,
             "stdout": result.stdout,
             "stderr": result.stderr,
             "returncode": result.returncode,
+            "transport": "ssh-kubectl",
+            "degraded": True,
         }
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": "timeout", "degraded": True}
@@ -268,6 +388,15 @@ def _kg_query_impl(req: KGQueryRequest) -> dict[str, Any]:
         return {"ok": False, "reason": "mutate=true but no write keyword in cypher"}
     if not req.mutate and has_write_keyword:
         return {"ok": False, "reason": "write keyword detected but mutate=false (safety)"}
+    direct = _direct_cypher(req.cypher, req.params, req.timeout_s)
+    if direct is not None and direct.get("ok"):
+        return direct
+    if direct is not None and os.environ.get("BHGMAN_KG_FALLBACK_ON_DIRECT_FAIL", "1") in {
+        "0",
+        "false",
+        "no",
+    }:
+        return direct
     return _ssh_cypher(req.cypher, req.params, req.timeout_s)
 
 
