@@ -230,6 +230,14 @@ def _run_verify(ctx: dict) -> dict:
     out["n_echo_excluded"] = ens.n_echo_excluded
     # 공시: 어떤 ORACLE leg 들이 실제로 표결했나 — leg 조작(빼기/본 척)을 관측 가능하게.
     out["oracle_legs"] = [c.lens for c in critics if c.kind is CriticKind.ORACLE]
+    # 판단렌즈 표결 관측면 (측정 재배선 slice 3, 2026-07-10): aggregate 의 집계값만으론
+    # 렌즈 불일치율을 재도출할 수 없다 — _measure_naesengmoon 의 유일한 정직 입력.
+    # LLM 부재 = 빈 목록(표결 0 공시), echo_suspect 는 flag_echo 판정 그대로 운반.
+    out["judgment_lens_verdicts"] = [
+        {"lens": c.lens, "passed": c.passed, "echo_suspect": c.echo_suspect}
+        for c in critics
+        if c.kind is CriticKind.JUDGMENT
+    ]
     out["summary"] = (
         f"naesengmoon: oracle={out['oracle']} ensemble={ens.verdict} n_eff≈{ens.n_eff:.2f}"
         + (f" echo_excluded={ens.n_echo_excluded}" if ens.n_echo_excluded else "")
@@ -356,6 +364,32 @@ def _measure_occam(ctx: dict):
     return OccamMeasurement(supersession_confidence=confidence, dead_node_count=dead)
 
 
+def _measure_naesengmoon(ctx: dict):
+    """나생문 렌즈 불일치율 — LLM 조건부 측정 (측정 재배선 slice 3, 2026-07-10).
+
+    lens_disagreement_ratio = 소수파 비율(minority fraction), 표본 = echo-배제 후의
+    독립 판단렌즈 표결(verdict["judgment_lens_verdicts"]). 2표 미만이면 '불일치'가
+    정의되지 않으므로 미측정(None) — vacuous 0.0(전-일치 위장) 금지. 기본 결정론
+    루프(LLM 부재)에서는 항상 None = 이 메트릭은 정직하게 'LLM 조건부'다.
+    RTI_FVR_pass_rate/claim_confidence 는 런타임 소스가 없어 미측정 유지."""
+    from engine.legion.measurement import NaesengmoonMeasurement  # noqa: PLC0415
+
+    verdict = ctx.get("verdict")
+    if not isinstance(verdict, dict):
+        return None
+    lenses = verdict.get("judgment_lens_verdicts")
+    if not isinstance(lenses, list):
+        return None  # 관측면 부재 (구식 verdict) — 측정 근거 없음
+    voters = [v for v in lenses if isinstance(v, dict) and not v.get("echo_suspect")]
+    if len(voters) < 2:
+        return None  # 독립 2표 미만 — 불일치 정의 불가 (빈집합축약 금지)
+    n_pass = sum(1 for v in voters if v.get("passed"))
+    disagreement = 1.0 - max(n_pass, len(voters) - n_pass) / len(voters)
+    m = NaesengmoonMeasurement()
+    m.update(lens_disagreement_ratio=disagreement)
+    return m
+
+
 # ── stage 빌더 + 기본 합성 ──────────────────────────────────────────────────
 _STAGES: tuple[CommanderStage, ...] = (
     CommanderStage(
@@ -375,6 +409,7 @@ _STAGES: tuple[CommanderStage, ...] = (
         ("acquired", "bindings", "abstractions", "hygiene"),
         ("verdict",),
         _run_verify,
+        measure=_measure_naesengmoon,
     ),
     CommanderStage("hades", "실현", ("verdict",), ("realized",), _run_realize),
 )
