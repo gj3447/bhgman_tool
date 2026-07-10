@@ -2,7 +2,9 @@
 
 stage를 USES 순서로 등록(프로메테우스→롱기누스→유레카→오캄→나생문→하데스) → run()이
 Contract-bound handoff(requires ⊆ accumulated provides)로 순차 실행, stage 사이 나생문
-oracle gate(hard, 주입식). 닫힌 루프는 loops>1. substrate = KG context dict.
+oracle gate(hard, 주입식). run() 자체는 단일 선형 패스다 — 루프의 닫힘(발화된
+DispatchDecision 의 소비·재실행)은 post-run consume_dispatch(dispatch_consumer, G5-C5
+opt-in)가 담당한다. substrate = KG context dict.
 
 종착 = 하데스(실현: 추상 spec→구체 코드, APT/SCW). 정방향 합성의 거울 = TPA 역방향
 7-stage (tpa-7stage-eureka-core-2026-05-30). 재배맨(출격)은 stage가 아니라 dispatch

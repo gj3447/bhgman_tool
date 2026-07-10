@@ -128,6 +128,13 @@ class LonginusEngine(DeterministicCommanderEngine):
                     "mode": "full-audit",
                     "drifts_by_type": summary["drifts_by_type"],
                     "is_clean": summary["is_clean"],
+                    # 측정 재배선 slice 4 (2026-07-10): 실측 카운트 공시 — full-audit 이
+                    # 실제로 돌았을 때만 존재하는 키(_measure_longinus 의 정직 입력).
+                    # float 모드는 이 키들을 내지 않는다 = drift/orphan 미측정 공시.
+                    "sha256_drift_count": len(summary["sha256_drift_events"]),
+                    "reference_orphan_count": (
+                        len(summary["reverse_orphans"]) + len(summary["forward_orphans"])
+                    ),
                     "summary": f"longinus[audit]: drift={summary['drifts_by_type']}",
                 }
             }

@@ -304,10 +304,15 @@ def _run_realize(ctx: dict) -> dict:
 
 # ── measurement factories (W2-A) — derive a commander's metrics from its stage output ──
 # Only metrics the deterministic pipeline actually EXPOSES are wired (no fabricated values):
-# prometheus surfaces a finding count + citation grounding, occam surfaces per-candidate σ +
-# a stale-node count — both measurable at runtime. The remaining commanders (longinus/eureka/
-# naesengmoon/hades) don't yet expose their metrics through the stage output; their stages
-# carry no measure factory until they do (no fabricated constants).
+# prometheus(획득 실행 시 finding count + citation grounding), occam(후보 σ + 확신-supersede
+# 카운트), longinus(float 모드 부동 카운트 / full-audit 실카운트), naesengmoon(LLM 조건부
+# 렌즈 불일치율). eureka/hades 는 *의도적 비배선* (측정 재배선 2026-07-10):
+#   eureka — binding_density 는 구조적 DEAD(유도 floor fca_min_stability=0.5 == 게이트
+#     floor FCA_STABILITY_MIN=0.5 → survived≡induced, <0.5 발화 불가; 발화해도 bind 대상
+#     ≠측정 대상인 Goodhart). floor 분리 전 배선은 죽은 장식이다 (별건).
+#   hades — 스테이지 출력에 측정 가능한 런타임 소스가 없다 (spec_ambiguity 등은
+#     오라클 신설이 선행돼야 함). 상수 날조 금지 → 미측정.
+# 이 비배선은 test_intentionally_unwired_stages(빈-KG 정직성 가드)가 잠근다.
 def _measure_prometheus(ctx: dict):
     from engine.legion.measurement import PrometheusMeasurement  # noqa: PLC0415
 
@@ -364,6 +369,40 @@ def _measure_occam(ctx: dict):
     return OccamMeasurement(supersession_confidence=confidence, dead_node_count=dead)
 
 
+def _measure_longinus(ctx: dict):
+    """롱기누스 정직-None 팩토리 (측정 재배선 slice 4, 2026-07-10).
+
+    drift/orphan 실카운트는 full-audit(kg+code_root infra)이 실제로 돌았을 때만
+    존재한다 — in-loop float 모드(kg-deterministic)는 kg_node_unbound_count(부동
+    노드 수; dispatch threshold 없음 = 발화 불가 정직 텔레메트리)만 실측하고
+    sha256_drift_count/reference_orphan_count 는 미측정 유지: full-audit 없이
+    '측정된 0 drift'를 위장하지 않는다(실값 급여 = 별도 infra 캠페인).
+    degraded/부재/구식(카운트 미공시) → None."""
+    from engine.legion.measurement import LonginusMeasurement  # noqa: PLC0415
+
+    bindings = ctx.get("bindings")
+    if not isinstance(bindings, dict):
+        return None
+    m = LonginusMeasurement()
+    if bindings.get("mode") == "full-audit":
+        counts = {
+            k: int(bindings[k])
+            for k in ("sha256_drift_count", "reference_orphan_count")
+            if isinstance(bindings.get(k), (int, float))
+        }
+        if not counts:
+            return None  # 구식 full-audit 출력 — 측정 근거 없음, 상수 날조 금지
+        m.update(**counts)
+        return m
+    if bindings.get("mode") == "kg-deterministic":
+        floating = bindings.get("floating_nodes")
+        if not isinstance(floating, (int, float)):
+            return None
+        m.update(kg_node_unbound_count=int(floating))
+        return m
+    return None  # degraded 등 — 측정 근거 없음
+
+
 def _measure_naesengmoon(ctx: dict):
     """나생문 렌즈 불일치율 — LLM 조건부 측정 (측정 재배선 slice 3, 2026-07-10).
 
@@ -400,7 +439,7 @@ _STAGES: tuple[CommanderStage, ...] = (
         _run_acquire,
         measure=_measure_prometheus,
     ),
-    _stage_from_engine(LonginusEngine()),
+    _stage_from_engine(LonginusEngine(), measure=_measure_longinus),
     CommanderStage("eureka", "창조", ("run_cypher",), ("abstractions",), _run_induce),
     _stage_from_engine(OccamEngine(), measure=_measure_occam),
     CommanderStage(
