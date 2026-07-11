@@ -181,3 +181,47 @@ class TestFailOpen:
         out = _kg_query_impl(KGQueryRequest(cypher="MATCH (n) RETURN n"))
         assert out["ok"] is False
         assert out["degraded"] is True
+
+
+class TestDestructiveConfirm:
+    """DETACH DELETE / DROP need confirm_destructive=true even under mutate=true.
+    bhg-f-kgquery-destructive-path."""
+
+    @pytest.mark.parametrize(
+        "cypher",
+        [
+            "MATCH (n) DETACH DELETE n",
+            "MATCH (n:Foo) DETACH  DELETE n",
+            "DROP CONSTRAINT foo IF EXISTS",
+            "DROP DATABASE neo4j",
+            "DROP INDEX idx",
+        ],
+    )
+    def test_destructive_blocked_without_confirm(self, cypher):
+        out = _kg_query_impl(KGQueryRequest(cypher=cypher, mutate=True))
+        assert out["ok"] is False
+        assert "confirm_destructive" in out["reason"]
+
+    @pytest.mark.parametrize(
+        "cypher",
+        ["MATCH (n:Tmp) DETACH DELETE n", "DROP CONSTRAINT foo IF EXISTS"],
+    )
+    def test_destructive_allowed_with_confirm(self, cypher, mock_kg):
+        out = _kg_query_impl(KGQueryRequest(cypher=cypher, mutate=True, confirm_destructive=True))
+        assert out["ok"] is True
+
+    @pytest.mark.parametrize(
+        "cypher",
+        ["CREATE (:N {v:1})", "MATCH (n) SET n.x = 1", "MERGE (n:N {id:'a'})"],
+    )
+    def test_nondestructive_write_not_gated_by_confirm(self, cypher, mock_kg):
+        # ordinary writes still go through with mutate=true, no confirm needed
+        out = _kg_query_impl(KGQueryRequest(cypher=cypher, mutate=True))
+        assert out["ok"] is True
+
+    def test_destructive_word_in_literal_not_gated(self, mock_kg):
+        # 'DROP' as a string literal must not trip the destructive gate
+        out = _kg_query_impl(
+            KGQueryRequest(cypher="MATCH (n) SET n.note = 'please DROP this' RETURN n", mutate=True)
+        )
+        assert out["ok"] is True
