@@ -107,6 +107,8 @@ class TestWriteSafety:
             "LOAD CSV FROM 'file:///x.csv' AS row CREATE (n)",
             "CALL apoc.periodic.iterate('MATCH (n) RETURN n', 'DELETE n', {})",
             "CALL apoc.refactor.mergeNodes([n])",
+            "CALL apoc.do.when(true, 'CREATE (:N)', '', {})",
+            "CALL apoc.do.case([true, 'DELETE n'], '', {})",
             "FOREACH (x IN [1,2] | CREATE (:N {v:x}))",
         ],
     )
@@ -126,6 +128,7 @@ class TestWriteSafety:
             "MATCH (n) RETURN n.preset, n.asset, n.subset",
             "// CREATE is only mentioned in this comment\nMATCH (n) RETURN n",
             "MATCH (n) WHERE n.note = 'please DELETE the ticket' RETURN n",
+            "CALL apoc.when(true, 'RETURN 1', 'RETURN 2') YIELD value RETURN value",
         ],
     )
     def test_benign_reads_with_write_words_as_literals_allowed(self, cypher, mock_kg):

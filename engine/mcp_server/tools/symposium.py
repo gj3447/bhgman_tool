@@ -237,9 +237,12 @@ _CYPHER_WRITE_CLAUSE = re.compile(
     r"\b(CREATE|MERGE|DELETE|REMOVE|SET|DROP|FOREACH|LOAD\s+CSV)\b",
     re.IGNORECASE,
 )
+# apoc.do.when / apoc.do.case are the WRITE conditional procedures (their read-only
+# twins apoc.when / apoc.case carry no "do." and stay allowed) — the inner write query
+# hides in a string arg, so the literal-stripped clause scan alone would miss them.
 _CYPHER_WRITE_PROC = re.compile(
     r"\bCALL\s+(apoc\.(create|merge|refactor|periodic|trigger|atomic|nodes\.link|"
-    r"cypher\.runMany|cypher\.doIt|cypher\.runWrite)|db\.(create|index\.|constraints))",
+    r"do\.(when|case)|cypher\.runMany|cypher\.doIt|cypher\.runWrite)|db\.(create|index\.|constraints))",
     re.IGNORECASE,
 )
 _CYPHER_STRING_LITERAL = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"", re.DOTALL)
