@@ -207,9 +207,7 @@ class TestDestructiveConfirm:
         ["MATCH (n:Tmp) DETACH DELETE n", "DROP CONSTRAINT foo IF EXISTS"],
     )
     def test_destructive_allowed_with_confirm(self, cypher, mock_kg):
-        out = _kg_query_impl(
-            KGQueryRequest(cypher=cypher, mutate=True, confirm_destructive=True)
-        )
+        out = _kg_query_impl(KGQueryRequest(cypher=cypher, mutate=True, confirm_destructive=True))
         assert out["ok"] is True
 
     @pytest.mark.parametrize(
@@ -224,8 +222,6 @@ class TestDestructiveConfirm:
     def test_destructive_word_in_literal_not_gated(self, mock_kg):
         # 'DROP' as a string literal must not trip the destructive gate
         out = _kg_query_impl(
-            KGQueryRequest(
-                cypher="MATCH (n) SET n.note = 'please DROP this' RETURN n", mutate=True
-            )
+            KGQueryRequest(cypher="MATCH (n) SET n.note = 'please DROP this' RETURN n", mutate=True)
         )
         assert out["ok"] is True
