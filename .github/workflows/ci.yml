@@ -31,6 +31,14 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install uv
         run: pip install uv
+      - name: Install OPA (else engine/gate/tests/test_rego_parity.py silently skips)
+        # rego<->python gate parity is a real safety check; without the binary the test
+        # skipif-drops in CI. Pinned to match the dev toolchain (opa 1.17.0).
+        run: |
+          curl -sSfL -o opa https://github.com/open-policy-agent/opa/releases/download/v1.17.0/opa_linux_amd64_static
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
       - name: Run pytest (full engine suite)
         # #1 unified the flat-layout subpackages into the `engine` package, so the
         # whole suite imports `engine.*` and runs from repo root. Previously this
