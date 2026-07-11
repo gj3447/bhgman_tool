@@ -103,3 +103,36 @@ def test_web_fetcher_skips_file_scheme_result_link():
     fetcher = WebSearchFetcher(url_open=opener, max_results=3)
     fetcher.fetch(Query(gap_id="g", text="leak my files"))
     assert not any(u.startswith("file://") for u in opened)
+
+
+# ── SSRF host/IP guard (private / loopback / link-local / cloud metadata) ─────
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://169.254.169.254/latest/meta-data/",  # cloud metadata (link-local)
+        "http://127.0.0.1:8080/",  # loopback
+        "http://[::1]/",  # ipv6 loopback
+        "http://10.0.0.5/internal",  # private
+        "http://192.168.1.1/",  # private
+        "http://172.16.0.1/",  # private
+        "http://0.0.0.0/",  # unspecified
+    ],
+)
+def test_default_url_open_refuses_private_and_metadata_hosts(url):
+    """Scheme-only allow still let http://<internal-ip> through; the host guard blocks it
+    before any network egress. bhg-f-prometheus-ssrf."""
+    with pytest.raises(ValueError, match="SSRF"):
+        _default_url_open(url)
+
+
+def test_host_is_public_ip_literals_no_dns():
+    """IP-literal hosts are decided without DNS: public passes, private/reserved blocked."""
+    from engine.prometheus.web import _host_is_public
+
+    assert _host_is_public("http://8.8.8.8/")  # public IP literal
+    assert not _host_is_public("http://169.254.169.254/")
+    assert not _host_is_public("http://127.0.0.1/")
+    assert not _host_is_public("http://10.1.2.3/")
+    assert not _host_is_public("http://[::1]/")

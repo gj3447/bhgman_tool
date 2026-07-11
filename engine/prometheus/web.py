@@ -12,6 +12,8 @@ url_open/search_url로 갈아끼우거나 CallableFetcher로 parent WebSearch를
 
 from __future__ import annotations
 
+import ipaddress
+import socket
 from collections.abc import Callable
 from html.parser import HTMLParser
 from urllib.parse import quote_plus, urlparse, parse_qs, unquote
@@ -32,10 +34,53 @@ def _is_http_url(url: str) -> bool:
         return False
 
 
+def _ip_is_blocked(ip_str: str) -> bool:
+    """True for loopback / link-local (incl. 169.254.169.254 cloud metadata) / private /
+    reserved / multicast / unspecified addresses — the internal SSRF targets."""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True  # unparseable address → fail closed
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+def _host_is_public(url: str) -> bool:
+    """False if the URL host is / resolves to a non-public address. IP-literal hosts are
+    checked directly (no DNS); hostnames resolve every A/AAAA and all must be public.
+    Scheme-only allow (_is_http_url) still lets a DDG result URL point at
+    169.254.169.254 / 127.0.0.1 / 10.x — this is the SSRF egress guard that closes it."""
+    try:
+        host = urlparse(url).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    try:
+        ipaddress.ip_address(host)  # IP literal → check directly, no DNS
+    except ValueError:
+        pass
+    else:
+        return not _ip_is_blocked(host)
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return False  # unresolvable → fail closed
+    return all(not _ip_is_blocked(ai[4][0]) for ai in infos)
+
+
 def _default_url_open(url: str, *, timeout: float = 10.0) -> str:
     """stdlib urllib GET → text. 네트워크 호출(opt-in: WebSearchFetcher 사용 시에만)."""
     if not _is_http_url(url):
         raise ValueError(f"refusing non-http(s) URL (SSRF/file-read guard): {url!r}")
+    if not _host_is_public(url):
+        raise ValueError(f"refusing private/loopback/link-local host (SSRF guard): {url!r}")
     import urllib.request  # noqa: PLC0415
 
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
