@@ -157,6 +157,20 @@ class TestFailOpen:
         assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
         assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
 
+    def test_ssh_cypher_no_password_fails_closed(self, monkeypatch):
+        """No hardcoded password default: with no NEO4J password env set, return degraded
+        WITHOUT spawning cypher-shell (no known-constant auth). bhg-f-secrets-on-argv."""
+        from engine.mcp_server.tools import symposium
+
+        for var in ("BHGMAN_STATUS_NEO4J_PASSWORD", "NEO4J_PASSWORD", "SYMPOSIUM_KG_PASSWORD"):
+            monkeypatch.delenv(var, raising=False)
+        called = []
+        monkeypatch.setattr(symposium.subprocess, "run", lambda *a, **k: called.append(a))
+        out = symposium._ssh_cypher("MATCH (n) RETURN 1")
+        assert out["degraded"] is True
+        assert out["error"] == "neo4j_password_not_configured"
+        assert called == []  # never spawned a process carrying a secret
+
     def test_ssh_missing_returns_degraded(self, monkeypatch):
         from engine.mcp_server.tools import symposium
 

@@ -167,8 +167,11 @@ def _ssh_cypher(
         os.environ.get("BHGMAN_STATUS_NEO4J_PASSWORD")
         or os.environ.get("NEO4J_PASSWORD")
         or os.environ.get("SYMPOSIUM_KG_PASSWORD")
-        or "neo4jpassword"
     )
+    if not password:
+        # No hardcoded fallback (the CLI already dropped its 'neo4jpassword' default):
+        # fail closed instead of authenticating with a known constant. bhg-f-secrets-on-argv.
+        return {"ok": False, "error": "neo4j_password_not_configured", "degraded": True}
     cmd = [
         "ssh",
         DGX_HOST,
