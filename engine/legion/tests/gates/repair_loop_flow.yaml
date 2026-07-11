@@ -1,0 +1,54 @@
+# The Red artifact for bhgman_tool's repair-loop production wiring (Q1, ceiling-pierce).
+#
+# It states what the store must OBSERVE when make_repair_stage wraps a 1-pass CommanderStage into
+# an oracle-guided evolve() repair loop and that wrapped stage runs inside a production Legion().run().
+# Thresholds match the real structured-landscape run: 1 measured lift with outcome:improved, 1 stage
+# wired-and-completed inside Legion.
+#
+# HONEST-COUNT NOTE: repair_lift_measured is pinned where outcome:improved — a DECEPTIVE landscape
+# makes read-back lose and the adapter (honestly) keeps the seed => outcome:kept => 0 => genuinely
+# RED. repair_stage_wired ships ONLY when Legion().run() returns completed=True. Neither is a constant.
+#
+# Strength: value-pinned (where / ==), ordered (must_order), forbidding (absent).
+cid_env: OOPTDD_CID
+service: bhgman.repairloop
+
+expect:
+  # the repair loop entered the evolve phase.
+  - event: repair_started
+    where: {phase: evolve}
+    op: "=="
+    count: 1
+
+  # the wrapped stage measured a REAL positive lift (outcome:improved). A deceptive landscape keeps
+  # the seed (outcome:kept) => 0 => RED — the flag tracks the real oracle result, not a constant.
+  - event: repair_lift_measured
+    where: {outcome: improved}
+    op: "=="
+    count: 1
+
+  # the wrapped stage ran inside a production Legion().run() and completed (Contract intact). A
+  # Contract-breaking wrap would ship nothing => 0 => RED.
+  - event: repair_stage_wired
+    op: "=="
+    count: 1
+
+  # the repair loop closed exactly once.
+  - event: repair_complete
+    op: "=="
+    count: 1
+
+  # ── subset present, value-pinned via where (any order) ───────────────────
+  - present:
+      - {event: repair_started, where: {phase: evolve}}
+      - {event: repair_lift_measured, where: {outcome: improved}}
+      - {event: repair_stage_wired}
+      - {event: repair_complete}
+
+  # ── sequencing: the flow must emit in lifecycle order ────────────────────
+  - must_order: [repair_started, repair_lift_measured, repair_stage_wired, repair_complete]
+    within_s: 60
+
+  # ── negative wing: the happy repair flow logs no ERROR ───────────────────
+  - absent:
+      where: {level: ERROR}
