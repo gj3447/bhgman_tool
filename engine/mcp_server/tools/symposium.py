@@ -122,6 +122,7 @@ class KGQueryRequest:
     params: dict[str, Any] = field(default_factory=dict)
     mutate: bool = False
     timeout_s: float = 5.0
+    confirm_destructive: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -267,6 +268,15 @@ def _cypher_has_write(cypher: str) -> bool:
     return bool(_CYPHER_WRITE_CLAUSE.search(stripped) or _CYPHER_WRITE_PROC.search(stripped))
 
 
+_CYPHER_DESTRUCTIVE = re.compile(r"\bDETACH\s+DELETE\b|\bDROP\b", re.IGNORECASE)
+
+
+def _cypher_is_destructive(cypher: str) -> bool:
+    """True for irreversible mass ops — DETACH DELETE (nodes+rels) or DROP (schema/db).
+    Literal/comment-stripped so 'DROP' inside a string/identifier can't false-positive."""
+    return bool(_CYPHER_DESTRUCTIVE.search(_strip_cypher_noise(cypher)))
+
+
 def _kg_query_impl(req: KGQueryRequest) -> dict[str, Any]:
     """Cypher pass-through with fail-open + word-boundary write-clause guard."""
     has_write_keyword = _cypher_has_write(req.cypher)
@@ -274,6 +284,13 @@ def _kg_query_impl(req: KGQueryRequest) -> dict[str, Any]:
         return {"ok": False, "reason": "mutate=true but no write keyword in cypher"}
     if not req.mutate and has_write_keyword:
         return {"ok": False, "reason": "write keyword detected but mutate=false (safety)"}
+    # Even under explicit mutate=true, an irreversible mass op (DETACH DELETE / DROP)
+    # against prod needs a second opt-in — no silent DROP DATABASE / delete-all.
+    if req.mutate and _cypher_is_destructive(req.cypher) and not req.confirm_destructive:
+        return {
+            "ok": False,
+            "reason": "destructive op (DETACH DELETE / DROP) requires confirm_destructive=true",
+        }
     return _ssh_cypher(req.cypher, req.params, req.timeout_s)
 
 
@@ -459,10 +476,21 @@ def register(mcp: Any) -> None:
         params: dict[str, Any] | None = None,
         mutate: bool = False,
         timeout_s: float = 5.0,
+        confirm_destructive: bool = False,
     ) -> dict[str, Any]:
-        """Run a Cypher query against the SYMPOSIUM KG (ssh dgx → cypher-shell)."""
+        """Run a Cypher query against the SYMPOSIUM KG (ssh dgx → cypher-shell).
+
+        Writes need `mutate=true`; irreversible mass ops (DETACH DELETE / DROP)
+        additionally need `confirm_destructive=true`.
+        """
         return _kg_query_impl(
-            KGQueryRequest(cypher=cypher, params=params or {}, mutate=mutate, timeout_s=timeout_s)
+            KGQueryRequest(
+                cypher=cypher,
+                params=params or {},
+                mutate=mutate,
+                timeout_s=timeout_s,
+                confirm_destructive=confirm_destructive,
+            )
         )
 
     @mcp.tool()
