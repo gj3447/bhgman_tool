@@ -72,7 +72,8 @@ def _host_is_public(url: str) -> bool:
         infos = socket.getaddrinfo(host, None)
     except OSError:
         return False  # unresolvable → fail closed
-    return all(not _ip_is_blocked(ai[4][0]) for ai in infos)
+    # ai[4] is the sockaddr; [0] is the host string (typed str | int by typeshed → str()).
+    return all(not _ip_is_blocked(str(ai[4][0])) for ai in infos)
 
 
 def _default_url_open(url: str, *, timeout: float = 10.0) -> str:
