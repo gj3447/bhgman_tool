@@ -55,11 +55,18 @@ def _make_complete():
         )
 
         mx = int(os.environ.get("LEAN_MAX_TOKENS", "3072"))  # reasoning models think long
+        # seed/temperature MUST be threaded on the frontier/openai-compat path too, or best-of-N's K
+        # "independent" draws collapse to one greedy proof (the 2026-06-03 confound) — unfair on exactly
+        # the reachable dgx-LAN/cloud path. The local ollama path already threads seed; this one silently
+        # dropped it. temp default 0.8 (LEAN_HEADROOM_FAIRTEST); temp=0.0 would be greedy and ignore seed.
+        temp = float(os.environ.get("LEAN_TEMP") or os.environ.get("P1_TEMP", "0.8"))
 
-        def complete(messages, _seed):
+        def complete(messages, seed):
             system = next((m["content"] for m in messages if m["role"] == "system"), "")
             user = next((m["content"] for m in messages if m["role"] == "user"), "")
-            return client.complete(system=system, user=user, model=model, max_tokens=mx).text
+            return client.complete(
+                system=system, user=user, model=model, max_tokens=mx, temperature=temp, seed=seed
+            ).text
 
         return complete, f"frontier:{model}"
 
