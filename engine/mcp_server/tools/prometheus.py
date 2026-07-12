@@ -68,8 +68,67 @@ def prometheus_research_impl(topic: str, n: int = 0) -> dict[str, Any]:
     }
 
 
+def prometheus_ingest_impl(
+    topic: str,
+    findings: list[dict[str, Any]],
+    synthesis: str = "",
+    cycle_id: str = "",
+    n: int = 0,
+) -> dict[str, Any]:
+    """PROPOSE the MERGE cyphers that crystallize gathered research findings into the KG.
+
+    The MCP layer can't spawn subagents (the research itself is the parent Claude's job),
+    so this closes the *ingest* half of the finding: the parent passes the findings it
+    gathered and gets idempotent UNWIND-MERGE cyphers (a Lesson + N ResearchFinding nodes)
+    to apply via kg_query(mutate=true). Reuses the engine's ingest_cypher (no drift).
+
+    Args:
+        topic: research topic.
+        findings: list of {domain|sub_question, text|summary, ok?, agent_id?, confidence?}.
+        synthesis: the synthesized report body (stored on the Lesson).
+        cycle_id: provenance id (defaults to "manual").
+        n: planned subagent count (defaults to len(findings)).
+    """
+    topic = topic.strip()
+    if not topic or not findings:
+        return {"error": "topic and findings required", "ingest_cyphers": []}
+    try:
+        from engine.agents.dispatch import SubagentResult
+        from engine.agents.prometheus import ResearchReport, ingest_cypher
+    except ImportError as exc:  # agents extra absent — graceful (no anthropic needed to plan)
+        return {"error": f"agents runtime unavailable: {exc}", "ingest_cyphers": []}
+
+    cid = (cycle_id or "manual").strip()
+    sub_qs = tuple(
+        str(f.get("domain") or f.get("sub_question") or f"q{i}") for i, f in enumerate(findings)
+    )
+    results = tuple(
+        SubagentResult(
+            name=str(f.get("agent_id") or f"agent-{i}"),
+            ok=bool(f.get("ok", True)),
+            text=str(f.get("text") or f.get("summary") or ""),
+        )
+        for i, f in enumerate(findings)
+    )
+    report = ResearchReport(
+        topic=topic,
+        n=n or len(findings),
+        sub_questions=sub_qs,
+        findings=results,
+        synthesis=synthesis,
+    )
+    cyphers = ingest_cypher(report, cid)
+    return {
+        "topic": topic,
+        "cycle_id": cid,
+        "finding_count": len(findings),
+        "ingest_cyphers": [{"cypher": c, "params": p} for c, p in cyphers],
+        "note": "PROPOSE (MERGE-only, idempotent). Apply via kg_query(mutate=true).",
+    }
+
+
 def register(mcp: Any) -> None:
-    """Attach `prometheus_research` tool to the FastMCP instance."""
+    """Attach the `prometheus_research` + `prometheus_ingest` tools to the FastMCP instance."""
 
     @mcp.tool()
     def prometheus_research(topic: str, n: int = 0) -> dict[str, Any]:
@@ -82,3 +141,18 @@ def register(mcp: Any) -> None:
         Returns: ResearchPlan dict (n, strategy, matrix, kg_first 지령).
         """
         return prometheus_research_impl(topic, n)
+
+    @mcp.tool()
+    def prometheus_ingest(
+        topic: str,
+        findings: list[dict[str, Any]],
+        synthesis: str = "",
+        cycle_id: str = "",
+        n: int = 0,
+    ) -> dict[str, Any]:
+        """Crystallize gathered research findings into the KG (프로메테우스의 KG-write 반쪽).
+
+        Returns idempotent MERGE cyphers (a Lesson + ResearchFinding nodes) to apply via
+        kg_query(mutate=true). The MCP layer proposes; the caller applies.
+        """
+        return prometheus_ingest_impl(topic, findings, synthesis, cycle_id, n)

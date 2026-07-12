@@ -11,9 +11,12 @@ graceful degrade: AgentClient가 키 부재면 AgentRuntimeUnavailable → CLI�
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from engine.agents import naesengmoon
 from engine.agents.client import AgentClient
@@ -115,6 +118,85 @@ class ResearchReport:
             f"prometheus[{self.topic}]: planned={self.n} "
             f"researched_ok={ok}/{len(self.findings)}{g}{kpart}{vpart}{dpart}{ppart}"
         )
+
+
+# ── KG ingest (the "write" half of prometheus's acquire essence — PROPOSE default) ─
+
+_INGEST_LESSON = (
+    "MERGE (l:Lesson {name: $lesson}) "
+    "ON CREATE SET l.problem = $topic, l.category = 'prometheus-research', "
+    "l.createdAt = datetime() "
+    "SET l.synthesis = $synthesis, l.cycle_id = $cycle_id, l.n = $n, "
+    "l.researched_ok = $researched_ok "
+    "RETURN l.name AS lesson"
+)
+_INGEST_FINDINGS = (
+    "MATCH (l:Lesson {name: $lesson}) "
+    "UNWIND $findings AS f "
+    "MERGE (rf:ResearchFinding {name: f.name}) "
+    "SET rf.domain = f.domain, rf.oneLineSummary = f.summary, rf.status = f.status, "
+    "rf.agentId = f.agentId, rf.confidence = f.confidence, rf.cycle_id = $cycle_id, "
+    "rf.researchedAt = datetime() "
+    "MERGE (l)-[:HAS_RESEARCH]->(rf) "
+    "RETURN count(rf) AS ingested"
+)
+
+
+def _finding_id(topic: str, sub_question: str, idx: int) -> str:
+    """Deterministic finding id → idempotent MERGE (re-ingest never duplicates)."""
+    digest = hashlib.sha256(f"{topic}::{sub_question}::{idx}".encode()).hexdigest()[:16]
+    return f"finding_{digest}"
+
+
+def ingest_cypher(report: ResearchReport, cycle_id: str) -> list[tuple[str, dict[str, Any]]]:
+    """PROPOSE: the (cypher, params) MERGE statements that crystallize a ResearchReport
+    into the KG — a Lesson + N ResearchFinding nodes, UNWIND-batched, deterministic ids
+    (idempotent). Returns them; does NOT execute. The caller applies via a runner
+    (gate on --apply). This is the "KG write" half of prometheus's acquire essence."""
+    lesson = f"lesson-prom-{cycle_id}"
+    ok = sum(1 for f in report.findings if f.ok)
+    findings: list[dict[str, Any]] = []
+    for idx, f in enumerate(report.findings):
+        sub_q = report.sub_questions[idx] if idx < len(report.sub_questions) else f.name
+        findings.append(
+            {
+                "name": _finding_id(report.topic, sub_q, idx),
+                "domain": sub_q,
+                "summary": (f.text or "")[:2000],
+                "status": "RESEARCHED" if f.ok else "FAILED",
+                "agentId": f.name,
+                "confidence": "MEDIUM",
+            }
+        )
+    return [
+        (
+            _INGEST_LESSON,
+            {
+                "lesson": lesson,
+                "topic": report.topic,
+                "synthesis": report.synthesis,
+                "cycle_id": cycle_id,
+                "n": report.n,
+                "researched_ok": ok,
+            },
+        ),
+        (_INGEST_FINDINGS, {"lesson": lesson, "findings": findings, "cycle_id": cycle_id}),
+    ]
+
+
+def ingest_report(
+    report: ResearchReport,
+    write_cypher: Callable[[str, dict[str, Any]], list[dict[str, Any]]],
+    cycle_id: str,
+) -> int:
+    """APPLY: execute ingest_cypher via a write_cypher runner. Returns the number of
+    ResearchFinding nodes ingested. Call only when persistence is desired (--apply)."""
+    ingested = 0
+    for cypher, params in ingest_cypher(report, cycle_id):
+        rows = write_cypher(cypher, params)
+        if rows and isinstance(rows[0], dict) and "ingested" in rows[0]:
+            ingested = int(rows[0]["ingested"])
+    return ingested
 
 
 def plan_axes(topic: str, n: int, client: AgentClient, *, grounding: str = "") -> list[str]:
