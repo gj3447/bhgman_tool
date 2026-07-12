@@ -186,6 +186,7 @@ exclude = [
   "**/test_*.py",
   "**/conftest.py",
   "**/bench",
+  "**/*.md",  # docs/notes bundled under engine/ are not runtime code (bhg-f-wheel-doc-bloat)
 ]
 
 [tool.hatch.build.targets.sdist]
