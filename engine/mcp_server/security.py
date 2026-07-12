@@ -287,3 +287,16 @@ def audit_tool_call(
         capabilities=caps,
         verdict=verdict,
     )
+
+
+def enforce_call(tool_name: str, arguments: dict[str, Any]) -> SecurityReport:
+    """Per-call enforcement entry point (bhg-f-mcp-security-boot-only): audit a live tool
+    call and RAISE :class:`SecurityViolation` if the verdict is DENY (ENFORCE mode + a
+    HIGH prompt-injection detection). Returns the report on ALLOW. The FastMCP middleware
+    calls this on every tool invocation, so enforcement is now per-call, not boot-only."""
+    report = audit_tool_call(tool_name, arguments)
+    if report.verdict == "DENY":
+        raise SecurityViolation(
+            f"MCP security ENFORCE: denied '{tool_name}' — HIGH prompt-injection in arguments"
+        )
+    return report

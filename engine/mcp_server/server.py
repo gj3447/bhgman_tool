@@ -64,12 +64,36 @@ def build_server() -> Any:
     register_legion(mcp)
     register_hades(mcp)
 
-    # Security audit (PROM 16 lever ④): log the toolset's lethal-trifecta profile.
-    # ⚠ This is a ONE-SHOT boot-time profiler, NOT a live guard: it runs once here
-    # and the FastMCP loop never calls audit_tool_call per invocation, so no live
-    # tool argument is ever scanned. Enforcement (BHGMAN_SECURITY_ENFORCE=1) only
-    # bites if a caller explicitly wraps a call with audit_tool_call — the live path
-    # does not. Per-call interception is a follow-up. See security.py docstring.
+    # Per-call security enforcement (bhg-f-mcp-security-boot-only): a FastMCP middleware
+    # runs enforce_call on EVERY tool invocation, scanning the live arguments for
+    # prompt-injection. AUDIT mode (default) logs and never blocks; ENFORCE mode
+    # (BHGMAN_SECURITY_ENFORCE=1) raises SecurityViolation on a HIGH detection → the call
+    # is denied. Fail-open: any wiring error is swallowed so a bug never breaks a real call.
+    try:
+        from fastmcp.server.middleware import Middleware
+
+        from .security import SecurityViolation, enforce_call
+
+        class _SecurityMiddleware(Middleware):  # type: ignore[misc]
+            async def on_call_tool(self, context: Any, call_next: Any) -> Any:
+                try:
+                    msg = getattr(context, "message", None)
+                    name = getattr(msg, "name", "") or ""
+                    args = getattr(msg, "arguments", None) or {}
+                    if name:
+                        enforce_call(name, args)  # raises SecurityViolation on DENY
+                except SecurityViolation:
+                    raise  # ENFORCE + HIGH → deny the call
+                except Exception:  # fail-open: any other error must not break a real call
+                    pass
+                return await call_next(context)
+
+        mcp.add_middleware(_SecurityMiddleware())
+    except Exception:  # pragma: no cover — middleware wiring must never break server build
+        logger.debug("MCP security middleware not wired (non-fatal)", exc_info=True)
+
+    # Boot-time trifecta profiler (static toolset composition; complements the per-call
+    # middleware above): log the toolset's lethal-trifecta profile once.
     try:
         from .security import audit_toolset, current_mode
 
