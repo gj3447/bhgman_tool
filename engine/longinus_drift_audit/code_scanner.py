@@ -273,7 +273,7 @@ def scan_root(
     downstream GED / dict-keyed structures stay deterministic across both
     codepaths (sequential and parallel must produce byte-identical AuditReport).
 
-    Env override: ``LONGINUS_PARALLEL_FILE_THRESHOLD`` (default 100).
+    Env override: ``LONGINUS_PARALLEL_FILE_THRESHOLD`` (default 5000).
     """
     files = sorted(iter_files(root))
     thresh = threshold if threshold is not None else _DEFAULT_PARALLEL_THRESHOLD

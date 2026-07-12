@@ -101,7 +101,8 @@ def realize_code_template(
     dry_run: bool = True,
 ) -> RealizeVerdict:
     # KG: hades-canonical-2026-05-27
-    """코드 추상 실현: LGG 템플릿 → Extract Superclass/shared-fn refactor. **PLANNED만(dry-run)**.
+    """코드 추상 실현 (string plan only). **PLANNED만(dry-run)** — SUPERSEDED by
+    realize_code_extract_superclass (real CST refactor); kept for its tests, not in __all__.
 
     가드: ≤max_sites 점진 rollout (분산장애 차단). 실제 apply는 characterization test gate 후 별도.
     """
@@ -191,6 +192,8 @@ __all__ = [
     "CodeWriter",
     "CypherRunner",
     "realize_code_extract_superclass",
-    "realize_code_template",
     "realize_kg_abstraction",
 ]
+# realize_code_template is intentionally NOT exported: it emits a string plan only and is
+# superseded by realize_code_extract_superclass (real CST refactor). Kept for its tests.
+# bhg-f-docstring-overclaims
