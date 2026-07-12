@@ -16,6 +16,17 @@
 > where `qwen2.5:32b` is local and commit that JSONL. The original (uncommitted) Run B prose is kept
 > below for provenance, no longer marked authoritative.
 >
+> ✅ **SUPERSEDED 2026-06-14 (same day, later run): the 32b reproduction WAS committed.**
+> [`headroom_32b_2026-06-14/`](headroom_32b_2026-06-14/) re-ran `qwen2.5:32b-instruct` (K=4, n=10)
+> **with raw JSONL committed** (`seed_0..seed_90.jsonl`) → **8W / 2T / 0L, p=0.007812, repair_favored**
+> (`HeadroomVerdict` invariants PASS), reproducing (slightly strengthening) the historical p=0.016. The
+> "unreproduced / re-run on dgx needed" wording immediately above is therefore **stale** — H2 is closed
+> at the analyzer level. The **7b NULL (p=1.00) stands as a capability-floor negative control (K2)**, not
+> a refutation. But the committed crack is uncontrolled: it is now labeled **PLAUSIBLE-uncontrolled** (no
+> token/decoy control, per-task signal concentrated in `sumto_mono`). The frozen design + stopping rules
+> for the next *controlled* confirmation live in [`PIERCE_PREREGISTRATION.md`](PIERCE_PREREGISTRATION.md)
+> + [`KILL_CRITERIA.md`](KILL_CRITERIA.md).
+>
 > ~~**Headline: a powered re-test (Run B) OVERTURNS Run A's thin-band null.** With a proper headroom band
 > (10 tasks, 5 live) and 10 replications, the oracle-guided repair loop beats best-of-N on boundary
 > headroom Lean tasks — reproducibly and significantly (sign-test p=0.016, repair ≥ best-of-N in 10/10
