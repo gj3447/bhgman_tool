@@ -90,3 +90,27 @@ def test_lean_temp_overrides_p1_temp(monkeypatch):
     complete, _ = lhr._make_complete()
     complete([{"role": "system", "content": "S"}, {"role": "user", "content": "U"}], 1)
     assert _SPY.calls[0]["temperature"] == 0.5
+
+
+class _ProvenV:
+    compiles = True
+    proven = True
+    graded_score = 1.0
+    error_tail = ""
+    sorry_tainted = False
+
+
+def test_attempt_records_token_usage_from_complete(monkeypatch):
+    """per-attempt input_tokens/output_tokens are recorded from complete.last_usage (prereg P4)."""
+    from engine.efficacy.lean_tasks import TASKS
+
+    _install_frontier(monkeypatch)  # spy Completion carries input_tokens=3, output_tokens=5
+    complete, _ = lhr._make_complete()
+    logged: list[dict] = []
+    monkeypatch.setattr(lhr, "_log_record", lambda log, rec: logged.append(rec))
+    monkeypatch.setattr(lhr, "evaluate", lambda *a, **k: _ProvenV())
+
+    lhr._arm_single(TASKS[0], complete, 0)
+    att = next(r for r in logged if r.get("record_type") == "attempt")
+    assert att["input_tokens"] == 3 and att["output_tokens"] == 5
+    assert att["model_calls"] == 1
