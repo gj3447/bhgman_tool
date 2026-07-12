@@ -120,6 +120,24 @@ def test_version_degrades_gracefully_in_wheel_only_install(monkeypatch, capsys):
     assert "wheel-only" in captured.out  # graceful note instead of traceback
 
 
+def test_route_skill_degrades_on_wheel_only_no_repo_root(monkeypatch, capsys):
+    """Cohort-B verbs route to SKILL.md via _repo_root(); on a wheel-only install
+    _repo_root raises RuntimeError — _route_skill must exit 2 with a note, not a
+    traceback (bhg-f-cohortb-wheel-crash)."""
+    from engine.cli import runtime
+
+    monkeypatch.delenv("SYMPOSIUM_ROOT", raising=False)
+
+    def _no_repo() -> object:
+        raise RuntimeError("bhgman_tool repo root not found (wheel-only)")
+
+    monkeypatch.setattr(runtime, "_repo_root", _no_repo)
+    rc = runtime._route_skill("tlb", [])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "SYMPOSIUM_ROOT" in captured.err  # actionable hint, not a bare traceback
+
+
 def test_install_skills_dry_run(tmp_path, capsys):
     target = tmp_path / "fake-claude-skills"
     rc = cli(["install-skills", "--target", str(target), "--dry-run"])

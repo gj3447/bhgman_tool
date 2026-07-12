@@ -82,8 +82,15 @@ def _route_skill(skill_name: str, args: list[str]) -> int:
     """Print routing intent to stderr, SKILL.md path to stdout. Drift prevention: do NOT execute."""
     try:
         skill_md = _resolve_skill_md(skill_name)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, RuntimeError) as e:
+        # RuntimeError = _repo_root() found no checkout (pip-installed wheel: skills/ are
+        # symlinks into the submodule, not shipped) — degrade to a clear note, not a traceback.
         print(f"[bhgman-tool] FAIL: {e}", file=sys.stderr)
+        print(
+            "[bhgman-tool] hint: set SYMPOSIUM_ROOT to a checkout containing skills/ "
+            "(cohort-B verbs route to SKILL.md, absent from the wheel).",
+            file=sys.stderr,
+        )
         return 2
     print(
         f"[bhgman-tool] routing → /{skill_name} {' '.join(args)} (SKILL.md: {skill_md})",
