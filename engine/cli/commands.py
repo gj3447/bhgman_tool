@@ -241,11 +241,17 @@ def _cmd_apt_status(args: argparse.Namespace) -> int:
     target = getattr(args, "target", None)
     try:
         if target:
-            status = detect_phase(target, run_cypher)
+            status = detect_phase(target, run_cypher, with_blockers=True)
             print(f"[apt --status] {target}")
             print(f"  phase   : {status.phase}")
             print(f"  next    : {status.next_skill}")
             print(f"  evidence: {status.evidence}")
+            if status.blockers:
+                print(f"  blockers: {len(status.blockers)} node(s) blocking {status.next_skill}")
+                for b in status.blockers:
+                    print(f"    - {b.node}: {b.reason}")
+                if len(status.blockers) == 20:  # _BLOCKER_LIMIT; there may be more
+                    print("    … (first 20 shown; close these to reveal the rest)")
             if status.phase == "UNKNOWN":
                 print(
                     "  (backend could not answer — local KG lacks SA chain; navigation needs neo4j.)"
