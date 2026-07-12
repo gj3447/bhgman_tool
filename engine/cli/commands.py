@@ -37,7 +37,15 @@ def cmd_install_skills(args: argparse.Namespace) -> int:
     Mirrors README Quickstart step 4 (`cp -R skills/* ~/.claude/skills/`)
     but in Python so it runs on Windows + reports what changed.
     """
-    src = _repo_root() / "skills"
+    try:
+        src = _repo_root() / "skills"
+    except RuntimeError:
+        print(
+            "[install-skills] FAIL: no source checkout (pip-installed wheel ships no skills/). "
+            "Set SYMPOSIUM_ROOT to a checkout, or run from a git clone.",
+            file=sys.stderr,
+        )
+        return 2
     target = Path(args.target).expanduser().resolve()
 
     if not src.is_dir():
@@ -90,7 +98,15 @@ def cmd_verify(args: argparse.Namespace) -> int:
     Not a coverage report. Reports exit codes of the underlying tools.
     Goodhart safeguard: this prints raw exit codes, not a single summary score.
     """
-    root = _repo_root()
+    try:
+        root = _repo_root()
+    except RuntimeError:
+        print(
+            "[verify] FAIL: no source checkout (pip-installed wheel ships no engine/ tests). "
+            "Set SYMPOSIUM_ROOT to a checkout, or run from a git clone.",
+            file=sys.stderr,
+        )
+        return 2
     failures: list[str] = []
 
     if args.scope in ("engine", "all"):

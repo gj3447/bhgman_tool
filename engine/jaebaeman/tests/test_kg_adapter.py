@@ -5,9 +5,14 @@
 
 from __future__ import annotations
 
+import dataclasses
+
+import pytest
+
 from engine.jaebaeman.jaebaeman_models import SeedRecord
 from engine.jaebaeman.kg_adapter import (
     FORBIDDEN_TOKENS,
+    _assert_seed_valid,
     build_decomposes_to_edge,
     build_has_seed_edge,
     build_seed_merge,
@@ -40,6 +45,35 @@ def _seed(name="seed-jaebaeman-g", source_id="span-g", parent=None, depth=0):
         depth=depth,
         parent=parent,
     )
+
+
+def test_covenant_accepts_valid_injected_seed():
+    _assert_seed_valid(_seed())  # no raise
+    cypher, params = build_seed_merge(_seed(), "cyc")
+    assert params["name"] == "seed-jaebaeman-g"
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"name": ""},
+        {"name": "   "},
+        {"skill": ""},
+        {"source_id": ""},
+        {"depth": -1},
+    ],
+)
+def test_covenant_rejects_malformed_injected_seed(bad):
+    """The covenant now inspects the ACTUAL injected seed fields (not just the constant
+    _SEED_MERGE template) — a keyless/malformed writ is rejected before the write."""
+    seed = dataclasses.replace(_seed(), **bad)
+    with pytest.raises(AssertionError, match="covenant"):
+        build_seed_merge(seed, "cyc")
+
+
+def test_covenant_message_names_the_offending_injected_field():
+    with pytest.raises(AssertionError, match="seed.skill"):
+        build_seed_merge(dataclasses.replace(_seed(), skill=""), "cyc")
 
 
 def test_seed_merge_is_merge_not_destructive():

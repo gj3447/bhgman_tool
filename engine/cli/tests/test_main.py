@@ -138,6 +138,35 @@ def test_route_skill_degrades_on_wheel_only_no_repo_root(monkeypatch, capsys):
     assert "SYMPOSIUM_ROOT" in captured.err  # actionable hint, not a bare traceback
 
 
+def test_install_skills_degrades_gracefully_on_wheel_only(monkeypatch, capsys):
+    """install-skills on a pip-installed wheel (_repo_root raises) must exit 2 with a
+    note, not a RuntimeError traceback (bhg-f-install-needs-source-submodule)."""
+
+    def _no_repo() -> object:
+        raise RuntimeError("bhgman_tool repo root not found (wheel-only)")
+
+    monkeypatch.setattr("engine.cli.commands._repo_root", _no_repo)
+    rc = cli(["install-skills", "--target", "/tmp/bhg-install-target"])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "FAIL" in captured.err
+    assert "SYMPOSIUM_ROOT" in captured.err
+
+
+def test_verify_degrades_gracefully_on_wheel_only(monkeypatch, capsys):
+    """verify on a pip-installed wheel (_repo_root raises) must exit 2 with a note."""
+
+    def _no_repo() -> object:
+        raise RuntimeError("bhgman_tool repo root not found (wheel-only)")
+
+    monkeypatch.setattr("engine.cli.commands._repo_root", _no_repo)
+    rc = cli(["verify"])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "FAIL" in captured.err
+    assert "SYMPOSIUM_ROOT" in captured.err
+
+
 def test_install_skills_dry_run(tmp_path, capsys):
     target = tmp_path / "fake-claude-skills"
     rc = cli(["install-skills", "--target", str(target), "--dry-run"])
