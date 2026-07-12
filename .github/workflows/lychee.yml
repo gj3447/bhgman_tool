@@ -117,3 +117,9 @@ jobs:
               sys.exit(1)
           print(f"All SKILL.md frontmatter validated")
           PY
+
+      - name: README translation parity (informational — surfaces silent drift)
+        # bhg-f-readme-translation-drift: warns (::warning::) when a translation has fewer
+        # sections than README.md, so drift can no longer land silently. Exit 0 (advisory);
+        # native re-translation of the missing sections is a human content task.
+        run: python bin/check_readme_parity.py
