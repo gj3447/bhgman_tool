@@ -173,10 +173,30 @@ def _assert_covenant(cypher: str) -> None:
         raise AssertionError(f"jaebaeman covenant violation: {violations} in seed-write cypher")
 
 
+def _assert_seed_valid(seed: SeedRecord) -> None:
+    """Covenant on the INJECTED writ (not just the constant template): a plantable seed
+    must carry the MERGE identity key (non-empty name) + required provenance (non-empty
+    skill/source_id, depth ≥ 0). A malformed seed would MERGE a keyless/junk node — caught
+    here before the write, so the covenant now inspects the ACTUAL injected fields rather
+    than only re-checking a hardcoded template. bhg-f-jaebaeman-tautological-covenant."""
+    for field_name, value in (
+        ("name", seed.name),
+        ("skill", seed.skill),
+        ("source_id", seed.source_id),
+    ):
+        if not (isinstance(value, str) and value.strip()):
+            raise AssertionError(f"jaebaeman covenant: seed.{field_name} empty/invalid: {value!r}")
+    if not isinstance(seed.depth, int) or seed.depth < 0:
+        raise AssertionError(
+            f"jaebaeman covenant: seed.depth invalid ({seed.depth!r}) for '{seed.name}'"
+        )
+
+
 def build_seed_merge(seed: SeedRecord, cycle_id: str) -> tuple[str, dict]:
     # KG: 재배맨-v2-subagent-runtime-protocol
-    """씨앗 MERGE cypher + params. covenant: 파괴적 토큰 부재를 assert로 강제."""
+    """씨앗 MERGE cypher + params. covenant: 파괴 토큰 부재(template) + 주입 seed 유효성(injected writ)."""
     _assert_covenant(_SEED_MERGE)
+    _assert_seed_valid(seed)
     params = {
         "name": seed.name,
         "skill": seed.skill,
@@ -198,6 +218,7 @@ def build_has_seed_edge(seed: SeedRecord, wave: int, cycle_id: str) -> tuple[str
     if seed.source_id == seed.name:
         return None
     _assert_covenant(_HAS_SEED_EDGE)
+    _assert_seed_valid(seed)
     return _HAS_SEED_EDGE, {
         "anchor": seed.source_id,
         "seed": seed.name,
