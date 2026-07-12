@@ -141,11 +141,10 @@ bhgman-tool kg-schema --emit neo4j | cypher-shell
 ## Quickstart (3 min)
 
 ```bash
-# skills/ are backed by the symposium-skills submodule — clone with --recurse-submodules,
-# else skills/* dangle and prom/tlb/apt/harness routing fails.
-git clone --recurse-submodules https://github.com/gj3447/bhgman_tool.git
+# skills/ are symlinks into the vendored symposium-skills/ tree (both tracked in the
+# repo — no submodule), so a plain clone is enough for prom/tlb/apt/harness routing.
+git clone https://github.com/gj3447/bhgman_tool.git
 cd bhgman_tool
-# (already cloned without it? → git submodule update --init --recursive)
 
 # 1. engine — verify pytest (run from repo ROOT; tests use absolute `engine.longinus_drift_audit.*`
 #    imports, and --all-extras pulls suite deps like python-frontmatter)
