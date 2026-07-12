@@ -8,6 +8,8 @@ anchors, not titles). Informational by default (exit 0, emits a GitHub ::warning
 pass ``--strict`` to fail CI once the translations are re-synced by a human.
 """
 
+# KG: bhg-f-readme-translation-drift-2026-06-16, audit-bhgman-tool-codex-feedback-and-deep-review-2026-06-16
+
 from __future__ import annotations
 
 import re
