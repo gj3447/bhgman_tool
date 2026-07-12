@@ -1,10 +1,15 @@
-"""Graph Edit Distance — Sanfeliu-Fu 1983 + Hungarian bipartite (Riesen-Bunke 2009).
+"""Label-based Graph Edit Distance (set-difference approximation).
+
+Uses the Sanfeliu-Fu (1983) additive edit-cost model, but node matching is by LABEL
+identity (sourceId/symbol-name set difference) — it is NOT the Hungarian bipartite
+assignment (Riesen-Bunke 2009). Hungarian assignment is the exact-matching upgrade,
+not what this computes.
 
 GED(G_kg, G_code) = Σ(c_ins + c_del + c_relabel)
 Drift Score = GED / max(|V_kg|, |V_code|)
 
-본 prototype 은 *간단한 label-based* GED (full graph isomorphism 아님).
-실 production: networkx graph_edit_distance 위임 권장.
+Prototype: simple label-based GED (not full graph isomorphism). For exact matching,
+delegate to networkx graph_edit_distance (Hungarian) in production.
 """
 # KG: ATOM_Skill_longinus
 

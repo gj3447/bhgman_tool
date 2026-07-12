@@ -22,8 +22,11 @@ fi
 # Catalog v1 (mirrors KG :GrepPatternCatalog grep-pattern-catalog-v1-2026-05-20).
 PATTERN='GraphDatabase\.|neo4j\.driver|psycopg|asyncpg|aiosqlite|pymongo|sqlalchemy\.create_engine|redis\.Redis|redis\.asyncio|aioredis|httpx|aiohttp|requests\.|urllib\.|websocket|sse_starlette|tornado|sanic|socket\.socket|socket\.create_connection|asyncio\.open_connection|paramiko|fabric|invoke\.run|celery|kombu|pika|kafka|nats|aio_pika|aiokafka|zmq|subprocess|multiprocessing|grpc|xmlrpc|rpyc|Pyro|jsonrpc|fastapi|uvicorn|gunicorn'
 
-TOTAL_PY=$(find "$ROOT" -name "*.py" -not -path "*__pycache__*" | wc -l | tr -d ' ')
-HITS=$(grep -rElZ "$PATTERN" "$ROOT" --include="*.py" 2>/dev/null | tr '\0' '\n' | grep -v '^$' | wc -l | tr -d ' ')
+# Exclude vendored virtualenvs: counting .venv/*.py inflated BOTH the denominator and
+# the grep numerator with third-party package density, making the ratio measure package
+# imports rather than engine coverage — effectively a no-op (bhg-f-audit-coverage-noop).
+TOTAL_PY=$(find "$ROOT" -name "*.py" -not -path "*__pycache__*" -not -path "*/.venv/*" | wc -l | tr -d ' ')
+HITS=$(grep -rElZ "$PATTERN" "$ROOT" --include="*.py" --exclude-dir=.venv 2>/dev/null | tr '\0' '\n' | grep -v '^$' | wc -l | tr -d ' ')
 
 if [[ "$TOTAL_PY" -eq 0 ]]; then
   echo "FAIL: no .py files under $ROOT" >&2
