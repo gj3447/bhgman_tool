@@ -8,8 +8,32 @@
 """
 # KG: eureka-canonical-2026-05-26
 
-from engine.eureka.induction_operators.fca import FcaResult, induce_fca
+from engine.eureka.induction_operators.fca import (
+    FcaResult,
+    concept_join,
+    concept_meet,
+    covering_relation,
+    enumerate_concepts,
+    induce_fca,
+)
+from engine.eureka.induction_operators.fca_fsm import (
+    ConceptLattice,
+    InductionFSM,
+    InductionState,
+)
 from engine.eureka.induction_operators.leiden_llm import induce_leiden_llm
 from engine.eureka.induction_operators.leiden_true import induce_leiden_true
 
-__all__ = ["FcaResult", "induce_fca", "induce_leiden_llm", "induce_leiden_true"]
+__all__ = [
+    "ConceptLattice",
+    "FcaResult",
+    "InductionFSM",
+    "InductionState",
+    "concept_join",
+    "concept_meet",
+    "covering_relation",
+    "enumerate_concepts",
+    "induce_fca",
+    "induce_leiden_llm",
+    "induce_leiden_true",
+]
