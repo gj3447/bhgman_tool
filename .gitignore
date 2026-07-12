@@ -23,6 +23,10 @@ htmlcov/
 .tox/
 .mypy_cache/
 .ruff_cache/
+.complexipy_cache/
+
+# machine-generated hardening/audit artifacts (not source; regenerated on demand)
+.hardening_findings_*.json
 
 # Lean
 .lake/
