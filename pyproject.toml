@@ -143,20 +143,13 @@ gate-test = [
     "fakeredis>=2.24",
 ]
 # Convenience aggregate — everything except dev tools
+# Self-referential union of every runtime feature extra (drift-proof: a dep added to
+# any extra below now flows into [all] automatically). Excludes dev / resolver-test /
+# gate-test (tooling-only). Was a hand-maintained flat list that silently omitted
+# code_to_kg / provexport / hades-cst / eureka-leiden / memory / verdict-asym
+# (bhg-f-all-extra-incomplete, 2026-06-16 audit).
 all = [
-    "python-frontmatter>=1.1.0",
-    "Jinja2>=3.1.4",
-    "neo4j>=5.20.0",
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "redis>=5.0",
-    "tenacity>=9.0",
-    "structlog>=24.4",
-    "httpx>=0.27",
-    "opentelemetry-sdk>=1.20",
-    "opentelemetry-exporter-otlp>=1.20",
-    "anthropic>=0.40",
-    "fastmcp>=2.0",
+    "bhgman_tool[resolver,code_to_kg,provexport,hades-cst,eureka-leiden,gate,longinus,otel,agents,mcp,verdict-asym,memory,harness-console]",
 ]
 # 세 자매 방법론 (sibling repos under PROJECT/PI) — DEV-ONLY, intentionally NOT a package extra:
 #   ooptdd        — log-based / positive-TDD trace gates (pytest11 plugin; memory backend)
