@@ -364,6 +364,7 @@ DEP003 = ["opentelemetry",
           "ooptdd", "ooptdd_loop"]
 # DEP002 = "declared but not used in code" — packaging/CI/lint tools + placeholders
 DEP002 = [
+  "bhgman_tool",      # self-referential [all] extra = union of feature extras (metadata, not a code import)
   "pytest-cov",       # CI workflow (.github/workflows/pytest.yml)
   "ruff",             # uvx-invoked lint tool (no Python import)
   "mypy",             # uvx-invoked type checker (no Python import)
