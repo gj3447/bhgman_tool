@@ -1,0 +1,37 @@
+# SYMPOSIUM CHU Wolfram-rewrite dynamics layer — ooptdd-loop spec (the RED artifact).
+#
+# Two trace gates, each Longinus-bound to a REAL emitting symbol in
+# ooptdd/chu_wolfram_adapter.py. The adapter ships these events only by genuinely running
+# the Lean elaborator on MIND/lean_formalization/CHU_WolframRewrite.lean off disk. A gate
+# goes DONE iff it is GREEN *and* its bound symbol's body literally contains the must_emit
+# event string (AST-checked). A broken Lean proof => nonzero exit => no event => RED.
+#
+# Run:  uv run ooptdd-loop run ooptdd/chu_wolfram_requirements.yaml --json
+name: symposium-chu-wolfram
+
+target:
+  mode: in_process
+  callable: ooptdd.chu_wolfram_adapter:run_chu_ptdd   # run_chu_ptdd(backend, cid)
+  backend: memory                                     # zero-infra in-process store
+  root: .                                             # repo root: Longinus source + import
+
+requirements:
+  - id: REQ-CHU-LEAN-VERIFIED
+    description: the CHU Wolfram-rewrite dynamics-layer Lean artifact elaborates clean (exit 0)
+    gate:
+      - {event: chu_wolfram_lean_verified, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-chu-wolfram-lean-adapter-2026-07-13
+      source: ooptdd/chu_wolfram_adapter.py
+      symbol: verify_chu_lean
+      must_emit: chu_wolfram_lean_verified
+
+  - id: REQ-CHU-TRUNCATION-PROVEN
+    description: the strict_truncation theorem (Neo4j=1-category collapse, Prop 4.3) is genuinely proven
+    gate:
+      - {event: chu_strict_truncation_proven, op: ">=", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-chu-wolfram-lean-adapter-2026-07-13
+      source: ooptdd/chu_wolfram_adapter.py
+      symbol: check_truncation_theorem
+      must_emit: chu_strict_truncation_proven
