@@ -1,0 +1,58 @@
+# bhgman_tool engineboy 창발(emergence) 엔진 — ooptdd-loop spec (the RED artifact).
+#
+# Four trace gates, each Longinus-bound to a REAL emitting symbol in ooptdd/emergence_adapter.py.
+# The adapter ships events ONLY by genuinely running engine.emergence (Hawkes weight, Hebbian
+# co-access, namespace isolation) and re-deriving counts from the resulting engine state — never
+# from a return flag. Literals live in the ADAPTER, never in engine/emergence/. A gate goes DONE
+# iff GREEN *and* its bound symbol's body contains the must_emit.
+#
+# Run:   ooptdd-loop validate-spec ooptdd/emergence_requirements.yaml
+#        ooptdd-loop run          ooptdd/emergence_requirements.yaml --json
+name: bhgman-engineboy-emergence
+
+target:
+  mode: in_process
+  callable: ooptdd.emergence_adapter:run_emergence_pipeline  # (backend, cid)
+  backend: memory
+  root: .
+
+requirements:
+  - id: REQ-EMG-RUN-COMPLETE
+    description: the real emergence pipeline runs and closes exactly once
+    gate:
+      - {event: emergence_run_complete, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-emergence-adapter-20260713
+      source: ooptdd/emergence_adapter.py
+      symbol: run_emergence_pipeline
+      must_emit: emergence_run_complete
+
+  - id: REQ-EMG-CLUSTER
+    description: Hebbian recovers latent clusters (intra/inter ratio > threshold), noise => RED
+    gate:
+      - {event: emergence_cluster_recovered, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-emergence-adapter-20260713
+      source: ooptdd/emergence_adapter.py
+      symbol: emit_cluster_phase
+      must_emit: emergence_cluster_recovered
+
+  - id: REQ-EMG-ISOLATION
+    description: private never lands in the shared tier under a near-embedding public query
+    gate:
+      - {event: emergence_private_isolated, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-emergence-adapter-20260713
+      source: ooptdd/emergence_adapter.py
+      symbol: emit_isolation_phase
+      must_emit: emergence_private_isolated
+
+  - id: REQ-EMG-CONVERGE
+    description: the real Hawkes stream converges to the analytic equilibrium
+    gate:
+      - {event: emergence_weight_converged, op: "==", count: 1}
+    longinus:
+      kg_anchor: finding-ooptdd-bhgman-emergence-adapter-20260713
+      source: ooptdd/emergence_adapter.py
+      symbol: emit_convergence_phase
+      must_emit: emergence_weight_converged

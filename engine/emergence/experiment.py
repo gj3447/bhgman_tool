@@ -47,7 +47,11 @@ class ExperimentResult:
         return self.intra_edge_mean > 3.0 * max(self.inter_edge_mean, 1e-9)
 
 
-def run_experiment(seed: int = 7, n_events: int = 800) -> ExperimentResult:
+_ALL_CONCEPTS = [c for members in LATENT.values() for c in members]
+
+
+def run_experiment(seed: int = 7, n_events: int = 800, noise: bool = False) -> ExperimentResult:
+    """noise=True → 공동접근을 클러스터 무시 전역 랜덤 (잠재구조 없음). honest-count 적대 축."""
     rng = random.Random(seed)
     # l1_capacity 를 희소하게 → HOT 은 경쟁 자원. 인기 클러스터가 상단 차지 (계층 창발).
     cfg = EmergenceConfig(lam=0.004, theta_warm=1.0, theta_hot=3.0, n_est=3, l1_capacity=6)
@@ -57,13 +61,15 @@ def run_experiment(seed: int = 7, n_events: int = 800) -> ExperimentResult:
 
     t = 0.0
     for i in range(n_events):
-        cl = rng.choices(names, weights=weights, k=1)[0]
-        members = rng.sample(LATENT[cl], k=rng.randint(2, 3))
-        primary, co = members[0], tuple(members[1:])
-        # 5% cross-cluster noise (실제 traffic 의 잡음)
-        if rng.random() < 0.05:
-            other = rng.choice([m for m in LATENT[rng.choice(names)]])
-            co = co + (other,)
+        if noise:
+            picks = rng.sample(_ALL_CONCEPTS, k=rng.randint(2, 3))  # 전역 랜덤, 클러스터 무시
+            primary, co = picks[0], tuple(picks[1:])
+        else:
+            cl = rng.choices(names, weights=weights, k=1)[0]
+            members = rng.sample(LATENT[cl], k=rng.randint(2, 3))
+            primary, co = members[0], tuple(members[1:])
+            if rng.random() < 0.05:  # 5% cross-cluster 잡음 (실제 traffic)
+                co = co + (rng.choice(LATENT[rng.choice(names)]),)
         actor = "human" if i % 2 == 0 else "ai"
         eng.ingest(AccessEvent(f"e{i}", primary, actor, t, co_keys=co))
         t += 1.0
