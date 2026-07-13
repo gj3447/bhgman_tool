@@ -25,6 +25,12 @@ from engine.emergence.protocols import (
     VisibilityState,
 )
 from engine.emergence.engine import EmergenceEngine, Transition, tier_of
+from engine.emergence.activation import (
+    Activation,
+    SeedFn,
+    spreading_activation,
+    two_stage_retrieve,
+)
 from engine.emergence.resolver import (
     IdentityResolver,
     InMemoryVectorResolver,
@@ -44,6 +50,10 @@ __all__ = [
     "EmergenceEngine",
     "Transition",
     "tier_of",
+    "Activation",
+    "SeedFn",
+    "spreading_activation",
+    "two_stage_retrieve",
     "IdentityResolver",
     "InMemoryVectorResolver",
     "Neo4jVectorResolver",

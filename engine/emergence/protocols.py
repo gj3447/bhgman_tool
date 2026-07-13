@@ -128,6 +128,11 @@ class Element:
     created_ts: float = 0.0
     state_since: float = 0.0         # 현재 state 진입 시각 (dwell-time 게이트)
     is_edge: bool = False
+    # hyperedge endpoints (is_edge=True only) — store keys of the two co-accessed nodes.
+    # Explicit so spreading-activation can build adjacency without parsing the "::"-joined
+    # edge key (ambiguous under tenant namespaces). None for nodes.
+    src: Optional[str] = None
+    dst: Optional[str] = None
     # ② Validity / ③ Visibility (직교)
     s_val: ValidityState = ValidityState.FRESH
     s_vis: VisibilityState = VisibilityState.PUBLISHED

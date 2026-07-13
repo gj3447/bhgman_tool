@@ -124,8 +124,11 @@ class EmergenceEngine:
             ck_res = self.resolver.resolve(ck, None, ns)
             if ck_res == resolved:
                 continue
-            ekey = self._edge_key(skey, self._store_key(ns, ck_res))
+            other = self._store_key(ns, ck_res)
+            ekey = self._edge_key(skey, other)
             edge = self._get_or_create(self.edges, ekey, ev.ts, True, vis, ns, ev.acl)
+            if edge.src is None:  # set once, on first creation
+                edge.src, edge.dst = skey, other
             self._touch(edge, ev.ts, ev.actor, is_edge=True)
 
         # SCORE (UCB)
