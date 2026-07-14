@@ -26,6 +26,7 @@ Run: P1_MODEL=qwen2.5:32b-instruct LEAN_K=4 uv run python -m engine.efficacy.lea
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
 import os
@@ -55,18 +56,35 @@ def _make_complete():
         )
 
         mx = int(os.environ.get("LEAN_MAX_TOKENS", "3072"))  # reasoning models think long
+        # seed/temperature MUST be threaded on the frontier/openai-compat path too, or best-of-N's K
+        # "independent" draws collapse to one greedy proof (the 2026-06-03 confound) — unfair on exactly
+        # the reachable dgx-LAN/cloud path. The local ollama path already threads seed; this one silently
+        # dropped it. temp default 0.8 (LEAN_HEADROOM_FAIRTEST); temp=0.0 would be greedy and ignore seed.
+        temp = float(os.environ.get("LEAN_TEMP") or os.environ.get("P1_TEMP", "0.8"))
 
-        def complete(messages, _seed):
+        def complete(messages, seed):
             system = next((m["content"] for m in messages if m["role"] == "system"), "")
             user = next((m["content"] for m in messages if m["role"] == "user"), "")
-            return client.complete(system=system, user=user, model=model, max_tokens=mx).text
+            c = client.complete(
+                system=system, user=user, model=model, max_tokens=mx, temperature=temp, seed=seed
+            )
+            # non-breaking token accounting (prereg P4): callers read `complete.last_usage` after each
+            # call. The (messages, seed) -> text contract is unchanged, so test doubles need no update.
+            complete.last_usage = (
+                int(getattr(c, "input_tokens", 0) or 0),
+                int(getattr(c, "output_tokens", 0) or 0),
+            )
+            return c.text
 
+        complete.last_usage = (0, 0)
         return complete, f"frontier:{model}"
 
     def complete(messages, seed):
         text, _ = _ollama(messages, seed)
+        complete.last_usage = (0, 0)  # local ollama does not surface per-call token usage here
         return text
 
+    complete.last_usage = (0, 0)
     return complete, f"local-ollama:{os.environ.get('P1_MODEL', 'qwen2.5:0.5b-instruct')}"
 
 
@@ -122,6 +140,8 @@ def _eval_attempt(
     run_meta: dict[str, Any] | None,
     prior_proof: str | None = None,
     used_feedback: bool = False,
+    in_tok: int = 0,
+    out_tok: int = 0,
 ):
     if run_meta is None:
         run_meta = {
@@ -151,6 +171,9 @@ def _eval_attempt(
         "graded_score": v.graded_score,
         "error_tail": v.error_tail,
         "error_tail_sha256": _sha256(v.error_tail),
+        "input_tokens": in_tok,  # prereg P4 token-parity accounting (0 when the backend hides usage)
+        "output_tokens": out_tok,
+        "model_calls": 1,
     }
     if prior_proof is not None:
         record["prior_proof_sha256"] = _sha256(prior_proof)
@@ -158,8 +181,15 @@ def _eval_attempt(
     return v
 
 
+def _usage(complete) -> tuple[int, int]:
+    """(input_tokens, output_tokens) of the last `complete` call — 0/0 if the backend hides usage
+    (prereg P4). Read immediately after `_gen`, which makes exactly one `complete` call."""
+    return getattr(complete, "last_usage", (0, 0))
+
+
 def _arm_single(task, complete, off=0, *, log: TextIO | None = None, run_meta=None):
     proof = _gen(task, complete, off)
+    ti, to = _usage(complete)
     v = _eval_attempt(
         task,
         proof,
@@ -168,6 +198,8 @@ def _arm_single(task, complete, off=0, *, log: TextIO | None = None, run_meta=No
         seed=off,
         log=log,
         run_meta=run_meta,
+        in_tok=ti,
+        out_tok=to,
     )
     return v.proven, v.graded_score
 
@@ -176,6 +208,7 @@ def _arm_repair(task, complete, k, off=0, *, log: TextIO | None = None, run_meta
     prior, err, best = None, None, 0.0
     for i in range(k):
         proof = _gen(task, complete, off + i, prior, err)  # varied seed + error feedback
+        ti, to = _usage(complete)
         v = _eval_attempt(
             task,
             proof,
@@ -186,6 +219,8 @@ def _arm_repair(task, complete, k, off=0, *, log: TextIO | None = None, run_meta
             run_meta=run_meta,
             prior_proof=prior,
             used_feedback=prior is not None,
+            in_tok=ti,
+            out_tok=to,
         )
         best = max(best, v.graded_score)
         if v.proven:
@@ -198,6 +233,7 @@ def _arm_bestn(task, complete, k, off=0, *, log: TextIO | None = None, run_meta=
     best = 0.0
     for i in range(k):  # varied seed → genuinely independent attempts (no oracle feedback)
         proof = _gen(task, complete, off + i)
+        ti, to = _usage(complete)
         v = _eval_attempt(
             task,
             proof,
@@ -206,10 +242,63 @@ def _arm_bestn(task, complete, k, off=0, *, log: TextIO | None = None, run_meta=
             seed=off + i,
             log=log,
             run_meta=run_meta,
+            in_tok=ti,
+            out_tok=to,
         )
         best = max(best, v.graded_score)
         if v.proven:
             return True, 1.0
+    return False, best
+
+
+@functools.lru_cache(maxsize=None)
+def _decoy_error_for(task_name: str) -> str:
+    """A well-formed-but-WRONG Lean error for `task_name`: evaluate a DIFFERENT task's reference proof
+    against THIS task's statement → a real Lean type/identifier error that gives NO valid guidance for
+    this task. Constant per task (seed-independent, cached). This is the decoy arm's placebo signal —
+    the same input-context volume as repair's real error, with the oracle SIGNAL removed."""
+    idx = next(i for i, t in enumerate(TASKS) if t.name == task_name)
+    task = TASKS[idx]
+    other = TASKS[(idx + 1) % len(TASKS)]
+    other_proof = getattr(other, "reference_proof", None)
+    if not other_proof:  # synthetic task with no reference proof → fixed placeholder decoy
+        return "unsolved goals\n"
+    v = evaluate(task.name, task.signature, other_proof, preamble=getattr(task, "preamble", ""))
+    return v.error_tail or "unsolved goals\n"  # fallback if the mismatched proof happens to compile
+
+
+def _arm_decoy(task, complete, k, off=0, *, log: TextIO | None = None, run_meta=None):
+    """Placebo control for _arm_repair (prereg P2). Identical K-loop + varied seed + prior-proof context
+    threading, but rounds 2+ feed a FIXED bogus error from a different task (_decoy_error_for), never
+    this task's real oracle error. repair>decoy AND decoy≈bestN ⇒ the win is oracle-CONTENT, not
+    input-context VOLUME. round 1 has no feedback (mirrors repair's first round exactly)."""
+    decoy = _decoy_error_for(task.name)
+    prior, best = None, 0.0
+    for i in range(k):
+        err = (
+            decoy if prior is not None else None
+        )  # bogus feedback from round 2 (mirror repair's shape)
+        proof = _gen(
+            task, complete, off + i, prior, err
+        )  # varied seed; DECOY error, not the oracle
+        ti, to = _usage(complete)
+        v = _eval_attempt(
+            task,
+            proof,
+            arm="decoy",
+            attempt=i + 1,
+            seed=off + i,
+            log=log,
+            run_meta=run_meta,
+            prior_proof=prior,
+            used_feedback=prior is not None,
+            in_tok=ti,
+            out_tok=to,
+        )
+        best = max(best, v.graded_score)
+        if v.proven:
+            return True, 1.0
+        prior = proof  # context volume matched to repair; the error is bogus
     return False, best
 
 
@@ -219,9 +308,11 @@ def _summary(rows: list) -> dict:
         "single": sum(1 for r in rows if r["single"]),
         "repair": sum(1 for r in rows if r["repair"]),
         "bestN": sum(1 for r in rows if r["bestN"]),
+        "decoy": sum(1 for r in rows if r.get("decoy")),
         "graded_single": round(sum(r["graded_single"] for r in rows), 2),
         "graded_repair": round(sum(r["graded_repair"] for r in rows), 2),
         "graded_bestN": round(sum(r["graded_bestN"] for r in rows), 2),
+        "graded_decoy": round(sum(r.get("graded_decoy", 0.0) for r in rows), 2),
         "of": len(rows),
     }
 
@@ -231,7 +322,9 @@ def _run_id(seed_offset: int) -> str:
     return f"lean-headroom-{stamp}-seed-{seed_offset}"
 
 
-def _task_record(run_meta: dict[str, Any], task, s_p, s_g, r_p, r_g, b_p, b_g) -> dict[str, Any]:
+def _task_record(
+    run_meta: dict[str, Any], task, s_p, s_g, r_p, r_g, b_p, b_g, d_p, d_g
+) -> dict[str, Any]:
     return {
         "record_type": "task_summary",
         "run_id": run_meta["run_id"],
@@ -244,6 +337,7 @@ def _task_record(run_meta: dict[str, Any], task, s_p, s_g, r_p, r_g, b_p, b_g) -
             "single": {"proven": s_p, "graded_score": s_g},
             "repair": {"proven": r_p, "graded_score": r_g},
             "bestN": {"proven": b_p, "graded_score": b_g},
+            "decoy": {"proven": d_p, "graded_score": d_g},
         },
     }
 
@@ -284,6 +378,7 @@ def _run_once(
         s_p, s_g = _arm_single(t, complete, seed_offset, log=log, run_meta=run_meta)
         r_p, r_g = _arm_repair(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         b_p, b_g = _arm_bestn(t, complete, k, seed_offset, log=log, run_meta=run_meta)
+        d_p, d_g = _arm_decoy(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         rows.append(
             {
                 "task": t.name,
@@ -291,15 +386,17 @@ def _run_once(
                 "single": s_p,
                 "repair": r_p,
                 "bestN": b_p,
+                "decoy": d_p,
                 "graded_single": s_g,
                 "graded_repair": r_g,
                 "graded_bestN": b_g,
+                "graded_decoy": d_g,
             }
         )
-        _log_record(log, _task_record(run_meta, t, s_p, s_g, r_p, r_g, b_p, b_g))
+        _log_record(log, _task_record(run_meta, t, s_p, s_g, r_p, r_g, b_p, b_g, d_p, d_g))
         print(
-            f"  [{t.difficulty:8s}] {t.name:12s} proven s/r/b={int(s_p)}/{int(r_p)}/{int(b_p)}  "
-            f"graded s/r/b={s_g:.1f}/{r_g:.1f}/{b_g:.1f}"
+            f"  [{t.difficulty:8s}] {t.name:12s} proven s/r/b/d={int(s_p)}/{int(r_p)}/{int(b_p)}/{int(d_p)}  "
+            f"graded s/r/b/d={s_g:.1f}/{r_g:.1f}/{b_g:.1f}/{d_g:.1f}"
         )
     hr = [r for r in rows if r["difficulty"] == "headroom"]
     out = {
@@ -312,6 +409,11 @@ def _run_once(
         > sum(r["bestN"] for r in hr),
         "repair_beats_bestN_on_headroom_graded": sum(r["graded_repair"] for r in hr)
         > sum(r["graded_bestN"] for r in hr),
+        # prereg P2: the win is oracle-CONTENT (not context-VOLUME) only if repair>decoy AND decoy≈bestN.
+        "repair_beats_decoy_on_headroom_proven": sum(r["repair"] for r in hr)
+        > sum(r.get("decoy", 0) for r in hr),
+        "decoy_minus_bestN_on_headroom_proven": sum(r.get("decoy", 0) for r in hr)
+        - sum(r["bestN"] for r in hr),
     }
     _log_record(log, {"record_type": "run_summary", **out})
     print(json.dumps(out, indent=1))

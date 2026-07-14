@@ -152,9 +152,10 @@ def test_runner_writes_attempt_task_and_run_jsonl(monkeypatch):
     records = [json.loads(line) for line in log.getvalue().splitlines()]
     assert [record["record_type"] for record in records] == [
         "run_start",
-        "attempt",
-        "attempt",
-        "attempt",
+        "attempt",  # single
+        "attempt",  # repair
+        "attempt",  # bestN
+        "attempt",  # decoy (prereg P2 placebo arm)
         "task_summary",
         "run_summary",
     ]
@@ -164,4 +165,6 @@ def test_runner_writes_attempt_task_and_run_jsonl(monkeypatch):
     assert attempt["proven"] is True
     assert records[-1]["headroom_only"]["repair"] == 1
     assert records[-1]["headroom_only"]["bestN"] == 1
+    assert records[-1]["headroom_only"]["decoy"] == 1  # seed-0 proof proves for every arm here
     assert summary["repair_beats_bestN_on_headroom_proven"] is False
+    assert summary["repair_beats_decoy_on_headroom_proven"] is False  # 1 == 1
