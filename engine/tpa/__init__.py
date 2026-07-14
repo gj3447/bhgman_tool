@@ -15,19 +15,36 @@ NovelPattern induction) stays SKILL.md orchestration (Rice-bound), per
 
 from __future__ import annotations
 
+from engine.tpa.fulfillment_gate import (
+    PhaseReceipt,
+    TpaFulfillmentGate,
+    Verdict,
+    evaluate_postcondition,
+)
 from engine.tpa.reverse_phase_detect import (
     ReversePhaseFacts,
     ReversePhaseStatus,
     classify_reverse_phase,
     detect_reverse_phase,
 )
-from engine.tpa.tpa_orchestrator import build_tpa_legion, run_tpa
+from engine.tpa.tpa_orchestrator import (
+    TpaReverseRun,
+    build_tpa_legion,
+    run_tpa,
+    run_tpa_gated,
+)
 
 __all__ = [
+    "PhaseReceipt",
     "ReversePhaseFacts",
     "ReversePhaseStatus",
+    "TpaFulfillmentGate",
+    "TpaReverseRun",
+    "Verdict",
     "build_tpa_legion",
     "classify_reverse_phase",
     "detect_reverse_phase",
+    "evaluate_postcondition",
     "run_tpa",
+    "run_tpa_gated",
 ]

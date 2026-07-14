@@ -22,11 +22,13 @@ it stays SKILL.md orchestration (Rice-bound). Engining it would be determinism t
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from engine.legion.legion import GateFn, Legion, LegionRun
 from engine.legion.legion_models import CommanderStage
+from engine.tpa.fulfillment_gate import PhaseReceipt, TpaFulfillmentGate
 
 
 def _degraded(key: str, reason: str) -> dict:
@@ -192,14 +194,55 @@ def build_tpa_legion() -> Legion:
     return legion
 
 
-def run_tpa(
+@dataclass(frozen=True)
+class TpaReverseRun:
+    """A gated reverse run + its FulfillmentGate trace (when the default gate was used)."""
+
+    run: LegionRun
+    fulfillment: TpaFulfillmentGate | None
+
+    @property
+    def receipts(self) -> tuple[PhaseReceipt, ...]:
+        return tuple(self.fulfillment.receipts) if self.fulfillment is not None else ()
+
+    @property
+    def all_passed(self) -> bool:
+        """Loop completed AND every phase postcondition was a clean PASS."""
+        if not self.run.completed:
+            return False
+        return self.fulfillment.all_passed if self.fulfillment is not None else True
+
+
+def run_tpa_gated(
     code_root: str | Path, *, kg_refs: dict | None = None, gate: GateFn | None = None
-) -> LegionRun:
-    """Recover design from `code_root`: extract → recover structure → recover pyramid → measure drift."""
+) -> TpaReverseRun:
+    """Reverse loop, gated by default. Returns the run + the FulfillmentGate for its receipts.
+
+    When `gate` is None a fresh `TpaFulfillmentGate` is installed so the reverse loop enforces
+    per-phase postconditions instead of silently reporting green — the FulfillmentGate parity
+    the TPA loop previously lacked (seed-tpa-fulfillmentgate-hardening-2026-07-13).
+    """
     ctx: dict = {"code_root": str(code_root)}
     if kg_refs is not None:
         ctx["kg_refs"] = kg_refs
-    return build_tpa_legion().run(ctx, gate=gate)
+    fulfillment = TpaFulfillmentGate() if gate is None else None
+    active_gate: GateFn = fulfillment if fulfillment is not None else gate  # type: ignore[assignment]
+    run = build_tpa_legion().run(ctx, gate=active_gate)
+    if fulfillment is None and isinstance(gate, TpaFulfillmentGate):
+        fulfillment = gate
+    return TpaReverseRun(run=run, fulfillment=fulfillment)
 
 
-__all__ = ["build_tpa_legion", "run_tpa"]
+def run_tpa(
+    code_root: str | Path, *, kg_refs: dict | None = None, gate: GateFn | None = None
+) -> LegionRun:
+    """Recover design from `code_root`: extract → recover structure → recover pyramid → measure drift.
+
+    Gated by default (FulfillmentGate) — a degraded extraction or an empty recovery now yields
+    `completed=False` instead of a false green. Pass an explicit `gate` to override, or use
+    `run_tpa_gated` to read the per-phase receipts.
+    """
+    return run_tpa_gated(code_root, kg_refs=kg_refs, gate=gate).run
+
+
+__all__ = ["TpaReverseRun", "build_tpa_legion", "run_tpa", "run_tpa_gated"]

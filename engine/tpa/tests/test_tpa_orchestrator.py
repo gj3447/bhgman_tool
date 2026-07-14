@@ -87,9 +87,12 @@ def test_ta_fires_real_detector_on_orphan_kg_ref(tmp_path):
 
 def test_missing_code_root_degrades_not_crashes(tmp_path):
     run = run_tpa(tmp_path / "does_not_exist")
-    # TCW degrades but still provides tcw_result -> loop proceeds, no contract violation
-    assert run.completed is True
+    # Graceful-degrade covenant holds: no crash, no contract violation (TCW still provided
+    # its key). FulfillmentGate hardening (seed-tpa-fulfillmentgate-hardening-2026-07-13):
+    # the degraded extraction is now surfaced as a gate FAIL, NOT a false-green completion.
     assert run.contract_violation is None
+    assert run.completed is not True
+    assert run.gate_failure is not None and "TCW" in run.gate_failure
 
 
 _SRC_SHARED = '''\
