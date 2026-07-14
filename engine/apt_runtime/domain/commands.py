@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from .canonical import (
     CanonicalEncodingError,
     CanonicalValue,
+    MAX_SIGNED_64,
     as_mapping,
     canonical_sha256,
     deep_freeze,
@@ -30,7 +31,10 @@ class CommandSchemaError(ValueError):
 def _text(name: str, value: object) -> str:
     if not isinstance(value, str) or not value:
         raise CommandSchemaError(f"{name} must be a non-empty string")
-    return normalize_text(value)
+    normalized = normalize_text(value)
+    if "\x00" in normalized:
+        raise CommandSchemaError(f"{name} cannot contain U+0000")
+    return normalized
 
 
 def _mapping(name: str, value: object) -> Mapping[str, CanonicalValue]:
@@ -74,8 +78,11 @@ class CanonicalCommandEnvelope:
             isinstance(self.expected_version, bool)
             or not isinstance(self.expected_version, int)
             or self.expected_version < 0
+            or self.expected_version > MAX_SIGNED_64
         ):
-            raise CommandSchemaError("expected_version must be a non-negative integer")
+            raise CommandSchemaError(
+                "expected_version must be a signed 64-bit non-negative integer"
+            )
         try:
             validate_rfc3339_utc_z("issued_at", self.issued_at)
         except EventSchemaError as exc:

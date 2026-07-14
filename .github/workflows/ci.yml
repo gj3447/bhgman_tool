@@ -6,8 +6,9 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  # Stacked APT slices target their predecessor branch before they are rebased
+  # onto main, so every PR base must receive the same gates.
+  pull_request: {}
   workflow_dispatch:
 
 permissions:
@@ -46,6 +47,40 @@ jobs:
         # engines (prometheus/legion/kg_local) go untested in CI. Now full repo.
         run: |
           uv run --all-extras pytest -q --tb=short
+
+  apt-postgres:
+    # Slice 1B parity must exercise a real server: mocks cannot prove transaction,
+    # advisory-lock, isolation, or catalog-signature behavior.
+    name: APT PostgreSQL parity (Py 3.12 / PG 17)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: apt_runtime_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d apt_runtime_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APT_RUNTIME_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/apt_runtime_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        run: pip install uv
+      - name: Run PostgreSQL adapter contract and crash tests
+        run: >-
+          uv run --all-extras pytest -q --tb=short
+          engine/apt_runtime/tests/test_postgres_store*.py
+          engine/apt_runtime/tests/test_persistence_identity_limits.py
 
   oracle-verify:
     # Wires the reasoner-facing verify surface (`bhgman-tool oracle`) into the REAL pipeline:
