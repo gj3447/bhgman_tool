@@ -22,7 +22,7 @@ EmbedFn = Callable[[list[str]], "list[list[float]]"]  # batch texts → vectors
 TEXT_FIELDS: dict[str, list[str]] = {
     "Lesson": ["name", "description", "wrongAssumption", "truth", "problem", "solution"],
     "AptContract": ["name", "description"],
-    "ResearchFinding": ["name", "description", "finding", "claim"],
+    "ResearchFinding": ["name", "description", "finding", "claim", "oneLineSummary", "recommendation"],
 }
 
 
