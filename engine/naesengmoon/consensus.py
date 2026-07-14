@@ -12,7 +12,7 @@ N개 렌즈(판단렌즈 LLM + oracle렌즈 결정론)의 개별 verdict 를 *�
   • N중 = N 독립 lens (cardinality 1:1) → 중복 lens vote 는 1표 — naesengmoon-cardinality lesson
   • steelman-opposite 재실행 = 독립성 회복 수단 — rf-prom16-contract-dual-steelman-opposite-2026-05-27
   • 상관오류 보정: Kish n_eff + prompt-echo 제외 — engine/naesengmoon/decorrelation.py 재사용
-  • n_eff < 1.5 & oracle 0 → clean PASS 금지 (W3-D) — decorrelation._verdict_label 전례 승계
+  • n_eff < 1.5 → clean PASS 금지 universally (W3-D 승계; self-labeled ORACLE 도 예외 없음)
   • BFT quorum: 판단렌즈 f개 임의-오류(drift) 가정 시 N_j ≥ 3f+1, PASS ≥ 2f+1
     (quorum intersection ⇒ 임의의 2f+1 quorum 에 정직 렌즈 ≥ f+1) — transfer333 Byzantine 교훈
 
@@ -22,7 +22,7 @@ N개 렌즈(판단렌즈 LLM + oracle렌즈 결정론)의 개별 verdict 를 *�
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 from engine.naesengmoon.decorrelation import DEFAULT_RHO, CriticKind, CriticVerdict, effective_n
@@ -67,7 +67,8 @@ DEFAULT_POLICY = Policy()  # UNANIMOUS_PASS — 정전 default
 class Disposition(str, Enum):
     # KG: naesengmoon-consensus-protocol-ncp1-2026-07-13
     ADMITTED = "ADMITTED"
-    DROPPED_D20 = "DROPPED_D20"                        # executor == reviewer
+    DROPPED_D20 = "DROPPED_D20"                        # executor == reviewer (both non-empty)
+    DROPPED_D20_UNVERIFIED = "DROPPED_D20_UNVERIFIED"  # JUDGMENT PASS/COND missing executor/reviewer
     DROPPED_DUP_LENS = "DROPPED_DUP_LENS"              # cardinality 1:1 위반 (2번째 이후)
     DROPPED_ECHO = "DROPPED_ECHO"                      # prompt-echo suspect (판단렌즈)
     DOWNGRADED_NO_EVIDENCE = "DOWNGRADED_NO_EVIDENCE"  # HR11: evidence 없는 PASS/COND → ABSTAIN
@@ -160,12 +161,26 @@ class ConsensusResult:
 
 def admit(votes: list[Vote]) -> list[Admission]:
     # KG: naesengmoon-consensus-protocol-ncp1-2026-07-13
-    """표별 자격 심사. drop 은 기록으로 남긴다 (Eilu va-Eilu — 지우지 않음)."""
+    """표별 자격 심사. drop 은 기록으로 남긴다 (Eilu va-Eilu — 지우지 않음).
+
+    D20 is fail-closed for gameable JUDGMENT PASS/CONDITIONAL votes: both executor
+    and reviewer must be present and distinct. ORACLE votes are exempt (substrate-
+    disjoint by construction). FAIL/ABSTAIN are not subject to the presence check.
+    """
     out: list[Admission] = []
     seen_lens: set[str] = set()
     for v in votes:
+        # D20 equal: both roles filled and identical → drop (any class/value)
         if v.executor and v.reviewer and v.executor == v.reviewer:
             out.append(Admission(v, Disposition.DROPPED_D20, VoteValue.ABSTAIN))
+            continue
+        # D20 fail-closed: JUDGMENT PASS/CONDITIONAL require verified distinct pair
+        if (
+            v.lens_class is LensClass.JUDGMENT
+            and v.value in (VoteValue.PASS, VoteValue.CONDITIONAL)
+            and (not v.executor or not v.reviewer)
+        ):
+            out.append(Admission(v, Disposition.DROPPED_D20_UNVERIFIED, VoteValue.ABSTAIN))
             continue
         if v.lens in seen_lens:  # N중 = N *독립* lens — 같은 lens 2표 = 1표
             out.append(Admission(v, Disposition.DROPPED_DUP_LENS, VoteValue.ABSTAIN))
@@ -229,8 +244,9 @@ def decide(
       1. oracle FAIL → FAIL (HARD GATE, 판단렌즈로 override 불가)
       2. 유효표 0 / BFT N_j < 3f+1 → ESCALATE(ADD_LENSES)
       3. pass-측 quorum 인데 전원 동일-evidence 붕괴 → ESCALATE(STEELMAN_OPPOSITE)
-      4. quorum 충족 → PASS / CONDITIONAL_PASS (obligations 합집합; n_eff<min_eff &
-         oracle 0 이면 clean PASS 금지 → CONDITIONAL_PASS cap)
+      4. quorum 충족 → PASS / CONDITIONAL_PASS (obligations 합집합; n_eff<min_eff
+         이면 clean PASS 금지 universally → CONDITIONAL_PASS cap; self-labeled
+         ORACLE is not an exemption)
       5. quorum 미충족 → evidence 있는 FAIL 존재 시 FAIL; 아니면 ESCALATE
          (oracle 미참여면 TO_ORACLE — 가장 싼 falsifier; 참여면 TO_USER)
     """
@@ -309,8 +325,11 @@ def decide(
         )
         if obligations:
             return _result("CONDITIONAL_PASS", Escalation.NONE, obligations)
-        if n_eff < min_eff and not oracles:
-            flags.append("N_EFF_BELOW_CLEAN_PASS")  # W3-D 전례 승계
+        # LensClass.ORACLE is caller-asserted (no sealed adapter) → a lone self-labeled
+        # oracle must not mint a clean PASS; the n_eff floor applies universally.
+        # A real oracle FAIL is still a HARD GATE (oracle veto, unchanged).
+        if n_eff < min_eff:
+            flags.append("N_EFF_BELOW_CLEAN_PASS")  # W3-D 전례 승계 (universal)
             return _result("CONDITIONAL_PASS", Escalation.NONE)
         return _result("PASS", Escalation.NONE)
 

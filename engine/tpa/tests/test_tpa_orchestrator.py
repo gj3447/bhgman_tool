@@ -6,7 +6,7 @@ TA runs the real engine.longinus_drift_audit 5-drift detector. No KG / network n
 
 from __future__ import annotations
 
-from engine.tpa.tpa_orchestrator import build_tpa_legion, run_tpa
+from engine.tpa.tpa_orchestrator import build_tpa_legion, run_tpa, run_tpa_gated
 
 _SRC = '''\
 """tiny module."""
@@ -134,3 +134,21 @@ def test_st_dependency_count_and_sp_shared_protocol(tmp_path):
     shared = captured["patterns"]["shared_protocol_candidates"]
     assert "run" in shared
     assert len(shared["run"]) >= 2
+
+
+def test_custom_non_fulfillment_gate_all_passed_false(tmp_path):
+    """FIX 3 guard: custom non-fulfillment gate cannot assert a clean all_passed.
+
+    Old: fulfillment is None → all_passed True whenever the loop completed (fail-OPEN).
+    New: fulfillment is None → all_passed False (no FulfillmentGate receipts).
+    """
+    root = _make_tree(tmp_path)
+
+    def always_pass(_ctx: dict) -> tuple[bool, str]:
+        return True, "ok"
+
+    result = run_tpa_gated(root, gate=always_pass)
+    assert result.run.completed is True
+    assert result.fulfillment is None
+    assert result.receipts == ()
+    assert result.all_passed is False

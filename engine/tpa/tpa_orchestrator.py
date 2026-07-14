@@ -207,10 +207,16 @@ class TpaReverseRun:
 
     @property
     def all_passed(self) -> bool:
-        """Loop completed AND every phase postcondition was a clean PASS."""
+        """Loop completed AND every phase postcondition was a clean PASS.
+
+        Fail-closed: when ``fulfillment is None`` (custom non-fulfillment ``gate=``),
+        returns False — a clean pass cannot be asserted without FulfillmentGate receipts.
+        """
         if not self.run.completed:
             return False
-        return self.fulfillment.all_passed if self.fulfillment is not None else True
+        if self.fulfillment is None:
+            return False
+        return self.fulfillment.all_passed
 
 
 def run_tpa_gated(
