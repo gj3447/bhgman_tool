@@ -26,6 +26,7 @@ htmlcov/
 .complexipy_cache/
 
 # machine-generated hardening/audit artifacts (not source; regenerated on demand)
+# KG: bhg-f-committed-findings-json-2026-06-16, bhg-f-gitignore-gaps-2026-06-16
 .hardening_findings_*.json
 
 # Lean
