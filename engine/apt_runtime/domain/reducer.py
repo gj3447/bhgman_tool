@@ -379,9 +379,7 @@ def _create_work_item(state: AptCycleState, event: EventEnvelope) -> AptCycleSta
                 f"parent work item {parent.work_item_id!r} must be a CONTAINER"
             )
         if parent.lifecycle is not WorkItemLifecycle.OPEN:
-            raise InvalidTransitionError(
-                f"parent work item {parent.work_item_id!r} must be OPEN"
-            )
+            raise InvalidTransitionError(f"parent work item {parent.work_item_id!r} must be OPEN")
         if parent.semantic_maturity is not SemanticMaturity.DECOMPOSING:
             raise InvalidTransitionError(
                 f"parent work item {parent.work_item_id!r} must be DECOMPOSING"
@@ -451,8 +449,7 @@ def _validate_effect_for_realization(
     if effect.lifecycle not in required_lifecycles:
         expected = ", ".join(sorted(lifecycle.value for lifecycle in required_lifecycles))
         raise InvalidTransitionError(
-            f"effect {event.effect_id!r} must be one of [{expected}], "
-            f"got {effect.lifecycle.value}"
+            f"effect {event.effect_id!r} must be one of [{expected}], got {effect.lifecycle.value}"
         )
     if effect.capability != "artifact.realize":
         raise InvalidTransitionError(

@@ -144,9 +144,7 @@ def test_child_open_requires_open_decomposing_container_parent() -> None:
         _open_child(leaf, child_id="child", parent_id="leaf")
 
     container = _anchor(
-        open_work_item(
-            start_cycle(create_cycle()), kind=WorkItemKind.CONTAINER, item_id="parent"
-        ),
+        open_work_item(start_cycle(create_cycle()), kind=WorkItemKind.CONTAINER, item_id="parent"),
         item_id="parent",
     )
     with pytest.raises(InvalidTransitionError, match="DECOMPOSING"):

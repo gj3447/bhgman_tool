@@ -143,9 +143,7 @@ def test_loader_rejects_transition_missing_required_guard_field() -> None:
 
 def test_loader_rejects_transition_contract_without_a_required_region() -> None:
     raw = json.loads(RUNTIME_SPEC.read_text(encoding="utf-8"))
-    contract = next(
-        row for row in raw["event_contracts"] if row["event_type"] == "CycleResumed"
-    )
+    contract = next(row for row in raw["event_contracts"] if row["event_type"] == "CycleResumed")
     contract["required_regions"] = []
     cycle = next(machine for machine in raw["machines"] if machine["name"] == "cycle.lifecycle")
     cycle["transitions"] = [

@@ -91,7 +91,9 @@ class ArtifactRecord:
     artifact_hash: str
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "artifact_ref", _normalized_text("artifact_ref", self.artifact_ref))
+        object.__setattr__(
+            self, "artifact_ref", _normalized_text("artifact_ref", self.artifact_ref)
+        )
         object.__setattr__(
             self, "artifact_hash", _normalized_text("artifact_hash", self.artifact_hash)
         )
@@ -209,9 +211,7 @@ class EffectState:
         ):
             object.__setattr__(self, name, _normalized_text(name, getattr(self, name)))
         for name in ("work_item_id", "result_ref", "result_hash"):
-            object.__setattr__(
-                self, name, _normalized_optional_text(name, getattr(self, name))
-            )
+            object.__setattr__(self, name, _normalized_optional_text(name, getattr(self, name)))
         object.__setattr__(self, "lifecycle", EffectLifecycle(self.lifecycle))
         if self.generation is not None and (
             isinstance(self.generation, bool)

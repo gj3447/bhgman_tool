@@ -98,9 +98,7 @@ def _require_positive_integer(name: str, value: object) -> None:
         raise EventSchemaError(f"{name} must be a positive integer")
 
 
-_RFC3339_UTC_Z = re.compile(
-    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\Z"
-)
+_RFC3339_UTC_Z = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\Z")
 
 
 def validate_rfc3339_utc_z(name: str, value: str) -> None:

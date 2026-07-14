@@ -415,9 +415,7 @@ class FsmSpec:
                         f"transition for {region_name!r}"
                     )
                 active_sources = (
-                    set(machine.states)
-                    - {machine.initial_state}
-                    - set(machine.terminal_states)
+                    set(machine.states) - {machine.initial_state} - set(machine.terminal_states)
                 )
                 covered_sources = {transition.source for transition in declared}
                 missing_sources = active_sources - covered_sources
@@ -513,7 +511,9 @@ def _parse_machines(value: object) -> tuple[MachineSpec, ...]:
             )
             kind = _require_string(transition_row.get("kind"), f"{transition_location}.kind")
             if kind not in _TRANSITION_KINDS:
-                raise SpecValidationError(f"{transition_location} has unknown transition kind {kind!r}")
+                raise SpecValidationError(
+                    f"{transition_location} has unknown transition kind {kind!r}"
+                )
             sources = _string_tuple(transition_row.get("from"), f"{transition_location}.from")
             if not sources:
                 raise SpecValidationError(

@@ -387,9 +387,7 @@ def validate_runtime_profile(spec_value: object) -> None:
             if contract.event_type == event_type
         }
         if actual != expected:
-            raise ValueError(
-                f"event_type {event_type!r} selector partition mismatch: {actual!r}"
-            )
+            raise ValueError(f"event_type {event_type!r} selector partition mismatch: {actual!r}")
     unexpected_selectors = {
         contract.id: dict(contract.event_match)
         for contract in spec.event_contracts
@@ -420,6 +418,7 @@ def validate_runtime_profile(spec_value: object) -> None:
                 f"event contract {contract.id!r} selector fields must be required payload "
                 f"fields: {sorted(missing_selector_fields)!r}"
             )
+
 
 def validate_execution_profile(spec_value: object) -> None:
     """Pin the exact contracts and transitions after structural diagnostics pass."""
