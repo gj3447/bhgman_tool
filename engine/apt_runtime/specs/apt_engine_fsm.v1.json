@@ -1,12 +1,12 @@
 {
   "format_version": 1,
   "spec_id": "apt_engine_fsm",
-  "spec_version": "1.0.0-proposal.6",
+  "spec_version": "1.1.0-proposal.8",
   "event_schema_versions": ["1.0.0"],
   "status": "DESIGN_PROPOSAL",
   "source": {
-    "path": "THEORY/APT/vnext/APT_ENGINE_FSM_DESIGN_2026-07-13.md",
-    "date": "2026-07-13",
+    "path": "ADRs/apt-vnext-slice2-effect-runtime-2026-07-14.md",
+    "date": "2026-07-14",
     "authority": "SECONDARY_AI_ENGINEERING_PROPOSAL",
     "normativity": "NORMATIVE_WITHIN_PROPOSAL"
   },
@@ -44,7 +44,10 @@
     "work_item_kind": "LEAF_ATOMIC_BRANCH_OR_CONTAINER_DECOMPOSITION_BRANCH",
     "realization_effect_binding": "ARTIFACT_REALIZE_CAPABILITY_AND_SAME_EFFECT_FROM_START_THROUGH_MATERIALIZATION_OR_FAILURE; EVIDENCE_INVALIDATION_RESETS_NONTERMINAL_BINDING_AND_PRESERVES_MATERIALIZED_PROVENANCE",
     "invalidation_target": "CURRENT_GENERATION_REFERENCE_REQUIRED",
-    "identity_normalization": "ENVELOPE_PAYLOAD_SPEC_AND_STATE_STRINGS_UNICODE_NFC"
+    "identity_normalization": "ENVELOPE_PAYLOAD_SPEC_AND_STATE_STRINGS_UNICODE_NFC",
+    "effect_claim_commit_barrier": "OPERATIONAL_CLAIM_MAY_PRECEDE_EFFECT_LEASED; EXTERNAL_EXECUTION_FORBIDDEN_UNTIL_EFFECT_LEASED_COMMITS",
+    "effect_heartbeat": "CANONICAL_EVENT_RENEWS_LEASED_OR_RUNNING_LEASE_WITH_MATCHING_OWNER_AND_TOKEN",
+    "effect_cancellation": "EFFECT_CANCELLED_ABSORBING; LATE_OUTCOME_AFTER_CYCLE_CANCELLATION_ONLY"
   },
   "event_contracts": [
     {"id": "event.cycle.created", "event_type": "CycleCreated", "subject": "cycle", "kind": "INITIALIZER", "event_match": {}, "required_regions": [], "optional_regions": [], "generation_policy": "NONE", "required_payload": ["config_snapshot_ref", "config_snapshot_hash", "canon_snapshot_ref", "canon_snapshot_hash"]},
@@ -84,14 +87,15 @@
     {"id": "event.assurance.new_evidence", "event_type": "NewEvidenceSubmitted", "subject": "work_item", "kind": "TRANSITION", "event_match": {}, "required_regions": ["work_item.assurance"], "optional_regions": [], "generation_policy": "CURRENT", "required_payload": ["evidence_refs"]},
     {"id": "event.assurance.evidence_invalidated", "event_type": "EvidenceInvalidated", "subject": "work_item", "kind": "TRANSITION", "event_match": {}, "required_regions": ["work_item.assurance"], "optional_regions": ["work_item.lifecycle", "work_item.realization"], "generation_policy": "NEXT", "required_payload": ["evidence_ref", "reason"]},
     {"id": "event.effect.queued", "event_type": "EffectQueued", "subject": "effect", "kind": "INITIALIZER", "event_match": {}, "required_regions": [], "optional_regions": [], "generation_policy": "EFFECT_CREATION", "required_payload": ["capability", "provider", "risk_class", "idempotency_key", "input_ref", "input_hash"]},
-    {"id": "event.effect.leased", "event_type": "EffectLeased", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["lease_owner", "lease_expiry"]},
-    {"id": "event.effect.started", "event_type": "EffectStarted", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["attempt"]},
-    {"id": "event.effect.succeeded", "event_type": "EffectSucceeded", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["result_ref", "result_hash"]},
-    {"id": "event.effect.failed", "event_type": "EffectFailed", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["reason"]},
-    {"id": "event.effect.lease_expired", "event_type": "EffectLeaseExpired", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["reconciliation_ref"]},
-    {"id": "event.effect.timed_out", "event_type": "EffectTimedOut", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["reconciliation_ref"]},
-    {"id": "event.effect.retry", "event_type": "EffectRetryQueued", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["guard_result", "guard_evidence_refs", "reconciliation_ref"]},
-    {"id": "event.effect.cancelled", "event_type": "EffectCancelled", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["reason"]}
+    {"id": "event.effect.leased", "event_type": "EffectLeased", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["lease_owner", "lease_token", "lease_expiry", "grant_ref", "grant_hash", "config_version", "authorization_ref", "authorization_hash"]},
+    {"id": "event.effect.heartbeat", "event_type": "EffectHeartbeatRecorded", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["lease_owner", "lease_token", "heartbeat_at", "lease_expiry"]},
+    {"id": "event.effect.started", "event_type": "EffectStarted", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["attempt", "lease_token"]},
+    {"id": "event.effect.succeeded", "event_type": "EffectSucceeded", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["attempt", "lease_token", "result_ref", "result_hash"]},
+    {"id": "event.effect.failed", "event_type": "EffectFailed", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["attempt", "lease_token", "reason"]},
+    {"id": "event.effect.lease_expired", "event_type": "EffectLeaseExpired", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["lease_token", "reconciliation_ref", "expected_heartbeat_at", "expected_lease_expiry"]},
+    {"id": "event.effect.timed_out", "event_type": "EffectTimedOut", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["attempt", "lease_token", "reconciliation_ref", "expected_heartbeat_at", "expected_lease_expiry"]},
+    {"id": "event.effect.retry", "event_type": "EffectRetryQueued", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["guard_result", "guard_evidence_refs", "lease_token", "reconciliation_ref", "reconciliation_outcome"]},
+    {"id": "event.effect.cancelled", "event_type": "EffectCancelled", "subject": "effect", "kind": "TRANSITION", "event_match": {}, "required_regions": ["effect.lifecycle"], "optional_regions": [], "generation_policy": "EFFECT_BOUND", "required_payload": ["reason", "authorization_ref", "authorization_hash"]}
   ],
   "machines": [
     {
@@ -203,12 +207,15 @@
       "terminal_states": ["SUCCEEDED", "CANCELLED"],
       "transitions": [
         {"id": "effect.lease", "from": ["PENDING"], "to": "LEASED", "event_type": "EffectLeased", "event_match": {}, "guard": null, "kind": "FORWARD"},
+        {"id": "effect.heartbeat.leased", "from": ["LEASED"], "to": "LEASED", "event_type": "EffectHeartbeatRecorded", "event_match": {}, "guard": null, "kind": "FORWARD"},
         {"id": "effect.start", "from": ["LEASED"], "to": "RUNNING", "event_type": "EffectStarted", "event_match": {}, "guard": null, "kind": "FORWARD"},
+        {"id": "effect.heartbeat.running", "from": ["RUNNING"], "to": "RUNNING", "event_type": "EffectHeartbeatRecorded", "event_match": {}, "guard": null, "kind": "FORWARD"},
         {"id": "effect.succeed", "from": ["RUNNING"], "to": "SUCCEEDED", "event_type": "EffectSucceeded", "event_match": {}, "guard": null, "kind": "TERMINAL"},
         {"id": "effect.fail", "from": ["RUNNING"], "to": "FAILED", "event_type": "EffectFailed", "event_match": {}, "guard": null, "kind": "FAILURE"},
         {"id": "effect.lease.expire", "from": ["LEASED"], "to": "TIMED_OUT", "event_type": "EffectLeaseExpired", "event_match": {}, "guard": null, "kind": "FAILURE"},
         {"id": "effect.timeout", "from": ["RUNNING"], "to": "TIMED_OUT", "event_type": "EffectTimedOut", "event_match": {}, "guard": null, "kind": "FAILURE"},
         {"id": "effect.retry", "from": ["FAILED", "TIMED_OUT"], "to": "PENDING", "event_type": "EffectRetryQueued", "event_match": {}, "guard": "idempotency_reconciliation_passed", "kind": "RECOVERY"},
+        {"id": "effect.reconcile.succeed", "from": ["TIMED_OUT"], "to": "SUCCEEDED", "event_type": "EffectSucceeded", "event_match": {}, "guard": null, "kind": "RECOVERY"},
         {"id": "effect.cancel", "from": ["PENDING", "LEASED", "RUNNING", "FAILED", "TIMED_OUT"], "to": "CANCELLED", "event_type": "EffectCancelled", "event_match": {}, "guard": null, "kind": "TERMINAL"}
       ]
     }
@@ -231,25 +238,32 @@
     "Evidence invalidation resets DISPATCHED, RUNNING, or FAILED realization to READY and clears the obsolete effect binding; MATERIALIZED realization and artifact provenance remain preserved.",
     "Artifact and evidence invalidation resolve a reference in the current generation, then open exactly the next generation.",
     "Envelope identities, selectors, payloads, and state strings share Unicode NFC semantics with canonical hashing.",
-    "A stale or post-cancellation effect outcome/cancellation may advance that effect's audit lifecycle, but lease/start/retry and current-generation materialization are forbidden.",
+    "A stale or post-cycle-cancellation effect outcome/cancellation may advance that effect's audit lifecycle, but lease/start/retry and current-generation materialization are forbidden.",
     "Every invalidation opens exactly the next generation; invalidating a CLOSED work item also reopens it atomically while preserving prior history.",
     "A CLOSED work item accepts only correction, invalidation, or supersession work events; new effects and effect lease/start/retry are fenced while existing-effect outcome/cancellation audit remains legal.",
     "Leaf and container closure use distinct guard predicates; a DECOMPOSED container is never forced through CONTRACTED.",
     "The compatibility APT phase is derived and never stored as current_phase.",
     "The reducer performs no I/O, clock, random-ID, filesystem, network, database, or LLM operation.",
-    "The same ordered event stream yields the same apt-canonical-json-v1 SHA-256 state hash."
+    "The same ordered event stream yields the same apt-canonical-json-v1 SHA-256 state hash.",
+    "EffectHeartbeatRecorded is canonical and renews only the matching owner and lease token while the effect is LEASED or RUNNING.",
+    "An operational claim may precede EffectLeased, but the worker cannot execute external work until the EffectLeased fact commits.",
+    "EffectCancelled is absorbing; late outcome audit after cancellation refers only to cycle cancellation.",
+    "A TIMED_OUT effect may converge directly to SUCCEEDED when reconciliation proves the external mutation was applied."
   ],
   "provisional_resolutions": [
     "The design has three aggregates containing six FSM regions; the phase projection is not an FSM.",
     "Cycle recovery supports WAITING to RECOVERING, then either ACTIVE when recovered or WAITING when deferred.",
     "CorrectionOpened supports OPEN to OPEN as a generation change and CLOSED to OPEN as a reopen; decomposition correction restarts DECOMPOSED containers or reanchors later leaf states.",
-    "FAILED and TIMED_OUT effects may return to PENDING only after the idempotency/reconciliation guard passes.",
+    "FAILED and TIMED_OUT effects may return to PENDING only after the idempotency/reconciliation guard passes; TIMED_OUT may instead recover to SUCCEEDED when reconciliation proves the external mutation was applied.",
     "Cycle cancellation closes only the cycle lifecycle; already-recorded effect outcomes/cancellation remain auditable, while lease/start/retry are fenced.",
     "Every artifact/evidence invalidation opens the next generation; on a CLOSED work item it also atomically reopens lifecycle state.",
     "Evidence invalidation clears nonterminal realization execution bindings while preserving an already MATERIALIZED artifact and its provenance.",
     "CLOSED work items are quiescent except for correction, invalidation, supersession, and legal late outcome/cancellation audit for existing effects.",
     "Container closure uses container_work_item_closable; its full evidence predicate lands with the decision/guard slice.",
     "Transition definitions use an exact field set and closed kind registry; transition contracts declare at least one required region and every named optional region has an edge.",
-    "The runtime compatibility profile pins every machine's enum, initial state, and terminal-state set."
+    "The runtime compatibility profile pins every machine's enum, initial state, and terminal-state set.",
+    "Heartbeat renewal is a canonical self-transition in both LEASED and RUNNING.",
+    "Operational lease claiming may precede EffectLeased, but external execution is fenced until that fact commits.",
+    "EffectCancelled is absorbing; post-cancellation late outcomes mean post-cycle-cancellation audit, not transitions out of EffectCancelled."
   ]
 }

@@ -22,6 +22,8 @@ from .state import (
     ArtifactRecord,
     AssuranceStatus,
     CycleLifecycle,
+    EffectAttemptOutcome,
+    EffectAttemptRecord,
     EffectLifecycle,
     EffectState,
     GenerationHistory,
@@ -33,7 +35,7 @@ from .state import (
 )
 
 
-STATE_CODEC_VERSION = "apt-cycle-state-v1"
+STATE_CODEC_VERSION = "apt-cycle-state-v3"
 
 
 class StateCodecError(ValueError):
@@ -146,6 +148,20 @@ _WORK_ITEM_KEYS = frozenset(
         "generations",
     }
 )
+_EFFECT_ATTEMPT_KEYS = frozenset(
+    {
+        "attempt",
+        "lease_token",
+        "lease_owner",
+        "started_at",
+        "outcome_history",
+        "completed_at",
+        "result_ref",
+        "result_hash",
+        "reasons",
+        "reconciliation_refs",
+    }
+)
 _EFFECT_KEYS = frozenset(
     {
         "effect_id",
@@ -160,6 +176,19 @@ _EFFECT_KEYS = frozenset(
         "input_hash",
         "result_ref",
         "result_hash",
+        "lease_owner",
+        "lease_token",
+        "lease_expiry",
+        "heartbeat_at",
+        "grant_ref",
+        "grant_hash",
+        "authorization_ref",
+        "authorization_hash",
+        "lease_token_history",
+        "current_attempt",
+        "attempts",
+        "reconciliation_refs",
+        "reasons",
     }
 )
 _CYCLE_KEYS = frozenset(
@@ -236,6 +265,28 @@ def _work_item(value: object, path: str) -> WorkItemState:
     )
 
 
+def _attempt(value: object, path: str) -> EffectAttemptRecord:
+    item = _mapping(value, path)
+    _keys(item, _EFFECT_ATTEMPT_KEYS, path)
+    return EffectAttemptRecord(
+        attempt=_integer(item["attempt"], f"{path}.attempt"),
+        lease_token=_text(item["lease_token"], f"{path}.lease_token"),
+        lease_owner=_text(item["lease_owner"], f"{path}.lease_owner"),
+        started_at=_text(item["started_at"], f"{path}.started_at"),
+        outcome_history=tuple(
+            _enum(EffectAttemptOutcome, outcome, f"{path}.outcome_history[{index}]")
+            for index, outcome in enumerate(
+                _sequence(item["outcome_history"], f"{path}.outcome_history")
+            )
+        ),
+        completed_at=_optional_text(item["completed_at"], f"{path}.completed_at"),
+        result_ref=_optional_text(item["result_ref"], f"{path}.result_ref"),
+        result_hash=_optional_text(item["result_hash"], f"{path}.result_hash"),
+        reasons=_text_tuple(item["reasons"], f"{path}.reasons"),
+        reconciliation_refs=_text_tuple(item["reconciliation_refs"], f"{path}.reconciliation_refs"),
+    )
+
+
 def _effect(value: object, path: str) -> EffectState:
     item = _mapping(value, path)
     _keys(item, _EFFECT_KEYS, path)
@@ -252,6 +303,22 @@ def _effect(value: object, path: str) -> EffectState:
         input_hash=_text(item["input_hash"], f"{path}.input_hash"),
         result_ref=_optional_text(item["result_ref"], f"{path}.result_ref"),
         result_hash=_optional_text(item["result_hash"], f"{path}.result_hash"),
+        lease_owner=_optional_text(item["lease_owner"], f"{path}.lease_owner"),
+        lease_token=_optional_text(item["lease_token"], f"{path}.lease_token"),
+        lease_expiry=_optional_text(item["lease_expiry"], f"{path}.lease_expiry"),
+        heartbeat_at=_optional_text(item["heartbeat_at"], f"{path}.heartbeat_at"),
+        grant_ref=_optional_text(item["grant_ref"], f"{path}.grant_ref"),
+        grant_hash=_optional_text(item["grant_hash"], f"{path}.grant_hash"),
+        authorization_ref=_optional_text(item["authorization_ref"], f"{path}.authorization_ref"),
+        authorization_hash=_optional_text(item["authorization_hash"], f"{path}.authorization_hash"),
+        lease_token_history=_text_tuple(item["lease_token_history"], f"{path}.lease_token_history"),
+        current_attempt=_integer(item["current_attempt"], f"{path}.current_attempt"),
+        attempts=tuple(
+            _attempt(attempt, f"{path}.attempts[{index}]")
+            for index, attempt in enumerate(_sequence(item["attempts"], f"{path}.attempts"))
+        ),
+        reconciliation_refs=_text_tuple(item["reconciliation_refs"], f"{path}.reconciliation_refs"),
+        reasons=_text_tuple(item["reasons"], f"{path}.reasons"),
     )
 
 

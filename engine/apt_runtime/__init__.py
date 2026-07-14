@@ -1,7 +1,7 @@
-"""APT vNext deterministic runtime with SQLite/PostgreSQL durability (Slices 0-1B).
+"""APT vNext deterministic runtime with durable fenced effects (Slices 0-2).
 
 Mutation is intentionally exported through :class:`DurableKernel`; concrete
-event-store adapters remain trusted low-level ports under ``adapters``.
+event-store/effect-queue adapters remain trusted low-level ports under ``adapters``.
 """
 
 from .application import (
@@ -10,15 +10,40 @@ from .application import (
     DecisionOutcome,
     DurableKernel,
     DurableKernelError,
+    BudgetExhaustedError,
+    EffectExecutionObservation,
+    EffectReconciliationCoordinator,
+    EffectReconciliationObservation,
+    EffectRecovery,
     EffectRequest,
+    EffectRuntimeStateError,
+    EffectScheduler,
+    EffectSchedulerError,
+    ProviderIdentityError,
+    ProviderInvocationError,
+    ReconciliationAction,
+    RecoveryAction,
+    RecoveryRecord,
 )
 from .domain import (
     AptCycleState,
     CanonicalCommandEnvelope,
     CommandSchemaError,
+    EffectExecutionGrant,
     EventEnvelope,
     EventType,
     state_hash,
+)
+from .ports import (
+    EffectCancellationAuthorization,
+    EffectCancellationVerifier,
+    EffectGrantVerifier,
+    EffectResultStore,
+    ReconciliationProbeAcquisition,
+    ReconciliationProbeConclusion,
+    ReconciliationProbePermit,
+    ReconciliationProbePermitState,
+    StoredEffectResult,
 )
 
 __all__ = [
@@ -30,7 +55,30 @@ __all__ = [
     "DecisionOutcome",
     "DurableKernel",
     "DurableKernelError",
+    "BudgetExhaustedError",
+    "EffectCancellationAuthorization",
+    "EffectCancellationVerifier",
+    "EffectExecutionGrant",
+    "EffectGrantVerifier",
     "EffectRequest",
+    "EffectExecutionObservation",
+    "EffectReconciliationCoordinator",
+    "EffectReconciliationObservation",
+    "EffectRecovery",
+    "EffectRuntimeStateError",
+    "EffectResultStore",
+    "EffectScheduler",
+    "EffectSchedulerError",
+    "ProviderIdentityError",
+    "ProviderInvocationError",
+    "ReconciliationAction",
+    "ReconciliationProbeAcquisition",
+    "ReconciliationProbeConclusion",
+    "ReconciliationProbePermit",
+    "ReconciliationProbePermitState",
+    "RecoveryAction",
+    "RecoveryRecord",
+    "StoredEffectResult",
     "EventEnvelope",
     "EventType",
     "state_hash",

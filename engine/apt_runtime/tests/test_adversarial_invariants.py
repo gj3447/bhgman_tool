@@ -97,7 +97,7 @@ def test_envelope_identities_are_nfc_normalized_before_state_comparison() -> Non
         work_item_id=nfd,
         effect_id=nfd,
         generation=1,
-        payload={"attempt": 1},
+        payload={"attempt": 1, "lease_token": nfd},
     )
 
     assert envelope.cycle_id == "é"
@@ -241,7 +241,12 @@ def test_materialization_requires_the_effect_that_started_realization() -> None:
             work_item_id="work-1",
             effect_id="effect-2",
             generation=1,
-            payload={"result_ref": "result://2", "result_hash": "2" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-2",
+                "result_ref": "result://2",
+                "result_hash": "2" * 64,
+            },
         ),
         SPEC,
     )
@@ -275,7 +280,12 @@ def test_invalidation_requires_a_current_generation_target() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://1", "result_hash": "4" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://1",
+                "result_hash": "4" * 64,
+            },
         ),
         SPEC,
     )

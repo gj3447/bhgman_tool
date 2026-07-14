@@ -2,6 +2,21 @@
 
 from .commands import CanonicalCommandEnvelope, CommandSchemaError
 from .events import EventEnvelope, EventSchemaError, EventType, GuardResult, payload_hash
+from .effect_runtime import (
+    BudgetDecision,
+    BudgetLimit,
+    EffectExecutionGrant,
+    ExecutionOutcome,
+    ReconciliationOutcome,
+    ResourceAccess,
+    ResourceClaim,
+    RuntimeBudget,
+    RuntimeContractError,
+    RuntimeUsage,
+    detect_stuck,
+    evaluate_budget,
+    progress_signature,
+)
 from .state_codec import STATE_CODEC_VERSION, StateCodecError, decode_state, encode_state
 from .state import (
     AptCycleState,
@@ -9,6 +24,8 @@ from .state import (
     AssuranceStatus,
     CycleLifecycle,
     EffectLifecycle,
+    EffectAttemptOutcome,
+    EffectAttemptRecord,
     EffectState,
     GenerationHistory,
     RealizationStatus,
@@ -26,6 +43,21 @@ __all__ = [
     "CanonicalCommandEnvelope",
     "CommandSchemaError",
     "CycleLifecycle",
+    "BudgetDecision",
+    "BudgetLimit",
+    "EffectExecutionGrant",
+    "ExecutionOutcome",
+    "ReconciliationOutcome",
+    "ResourceAccess",
+    "ResourceClaim",
+    "RuntimeBudget",
+    "RuntimeContractError",
+    "RuntimeUsage",
+    "detect_stuck",
+    "evaluate_budget",
+    "progress_signature",
+    "EffectAttemptOutcome",
+    "EffectAttemptRecord",
     "EffectLifecycle",
     "EffectState",
     "EventEnvelope",

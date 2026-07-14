@@ -28,7 +28,11 @@ def test_realization_failure_targets_the_active_effect_and_retry_clears_binding(
             work_item_id="work-1",
             effect_id="effect-2",
             generation=1,
-            payload={"reason": "secondary effect failed"},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-2",
+                "reason": "secondary effect failed",
+            },
         ),
         SPEC,
     )
@@ -54,7 +58,11 @@ def test_realization_failure_targets_the_active_effect_and_retry_clears_binding(
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"reason": "active realization failed"},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "reason": "active realization failed",
+            },
         ),
         SPEC,
     )

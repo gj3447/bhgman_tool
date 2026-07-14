@@ -11,6 +11,12 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Iterable, Mapping, TypeVar
 
+from .canonical import MAX_SIGNED_64
+from .effect_reducer import (
+    EffectFenceViolation,
+    EffectRetryRejected,
+    reduce_effect_state,
+)
 from .events import (
     EventEnvelope,
     EventSchemaError,
@@ -57,6 +63,10 @@ class SubjectMismatchError(ReducerError):
 
 class StaleGenerationError(ReducerError):
     """Raised when a work mutation targets a non-current generation."""
+
+
+class StaleEffectExecutionError(ReducerError):
+    """Raised when an effect fact carries a stale lease token or attempt identity."""
 
 
 class SpecHashMismatchError(ReducerError):
@@ -109,7 +119,6 @@ _SEQUENCE_PAYLOAD_FIELDS = {
     "evidence_refs",
     "guard_evidence_refs",
 }
-
 T = TypeVar("T")
 
 
@@ -149,17 +158,27 @@ def _validate_required_payload(contract: EventContract, payload: Mapping[str, ob
             continue
         if key == "attempt":
             value = payload[key]
-            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-                raise EventSchemaError("payload field 'attempt' must be a positive integer")
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 1 <= value <= MAX_SIGNED_64
+            ):
+                raise EventSchemaError(
+                    "payload field 'attempt' must be a signed 64-bit positive integer"
+                )
             continue
         value = _required_string(payload, key)
         if key.endswith("_hash") and (
-            len(value) != 64
-            or any(character not in "0123456789abcdefABCDEF" for character in value)
+            len(value) != 64 or any(character not in "0123456789abcdef" for character in value)
         ):
-            raise EventSchemaError(f"payload field {key!r} must be a 64-character SHA-256 hex")
-        if key == "lease_expiry":
-            validate_rfc3339_utc_z("lease_expiry", value)
+            raise EventSchemaError(f"payload field {key!r} must be a lowercase SHA-256 hex digest")
+        if key in {
+            "heartbeat_at",
+            "lease_expiry",
+            "expected_heartbeat_at",
+            "expected_lease_expiry",
+        }:
+            validate_rfc3339_utc_z(key, value)
 
 
 def _unique(existing: tuple[T, ...], additions: Iterable[T]) -> tuple[T, ...]:
@@ -682,51 +701,63 @@ def _reduce_effect(
         raise SubjectMismatchError(f"unknown effect_id {event.effect_id!r}") from exc
     if event.work_item_id != effect.work_item_id or event.generation != effect.generation:
         raise SubjectMismatchError("effect event subject/generation differs from queued binding")
-    if effect.work_item_id is not None:
-        work_item = state.work_item(effect.work_item_id)
-        if (
-            work_item.lifecycle is WorkItemLifecycle.CLOSED
-            and event.event_type not in _EFFECT_AUDIT_EVENTS
-        ):
-            raise InvalidTransitionError(
-                "CLOSED work item permits only late effect outcome/cancellation audit"
-            )
-        obsolete = (
-            effect.generation != work_item.current_generation
-            or work_item.lifecycle is WorkItemLifecycle.SUPERSEDED
-        )
-        if obsolete and event.event_type not in _EFFECT_AUDIT_EVENTS:
-            raise StaleGenerationError(
-                "obsolete work-item effect cannot advance lease/start/retry execution"
-            )
-        if (
-            work_item.realization is RealizationStatus.FAILED
-            and work_item.realization_effect_id == effect.effect_id
-            and event.event_type
-            in {
-                EventType.EFFECT_RETRY_QUEUED,
-                EventType.EFFECT_LEASED,
-                EventType.EFFECT_STARTED,
-            }
-        ):
-            raise InvalidTransitionError(
-                "failed realization requires RealizationRetryApproved before effect retry, "
-                "lease, or start"
+    _validate_effect_work_binding(state, effect, event)
+    if event.event_type is EventType.EFFECT_LEASED:
+        grant_config_version = _required_string(event.payload, "config_version")
+        if grant_config_version != state.config_version:
+            raise GuardRejectedError(
+                "EffectLeased config_version differs from the canonical cycle snapshot"
             )
     matches = _matching_region_transitions(spec, "effect", effect, event, contract)
     transition = matches["effect.lifecycle"]
     lifecycle = EffectLifecycle(transition.target)
-    if event.event_type is EventType.EFFECT_SUCCEEDED:
-        updated = replace(
-            effect,
-            lifecycle=lifecycle,
-            result_ref=_required_string(event.payload, "result_ref"),
-            result_hash=_required_string(event.payload, "result_hash"),
-        )
-    else:
-        updated = replace(effect, lifecycle=lifecycle)
+    try:
+        updated = reduce_effect_state(effect, event, lifecycle)
+    except EffectFenceViolation as exc:
+        raise StaleEffectExecutionError(str(exc)) from exc
+    except EffectRetryRejected as exc:
+        raise GuardRejectedError(str(exc)) from exc
     state = _replace_effect(state, updated)
     return replace(state, version=event.stream_version)
+
+
+def _validate_effect_work_binding(
+    state: AptCycleState,
+    effect: EffectState,
+    event: EventEnvelope,
+) -> None:
+    if effect.work_item_id is None:
+        return
+    work_item = state.work_item(effect.work_item_id)
+    if (
+        work_item.lifecycle is WorkItemLifecycle.CLOSED
+        and event.event_type not in _EFFECT_AUDIT_EVENTS
+    ):
+        raise InvalidTransitionError(
+            "CLOSED work item permits only late effect outcome/cancellation audit"
+        )
+    obsolete = (
+        effect.generation != work_item.current_generation
+        or work_item.lifecycle is WorkItemLifecycle.SUPERSEDED
+    )
+    if obsolete and event.event_type not in _EFFECT_AUDIT_EVENTS:
+        raise StaleGenerationError(
+            "obsolete work-item effect cannot advance lease/start/retry execution"
+        )
+    retry_execution_events = {
+        EventType.EFFECT_RETRY_QUEUED,
+        EventType.EFFECT_LEASED,
+        EventType.EFFECT_STARTED,
+    }
+    if (
+        work_item.realization is RealizationStatus.FAILED
+        and work_item.realization_effect_id == effect.effect_id
+        and event.event_type in retry_execution_events
+    ):
+        raise InvalidTransitionError(
+            "failed realization requires RealizationRetryApproved before effect retry, "
+            "lease, or start"
+        )
 
 
 def reduce_event(

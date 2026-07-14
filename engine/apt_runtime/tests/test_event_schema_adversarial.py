@@ -11,6 +11,7 @@ from engine.apt_runtime.tests.test_reducer import (
     create_cycle,
     event,
     guard_payload,
+    lease_payload,
     start_cycle,
 )
 
@@ -86,10 +87,11 @@ def test_effect_lease_expiry_requires_extended_rfc3339_utc_z() -> None:
                 EventType.EFFECT_LEASED,
                 state.version + 1,
                 effect_id="effect-1",
-                payload={
-                    "lease_owner": "worker-1",
-                    "lease_expiry": "2026-07-14T09:00:00+09:00",
-                },
+                payload=lease_payload(
+                    lease_owner="worker-1",
+                    lease_token="lease-1",
+                    lease_expiry="2026-07-14T09:00:00+09:00",
+                ),
             ),
             SPEC,
         )
