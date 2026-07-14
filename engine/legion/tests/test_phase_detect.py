@@ -178,7 +178,21 @@ def test_fetch_blockers_sp_reports_missing_predicates():
 
 def test_fetch_blockers_sp_all_null_degrades_to_coarse():
     # KG that doesn't populate C(S) fields → every flag True → coarse msg, not "missing all 5".
-    rows = [{"node": "span_z", **{f: True for f in ("objective", "definition", "keyAssertion", "verification", "c_s_predicate")}}]
+    rows = [
+        {
+            "node": "span_z",
+            **{
+                f: True
+                for f in (
+                    "objective",
+                    "definition",
+                    "keyAssertion",
+                    "verification",
+                    "c_s_predicate",
+                )
+            },
+        }
+    ]
     bl = fetch_blockers("Proj", "PH3_SP", _blocker_runner({}, sp=rows))
     assert bl == (Blocker("span_z", "needs crystallization (not yet AtomicSpan)"),)
 

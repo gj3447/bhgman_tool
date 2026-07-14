@@ -60,7 +60,9 @@ class PhaseStatus:
     phase: str
     next_skill: str
     evidence: str
-    blockers: tuple[Blocker, ...] = ()  # delta-gap; empty unless with_blockers requested (back-compat)
+    blockers: tuple[
+        Blocker, ...
+    ] = ()  # delta-gap; empty unless with_blockers requested (back-compat)
 
 
 def classify_phase(facts: PhaseFacts) -> PhaseStatus:
