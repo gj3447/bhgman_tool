@@ -17,14 +17,13 @@ NOT a guarantee — a determined injection can evade regex heuristics; the
 capability-composition trifecta check is the structural backstop). Importable and
 testable without ``fastmcp`` / any runtime.
 
-⚠ NOT WIRED INTO LIVE TOOL CALLS (observe-only, by design). ``build_server`` only
-runs ``audit_toolset`` *once at boot* to log the toolset's trifecta profile; the
-running FastMCP loop does **not** call :func:`audit_tool_call` on each tool
-invocation, so ``scan_for_injection`` never sees live arguments. ``ENFORCE`` mode
-therefore blocks nothing on its own — a caller must explicitly wrap tool calls
-with :func:`audit_tool_call`. Per-call interception is a follow-up (would need a
-FastMCP middleware/decorator over the registered tools). Today this is a static
-profiler + an opt-in helper, not a runtime guard. Don't read it as live defense.
+Per-call enforcement (2026-07-12, PR #84): ``build_server`` registers a FastMCP
+middleware whose ``on_call_tool`` hook runs :func:`enforce_call` on **every** live
+tool invocation, so ``scan_for_injection`` now sees the live arguments. AUDIT mode
+logs and never blocks; ENFORCE mode raises :class:`SecurityViolation` on a HIGH
+detection → the call is denied. The middleware is **fail-open** — a wiring error can
+never break a real tool call. The boot-time ``audit_toolset`` profiler remains as a
+complementary static (toolset-composition) trifecta check.
 
 # KG: finding-aidev-mcp-security-trifecta-2026-05-25 (PROM 16 lever ④)
 # KG: finding_aidev_CS4 (lethal trifecta source finding)

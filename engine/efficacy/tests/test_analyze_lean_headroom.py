@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 from engine.efficacy import lean_headroom_run
 from engine.efficacy.analyze_lean_headroom import (
+    _tost_equivalence,
     analyze_paths,
     format_report,
     sign_test_two_sided,
@@ -116,6 +117,93 @@ def test_analyze_paths_recomputes_sign_test_and_task_counts(tmp_path):
     assert "p_two_sided=0.015625" in report
 
 
+# ---- 5-arm controls (prereg §4 P2/P3/P4) ----------------------------------------------------
+
+
+def _run_summary5(seed_offset, *, repair, bestn, decoy, plain) -> dict:
+    """A 5-arm run_summary carrying decoy/plain proven counts in headroom_only (new-batch shape)."""
+    hr = {
+        "single": 0,
+        "repair": repair,
+        "bestN": bestn,
+        "decoy": decoy,
+        "plain": plain,
+        "graded_single": 0.0,
+        "graded_repair": float(repair),
+        "graded_bestN": float(bestn),
+        "graded_decoy": float(decoy),
+        "graded_plain": float(plain),
+        "of": 2,
+    }
+    return {
+        "record_type": "run_summary",
+        "seed_offset": seed_offset,
+        "all": hr,
+        "headroom_only": hr,
+    }
+
+
+def _tok(arm, n, in_tok, out_tok) -> list[dict]:
+    """n attempt records for `arm`, each with the given per-call token accounting."""
+    return [
+        {
+            "record_type": "attempt",
+            "arm": arm,
+            "input_tokens": in_tok,
+            "output_tokens": out_tok,
+            "model_calls": 1,
+        }
+        for _ in range(n)
+    ]
+
+
+def test_legacy_batch_marks_new_controls_absent(tmp_path):
+    """A 3-arm batch (no decoy/plain, no token fields) → new controls ABSENT, legacy numbers intact."""
+    path = tmp_path / "legacy.jsonl"
+    _append_jsonl(path, [_run_summary(0, repair=2, bestn=1), _run_summary(10, repair=2, bestn=1)])
+    result = analyze_paths([path])
+    assert result["repair_vs_bestN_headroom"]["repair_gt_bestN"] == 2  # unchanged
+    assert result["repair_vs_decoy_headroom"] is None
+    assert result["repair_vs_plain_headroom"] is None
+    assert result["decoy_vs_bestN_headroom"] is None
+    assert result["token_parity"]["repair_vs_bestN"]["usage_hidden"] is True
+    assert result["token_parity"]["repair_vs_bestN"]["tokens_ratio"] is None  # never a fake 1.0
+    assert result["token_parity"]["repair_vs_plain"] is None
+
+
+def test_full_5arm_batch_computes_pairwise_tallies_and_parity(tmp_path):
+    """A 5-arm batch → paired sign tests for repair-vs-decoy / repair-vs-plain and token ratios."""
+    path = tmp_path / "full.jsonl"
+    records: list[dict] = []
+    for i in range(6):
+        # repair beats decoy and plain on the first 5 runs; decoy tracks bestN (equivalence).
+        records.append(_run_summary5(i * 10, repair=3, bestn=1, decoy=1, plain=(1 if i < 5 else 3)))
+    # token accounting: repair uses ~the same as bestN (fair), plain a bit less.
+    records += _tok("repair", 12, 100, 20) + _tok("bestN", 12, 100, 20) + _tok("plain", 12, 90, 18)
+    _append_jsonl(path, records)
+    result = analyze_paths([path], tost_margin=1.0)
+
+    rvd = result["repair_vs_decoy_headroom"]
+    assert rvd["repair_gt_decoy"] == 6 and rvd["decoy_gt_repair"] == 0  # 3>1 every run
+    rvp = result["repair_vs_plain_headroom"]
+    assert rvp["repair_gt_plain"] == 5 and rvp["ties"] == 1  # last run 3==3 → tie
+    dvb = result["decoy_vs_bestN_headroom"]
+    assert dvb["tost"]["equivalent"] is True  # decoy==bestN==1 every run → mean delta 0
+    tp = result["token_parity"]["repair_vs_bestN"]
+    assert tp["usage_hidden"] is False
+    assert tp["calls_ratio"] == 1.0 and tp["tokens_ratio"] == 1.0  # repair == bestN tokens
+
+
+def test_tost_equivalence_true_and_false():
+    """decoy≈bestN (small, tight deltas) → equivalent; a large consistent gap → not equivalent."""
+    equal = _tost_equivalence([0, 0, 0, 0, 0, 0], margin=1.0)
+    assert equal["equivalent"] is True and equal["mean_delta"] == 0.0
+    gap = _tost_equivalence([3, 3, 3, 3, 3, 3], margin=1.0)
+    assert gap["equivalent"] is False  # mean 3 >> margin 1
+    thin = _tost_equivalence([0, 0], margin=1.0)
+    assert thin["equivalent"] is False and thin["reason"] == "runs<3"  # never equiv on <3 runs
+
+
 def test_runner_writes_attempt_task_and_run_jsonl(monkeypatch):
     task = SimpleNamespace(
         name="toy",
@@ -152,9 +240,11 @@ def test_runner_writes_attempt_task_and_run_jsonl(monkeypatch):
     records = [json.loads(line) for line in log.getvalue().splitlines()]
     assert [record["record_type"] for record in records] == [
         "run_start",
-        "attempt",
-        "attempt",
-        "attempt",
+        "attempt",  # single
+        "attempt",  # repair
+        "attempt",  # bestN
+        "attempt",  # decoy (prereg P2 placebo arm)
+        "attempt",  # plain (prereg P3/K8 baseline arm)
         "task_summary",
         "run_summary",
     ]
@@ -164,4 +254,8 @@ def test_runner_writes_attempt_task_and_run_jsonl(monkeypatch):
     assert attempt["proven"] is True
     assert records[-1]["headroom_only"]["repair"] == 1
     assert records[-1]["headroom_only"]["bestN"] == 1
+    assert records[-1]["headroom_only"]["decoy"] == 1  # seed-0 proof proves for every arm here
+    assert records[-1]["headroom_only"]["plain"] == 1  # plain (fixed seed 0) proves too
     assert summary["repair_beats_bestN_on_headroom_proven"] is False
+    assert summary["repair_beats_decoy_on_headroom_proven"] is False  # 1 == 1
+    assert summary["repair_beats_plain_on_headroom_proven"] is False  # 1 == 1

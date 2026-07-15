@@ -102,6 +102,13 @@ a cognitive one — and it is enough to justify the tool on its own terms.
   > `verification/lean_headroom_repin_7b_2026-06-14/`) is a **NULL** (repair 13 = best-of-N 13,
   > p=1.00). The 7b null is a lower operating point and does not refute the 32b claim, but the 32b
   > result is **unreproduced with committed logs** — re-run on dgx (local 32b) + commit to confirm.
+  >
+  > ✅ **SUPERSEDED 2026-06-14 (same-day later run):** [`headroom_32b_2026-06-14/`](headroom_32b_2026-06-14/)
+  > committed the 32b reproduction (`qwen2.5:32b-instruct`, K=4, n=10, raw `seed_0..seed_90.jsonl`) →
+  > **8W / 2T / 0L, p=0.007812** (`HeadroomVerdict` PASS). The "unreproduced / re-run on dgx" wording above
+  > is **stale**; H2 is closed at the analyzer level. The **7b NULL = capability-floor negative control (K2)**.
+  > The committed crack is now labeled **PLAUSIBLE-uncontrolled** (no token/decoy control); the frozen design +
+  > stopping rules for the next controlled confirmation live in `PIERCE_PREREGISTRATION.md` + `KILL_CRITERIA.md`.
   A fair test of
   the *repair-loop* variant (ARM2 oracle-guided repair vs ARM3 best-of-N, equal K=4) on real leak-resistant
   core-Lean with an ungameable `#print axioms` oracle was run 2026-06-05 (`LEAN_HEADROOM_FAIRTEST_2026-06-05.md`,
