@@ -5,12 +5,42 @@
 
 from __future__ import annotations
 
+import re
+
 from engine.kg_harness.registry import (
     NEEDS_DEDUP,
     STABLE_IDS,
     UNCONSTRAINABLE,
     constraint_bundle,
 )
+from engine.legion.legion import _DISPATCH_EVENT_MERGE
+
+
+def _merge_identity_keys(merge_cypher: str, label: str) -> set[str]:
+    """Extract the MERGE identity property keys from `MERGE (x:Label {k1:$k1, k2:$k2, ...})`."""
+    m = re.search(rf"MERGE \(\w+:{label} \{{([^}}]*)\}}", merge_cypher)
+    assert m, f"no MERGE (…:{label} {{…}}) block found"
+    return set(re.findall(r"(\w+)\s*:\s*\$", m.group(1)))
+
+
+def test_dispatch_event_stable_id_matches_engine_merge_identity():
+    """T0-2 landmine: STABLE_IDS['DispatchEvent'] MUST equal the engine's runtime MERGE identity.
+    A single-key constraint (source_commander only) would fail the 2nd DispatchEvent from any
+    commander with ConstraintValidationFailed once installed — killing dispatch provenance on a
+    live KG. The registry key and legion._DISPATCH_EVENT_MERGE are one identity, kept coupled."""
+    engine_keys = _merge_identity_keys(_DISPATCH_EVENT_MERGE, "DispatchEvent")
+    registry_key = STABLE_IDS["DispatchEvent"]
+    registry_keys = {registry_key} if isinstance(registry_key, str) else set(registry_key)
+    assert registry_keys == engine_keys, (
+        f"registry {registry_keys} != engine MERGE identity {engine_keys} — installing the "
+        f"constraint would collide on the non-identity fields"
+    )
+
+
+def test_dispatch_event_constraint_is_composite():
+    """The generated DDL must be a composite UNIQUE over the full 5-key identity, not single-key."""
+    ddl = next(c for c in constraint_bundle() if ":DispatchEvent)" in c)
+    assert "(n.source_commander, n.target_commander, n.metric_name, n.epoch, n.decided_at)" in ddl
 
 
 def test_bundle_excludes_dirty_labels_by_default():
