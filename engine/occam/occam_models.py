@@ -37,8 +37,13 @@ class NodeRecord:
 
     @property
     def recency_key(self) -> str:
-        """recency 비교 키 (ISO 문자열 사전식 비교). last_validated > created_at > ''."""
-        return self.last_validated or self.created_at or ""
+        """recency 비교 키 (ISO 문자열 사전식 비교). last_validated > created_at > ''.
+
+        str 강제: KG가 last_validated/created_at 를 Neo4j DateTime 등 비-str 로 돌려주면
+        _current_rank 의 tuple `>` 비교가 str↔DateTime 혼재로 크래시한다 (라이브 full-KG 실측
+        2026-07-15: dup group 의 mixed 타임스탬프에서 occam 전체 스캔 사망). str(DateTime)=ISO
+        문자열이라 사전식 비교 정합 유지."""
+        return str(self.last_validated or self.created_at or "")
 
 
 @dataclass(frozen=True)
