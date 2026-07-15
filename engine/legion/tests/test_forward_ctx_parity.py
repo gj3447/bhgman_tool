@@ -82,3 +82,31 @@ def test_prepare_forward_ctx_weak_key_stays_legacy(monkeypatch):
     prepare_forward_ctx(ctx, store=LocalKgStore())
     assert "verdict_gate" not in ctx
     assert ctx["cycle_id"]  # 게이트는 못 걸어도 provenance id 는 남는다
+
+
+def test_all_three_forward_entrypoints_prepare_ctx():
+    """T0-3 패리티의 완전성: 정방향 3진입점(CLI cmd_legion / bot build_ctx / MCP legion_run)이
+    **전부** prepare_forward_ctx 를 경유해야 한다.
+
+    RED 이력: 최초 T0-3 은 cmd_legion + MCP 만 배선하고 bot 을 빠뜨려, 상시 데몬의
+    :DispatchEvent 가 전부 cycle_id=null 로 쌓였다 — '3진입점 패리티' 주장이 2/3 이었다.
+    이 테스트가 세 번째 경로의 재발을 막는다 (소스 검사 = 배선 자체의 존재 증명)."""
+    import inspect
+
+    from engine.cli import commands
+    from engine.mcp_server.tools import legion as mcp_legion
+
+    legion_src = inspect.getsource(commands.cmd_legion)
+    bot_src = inspect.getsource(commands.cmd_bot)
+    mcp_src = inspect.getsource(mcp_legion)
+    for name, src in (("cmd_legion", legion_src), ("cmd_bot", bot_src), ("mcp legion", mcp_src)):
+        assert "prepare_forward_ctx(" in src, f"{name} 이 prepare_forward_ctx 를 경유하지 않는다"
+
+
+def test_bot_build_ctx_mints_distinct_cycle_id_per_tick():
+    """bot 의 매 tick = 별개 사이클 → tick 마다 고유 cycle_id (ledger false-collision 방지).
+
+    build_ctx 가 tick 마다 호출되므로 mint 도 tick 마다 일어나야 한다 — 한 번 mint 해서
+    전 tick 이 공유하면 (cycle, artifact) 1회용 ledger 가 2번째 tick 부터 오탐한다."""
+    seen = {prepare_forward_ctx({})["cycle_id"] for _ in range(5)}
+    assert len(seen) == 5, f"cycle_id 가 tick 간 충돌: {seen}"

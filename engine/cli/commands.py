@@ -1503,6 +1503,7 @@ def cmd_bot(args: argparse.Namespace) -> int:
     import datetime as _dt  # noqa: PLC0415
 
     from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
+    from engine.legion.verdict_gate import prepare_forward_ctx  # noqa: PLC0415
 
     apply = getattr(args, "apply", False)
 
@@ -1521,6 +1522,11 @@ def cmd_bot(args: argparse.Namespace) -> int:
             ctx["fetcher"] = fetcher
         if agents is not None and client is not None:
             ctx.update(agents=agents, client=client, grounding=grounding)
+        # T0-3 정방향 패리티: bot 도 CLI/MCP 와 동일 헬퍼 경유. build_ctx 는 tick 마다 호출되고
+        # 매 tick = 별개 사이클이므로 여기서 mint 하면 tick 별 고유 cycle_id 가 된다 (ledger
+        # false-collision 방지 — MCP 의 서버-mint 와 같은 이유). 상시 데몬의 :DispatchEvent 가
+        # 전부 cycle_id=null 로 쌓이던 결손 봉합.
+        prepare_forward_ctx(ctx)
         return ctx
 
     def run_tick(ctx: dict, _topic: str) -> dict:
