@@ -112,10 +112,13 @@ class TestConfigLoader:
         assert isinstance(cfg, dict)
 
     def test_load_naesengmoon_threshold(self) -> None:
+        # T1-3: 키를 코드 정본 이름으로 정정 — 이 테스트는 TOML 의 drift 된 이름
+        # ("rti_fvr")을 고정하고 있었다. measure() 가 내는 키는 RTI_FVR_pass_rate 이고,
+        # TOML 이 그 이름이어야 decide_dispatch 의 metrics.get() 이 값을 찾는다.
         cfg = load_thresholds()
         if cfg:
-            assert ("naesengmoon", "rti_fvr") in cfg
-            entry = cfg[("naesengmoon", "rti_fvr")]
+            assert ("naesengmoon", "RTI_FVR_pass_rate") in cfg
+            entry = cfg[("naesengmoon", "RTI_FVR_pass_rate")]
             assert entry.value == 0.7
             assert entry.comparator == "less"
             assert entry.derivation_method == "roc_youden_j_1950"

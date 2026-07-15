@@ -31,9 +31,11 @@ import hmac
 import os
 import threading
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Final
+
+from engine.legion.threshold_derivation.config import load_thresholds
 
 
 # A4S4 P1: max_depth=3 (Lawvere-Tierney j-operator idempotence, Knaster-Tarski termination)
@@ -138,6 +140,43 @@ class DispatchDecision:
             return False
         actual = kg_event.get("hmac_signature") or ""
         return hmac.compare_digest(expected, actual)
+
+
+def resolve_thresholds(
+    rules: "tuple[DispatchThreshold, ...]", name: str
+) -> "tuple[DispatchThreshold, ...]":
+    """T1-3 SSOT: TOML(thresholds.toml)의 값·comparator 를 런타임 정본으로 적용한다.
+
+    정본 분담 — metric 이름/타깃/구조는 **코드**(measure() 가 내는 키 + STEVENS_SCALE 이
+    코드 이름을 쓴다; TOML 이름이 어긋나면 metrics.get() 이 None 이라 규칙이 영원히
+    미발화하는 dead control 이 된다), threshold **값**과 comparator 는 **TOML**
+    (P2-b '코드 수정 없이 튜닝'). TOML 미수록 규칙은 코드 상수로 fallback — 하드코딩은
+    삭제가 아니라 강등(supersession)이고, 로더 실패도 fail-soft 로 같은 자리에 착지한다.
+
+    파리티(두 장부의 키·값 일치)는 tests/test_threshold_ssot.py 가 강제한다.
+    """
+    try:
+        entries = load_thresholds()
+    except Exception:  # noqa: BLE001 — 설정 파싱 실패가 dispatch 를 죽이면 안 된다
+        return rules
+    if not entries:
+        return rules
+    out: list[DispatchThreshold] = []
+    for rule in rules:
+        entry = entries.get((rule.source, rule.metric))
+        if entry is None or entry.target_commander != rule.target:
+            out.append(rule)  # TOML 미수록 → 코드 상수 fallback
+            continue
+        provenance = entry.derivation_method or "unspecified_derivation"
+        out.append(
+            replace(
+                rule,
+                threshold=entry.value,
+                direction=entry.comparator,
+                rationale=f"{rule.rationale} [toml:{provenance}]",
+            )
+        )
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -254,7 +293,9 @@ class CommanderBase(ABC):
             metrics = self.measure()
             epoch = self._epoch
         decisions: list[DispatchDecision] = []
-        for rule in self.dispatch_thresholds:
+        # T1-3: TOML 이 값의 런타임 정본 (코드 상수는 미수록 시 fallback). 매 호출 해석 —
+        # 장수 프로세스에서 재시작 없이 튜닝이 반영된다 (P2-b 목적).
+        for rule in resolve_thresholds(self.dispatch_thresholds, self.name):
             if rule.source != self.name:
                 continue
             value = metrics.get(rule.metric)
