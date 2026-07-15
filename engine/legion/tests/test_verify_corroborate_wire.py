@@ -84,10 +84,27 @@ def test_no_grounding_keeps_current_with_disclosure():
     assert out["n_eff"] == 1.0
 
 
-def test_mcp_legion_run_surfaces_verdict_with_two_legs():
-    """배선 4: MCP legion_run 이 LocalGroundingSource 를 주입하고 응답에 final_verdict 노출 —
-    infra-0 MCP 경로에서 n_eff ≥ 2 (감사의 'n_eff=1.0 퇴화' 지적 해소를 MCP 표면에서 관측)."""
+def test_mcp_legion_run_surfaces_verdict_and_corroborate_leg():
+    """배선 4: MCP legion_run 이 LocalGroundingSource 를 주입하고 응답에 final_verdict 노출.
+
+    2026-07-15 정정 (적대검증): 이 테스트는 **빈 store**(정전 완전 침묵)에 `n_eff >= 2.0`
+    을 단언하며 정확히 vacuous inflation 을 고정하고 있었다 — canon 이 아무 말도 없는데
+    kg-corroborate 의 *기권* 이 완전한 독립표로 계수돼 n_eff 를 1.0→2.0 으로 올린 것이다.
+    그건 레포 자신의 "vacuous critic 금지" 위반이자 clean-PASS floor(T0-1)가 MCP 경로에서
+    영영 물지 못한 원인이었다. 정직한 단언: leg 는 합류하되(공시), 침묵 정전에 대해서는
+    기권이므로 n_eff 는 1.0 이다. 진짜 2.0 은 canon 이 실재할 때만 (아래 테스트)."""
     resp = legion_run_impl(cycle_id="ncw-mcp", store=LocalKgStore())
     v = resp["verdict"]
+    assert "kg-corroborate" in v["oracle_legs"], v  # leg 는 합류 (공시)
+    assert v["n_eff"] == 1.0, f"침묵 정전에 대한 기권은 표가 아니다: {v}"
+
+
+def test_mcp_path_reaches_two_legs_when_canon_actually_speaks():
+    """canon 이 실재하면 kg-corroborate 가 *진짜* corroboration 표를 내고 n_eff 가 2.0.
+
+    '기권은 표 아님' 정정이 leg 자체를 죽인 게 아님을 고정한다 — 정보가 있을 때만 계수."""
+    store = _store_with_canon("legion closed loop completed for ncw-real")
+    resp = legion_run_impl(cycle_id="ncw-real", store=store)
+    v = resp["verdict"]
     assert "kg-corroborate" in v["oracle_legs"], v
-    assert v["n_eff"] >= 2.0, v
+    assert v["n_eff"] >= 2.0, f"실재 canon 과 고겹침이면 진짜 표: {v}"

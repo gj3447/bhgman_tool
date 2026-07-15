@@ -43,6 +43,13 @@ class CriticVerdict:
     passed: bool
     model_family: str = "unknown"
     echo_suspect: bool = False
+    # 3-상태 (적대검증 2026-07-15): 이 렌즈가 판단을 *못 한* 경우 = 기권. 기권은 표가 아니다 —
+    # n_eff 분모에서 제외된다. 기권을 passed=True 로 흘리면 '항상 통과하는 vacuous critic' 이
+    # 완전한 독립표로 계수돼 n_eff 를 부풀리고(1.0→2.0) clean-PASS floor 를 우회한다. 레포의
+    # 기존 규율과 동일: "항상 발화하는 컨트롤 = never-firing 과 같은 정보량(0)"
+    # (compute_external_grounding_ratio), "vacuous critic 금지"(commanders.py kg-corroborate 배선).
+    # consensus.VoteValue.ABSTAIN 의 decorrelation 측 대응.
+    abstained: bool = False
 
 
 @dataclass
@@ -58,6 +65,7 @@ class EnsembleResult:
     raw_coverage: float  # naive pass-fraction
     adjusted_confidence: float  # raw × shrinkage(n_eff / participating)
     summary: str
+    n_abstained: int = 0  # 판단 못 한 렌즈 — 표 아님, n_eff 분모 제외 (vacuous critic 차단)
 
 
 # ---- n_eff (Kish design effect) -------------------------------------------------
@@ -174,10 +182,17 @@ def aggregate(verdicts: list[CriticVerdict], rho: float | None = None) -> Ensemb
     # KG: naesengmoon-canonical-2026-05-19
     """Oracle-veto + independence-weighted judgment → honest verdict carrying n_eff.
 
-    rho: measured inter-critic correlation (via estimate_rho); falls back to DEFAULT_RHO."""
-    oracles = [v for v in verdicts if v.kind is CriticKind.ORACLE]
-    judgments = [v for v in verdicts if v.kind is CriticKind.JUDGMENT and not v.echo_suspect]
-    n_echo = sum(1 for v in verdicts if v.kind is CriticKind.JUDGMENT and v.echo_suspect)
+    rho: measured inter-critic correlation (via estimate_rho); falls back to DEFAULT_RHO.
+
+    기권(abstained)한 렌즈는 어느 쪽으로도 계수되지 않는다 — 판단을 못 한 것은 표가
+    아니다. 기권을 passed=True 로 흘리면 vacuous critic 이 독립표로 n_eff 를 부풀린다
+    (적대검증 2026-07-15: canon 침묵 시 kg-corroborate 기권이 n_eff 1.0→2.0 을 만들어
+    clean-PASS floor 를 우회했다)."""
+    voting = [v for v in verdicts if not v.abstained]
+    n_abstained = sum(1 for v in verdicts if v.abstained)
+    oracles = [v for v in voting if v.kind is CriticKind.ORACLE]
+    judgments = [v for v in voting if v.kind is CriticKind.JUDGMENT and not v.echo_suspect]
+    n_echo = sum(1 for v in voting if v.kind is CriticKind.JUDGMENT and v.echo_suspect)
 
     n_oracle, n_judgment = len(oracles), len(judgments)
     participating = oracles + judgments
@@ -194,6 +209,7 @@ def aggregate(verdicts: list[CriticVerdict], rho: float | None = None) -> Ensemb
     summary = (
         f"{len(verdicts)} critics ({n_oracle} oracle + {n_judgment} judgment"
         + (f", {n_echo} echo-excluded" if n_echo else "")
+        + (f", {n_abstained} abstained" if n_abstained else "")
         + f"), ρ={rho_used:.2f}, n_eff≈{n_eff:.2f}. "
         f"raw={raw:.2f} → adjusted={adjusted:.2f}. verdict={verdict}."
     )
@@ -208,4 +224,5 @@ def aggregate(verdicts: list[CriticVerdict], rho: float | None = None) -> Ensemb
         raw,
         adjusted,
         summary,
+        n_abstained,
     )
