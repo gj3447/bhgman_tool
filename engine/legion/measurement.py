@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import threading
 from abc import ABC, abstractmethod
@@ -36,6 +37,8 @@ from datetime import datetime, timezone
 from typing import Final
 
 from engine.legion.threshold_derivation.config import load_thresholds
+
+logger = logging.getLogger(__name__)
 
 
 # A4S4 P1: max_depth=3 (Lawvere-Tierney j-operator idempotence, Knaster-Tarski termination)
@@ -94,6 +97,15 @@ class DispatchDecision:
                 cycle_id or "",
             ]
         )
+
+    def decision_id(self, cycle_id: str | None = None) -> str:
+        """키와 무관한 결정 식별자 — content hash (unkeyed sha256 of the signed payload).
+
+        서명(hmac_signature)은 *무결성* 용이고 약키 체제에선 None 이다. 식별자를 서명에
+        얹으면 키 유무에 따라 id 가 사라진다 (적대검증 2026-07-15: dispatch_id 가 기본
+        환경에서 None 으로 퇴행해 instrument log 의 행 식별자가 소실). 둘은 다른 관심사라
+        분리한다 — id 는 항상 존재, 서명은 강키일 때만."""
+        return hashlib.sha256(self._signed_payload(cycle_id).encode("utf-8")).hexdigest()
 
     def to_kg_event(self, cycle_id: str | None = None) -> dict:
         """Return :DispatchEvent node properties (signed for forge resistance).
@@ -154,10 +166,21 @@ def resolve_thresholds(
     삭제가 아니라 강등(supersession)이고, 로더 실패도 fail-soft 로 같은 자리에 착지한다.
 
     파리티(두 장부의 키·값 일치)는 tests/test_threshold_ssot.py 가 강제한다.
+
+    로더 실패는 fail-soft(코드 상수로 착지)하되 **실명 경고**한다 — T1-2 가 legion 의
+    침묵 삼킴을 실명화한 직후 여기서 같은 패턴을 재도입할 뻔했다(적대검증 2026-07-15).
+    설정 장부가 조용히 코드 상수로 되돌아가는 건 측정 실패보다 위험하다: 튜닝한 값이
+    무시된 채 아무도 모른다.
     """
     try:
         entries = load_thresholds()
-    except Exception:  # noqa: BLE001 — 설정 파싱 실패가 dispatch 를 죽이면 안 된다
+    except Exception as e:  # noqa: BLE001 — 설정 파싱 실패가 dispatch 를 죽이면 안 된다
+        logger.warning(
+            "threshold config 로드 실패 (%r) — %s 는 코드 상수 fallback 으로 진행. "
+            "TOML 튜닝값이 무시된다.",
+            e,
+            name,
+        )
         return rules
     if not entries:
         return rules

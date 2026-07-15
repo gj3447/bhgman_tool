@@ -836,15 +836,27 @@ def cmd_status(_args: argparse.Namespace) -> int:
     )
     pod = os.environ.get("BHGMAN_STATUS_NEO4J_POD") or os.environ.get("BHGMAN_NEO4J_POD", "neo4j-0")
     print(f"[bhgman-tool] ssh {dgx_host} cypher-shell — KG audit", file=sys.stderr)
+    # bhg-f-secrets-on-argv: 비밀번호는 argv 금지 — stdin 첫 줄로 전달해 pod 안 sh 가
+    # NEO4J_PASSWORD 로 export (cypher-shell 이 그 env 를 인식). mcp_server _ssh_cypher 와
+    # 동일 패턴 — 적대검증 2026-07-15 이 두 자매 호출부 중 여기가 미수복임을 지적.
+    # `kubectl exec -i` 필수: -i 없이는 stdin 이 pod 에 도달하지 않는다.
+    inner = (
+        "IFS= read -r NEO4J_PASSWORD; export NEO4J_PASSWORD; "
+        f"exec cypher-shell -u {shlex.quote(user)} --format plain"
+    )
     cmd = [
         "ssh",
         dgx_host,
-        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
-        f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} --format plain",
+        f"kubectl exec -i -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
+        f"sh -c {shlex.quote(inner)}",
     ]
     try:
         result = subprocess.run(
-            cmd, input=_STATUS_CYPHER, text=True, timeout=timeout_s, check=False
+            cmd,
+            input=f"{password}\n{_STATUS_CYPHER}",
+            text=True,
+            timeout=timeout_s,
+            check=False,
         )
         return result.returncode
     except FileNotFoundError:

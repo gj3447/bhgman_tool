@@ -117,19 +117,28 @@ def build_server() -> Any:
 
 
 class _RecordingFakeMcp:
-    """`@mcp.tool()` 등록을 이름만 기록하는 fake — fastmcp 없이도 실등록면을 열거한다."""
+    """`@mcp.tool` / `@mcp.tool()` 등록을 이름만 기록하는 fake — fastmcp 없이 실등록면 열거.
+
+    두 데코레이터 형태를 모두 받아야 한다: fastmcp 는 bare `@mcp.tool` 도 등록하는데,
+    괄호-호출만 처리하면 bare 형태의 tool 이 *조용히* 기록에서 빠져 prometheus_ingest
+    사고(실등록면엔 있는데 장부엔 없음)가 3-way parity GREEN 인 채로 재현된다
+    (적대검증 2026-07-15).
+    """
 
     def __init__(self) -> None:
         self.names: list[str] = []
 
+    def _record(self, fn: Any, explicit: str | None = None) -> Any:
+        self.names.append(explicit or getattr(fn, "__name__", repr(fn)))
+        return fn
+
     def tool(self, *args: Any, **kwargs: Any) -> Any:
+        # bare form: @mcp.tool → tool(fn) 로 함수가 직접 넘어온다.
+        if args and callable(args[0]) and not kwargs:
+            return self._record(args[0])
+        # call form: @mcp.tool(...) → 데코레이터를 반환.
         explicit = kwargs.get("name")
-
-        def _decorator(fn: Any) -> Any:
-            self.names.append(explicit or fn.__name__)
-            return fn
-
-        return _decorator
+        return lambda fn: self._record(fn, explicit)
 
 
 def list_registered_tool_names() -> list[str]:

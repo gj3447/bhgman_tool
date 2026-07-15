@@ -36,6 +36,7 @@ from engine.legion.measurement import (
     PrometheusMeasurement,
     resolve_thresholds,
 )
+from engine.legion.threshold_derivation import config
 from engine.legion.threshold_derivation.config import load_thresholds
 
 _CLASSES = (
@@ -62,27 +63,78 @@ def _code_rules() -> dict[tuple[str, str, str], tuple[float, str]]:
     return out
 
 
-def _toml_rules() -> dict[tuple[str, str, str], tuple[float, str]]:
+def _bundled_toml_rules() -> dict[tuple[str, str, str], tuple[float, str]]:
+    """**번들** thresholds.toml 만 파싱 — env/XDG override 를 의도적으로 무시한다.
+
+    파리티가 검사하는 대상은 *repo 에 체크인된 기본 장부* 와 코드의 일치다. load_thresholds()
+    의 precedence(env BHGMAN_THRESHOLD_CONFIG > ~/.config > 번들)를 그대로 쓰면, 광고된 튜닝
+    경로(env override)를 실제로 쓰는 개발자의 머신에서 이 테스트가 RED 가 된다 — 즉 '값은
+    TOML 로 튜닝하라'와 '두 장부는 일치해야 한다'가 서로를 반증한다(적대검증 2026-07-15).
+    번들만 고정하면 둘이 양립한다: 기본 장부는 코드와 일치, override 는 자유.
+    """
+    import tomllib
+    from pathlib import Path
+
+    bundled = Path(config.__file__).parent.parent / "thresholds.toml"
+    with bundled.open("rb") as f:
+        data = tomllib.load(f)
+    parsed = config._parse_toml(data, str(bundled))
     return {
         (e.commander, e.target_commander, e.metric): (float(e.value), e.comparator)
-        for e in load_thresholds().values()
+        for e in parsed.values()
         if (e.commander, e.target_commander, e.metric) not in _NON_DISPATCH_TOML_KEYS
     }
 
 
-def test_toml_and_code_cover_identical_rule_keys():
-    """두 장부의 (source, target, metric) 키 집합이 정확히 일치해야 한다."""
-    code, toml = _code_rules(), _toml_rules()
+def test_bundled_toml_and_code_cover_identical_rule_keys():
+    """번들 장부와 코드의 (source, target, metric) 키 집합이 정확히 일치해야 한다."""
+    code, toml = _code_rules(), _bundled_toml_rules()
     assert set(code) == set(toml), (
         f"only-code={sorted(set(code) - set(toml))}\nonly-toml={sorted(set(toml) - set(code))}"
     )
 
 
-def test_toml_and_code_agree_on_values():
-    """키가 같으면 값·comparator 도 같아야 한다 (한쪽 단독 수정 = RED)."""
-    code, toml = _code_rules(), _toml_rules()
+def test_bundled_toml_and_code_agree_on_values():
+    """키가 같으면 값·comparator 도 같아야 한다 (한쪽 단독 수정 = RED). 번들 한정 —
+    env override 로 값을 튜닝하는 건 설계된 경로이고 이 테스트를 깨지 않는다."""
+    code, toml = _code_rules(), _bundled_toml_rules()
     mismatch = {k: (code[k], toml[k]) for k in set(code) & set(toml) if code[k] != toml[k]}
-    assert not mismatch, f"value drift (code, toml): {mismatch}"
+    assert not mismatch, f"value drift (code, bundled toml): {mismatch}"
+
+
+def test_env_override_tunes_without_breaking_parity(tmp_path, monkeypatch):
+    """광고된 튜닝 경로 검증: env override 로 값을 바꾸면 런타임은 따르되 파리티는 GREEN.
+
+    T1-3 의 목적(P2-b '코드 수정 없이 튜닝')이 실제로 성립함을 고정한다."""
+    override = tmp_path / "tuned.toml"
+    override.write_text(
+        '[[threshold]]\ncommander = "occam"\ntarget_commander = "naesengmoon"\n'
+        'metric = "supersession_confidence"\nvalue = 0.99\ncomparator = "less"\n'
+        'derivation_method = "operator_tuning"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BHGMAN_THRESHOLD_CONFIG", str(override))
+    rules = resolve_thresholds(OccamMeasurement.dispatch_thresholds, "occam")
+    tuned = next(r for r in rules if r.metric == "supersession_confidence")
+    assert tuned.threshold == pytest.approx(0.99), "env override 가 런타임에 반영돼야 한다"
+    # 파리티는 번들 기준이므로 override 하에서도 GREEN
+    test_bundled_toml_and_code_agree_on_values()
+
+
+def test_invalid_comparator_is_rejected_at_parse(tmp_path, monkeypatch):
+    """comparator 오타는 파싱에서 거부 — 조용히 게이트를 반전시키지 않는다.
+
+    triggered() 는 'greater' 가 아닌 *모든* 문자열을 'less' 로 취급하므로, TOML 이 런타임
+    정본이 된 뒤 검증이 없으면 "gt"/"Greater" 오타 하나가 dispatch 컨트롤을 반전시킨다."""
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '[[threshold]]\ncommander = "occam"\ntarget_commander = "naesengmoon"\n'
+        'metric = "supersession_confidence"\nvalue = 0.7\ncomparator = "greater_than"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BHGMAN_THRESHOLD_CONFIG", str(bad))
+    with pytest.raises(config.ThresholdConfigError, match="invalid comparator"):
+        config.load_thresholds()
 
 
 def test_every_rule_metric_is_in_stevens_scale():
