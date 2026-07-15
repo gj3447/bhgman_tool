@@ -60,6 +60,11 @@ class LegionRun:
     # crossed a threshold. These are the runtime-resolved service-graph edges
     # (7cmd-measurement-driven-conditional-dispatch), also emitted as :DispatchEvent.
     dispatch_decisions: tuple[Any, ...] = field(default_factory=tuple)
+    # T1-2: measurement/provenance failures, named — "stage:phase: repr(error)". fail-soft
+    # 는 유지하되(측정 오류가 run 을 죽이지 않는다) 은폐는 제거: measure-factory /
+    # decide_dispatch / :DispatchEvent write 실패가 무기록으로 증발하지 않는다
+    # (dispatch_consumer 의 실명 처분 규율을 원본 루프에 역적용).
+    dispatch_errors: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def ran(self) -> int:

@@ -194,7 +194,12 @@ class TestIdempotentMeasure:
 
 
 class TestHMACSignature:
-    def test_to_kg_event_includes_hmac(self):
+    # T1-2: 서명은 강키(≥32B 비-default env)에서만 — dev-default 로 서명해 tamper-evidence
+    # 를 위장하지 않는다. 서명 경로 테스트는 강키를 명시 주입한다.
+    _STRONG = "k" * 40
+
+    def test_to_kg_event_includes_hmac(self, monkeypatch):
+        monkeypatch.setenv("BHGMAN_DISPATCH_HMAC_SECRET", self._STRONG)
         d = DispatchDecision(
             "occam",
             "naesengmoon",
@@ -208,8 +213,10 @@ class TestHMACSignature:
         evt = d.to_kg_event(cycle_id="cycle-test")
         assert "hmac_signature" in evt
         assert len(evt["hmac_signature"]) == 64  # SHA-256 hex
+        assert evt["signature_status"] == "signed"
 
-    def test_verify_signature_passes_on_unmodified(self):
+    def test_verify_signature_passes_on_unmodified(self, monkeypatch):
+        monkeypatch.setenv("BHGMAN_DISPATCH_HMAC_SECRET", self._STRONG)
         d = DispatchDecision(
             "occam",
             "naesengmoon",
@@ -223,7 +230,9 @@ class TestHMACSignature:
         evt = d.to_kg_event(cycle_id="cycle-test")
         assert DispatchDecision.verify_signature(evt) is True
 
-    def test_verify_signature_fails_on_tampered(self):
+    def test_verify_signature_fails_on_tampered(self, monkeypatch):
+        # 강키 주입 — 약키 체제에선 verify 가 무조건 False 라 tamper 탐지 자체를 검증 못 한다.
+        monkeypatch.setenv("BHGMAN_DISPATCH_HMAC_SECRET", self._STRONG)
         d = DispatchDecision(
             "occam",
             "naesengmoon",

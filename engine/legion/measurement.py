@@ -39,15 +39,29 @@ from typing import Final
 # A4S4 P1: max_depth=3 (Lawvere-Tierney j-operator idempotence, Knaster-Tarski termination)
 MAX_DISPATCH_DEPTH: Final[int] = 3
 
-# A4S4 P1: DispatchEvent HMAC secret (env override; dev default for tests)
-_HMAC_SECRET: Final[bytes] = os.environ.get(
-    "BHGMAN_DISPATCH_HMAC_SECRET", "bhgman-dev-secret-2026-05-30"
-).encode("utf-8")
+# A4S4 P1 → T1-2: DispatchEvent HMAC secret. call-time 해석 (장수 프로세스 bot/MCP 에서
+# env 교체가 재시작 없이 반영). 약키(부재/dev-default/<32B)면 서명하지 않는다 — repo 에
+# 공개된 키로 서명해 tamper-evident 를 위장하느니 unsigned 를 정직 표기 (verdict_gate 의
+# 키 강도 규율과 정렬; 그쪽은 같은 dev 문자열을 hard-refuse 한다).
+DISPATCH_HMAC_ENV: Final[str] = "BHGMAN_DISPATCH_HMAC_SECRET"
+_DEV_DEFAULT_SECRET: Final[bytes] = b"bhgman-dev-secret-2026-05-30"
+_MIN_KEY_BYTES: Final[int] = 32  # verdict_gate 와 동일 floor
 
 
-def _sign(payload: str) -> str:
-    """HMAC-SHA256 signature for provenance integrity."""
-    return hmac.new(_HMAC_SECRET, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+def _hmac_secret() -> bytes | None:
+    """강키면 bytes, 약키(부재/dev-default/짧음)면 None — None 이면 서명 대신 정직 표기."""
+    raw = os.environ.get(DISPATCH_HMAC_ENV, "").encode("utf-8")
+    if not raw or raw == _DEV_DEFAULT_SECRET or len(raw) < _MIN_KEY_BYTES:
+        return None
+    return raw
+
+
+def _sign(payload: str) -> str | None:
+    """HMAC-SHA256 signature for provenance integrity — None when no strong key (T1-2)."""
+    secret = _hmac_secret()
+    if secret is None:
+        return None
+    return hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -80,7 +94,11 @@ class DispatchDecision:
         )
 
     def to_kg_event(self, cycle_id: str | None = None) -> dict:
-        """Return :DispatchEvent node properties (signed for forge resistance)."""
+        """Return :DispatchEvent node properties (signed for forge resistance).
+
+        약키 체제에선 hmac_signature=None + signature_status='unsigned_weak_key' —
+        공개 dev 키 서명으로 tamper-evidence 를 위장하지 않는다 (T1-2)."""
+        signature = _sign(self._signed_payload(cycle_id))
         return {
             "source_commander": self.source_commander,
             "target_commander": self.target_commander,
@@ -92,12 +110,16 @@ class DispatchDecision:
             "epoch": self.epoch,
             "depth": self.depth,
             "cycle_id": cycle_id,
-            "hmac_signature": _sign(self._signed_payload(cycle_id)),
+            "hmac_signature": signature,
+            "signature_status": "signed" if signature is not None else "unsigned_weak_key",
         }
 
     @staticmethod
     def verify_signature(kg_event: dict) -> bool:
-        """Verify HMAC signature on a deserialized :DispatchEvent."""
+        """Verify HMAC signature on a deserialized :DispatchEvent.
+
+        약키 체제(강키 env 부재)에선 항상 False — 서명 부재와 공개-dev-키 위조를 구분 없이
+        거부한다 (fail-closed, T1-2). unsigned 이벤트(hmac_signature=None)도 False."""
         payload = "|".join(
             [
                 kg_event.get("source_commander", ""),
@@ -112,7 +134,9 @@ class DispatchDecision:
             ]
         )
         expected = _sign(payload)
-        actual = kg_event.get("hmac_signature", "")
+        if expected is None:
+            return False
+        actual = kg_event.get("hmac_signature") or ""
         return hmac.compare_digest(expected, actual)
 
 
