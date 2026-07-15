@@ -54,8 +54,16 @@ def test_eureka_induce_earned_counts_parity():
 
     assert resp["earned"]["induced"] == want_induced
     assert resp["earned"]["survived"] == want_survived
-    assert resp["mode"] == "fca"
+    assert resp["mode"] == "structural"
+    assert resp["method"] == "fca"
     assert "stages" in resp, "stage 진단은 동봉하되 earned 가 머리"
+    assert resp["schema"] == "bhgman.eureka.run.v1"
+    assert {"name", "ok", "error"} <= resp["stages"][0].keys()
+    assert resp["persistence"]["requested"] is False
+    assert len(resp["candidates"]) == resp["earned"]["survived"]
+    if resp["candidates"]:
+        assert resp["candidates"][0]["definition"]
+        assert resp["candidates"][0]["extent"]
 
 
 def test_eureka_induce_empty_kg_honest_zero(tmp_path):
@@ -65,6 +73,8 @@ def test_eureka_induce_empty_kg_honest_zero(tmp_path):
 
     assert resp["earned"]["induced"] == 0
     assert resp["earned"]["survived"] == 0
+    assert resp["outcome"] == "NO_CANDIDATE"
+    assert resp["candidates"] == []
     assert resp["stages_ok"] > 0, "파이프라인 자체는 돌았다 — 이것이 stages_ok 의 fake-green 축"
 
 

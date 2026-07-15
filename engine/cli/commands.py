@@ -9,8 +9,10 @@ import shlex
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
+from typing import Any
 
 from engine.cli.runtime import (
     _repo_root,
@@ -1781,6 +1783,28 @@ def _emit_run_record(res, runners) -> None:
     print(f"  [record] PROV-O: {'turtle emitted' if prov else 'prov extra 미설치 (graceful skip)'}")
 
 
+def _eureka_code_snippets(args: argparse.Namespace) -> list[str]:
+    snippets = list(getattr(args, "snippet", None) or [])
+    code_file = getattr(args, "code_file", None)
+    if not code_file:
+        return snippets
+    text = Path(code_file).read_text(encoding="utf-8")
+    chunks = [chunk.strip() for chunk in text.split("\n\n") if chunk.strip()]
+    snippets.extend(
+        chunks if len(chunks) > 1 else [line for line in text.splitlines() if line.strip()]
+    )
+    return snippets
+
+
+def _print_eureka_code_result(result: dict[str, Any]) -> None:
+    print(f"[eureka --code] status={result['status']} (PROPOSE only — 실현은 하데스)")
+    if result.get("template"):
+        print(f"  template: {result['template']}")
+    for key in ("holes", "hole_ratio", "instances", "reason", "note"):
+        if key in result:
+            print(f"  {key}: {result[key]}")
+
+
 def _cmd_eureka_code(args: argparse.Namespace) -> int:
     """eureka code-template path (Plotkin LGG anti-unification) — neo4j-free, PROPOSE-only.
 
@@ -1789,14 +1813,7 @@ def _cmd_eureka_code(args: argparse.Namespace) -> int:
     """
     from engine.eureka.anti_unify import propose_template  # noqa: PLC0415
 
-    snippets = list(getattr(args, "snippet", None) or [])
-    code_file = getattr(args, "code_file", None)
-    if code_file:
-        text = Path(code_file).read_text(encoding="utf-8")
-        chunks = [c.strip() for c in text.split("\n\n") if c.strip()]
-        snippets.extend(
-            chunks if len(chunks) > 1 else [ln for ln in text.splitlines() if ln.strip()]
-        )
+    snippets = _eureka_code_snippets(args)
     if not snippets:
         print(
             "[eureka --code] no snippets — pass --snippet ... (repeat) or --code-file FILE",
@@ -1804,20 +1821,219 @@ def _cmd_eureka_code(args: argparse.Namespace) -> int:
         )
         return 2
     result = propose_template(snippets, min_instances=getattr(args, "min_instances", 3))
-    print(f"[eureka --code] status={result['status']} (PROPOSE only — 실현은 하데스)")
-    if result.get("template"):
-        print(f"  template: {result['template']}")
-    for k in ("holes", "hole_ratio", "instances", "reason", "note"):
-        if k in result:
-            print(f"  {k}: {result[k]}")
+    _print_eureka_code_result(result)
     return 0
+
+
+def _eureka_preflight(args: argparse.Namespace) -> int | None:
+    if getattr(args, "accept", False):
+        print(
+            "[eureka] --accept refused: external human/Naesengmoon verdict ingress not "
+            "implemented; use --creative --apply for VERDICT_PENDING",
+            file=sys.stderr,
+        )
+        return 2
+    code_mode = bool(getattr(args, "code", False))
+    if code_mode and getattr(args, "creative", False):
+        print("[eureka] --code cannot be combined with --creative", file=sys.stderr)
+        return 2
+    if not code_mode and (
+        getattr(args, "creative_rounds", 2) < 1 or getattr(args, "creative_limit", 3) < 1
+    ):
+        print("[eureka] creative budgets must be positive", file=sys.stderr)
+        return 2
+    return None
+
+
+def _eureka_cycle_id() -> str:
+    import datetime as _dt  # noqa: PLC0415
+
+    return "cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
+
+
+def _eureka_creative_enricher(
+    args: argparse.Namespace,
+    cycle_id: str,
+    close: Callable[[], None],
+) -> tuple[Any | None, int | None]:
+    if not getattr(args, "creative", False):
+        return None, None
+
+    agents, reason = _agent_runtime()
+    if agents is None:
+        close()
+        print(f"[eureka --creative] agent runtime unavailable: {reason}", file=sys.stderr)
+        return None, 2
+    from engine.eureka.creative import (  # noqa: PLC0415
+        AgentCreativeProposer,
+        AgentProposalCritic,
+        CreativeEnricher,
+        CreativeLoopConfig,
+    )
+
+    try:
+        client = agents.AgentClient()
+    except Exception as error:  # noqa: BLE001 — optional runtime boundary, fail closed
+        close()
+        print(
+            f"[eureka --creative] agent client initialization failed: {error}",
+            file=sys.stderr,
+        )
+        return None, 2
+    creative_rounds = int(getattr(args, "creative_rounds", 2))
+    enricher = CreativeEnricher(
+        AgentCreativeProposer(client, session=f"{cycle_id}:proposer"),
+        AgentProposalCritic(client, session=f"{cycle_id}:critic"),
+        config=CreativeLoopConfig(
+            max_rounds=creative_rounds,
+            max_model_calls=max(2, 2 * creative_rounds),
+        ),
+        limit=getattr(args, "creative_limit", 3),
+    )
+    return enricher, None
+
+
+def _eureka_stage_count(stages: list[Any], prefix: str, key: str) -> int:
+    for stage in stages:
+        if stage.stage.startswith(prefix) and isinstance(stage.payload, dict):
+            return int(stage.payload.get(key, 0) or 0)
+    return 0
+
+
+def _eureka_stage(stages: list[Any], name: str) -> Any | None:
+    return next((stage for stage in stages if stage.stage == name), None)
+
+
+def _eureka_creative_stage_failed(stage: Any | None) -> bool:
+    if stage is None:
+        return False
+    if isinstance(stage.payload, dict):
+        outcomes = stage.payload.get("outcomes", [])
+        return bool(isinstance(outcomes, (list, tuple, set)) and "FAILED" in outcomes)
+    return bool(not stage.ok and stage.error)
+
+
+def _eureka_execution_failed(pr: Any, *, persist: bool, creative: bool) -> bool:
+    persist_stage = _eureka_stage(pr.stages, "6-persist")
+    if persist and (persist_stage is None or not persist_stage.ok):
+        return True
+    validator_stage = _eureka_stage(pr.stages, "5.5-pre-merge-validator")
+    if validator_stage is not None and not validator_stage.ok:
+        return True
+    return creative and _eureka_creative_stage_failed(
+        _eureka_stage(pr.stages, "4.9-semantic-creative-loop")
+    )
+
+
+def _eureka_run_summary(pr: Any, *, persist: bool, creative: bool) -> dict[str, Any]:
+    induced = _eureka_stage_count(pr.stages, "4-induce", "abstract_classes")
+    proposed = len(getattr(pr, "proposals", []))
+    if _eureka_execution_failed(pr, persist=persist, creative=creative):
+        outcome, rc = "EXECUTION_FAILED", 3
+    elif proposed == 0:
+        outcome, rc = ("GATE_REJECTED" if induced else "NO_CANDIDATE"), 1
+    else:
+        outcome, rc = "PROPOSED", 0
+    return {
+        "induced": induced,
+        "survived": _eureka_stage_count(pr.stages, "4.5-quality-gate", "survived"),
+        "proposed": proposed,
+        "persisted": _eureka_stage_count(pr.stages, "6-persist", "persisted"),
+        "outcome": outcome,
+        "rc": rc,
+    }
+
+
+def _eureka_candidate_payload(ac: Any, artifact: Any | None) -> dict[str, Any]:
+    return {
+        "candidate_id": ac.candidateDigest or ac.name,
+        "candidate_digest": ac.candidateDigest,
+        "concept_name": ac.semanticName or ac.name,
+        "definition": ac.summary,
+        "mechanism": ac.mechanism,
+        "scope": ac.scope,
+        "falsifier": ac.falsifier,
+        "extent": ac.extent or [],
+        "intent": ac.intent or [],
+        "stability_score": ac.stabilityScore,
+        "novelty_score": ac.noveltyScore,
+        "validation_receipt_digest": ac.validationReceiptDigest,
+        "status": ac.status.value,
+        "source_layer": "SECONDARY_AI" if artifact else "STRUCTURAL_INDUCTION",
+        "artifact": artifact,
+    }
+
+
+def _eureka_candidates(pr: Any) -> list[dict[str, Any]]:
+    artifacts = {item["candidate_digest"]: item for item in getattr(pr, "creative_artifacts", [])}
+    return [
+        _eureka_candidate_payload(ac, artifacts.get(ac.candidateDigest or ""))
+        for ac in getattr(pr, "proposals", [])
+    ]
+
+
+def _eureka_envelope(
+    pr: Any,
+    cfg: Any,
+    *,
+    cycle_id: str,
+    creative: bool,
+    persist: bool,
+    summary: dict[str, Any],
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "schema": "bhgman.eureka.run.v1",
+        "cycle_id": cycle_id,
+        "outcome": summary["outcome"],
+        "mode": "creative" if creative else "structural",
+        "method": cfg.method,
+        "earned": {key: summary[key] for key in ("induced", "survived", "proposed", "persisted")},
+        "candidates": candidates,
+        "validation_receipts": list(getattr(pr, "creative_receipts", [])),
+        "stages": [
+            {"name": stage.stage, "ok": bool(stage.ok), "error": stage.error} for stage in pr.stages
+        ],
+        "persistence": {
+            "requested": persist,
+            "verdict": "VERDICT_PENDING" if persist else None,
+            "receipt_required": False,
+        },
+        "errors": [stage.error for stage in pr.stages if stage.error],
+    }
+
+
+def _print_eureka_details(pr: Any, candidates: list[dict[str, Any]]) -> None:
+    for stage in pr.stages:
+        status = "ok" if stage.ok else "FAIL"
+        print(f"  [{status}] {stage.stage}")
+    for candidate in candidates:
+        print(f"  [proposal] {candidate['concept_name']}: {candidate['definition']}")
+        if candidate["candidate_digest"]:
+            print(f"    digest={candidate['candidate_digest']}")
+
+
+def _print_eureka_terminal(summary: dict[str, Any], *, persist: bool) -> None:
+    outcome = summary["outcome"]
+    if persist:
+        verdict = "VERDICT_PENDING (visible, not yet realizable)"
+        print(f"[eureka] {outcome}: persisted {summary['persisted']} concept(s) as {verdict}.")
+        return
+    if summary["rc"] == 0:
+        print(
+            f"[eureka] {outcome}: {summary['proposed']} proposal(s), PROPOSE only (dry-run). "
+            "Use --apply for VERDICT_PENDING; Hades remains the materializer."
+        )
+        return
+    print(f"[eureka] {outcome}: no proposal survived.")
 
 
 def cmd_eureka(args: argparse.Namespace) -> int:
     # KG: eureka-canonical-2026-05-26
-    """유레카 — KG 패턴→추상 개념 induce (PROPOSE only). covenant: auto-commit 금지, 실현은 하데스."""
-    import datetime as _dt  # noqa: PLC0415
-
+    """유레카 — structural induction + optional bounded semantic insight loop."""
+    preflight_rc = _eureka_preflight(args)
+    if preflight_rc is not None:
+        return preflight_rc
     if getattr(args, "code", False):
         return _cmd_eureka_code(args)
 
@@ -1833,16 +2049,22 @@ def cmd_eureka(args: argparse.Namespace) -> int:
 
     run_cypher, _write, close = runners
     eureka_stages = _load_engine_module("eureka", "stages")
-    cycle_id = "cli-" + _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S")
-    # --accept implies --apply: both trigger stage_6 KG-persist (the eureka→hades seam).
-    # accept → verdictStatus='ACCEPTED' (realizable); apply-only → 'VERDICT_PENDING'
-    # (visible, not yet realizable — covenant: 실현은 하데스, 명시적 accept 신호에서만).
-    accept = getattr(args, "accept", False)
-    persist = getattr(args, "apply", False) or accept
+    cycle_id = _eureka_cycle_id()
+    # CLI persistence is PROPOSE-only: it can expose candidates as VERDICT_PENDING,
+    # while an external human/Naesengmoon verdict ingress must own ACCEPTED transitions.
+    persist = bool(getattr(args, "apply", False))
+    creative = bool(getattr(args, "creative", False))
+    creative_enricher, setup_rc = _eureka_creative_enricher(args, cycle_id, close)
+    if setup_rc is not None:
+        return setup_rc
     cfg = pipeline.PipelineConfig(
         cycle_id=cycle_id,
+        method=getattr(args, "method", "fca"),
+        fidelity_runner=run_cypher,
+        creative_enricher=creative_enricher,
         persist_cypher=_write if persist else None,
-        persist_accept=accept,
+        persist_accept=False,
+        require_acceptance_receipt=False,
         **eureka_stages.wire_default_stages(run_cypher),
     )
     try:
@@ -1850,23 +2072,24 @@ def cmd_eureka(args: argparse.Namespace) -> int:
     finally:
         close()
 
-    for s in pr.stages:
-        status = "ok" if s.ok else "FAIL"
-        print(f"  [{status}] {s.stage}")
-    if persist:
-        n = next((s.payload.get("persisted", 0) for s in pr.stages if s.stage == "6-persist"), 0)
-        verdict = (
-            "ACCEPTED (hades-realizable)"
-            if accept
-            else "VERDICT_PENDING (visible, not yet realizable)"
-        )
-        print(f"[eureka] persisted {n} concept(s) as {verdict}.")
-    else:
-        print(
-            "[eureka] PROPOSE only — candidates surfaced; persist via --apply (pending) / "
-            "--accept (realizable), materialize via 하데스 + 나생문 gate (no auto-commit)."
-        )
-    return 0
+    summary = _eureka_run_summary(pr, persist=persist, creative=creative)
+    candidates = _eureka_candidates(pr)
+    envelope = _eureka_envelope(
+        pr,
+        cfg,
+        cycle_id=cycle_id,
+        creative=creative,
+        persist=persist,
+        summary=summary,
+        candidates=candidates,
+    )
+    if getattr(args, "json", False):
+        print(json.dumps(envelope, ensure_ascii=False, sort_keys=True))
+        return int(summary["rc"])
+
+    _print_eureka_details(pr, candidates)
+    _print_eureka_terminal(summary, persist=persist)
+    return int(summary["rc"])
 
 
 def cmd_kg_schema(args: argparse.Namespace) -> int:

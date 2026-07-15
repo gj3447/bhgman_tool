@@ -378,7 +378,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_eu = sub.add_parser(
         "eureka",
-        help="유레카 — KG 패턴→추상 개념 induce (PROPOSE only, no write; materialize via hades).",
+        help="유레카 — KG 패턴→추상 개념 induce/enrich (dry-run default; materialize via hades).",
     )
     p_eu.add_argument(
         "--local",
@@ -394,8 +394,37 @@ def build_parser() -> argparse.ArgumentParser:
     p_eu.add_argument(
         "--accept",
         action="store_true",
-        help="명시적 PROPOSED→ACCEPTED: persist as verdictStatus='ACCEPTED' (the row hades "
-        "realizes). Implies --apply. covenant: 실현 게이트는 명시적 accept 신호에서만.",
+        help="Reserved external verdict ingress; currently always refused (rc=2). "
+        "Use --creative --apply to persist VERDICT_PENDING only.",
+    )
+    p_eu.add_argument(
+        "--creative",
+        action="store_true",
+        help="FCA/AMIE structural floor 뒤 Agent proposer→independent critic→bounded repair를 "
+        "실행해 이름·정의·기제·반증절차가 있는 semantic proposal을 만든다 (LLM backend 필요).",
+    )
+    p_eu.add_argument(
+        "--creative-rounds",
+        type=int,
+        default=2,
+        help="--creative bounded repair rounds (default 2).",
+    )
+    p_eu.add_argument(
+        "--creative-limit",
+        type=int,
+        default=3,
+        help="--creative로 semantic enrichment할 structural candidate 최대 수 (default 3).",
+    )
+    p_eu.add_argument(
+        "--method",
+        choices=["fca", "amie3", "leiden-llm", "leiden-true"],
+        default="fca",
+        help="structural induction operator (default fca).",
+    )
+    p_eu.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit one versioned JSON envelope with full proposal artifacts and receipts.",
     )
     p_eu.add_argument(
         "--code",

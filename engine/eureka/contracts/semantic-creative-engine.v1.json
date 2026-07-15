@@ -1,0 +1,216 @@
+{
+  "schema_version": "engine-spec/v1",
+  "name": "eureka-semantic-creative-engine",
+  "implementation_status": {
+    "status": "DESIGN_TARGET",
+    "current_slice": "in-memory bounded proposal loop with content-addressed receipts",
+    "implemented": [
+      "contrastive association",
+      "bounded divergence and repair",
+      "deterministic proposal gates",
+      "distinct-model critic classification",
+      "PROPOSE-only artifacts"
+    ],
+    "designed_only": [
+      "durable journal and checkpoints",
+      "fenced single-writer aggregate",
+      "outbox and external release reconciliation",
+      "crash replay",
+      "human approval lifecycle"
+    ]
+  },
+  "purpose": "Turn repeated structural evidence plus recorded associative context into bounded, falsifiable, PROPOSE-only semantic insight candidates.",
+  "decision": {
+    "verdict": "engine",
+    "current_consumers": [
+      "bhgman-tool eureka CLI adapter",
+      "Eureka Python pipeline adapter"
+    ],
+    "planned_consumers": [
+      "agent-runtime Eureka tool adapter"
+    ],
+    "fit_evidence": [
+      "CLI and Python callers need one stable candidate, budget, receipt, and terminal-verdict contract.",
+      "Model generation, association retrieval, and independent evaluation are replaceable nondeterministic implementations around one deterministic decision authority.",
+      "Correction rounds, no-progress detection, replay, and proposal-release effects require bounded lifecycle ownership rather than ad hoc calls."
+    ],
+    "alternatives_considered": [
+      "Keep semantic naming and scoring as helper functions inside the existing FCA pipeline",
+      "Let each agent prompt own generation, stopping, and acceptance policy",
+      "Create a new creativity commander instead of preserving Eureka as the authority"
+    ]
+  },
+  "boundary": {
+    "owns": "Creative-run lifecycle state, candidate identity, recorded evidence, budget accounting, validator receipts, and PROPOSE-only terminal verdicts",
+    "mechanism": "Deterministically coordinate detection, association, divergence, semantic compression, independent falsification, bounded correction, and proposal release from recorded inputs",
+    "policy_outside": [
+      "Which model or retrieval strategy an adapter selects",
+      "Domain-specific creativity thresholds and prompt wording",
+      "Whether a human ratifies a proposal as canon",
+      "How Hades materializes an accepted abstraction"
+    ],
+    "non_goals": [
+      "Claiming that stochastic prose alone proves creativity or intuition",
+      "Persisting a proposal as accepted canon",
+      "Materializing KG or source-code changes",
+      "Encoding fixed compile-time USES edges among commanders",
+      "Calling models, clocks, randomness, filesystems, networks, or credentials inside guards or reducers"
+    ],
+    "state_authority": "One fenced creative-run aggregate is the single writer for each run_id; producer and evaluator adapters only return recorded observations"
+  },
+  "model": {
+    "resources": [
+      "step budget",
+      "model-call budget",
+      "token and cost budget",
+      "association and evidence snapshots",
+      "independent evaluator capacity"
+    ],
+    "work_units": [
+      "creative run",
+      "semantic insight candidate",
+      "candidate revision",
+      "validator receipt",
+      "proposal bundle"
+    ]
+  },
+  "state_model": {
+    "contract": "engine/eureka/contracts/semantic-creative-fsm.v1.json",
+    "loop_contract": "engine/eureka/contracts/semantic-creative-loop.v1.json",
+    "kernel": "decide(versioned_state, typed_command) -> domain_events or typed_rejection; evolve(state, event) -> state; effects(events) -> effect intents",
+    "terminal_outcomes": [
+      "PROPOSED",
+      "REJECTED",
+      "PLATEAU",
+      "RETRY_EXHAUSTED",
+      "BUDGET_EXHAUSTED",
+      "TIMED_OUT",
+      "CANCELED"
+    ]
+  },
+  "protocol": {
+    "commands": [
+      "StartCreativeRun",
+      "RecordDetectedPatterns",
+      "RecordAssociations",
+      "RecordDivergentCandidates",
+      "RecordCompressedCandidate",
+      "RecordIndependentEvaluation",
+      "RecordRevision",
+      "RequestProposalRelease",
+      "ApproveProposalRelease",
+      "RecordReleaseReceipt",
+      "CancelCreativeRun"
+    ],
+    "events": [
+      "CreativeRunStarted",
+      "PatternsDetected",
+      "AssociationsRecorded",
+      "DivergentCandidatesRecorded",
+      "CandidateCompressed",
+      "IndependentEvaluationRecorded",
+      "CandidateRevisionRequested",
+      "CandidateRevised",
+      "ProposalReady",
+      "ProposalReleaseApproved",
+      "ProposalReleased",
+      "CandidateRejected",
+      "RunPlateaued",
+      "RunRetryExhausted",
+      "RunBudgetExhausted",
+      "RunTimedOut",
+      "RunCanceled"
+    ],
+    "effects": [
+      "RequestPatternDetection",
+      "RequestAssociationRetrieval",
+      "RequestDivergentGeneration",
+      "RequestIndependentEvaluation",
+      "RequestCandidateRevision",
+      "PublishProposedBundle",
+      "ReconcileProposalRelease",
+      "AuditRejectedTransition"
+    ],
+    "versioning": "Command, event, candidate, receipt, checkpoint, and proposal schemas use explicit semantic versions; additive optional fields are compatible, while changed identity, scoring, receipt-binding, or terminal semantics require a new major version and an explicit upcaster."
+  },
+  "invariants": [
+    "Eureka emits PROPOSED or a typed non-success outcome and never marks a candidate as accepted canon or materializes it.",
+    "Every candidate is content-addressed and cites recorded pattern evidence plus the association snapshot used to generate it.",
+    "A candidate cannot reach PROPOSED unless deterministic checks pass and an evaluator distinct from its producer issues a content-addressed receipt bound to the exact candidate hash, contract version, and evidence hash.",
+    "The evaluator receives the original contract and evidence, not only the producer rationale.",
+    "All model, retrieval, clock, random, and identifier outputs are recorded before they influence replayable decisions.",
+    "Steps, retries, calls, tokens, cost, wall time, recursion, parallelism, and correction rounds are monotonically bounded by an external governor.",
+    "Repeated evidence-and-candidate fingerprints terminate as PLATEAU; stylistic churn cannot count as progress.",
+    "No externally visible proposal release occurs without an immutable PROPOSED label, exact artifact and destination hashes, explicit authorization, an idempotency key, and reconciliation."
+  ],
+  "ports": [
+    "PatternDetectionPort",
+    "AssociationPort",
+    "CreativeProducerPort",
+    "IndependentEvaluatorPort",
+    "ExistingConceptIndexPort",
+    "RunJournalPort",
+    "CheckpointPort",
+    "ProposalReleasePort",
+    "ClockPort",
+    "RandomPort",
+    "IdentifierPort",
+    "TelemetryPort"
+  ],
+  "runtime": {
+    "ordering": "Commands are serialized by run_id and require the expected aggregate version; evidence and receipts are ordered by committed event sequence.",
+    "concurrency": "Different runs may progress concurrently; candidate generation may fan out within max_parallelism, but each candidate revision chain and run aggregate have one fenced writer.",
+    "backpressure": "Bound association, candidate, evaluator, and outbox queues; reject admission with a typed overload result and retry guidance instead of unbounded buffering.",
+    "cancellation": "An authorized cancellation becomes an auditable terminal event from safe states; during proposal-release intent, attempt, or reconciliation it is durably deferred until the effect outcome is reconciled.",
+    "timeouts": "An external deadline controller emits typed timeout observations from every nonterminal state; model and retrieval waits also have bounded per-call deadlines."
+  },
+  "durability": {
+    "persistence": "Append accepted domain events and budget deltas before exposing a transition; model and tool responses are stored as immutable content-addressed observations.",
+    "atomic_commit": "Atomically commit dedup claim, expected-version events, budget and retry deltas, checkpoint pointer, approval consumption, and any outbox intent supported by the selected store; otherwise reject durable mode.",
+    "recovery": "Replay the versioned run journal, validate checkpoint integrity and fencing, restore pending interrupts, then resume only unacknowledged idempotent effects or reconcile unknown proposal-release outcomes.",
+    "effect_idempotency": "Use run_id, transition_id, effect_sequence, adapter version, candidate or artifact hash, and destination hash; same key with different intent is a conflict.",
+    "migration": "Retain original event and observation bytes, upcast at the replay boundary, and require an audited migration for state, score, receipt, or workflow-version changes."
+  },
+  "failure_model": [
+    "Malformed evidence, schema mismatch, duplicate identity with different content, stale expected version, and producer-evaluator identity collision are permanent typed rejections without mutation.",
+    "Transient retrieval, model, evaluator, or store failures retry only when replay-safe and stop at RETRY_EXHAUSTED.",
+    "No valid candidate is REJECTED and no-progress across the calibrated window is PLATEAU; neither is reported as success.",
+    "Hard budget, timeout, and cancellation interrupts terminate with their own typed outcomes and cannot be converted to a proposal by model prose.",
+    "Unknown externally visible release outcomes enter reconciliation and are never blindly retried."
+  ],
+  "observability": {
+    "traces": [
+      "Every command, decision, committed event, model or tool observation, evaluator receipt, correction round, effect attempt, and terminal verdict shares run, cycle, correlation, causation, trace, span, and checkpoint identifiers."
+    ],
+    "metrics": [
+      "Admission and queue depth, calls and tokens, candidate yield, lexical-echo rejection, novelty and evidence coverage, evaluator disagreement, correction gain, plateau rate, budget exhaustion, latency, retries, release reconciliation, and terminal outcome counts."
+    ],
+    "redaction": "Store hashes and redacted summaries in general traces; keep source text, prompts, credentials, private-domain identifiers, and model payloads in capability-scoped encrypted stores and never use them as shared metric labels."
+  },
+  "security": [
+    "Retrieved text and model output are untrusted data and cannot issue control commands, grant capabilities, relax budgets, or self-approve.",
+    "Producer, evaluator, persistence, and external release capabilities are explicit and independently revocable.",
+    "Private-domain evidence, association traffic, scores, caches, and telemetry cannot influence another domain without an authorized aggregate contract.",
+    "External proposal publication is separate from local PROPOSE-only return and is human-authorized against exact immutable content."
+  ],
+  "verification": [
+    "Table-test every command and event against every reachable state, including guard-false and stale-version cases.",
+    "Property-test budget monotonicity, content-address binding, evaluator independence, deterministic replay from recorded nondeterminism, and terminal isolation.",
+    "Fault-test crashes before and after event commit, model recording, evaluator receipt, approval consumption, proposal release, and receipt acknowledgement.",
+    "Calibrate novelty, evidence coverage, compression, surprise, and gray-band thresholds on labeled production-like cases with a frozen holdout; report false accepts and false rejects.",
+    "Run model-to-FSM trace conformance and adversarial fixtures for fluent tautologies, lexical relabeling, hallucinated evidence, correlated evaluators, and endless stylistic revision."
+  ],
+  "implementation_slices": [
+    "One in-memory run: recorded pattern evidence, injected producer, deterministic candidate checks, distinct injected evaluator receipt, one bounded correction, and a local PROPOSED result with no external writes.",
+    "Add recorded association retrieval plus no-progress and budget terminal outcomes.",
+    "Add journal, checkpoint, and deterministic replay with recorded model and tool responses.",
+    "Add optional human-approved proposal-bundle release with outbox and unknown-outcome reconciliation."
+  ],
+  "falsifiers": [
+    "If semantic production has only one unstable caller and no shared lifecycle or receipt semantics, collapse the boundary into pure Eureka modules.",
+    "If evaluator receipts do not reduce false accepts on a labeled holdout, remove model judgment from the release gate and retain deterministic or human verification only.",
+    "If association retrieval does not improve novelty at fixed evidence fidelity, remove it from the default path rather than preserving decorative GraphRAG stages.",
+    "If replay cannot reproduce decisions from recorded observations, stop claiming deterministic replay and expose only checkpoint resume.",
+    "If PROPOSE-only output cannot be kept separate from canon acceptance or Hades materialization, block release rather than expanding Eureka authority."
+  ]
+}

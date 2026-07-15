@@ -93,6 +93,16 @@ def test_eureka_real_extraction_template_routed(tmp_path):
     assert rows == []  # 빈 store → 빈 결과 (raise 안 함이 핵심)
 
 
+def test_eureka_real_fidelity_members_template_routed(tmp_path):
+    from engine.eureka.fidelity_gate import FidelityConfig, fidelity_members_cypher
+
+    cypher, params = fidelity_members_cypher(["a", "b", "c"], FidelityConfig())
+    rows = _runner(tmp_path)(cypher, params)
+
+    assert [row["witness"] for row in rows] == params["witness_rels"]
+    assert all(row["top_shared"] == 0 and row["extent"] == 3 for row in rows)
+
+
 def test_drift_sentinel_unrouted_raises(tmp_path):
     # 계약 반대편: 라우트에 없는 임의 cypher는 조용히 빈 결과가 아니라 명시 실패.
     with pytest.raises(UnsupportedLocalQuery):

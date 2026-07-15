@@ -40,6 +40,13 @@ _EUREKA_READ = (
     "MATCH (o)-[r]->(v) WHERE type(r) IN $facet_rels WITH o, count(DISTINCT v) AS facet_deg, "
     "collect(DISTINCT type(r) + ':' + v.name) AS attrs RETURN o.name AS object, attrs AS attributes"
 )
+_EUREKA_FIDELITY_MEMBERS = (
+    "UNWIND $witness_rels AS wrel CALL { WITH wrel MATCH (o)-[r]->(t) "
+    "WHERE o.name IN $members AND type(r)=wrel AND t.name IS NOT NULL "
+    "WITH t.name AS target, count(DISTINCT o) AS shared "
+    "RETURN max(shared) AS top_shared } "
+    "RETURN wrel AS witness, coalesce(top_shared,0) AS top_shared, $extent AS extent"
+)
 
 
 def test_occam_fetch_excludes_superseded(tmp_path):
@@ -177,6 +184,36 @@ def test_eureka_excludes_bulk_label(tmp_path):
         },
     )
     assert rows == []
+
+
+def test_eureka_fidelity_members_counts_distinct_sources_per_target(tmp_path):
+    s = _store(tmp_path)
+    members = [s.merge_node("Topic", "name", name, {}) for name in ("a", "b", "c")]
+    shared = s.merge_node("Topic", "name", "shared", {})
+    other = s.merge_node("Topic", "name", "other", {})
+    category = s.merge_node("Category", "name", "category", {})
+    outsider = s.merge_node("Topic", "name", "outsider", {})
+    for member in members[:2]:
+        s.add_edge(member, "RELATED_TO", shared)
+    s.add_edge(members[2], "RELATED_TO", other)
+    for member in members:
+        s.add_edge(member, "IN_CATEGORY", category)
+    s.add_edge(outsider, "RELATED_TO", shared)  # outside $members: must not count
+
+    rows = make_local_runner(s)(
+        _EUREKA_FIDELITY_MEMBERS,
+        {
+            "members": ["a", "b", "c"],
+            "witness_rels": ["RELATED_TO", "IN_CATEGORY", "ABOUT"],
+            "extent": 3,
+        },
+    )
+
+    assert rows == [
+        {"witness": "RELATED_TO", "top_shared": 2, "extent": 3},
+        {"witness": "IN_CATEGORY", "top_shared": 3, "extent": 3},
+        {"witness": "ABOUT", "top_shared": 0, "extent": 3},
+    ]
 
 
 _HARNESS_PERSIST = (

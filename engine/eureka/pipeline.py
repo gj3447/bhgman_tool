@@ -76,11 +76,17 @@ class PipelineConfig:
     fidelity_runner: Optional[CypherRunner] = None
     fidelity_cfg: Optional[FidelityConfig] = None
 
+    # Optional semantic layer.  The structural inducer proposes extents/intents;
+    # this injected port performs bounded abductive naming + independent critique.
+    # Kept as a port so the deterministic kernel has no AgentClient dependency.
+    creative_enricher: Optional[Any] = None
+
     # stage_6 KG persist (W1-I). None → pipeline stays read-only (dry-run default, like
     # occam/hades). Injected → gated ACs are MERGEd so hades can realize them. persist_accept
     # is the explicit PROPOSED→ACCEPTED transition (writes verdictStatus='ACCEPTED' only then).
     persist_cypher: Optional[CypherRunner] = None
     persist_accept: bool = False
+    require_acceptance_receipt: bool = False
 
     def resolve_stage_community(self) -> Stage:
         return self.stage_community or NotImplementedStage(
@@ -116,6 +122,9 @@ class PipelineRun:
     # KG: eureka-canonical-2026-05-26
     config: PipelineConfig
     stages: list[StageResult] = field(default_factory=list)
+    proposals: list[AbstractClass] = field(default_factory=list)
+    creative_receipts: list[dict[str, Any]] = field(default_factory=list)
+    creative_artifacts: list[dict[str, Any]] = field(default_factory=list)
 
     def record(self, stage: str, ok: bool, payload=None, error: Optional[str] = None) -> None:
         self.stages.append(StageResult(stage=stage, ok=ok, payload=payload, error=error))
@@ -324,13 +333,105 @@ _PERSIST_AC_CYPHER = (
     "MERGE (a:AbstractClass {name: $name}) "
     "SET a.verdictStatus = $verdictStatus, a.status = $status, a.summary = $summary, "
     "a.inductionMethod = $inductionMethod, a.cycleId = $cycleId, "
-    "a.extent = $extent, a.intent = $intent, a.stabilityScore = $stabilityScore "
+    "a.extent = $extent, a.intent = $intent, a.stabilityScore = $stabilityScore, "
+    "a.semanticName = $semanticName, a.mechanism = $mechanism, a.scope = $scope, "
+    "a.falsifier = $falsifier, a.candidateDigest = $candidateDigest, "
+    "a.validationReceiptDigest = $validationReceiptDigest, a.noveltyScore = $noveltyScore "
     "RETURN a.name AS name"
 )
 
 
+def _parse_validation_receipt(raw_receipt: dict[str, Any], index: int) -> tuple[Any, str]:
+    from engine.eureka.creative import ValidationReceipt  # noqa: PLC0415
+
+    claimed_digest = raw_receipt.get("receipt_digest")
+    try:
+        receipt = ValidationReceipt.model_validate(raw_receipt)
+    except Exception as error:
+        raise ValueError(
+            f"serialized validation receipt at index {index} failed schema validation"
+        ) from error
+    computed_digest = receipt.receipt_digest
+    if claimed_digest != computed_digest:
+        raise ValueError(f"serialized validation receipt at index {index} has a digest mismatch")
+    return receipt, computed_digest
+
+
+def _index_validation_receipts(
+    creative_receipts: list[dict[str, Any]] | None,
+) -> dict[str, tuple[Any, str]]:
+    indexed: dict[str, tuple[Any, str]] = {}
+    for index, raw_receipt in enumerate(creative_receipts or []):
+        if not isinstance(raw_receipt, dict):
+            raise ValueError(f"serialized validation receipt at index {index} must be an object")
+        receipt, computed_digest = _parse_validation_receipt(raw_receipt, index)
+        if receipt.candidate_digest in indexed:
+            raise ValueError(
+                f"duplicate serialized validation receipt for candidate "
+                f"{receipt.candidate_digest!r}"
+            )
+        indexed[receipt.candidate_digest] = (receipt, computed_digest)
+    return indexed
+
+
+def _validate_candidate_acceptance(
+    ac: AbstractClass, validated_receipts: dict[str, tuple[Any, str]]
+) -> None:
+    if not (ac.candidateDigest and ac.validationReceiptDigest):
+        raise ValueError(
+            f"candidate {ac.name!r} cannot become ACCEPTED without a serialized validation receipt"
+        )
+    bound = validated_receipts.get(ac.candidateDigest)
+    if bound is None:
+        raise ValueError(f"candidate {ac.name!r} has no matching serialized validation receipt")
+    receipt, computed_digest = bound
+    if not receipt.accepted:
+        raise ValueError(f"candidate {ac.name!r} validation receipt did not earn acceptance")
+    if receipt.candidate_digest != ac.candidateDigest:
+        raise ValueError(f"candidate {ac.name!r} validation receipt is bound to another candidate")
+    if receipt.cycle_id != ac.cycleId:
+        raise ValueError(f"candidate {ac.name!r} validation receipt cycle does not match")
+    if ac.validationReceiptDigest != computed_digest:
+        raise ValueError(f"candidate {ac.name!r} validation receipt digest does not match")
+
+
+def _validate_acceptance_batch(
+    persistable_acs: list[AbstractClass],
+    creative_receipts: list[dict[str, Any]] | None,
+) -> None:
+    validated_receipts = _index_validation_receipts(creative_receipts)
+    for ac in persistable_acs:
+        _validate_candidate_acceptance(ac, validated_receipts)
+
+
+def _persist_params(ac: AbstractClass, *, accept: bool) -> dict[str, Any]:
+    return {
+        "name": ac.name,
+        "verdictStatus": "ACCEPTED" if accept else "VERDICT_PENDING",
+        "status": ac.status.value,
+        "summary": ac.summary,
+        "inductionMethod": ac.inductionMethod,
+        "cycleId": ac.cycleId,
+        "extent": ac.extent or [],
+        "intent": ac.intent or [],
+        "stabilityScore": ac.stabilityScore,
+        "semanticName": ac.semanticName,
+        "mechanism": ac.mechanism,
+        "scope": ac.scope,
+        "falsifier": ac.falsifier,
+        "candidateDigest": ac.candidateDigest,
+        "validationReceiptDigest": ac.validationReceiptDigest,
+        "noveltyScore": ac.noveltyScore,
+    }
+
+
 def stage_6_persist(
-    gated_acs: list[AbstractClass], persist_cypher: CypherRunner, *, accept: bool
+    gated_acs: list[AbstractClass],
+    persist_cypher: CypherRunner,
+    *,
+    accept: bool,
+    require_acceptance_receipt: bool = False,
+    creative_receipts: list[dict[str, Any]] | None = None,
 ) -> int:
     # KG: eureka-canonical-2026-05-26
     """Persist gated AbstractClass nodes to the KG so hades can fetch + realize them.
@@ -342,26 +443,15 @@ def stage_6_persist(
     VERDICT_PENDING (visible, not yet realizable). REJECTED concepts are never persisted
     as realizable. Returns the number of nodes written. (W1-I)
     """
-    written = 0
-    for ac in gated_acs:
-        if ac.status is AbstractClassStatus.REJECTED:
-            continue
-        persist_cypher(
-            _PERSIST_AC_CYPHER,
-            {
-                "name": ac.name,
-                "verdictStatus": "ACCEPTED" if accept else "VERDICT_PENDING",
-                "status": ac.status.value,
-                "summary": ac.summary,
-                "inductionMethod": ac.inductionMethod,
-                "cycleId": ac.cycleId,
-                "extent": ac.extent or [],
-                "intent": ac.intent or [],
-                "stabilityScore": ac.stabilityScore,
-            },
-        )
-        written += 1
-    return written
+    # Retain the flag in the call contract for compatibility. ACCEPTED is always
+    # receipt-gated, independent of its historical value.
+    _ = require_acceptance_receipt
+    persistable_acs = [ac for ac in gated_acs if ac.status is not AbstractClassStatus.REJECTED]
+    if accept:
+        _validate_acceptance_batch(persistable_acs, creative_receipts)
+    for ac in persistable_acs:
+        persist_cypher(_PERSIST_AC_CYPHER, _persist_params(ac, accept=accept))
+    return len(persistable_acs)
 
 
 def _try_run_stage(stage: Stage, context: dict[str, Any], record_to: PipelineRun) -> bool:
@@ -377,6 +467,157 @@ def _try_run_stage(stage: Stage, context: dict[str, Any], record_to: PipelineRun
     except NotImplementedStageError as e:
         record_to.record(stage.name, False, error=str(e), payload={"not_implemented": True})
         return False
+
+
+def _apply_quality_gate(
+    abstract_classes: list[AbstractClass], record_to: PipelineRun
+) -> list[AbstractClass] | None:
+    if not abstract_classes:
+        return abstract_classes
+    floor = quality_gate_module.FCA_STABILITY_MIN
+    survivors = [ac for ac in abstract_classes if (ac.stabilityScore or 0.0) >= floor]
+    record_to.record(
+        "4.5-quality-gate",
+        bool(survivors),
+        payload={
+            "survived": len(survivors),
+            "pruned_below_floor": len(abstract_classes) - len(survivors),
+        },
+        error=(
+            None
+            if survivors
+            else f"all {len(abstract_classes)} concept(s) below fca_stability floor {floor}"
+        ),
+    )
+    return survivors or None
+
+
+def _acceptance_fidelity_ready(config: PipelineConfig, record_to: PipelineRun) -> bool:
+    if not (config.persist_accept and config.require_acceptance_receipt):
+        return True
+    fidelity_stage = record_to.stages[-1]
+    payload = fidelity_stage.payload if isinstance(fidelity_stage.payload, dict) else {}
+    skipped = bool(payload.get("skipped"))
+    soft_warns = int(payload.get("soft_warns", 0) or 0)
+    ready = not skipped and soft_warns == 0
+    record_to.record(
+        "4.8b-acceptance-fidelity-hard-gate",
+        ready,
+        payload={"skipped": skipped, "soft_warns": soft_warns},
+        error=(
+            None
+            if ready
+            else "ACCEPTED requires measured held-out fidelity with zero soft warnings"
+        ),
+    )
+    return ready
+
+
+def _run_fidelity_stages(
+    abstract_classes: list[AbstractClass], config: PipelineConfig, record_to: PipelineRun
+) -> bool:
+    if not abstract_classes:
+        return True
+    stage_4_8_fidelity_gate(abstract_classes, config, record_to)
+    return _acceptance_fidelity_ready(config, record_to)
+
+
+def _capture_creative_artifacts(enriched: Any, record_to: PipelineRun) -> None:
+    receipt_by_candidate = {receipt.candidate_digest: receipt for receipt in enriched.receipts}
+    for creative_run in enriched.runs:
+        for proposal in creative_run.accepted:
+            candidate_digest = proposal.candidate_digest(creative_run.context)
+            receipt = receipt_by_candidate[candidate_digest]
+            record_to.creative_artifacts.append(
+                {
+                    "candidate_digest": candidate_digest,
+                    "input_snapshot_hash": creative_run.context.input_snapshot_hash,
+                    "baseline_snapshot_hash": creative_run.context.baseline_snapshot_hash,
+                    "proposal": proposal.model_dump(mode="json"),
+                    "receipt_digest": receipt.receipt_digest,
+                    "source_layer": "SECONDARY_AI",
+                }
+            )
+
+
+def _record_creative_enrichment(enriched: Any, record_to: PipelineRun) -> list[AbstractClass]:
+    abstract_classes = list(enriched.abstract_classes)
+    record_to.creative_receipts = [
+        receipt.model_dump(mode="json") | {"receipt_digest": receipt.receipt_digest}
+        for receipt in enriched.receipts
+    ]
+    _capture_creative_artifacts(enriched, record_to)
+    record_to.record(
+        "4.9-semantic-creative-loop",
+        bool(abstract_classes),
+        payload={
+            "structural_candidates": len(enriched.runs),
+            "proposed": len(abstract_classes),
+            "receipts": len(enriched.receipts),
+            "outcomes": [run.outcome.value for run in enriched.runs],
+        },
+        error=None if abstract_classes else "no semantic proposal survived falsification",
+    )
+    return abstract_classes
+
+
+def _run_creative_stage(
+    abstract_classes: list[AbstractClass],
+    formal_context: dict[str, frozenset[str]],
+    config: PipelineConfig,
+    record_to: PipelineRun,
+) -> tuple[list[AbstractClass], bool]:
+    if not abstract_classes or config.creative_enricher is None:
+        return abstract_classes, False
+    try:
+        enriched = config.creative_enricher.enrich(abstract_classes, formal_context)
+        enriched_acs = _record_creative_enrichment(enriched, record_to)
+    except Exception as error:  # noqa: BLE001 — model/adapter boundary, fail closed
+        record_to.record("4.9-semantic-creative-loop", False, error=str(error))
+        return [], True
+    return enriched_acs, not enriched_acs
+
+
+def _prepare_gated_acs(
+    abstract_classes: list[AbstractClass],
+    edges: list[GeneralizesEdge],
+    record_to: PipelineRun,
+) -> list[AbstractClass] | None:
+    gated_acs = stage_5_naesengmoon_gate(abstract_classes)
+    record_to.proposals = list(gated_acs)
+    record_to.record("5-naesengmoon-gate", True, payload={"verdict_pending": len(gated_acs)})
+    try:
+        gate_before_merge(
+            [ac.model_dump(mode="json") for ac in gated_acs],
+            [edge.model_dump(mode="json") for edge in edges],
+        )
+    except Exception as error:
+        record_to.record("5.5-pre-merge-validator", False, error=str(error))
+        return None
+    record_to.record("5.5-pre-merge-validator", True, payload={"validated": len(gated_acs)})
+    return gated_acs
+
+
+def _run_persist_stage(
+    gated_acs: list[AbstractClass], config: PipelineConfig, record_to: PipelineRun
+) -> None:
+    if config.persist_cypher is None:
+        return
+    try:
+        persisted = stage_6_persist(
+            gated_acs,
+            config.persist_cypher,
+            accept=config.persist_accept,
+            require_acceptance_receipt=config.require_acceptance_receipt,
+            creative_receipts=record_to.creative_receipts,
+        )
+        record_to.record(
+            "6-persist",
+            True,
+            payload={"persisted": persisted, "accepted": config.persist_accept},
+        )
+    except Exception as error:  # noqa: BLE001 — persist failure must not crash the pipeline
+        record_to.record("6-persist", False, error=str(error))
 
 
 def run(
@@ -402,62 +643,29 @@ def run(
         error=fca_result.fallback_reason,
     )
 
-    if acs:
-        # Per-concept gate (was avg-of-batch, which let one weak concept drag the mean and
-        # kill ALL concepts — and rejected fully-cohesive stability=1.0 as a Goodhart
-        # artifact, halting before stage 5). Keep concepts that clear the stability floor;
-        # fca_stability has no upper cap (1.0 is legitimate). Halt only if none survive (W1-E).
-        floor = quality_gate_module.FCA_STABILITY_MIN
-        survivors = [ac for ac in acs if (ac.stabilityScore or 0.0) >= floor]
-        pruned = len(acs) - len(survivors)
-        pr.record(
-            "4.5-quality-gate",
-            bool(survivors),
-            payload={"survived": len(survivors), "pruned_below_floor": pruned},
-            error=(
-                None
-                if survivors
-                else f"all {len(acs)} concept(s) below fca_stability floor {floor}"
-            ),
-        )
-        if not survivors:
-            return pr
-        acs = survivors
+    quality_survivors = _apply_quality_gate(acs, pr)
+    if quality_survivors is None:
+        return pr
+    acs = quality_survivors
 
     # 4.7 나생문 oracle hard-gate (executable, KG 불변식). FAIL → 판단렌즈(stage_5) 진입 차단.
     if acs and not stage_4_7_oracle_gate(acs, config, pr):
         return pr
 
     # 4.8 fidelity gate (SOFT, consilience) — 경고만, block 안 함.
-    if acs:
-        stage_4_8_fidelity_gate(acs, config, pr)
-
-    gated_acs = stage_5_naesengmoon_gate(acs)
-    pr.record("5-naesengmoon-gate", True, payload={"verdict_pending": len(gated_acs)})
-
-    ac_payloads = [ac.model_dump(mode="json") for ac in gated_acs]
-    edge_payloads = [e.model_dump(mode="json") for e in edges]
-    try:
-        gate_before_merge(ac_payloads, edge_payloads)
-        pr.record("5.5-pre-merge-validator", True, payload={"validated": len(ac_payloads)})
-    except Exception as e:
-        pr.record("5.5-pre-merge-validator", False, error=str(e))
+    if not _run_fidelity_stages(acs, config, pr):
         return pr
 
-    # 6 KG persist (W1-I) — write the gated ACs so hades can fetch + realize them. Off
-    # unless a persist_cypher is injected (read-only by default, like occam/hades dry-run).
-    if config.persist_cypher is not None:
-        try:
-            n_persisted = stage_6_persist(
-                gated_acs, config.persist_cypher, accept=config.persist_accept
-            )
-            pr.record(
-                "6-persist",
-                True,
-                payload={"persisted": n_persisted, "accepted": config.persist_accept},
-            )
-        except Exception as e:  # noqa: BLE001 — persist failure must not crash the pipeline
-            pr.record("6-persist", False, error=str(e))
+    # 4.9 semantic creative loop (optional).  Unlike old stage 3 summaries, this
+    # output is threaded into the actual AbstractClass artifacts and persistence.
+    acs, creative_halted = _run_creative_stage(acs, formal_context, config, pr)
+    if creative_halted:
+        return pr
+
+    gated_acs = _prepare_gated_acs(acs, edges, pr)
+    if gated_acs is None:
+        return pr
+    _run_persist_stage(gated_acs, config, pr)
 
     _try_run_stage(config.resolve_stage_hybrid_retrieval(), ctx, pr)
     _try_run_stage(config.resolve_stage_drift_loop(), ctx, pr)

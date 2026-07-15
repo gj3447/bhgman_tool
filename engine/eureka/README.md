@@ -34,7 +34,8 @@
 | 4.5 Quality | FCA stability / 압축 | `quality_gate.py` | HARD |
 | **4.7 Oracle** | **나생문 oracle 불변식** (extent recount/intent/acyclic/stability) | `oracle_lens.py` | **HARD (pre-gate)** |
 | 4.8 Fidelity | consilience witness (형성에 안 쓴 관계로도 cohere?) | `fidelity_gate.py` | SOFT (warn만) |
-| 5 Naesengmoon | `:AbstractClass` → `VERDICT_PENDING` | `pipeline.stage_5_naesengmoon_gate` | — |
+| **4.9 Creative** | structural candidate → divergent semantic proposals → independent critic receipts | `creative.py` (opt-in) | **HARD for semantic proposal** |
+| 5 Naesengmoon | surviving `:AbstractClass` → `VERDICT_PENDING` | `pipeline.stage_5_naesengmoon_gate` | — |
 | 5.5 Validate | pre-merge required-fields | `validator.py` | HARD |
 
 `run_from_kg(run_cypher, config)` = stage_0(KG-EXTRACT) → 전체. `formal_context_builder.build_formal_context`가
@@ -57,6 +58,7 @@ naive FCA(전체 KG 그냥)는 bulk 노이즈 + hub 오염 = garbage (실측 확
 - `fidelity_gate.py` — `run_fidelity_for_members` (Whewell consilience, SOFT). 형성에 안 쓴 witness 관계로 cohere 측정
 - `anti_unify.py` — Plotkin LGG anti-unification (**code backend**). 불일치=hole, hole_ratio≤0.5 + Rule of Three. PROPOSE(dry-run)만
 - `quality_gate.py` — FCA stability + 압축 점수 (silhouette/modularity/Goodhart cap)
+- `creative.py` — opt-in bounded abductive loop. Contrastive association → divergent proposal → deterministic echo/paraphrase/baseline gates → distinct-model critic → content-addressed `ValidationReceipt`. Receipt가 `PROVIDER_DIVERSE` / `MODEL_DIVERSE_SAME_PROVIDER` / `CORRELATED_SAME_MODEL`을 명시해 모델 다양성과 완전한 독립성을 혼동하지 않는다. Candidate body and receipts remain first-class pipeline artifacts; pipeline receipt-bound acceptance는 검증 가능하지만 CLI는 외부 verdict ingress가 생길 때까지 `VERDICT_PENDING`만 쓴다.
 - `validator.py` — `gate_before_merge` application-side required-fields enforcement
 - `protocols.py` — `Stage`/`StageResult`/`NotImplementedStage`/`InductionOperator` protocols (DI 경계)
 
@@ -67,12 +69,15 @@ naive FCA(전체 KG 그냥)는 bulk 노이즈 + hub 오염 = garbage (실측 확
 - **fidelity SOFT gate**: thin이면 SOFT_WARN (block 안 함, 판단렌즈 escalate)
 - **formal-cathedral self-check**: 우아함에 속지 말고 oracle 실측 — *외침 ≠ 진실*
 - **auto-commit 금지**: PROPOSE만. 실현은 하데스 + 사용자/나생문 gate
+- **자기승인 금지**: proposer와 critic의 provider+model fingerprint가 같으면 receipt는 REJECT. `--accept`는 외부 human/Naesengmoon verdict ingress가 구현될 때까지 항상 fail-closed(rc=2); `--creative --apply`도 `VERDICT_PENDING`까지만 쓴다.
+- **bounded intuition**: 최대 round/model-call/no-progress 예산; 같은 후보 반복은 `EXHAUSTED`, 무한 ideation 금지.
 
 ## Status
 
 - **2026-05-27**: Phase 0-3 완료 — formal_context_builder → run_from_kg → fidelity_gate(4.8 wire) → anti_unify(code backend PoC). 나생문 oracle KG backend 재조정.
-- **tests**: 63 passed (FCA / oracle / fidelity / pipeline / anti_unify / formal_context / run_from_kg / quality_gate / validator / amie3)
-- **CLI**: `bhgman-tool eureka` — KG dogfood (run_from_kg + wire_default_stages), PROPOSE only.
+- **2026-07-15**: semantic creative in-memory slice 구현. `contracts/`의 durable journal/FSM/replay/release control plane은 `DESIGN_TARGET`이며 아직 런타임 conformance를 주장하지 않는다.
+- **tests**: `uv run pytest -q engine/eureka` → 160 passed, 1 skipped (FCA / oracle / fidelity / creative loop / pipeline / anti_unify / formal_context / run_from_kg / quality_gate / validator / amie3)
+- **CLI**: `bhgman-tool eureka --json`은 full candidate envelope, `--creative`는 AgentClient semantic loop. 빈 KG/0후보는 `NO_CANDIDATE` + nonzero exit. dry-run 기본, `--apply`는 pending만.
 - **stage 2/3/6/7**: `stages.py` 구현체 제공(`wire_default_stages`). Leiden은 gds 인프라-gated(degrade), summarize/RRF/drift는 결정론 완성. pipeline context-threading으로 체인.
 - **bake-off**: FCA(default) + AMIE3 둘 다 pipeline-wired(`method` 선택). amie3는 Java subprocess(어댑터 변환). Leiden-LLM stub은 gds.leiden 인프라 대기.
 

@@ -26,6 +26,76 @@ def _stage_count(pr: Any, prefix: str, key: str) -> int:
     return 0
 
 
+def _candidate_payload(ac: Any) -> dict[str, Any]:
+    return {
+        "candidate_id": ac.candidateDigest or ac.name,
+        "candidate_digest": ac.candidateDigest,
+        "concept_name": ac.semanticName or ac.name,
+        "definition": ac.summary,
+        "mechanism": ac.mechanism,
+        "scope": ac.scope,
+        "falsifier": ac.falsifier,
+        "extent": ac.extent or [],
+        "intent": ac.intent or [],
+        "stability_score": ac.stabilityScore,
+        "novelty_score": ac.noveltyScore,
+        "validation_receipt_digest": ac.validationReceiptDigest,
+        "status": ac.status.value,
+        "source_layer": "STRUCTURAL_INDUCTION",
+        "artifact": None,
+    }
+
+
+def _induction_outcome(candidates: list[dict[str, Any]], induced: int) -> str:
+    if candidates:
+        return "PROPOSED"
+    return "GATE_REJECTED" if induced else "NO_CANDIDATE"
+
+
+def _induction_response(
+    pr: Any,
+    cfg: Any,
+    *,
+    cycle_id: str,
+    induced: int,
+    survived: int,
+) -> dict[str, Any]:
+    candidates = [_candidate_payload(ac) for ac in pr.proposals]
+    stages_ok = sum(1 for stage in pr.stages if stage.ok)
+    outcome = _induction_outcome(candidates, induced)
+    return {
+        "schema": "bhgman.eureka.run.v1",
+        "cycle_id": cycle_id,
+        "outcome": outcome,
+        "mode": "structural",
+        "method": cfg.method,
+        "earned": {
+            "induced": induced,
+            "survived": survived,
+            "proposed": len(candidates),
+            "persisted": 0,
+            "pruned_below_floor": max(0, induced - survived),
+        },
+        "stages_ok": stages_ok,
+        "stages_total": len(pr.stages),
+        "stages": [
+            {"name": stage.stage, "ok": bool(stage.ok), "error": stage.error} for stage in pr.stages
+        ],
+        "candidates": candidates,
+        "validation_receipts": [],
+        "persistence": {
+            "requested": False,
+            "verdict": None,
+            "receipt_required": False,
+        },
+        "errors": [stage.error for stage in pr.stages if stage.error],
+        "summary": f"eureka[fca]: induced={induced} survived={survived} "
+        f"proposed={len(candidates)} outcome={outcome} "
+        f"(PROPOSE only; 진단 {stages_ok}/{len(pr.stages)} stages)",
+        "backend": "local-kg (infra-0; PROPOSE-only — hades 가 나중에 실현)",
+    }
+
+
 def eureka_induce_impl(
     cycle_id: str = "mcp-eureka", kg_path: str | None = None, store: Any | None = None
 ) -> dict[str, Any]:
@@ -41,27 +111,22 @@ def eureka_induce_impl(
         store = LocalKgStore(kg_path) if kg_path else LocalKgStore()
     run_cypher = make_local_runner(store, autosave=False)
 
-    cfg = pipeline.PipelineConfig(cycle_id=cycle_id, **stages.wire_default_stages(run_cypher))
+    cfg = pipeline.PipelineConfig(
+        cycle_id=cycle_id,
+        fidelity_runner=run_cypher,
+        **stages.wire_default_stages(run_cypher),
+    )
     pr = pipeline.run_from_kg(run_cypher, cfg)
 
     induced = _stage_count(pr, "4-induce", "abstract_classes")
     survived = _stage_count(pr, "4.5-quality-gate", "survived")
-    stages_ok = sum(1 for s in pr.stages if s.ok)
-    return {
-        "cycle_id": cycle_id,
-        "mode": "fca",
-        "earned": {
-            "induced": induced,
-            "survived": survived,
-            "pruned_below_floor": max(0, induced - survived),
-        },
-        "stages_ok": stages_ok,
-        "stages_total": len(pr.stages),
-        "stages": [{"stage": s.stage, "ok": bool(s.ok)} for s in pr.stages],
-        "summary": f"eureka[fca]: induced={induced} survived={survived} "
-        f"(PROPOSE only; 진단 {stages_ok}/{len(pr.stages)} stages)",
-        "backend": "local-kg (infra-0; PROPOSE-only — hades 가 나중에 실현)",
-    }
+    return _induction_response(
+        pr,
+        cfg,
+        cycle_id=cycle_id,
+        induced=induced,
+        survived=survived,
+    )
 
 
 def register(mcp: Any) -> None:

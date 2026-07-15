@@ -10,7 +10,8 @@ Honest-count contract (verified, STEP-0 baseline):
     concepts from "4-induce", survivors from "4.5-quality-gate", persisted (per-row, real
     verdictStatus) from the real ``stage_6_persist`` via the injected persist_cypher. To EARN
     nonzero we seed the real 8-object math/compiler cluster (two 4-member latent groups, each
-    sharing a closed 2-facet intent) and inject ``persist_accept=True`` so rows persist ACCEPTED.
+    sharing a closed 2-facet intent) and persist them as VERDICT_PENDING. Semantic ACCEPTED now
+    requires a content-bound creative validation receipt and is covered by the CLI seam tests.
 
 Longinus binding (AST-checked by ``ooptdd_loop.longinus.verify_binding``):
     Each must_emit literal lives VERBATIM in its ADAPTER symbol (``emit_induction_phase`` /
@@ -20,6 +21,7 @@ Longinus binding (AST-checked by ``ooptdd_loop.longinus.verify_binding``):
 # KG: finding-ooptdd-bhgman-eureka-adapter-20260625
 # KG: eureka-canonical-2026-05-26
 """
+
 from __future__ import annotations
 
 from engine.eureka.pipeline import PipelineConfig, run_from_kg
@@ -89,20 +91,26 @@ def emit_induction_phase(backend, cid: str, pr) -> tuple[int, int]:
 
 def emit_persist_phase(backend, cid: str, captured: list[dict]) -> int:
     """Ship one 'eureka_abstraction_persisted' per row the REAL stage_6_persist wrote, carrying
-    the real verdictStatus (ACCEPTED iff persist_accept). Count = real persisted rows. The
+    the real verdictStatus. Count = real persisted rows. The
     literal lives here."""
     for params in captured:
-        backend.ship([
-            _ev(cid, "eureka_abstraction_persisted", name=params.get("name"),
-                verdictStatus=params.get("verdictStatus"))
-        ])
+        backend.ship(
+            [
+                _ev(
+                    cid,
+                    "eureka_abstraction_persisted",
+                    name=params.get("name"),
+                    verdictStatus=params.get("verdictStatus"),
+                )
+            ]
+        )
     return len(captured)
 
 
 def run_eureka_pipeline(backend, cid: str, *, run_cypher=None) -> dict:
     """Loop entry (called as ``run_eureka_pipeline(backend, cid)``). Runs the REAL
     ``run_from_kg`` (FCA induce -> quality gate -> naesengmoon -> persist) over the seeded
-    cluster, persisting ACCEPTED, and ships the lifecycle under ``cid``. The
+    cluster, persisting VERDICT_PENDING, and ships the lifecycle under ``cid``. The
     'eureka_cycle_started' and 'eureka_cycle_complete' literals live verbatim in THIS symbol.
 
     ``run_cypher`` defaults to the 8-object cluster so the loop's 2-arg call drives the green
@@ -114,16 +122,25 @@ def run_eureka_pipeline(backend, cid: str, *, run_cypher=None) -> dict:
         captured.append(dict(params))  # the boundary write seam — real stage_6_persist drives it
         return []
 
-    cfg = PipelineConfig(cycle_id="eureka-ooptdd", persist_cypher=persist_cypher, persist_accept=True)
+    cfg = PipelineConfig(
+        cycle_id="eureka-ooptdd", persist_cypher=persist_cypher, persist_accept=False
+    )
     pr = run_from_kg(run_cypher, cfg)
 
     backend.ship([_ev(cid, "eureka_cycle_started", phase="induce")])
     n_induced, n_survived = emit_induction_phase(backend, cid, pr)
     n_persisted = emit_persist_phase(backend, cid, captured)
-    backend.ship([
-        _ev(cid, "eureka_cycle_complete", induced=n_induced, survived=n_survived,
-            persisted=n_persisted)
-    ])
+    backend.ship(
+        [
+            _ev(
+                cid,
+                "eureka_cycle_complete",
+                induced=n_induced,
+                survived=n_survived,
+                persisted=n_persisted,
+            )
+        ]
+    )
     return {"induced": n_induced, "survived": n_survived, "persisted": n_persisted}
 
 
