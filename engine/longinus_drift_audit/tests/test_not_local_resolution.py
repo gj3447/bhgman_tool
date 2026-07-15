@@ -108,6 +108,31 @@ def test_verify_baseline_not_local_is_not_drift(reg):
     assert kg.sites[site.sourceId].sha256_status == Sha256Status.NOT_LOCAL
 
 
+@pytest.mark.parametrize("observed", [Sha256Status.VERIFIED, Sha256Status.DRIFT])
+def test_verify_baseline_not_local_must_not_clobber_real_observation(reg, observed):
+    # KG: lesson-confidence-is-inprocess-decoration-not-persistent-property-2026-07-15
+    """Shared-KG multi-machine correctness: NOT_LOCAL is an observation *about this machine*
+    ("the repo isn't checked out here"), not a property of the site. A machine WITHOUT the
+    repo must not overwrite a status that a machine WITH the repo actually measured.
+
+    Before this guard, machine B's audit wrote NOT_LOCAL over machine A's VERIFIED/DRIFT in
+    the shared KG — silently destroying a real drift signal (last-writer-wins).
+    PROM 16 ELEGANT_BINDING 2026-07-15, C7-2 / D4 verdict.
+    """
+    site = _site(
+        repo_id=UNREG,
+        repo_relpath="a.py",
+        sha256_baseline="deadbeef",
+        sha256_status=observed,  # a machine that HAD the repo measured this
+    )
+    kg = MockKgClient(sites=[site])  # already in the shared KG, written by that machine
+    res = verify_baseline(kg=kg, sites=[site], registry=reg)
+    assert res.not_local == 1
+    assert res.drift == 0 and res.missing == 0 and res.drift_events == []
+    # the real observation survives — NOT_LOCAL does not downgrade it
+    assert kg.sites[site.sourceId].sha256_status == observed
+
+
 def test_verify_baseline_real_missing_still_drifts(reg, tmp_path):
     repo = _repo(tmp_path / "r")
     reg.register(UNREG, str(repo))

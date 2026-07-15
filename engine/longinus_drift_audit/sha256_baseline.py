@@ -334,6 +334,11 @@ def _record_drift_event(
     kg.merge_reference_site_state(site.model_copy(update=update_fields))
 
 
+# A machine WITH the repo measured these; NOT_LOCAL (an absence of observation on THIS
+# machine) must never overwrite them in the shared KG. See verify_baseline.
+_DRIFT_BEARING: frozenset[Sha256Status] = frozenset({Sha256Status.VERIFIED, Sha256Status.DRIFT})
+
+
 def verify_baseline(
     *,
     kg: KgClient,
@@ -351,6 +356,11 @@ def verify_baseline(
     A site whose repo_id is not checked out on this machine resolves to NOT_LOCAL and is
     skipped (no drift event, no FILE_MISSING) — the shared-KG multi-repo correctness fix:
     "not on this box" must not read as "the file is gone".
+
+    NOT_LOCAL never *downgrades* a drift-bearing status (VERIFIED/DRIFT) already measured by
+    a machine that had the repo: in a shared KG, last-writer-wins would silently suppress a
+    real DRIFT until the owning machine re-ran. NOT_LOCAL is an observation about the auditing
+    machine, not a property of the site.
     """
     result = VerifyResult()
     ts = _now_iso()
@@ -365,11 +375,12 @@ def verify_baseline(
         resolution = resolve_site(site, base_chain=chain, registry=registry)
         if resolution.status == "NOT_LOCAL":
             result.not_local += 1
-            kg.merge_reference_site_state(
-                site.model_copy(
-                    update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}
+            if site.sha256_status not in _DRIFT_BEARING:
+                kg.merge_reference_site_state(
+                    site.model_copy(
+                        update={"sha256_status": Sha256Status.NOT_LOCAL, "last_validated": ts}
+                    )
                 )
-            )
             continue
         if resolution.status != "FILE":
             result.missing += 1
