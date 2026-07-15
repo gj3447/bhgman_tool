@@ -134,6 +134,17 @@ def test_oracle_plus_judgment_can_still_pass():
     assert res.verdict == "PASS"  # an oracle present → clean PASS still reachable
 
 
+def test_lone_self_labeled_oracle_capped_at_conditional_pass():
+    """T0-1: CriticKind.ORACLE is caller-asserted (no sealed adapter), so a lone self-labeled
+    oracle at n_eff=1.0 must NOT mint a clean PASS through the all_pass shortcut — the n_eff
+    floor applies universally, mirroring consensus.decide (NCP-1). A real oracle FAIL is still a
+    HARD GATE (test_oracle_fail_is_non_overridable, unchanged)."""
+    res = aggregate([_o("cypher", True)])
+    assert res.n_oracle == 1 and res.n_judgment == 0
+    assert res.n_eff < 1.5
+    assert res.verdict == "CONDITIONAL_PASS"  # was a fail-open clean PASS before T0-1
+
+
 def test_short_hint_does_not_trivially_flag_echo():
     """W3-N: a 1-bigram hint must not saturate the overlap coefficient to 1.0 just because
     the critic happens to use those two words amid lots of independent reasoning."""

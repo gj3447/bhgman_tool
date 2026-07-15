@@ -152,15 +152,17 @@ def flag_echo(
 
 
 def _verdict_label(
-    oracle_fail: bool, all_pass: bool, adjusted: float, raw: float, n_eff: float, n_oracle: int
+    oracle_fail: bool, all_pass: bool, adjusted: float, raw: float, n_eff: float
 ) -> str:
     if oracle_fail:
         return "FAIL"  # oracle hard-gate — judgment critics cannot override
-    # No oracle + low effective n (≤ a lone or correlated judgment) can NEVER be a clean
-    # PASS. This guard MUST precede the all_pass shortcut: a single judgment critic sits at
-    # n_eff=1.0 with adjusted=1.0 and was reaching PASS through it (W3-D).
-    if n_eff < 1.5 and n_oracle == 0:
-        return "CONDITIONAL_PASS"  # correlated/lone judgment only → capped, never a clean PASS
+    # Low effective n (≤ a lone or correlated critic) can NEVER be a clean PASS. This guard
+    # MUST precede the all_pass shortcut: a single critic sits at n_eff=1.0 with adjusted=1.0
+    # and was reaching PASS through it (W3-D). The floor is UNIVERSAL — CriticKind.ORACLE is
+    # caller-asserted (no sealed adapter), so a lone self-labeled oracle is NOT an exemption
+    # (T0-1, mirroring consensus.decide). A real oracle FAIL is still a HARD GATE above.
+    if n_eff < 1.5:
+        return "CONDITIONAL_PASS"  # correlated/lone critic only → capped, never a clean PASS
     if all_pass and adjusted >= 0.90:
         return "PASS"
     if raw >= 0.60:
@@ -188,7 +190,7 @@ def aggregate(verdicts: list[CriticVerdict], rho: float | None = None) -> Ensemb
     shrink = (n_eff / len(participating)) if participating else 0.0
     adjusted = raw * shrink
 
-    verdict = _verdict_label(oracle_fail, all_pass, adjusted, raw, n_eff, n_oracle)
+    verdict = _verdict_label(oracle_fail, all_pass, adjusted, raw, n_eff)
     summary = (
         f"{len(verdicts)} critics ({n_oracle} oracle + {n_judgment} judgment"
         + (f", {n_echo} echo-excluded" if n_echo else "")
