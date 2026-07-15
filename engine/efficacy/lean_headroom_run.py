@@ -302,6 +302,71 @@ def _arm_decoy(task, complete, k, off=0, *, log: TextIO | None = None, run_meta=
     return False, best
 
 
+def _plain_prompt(task, transcript: list[tuple[str, str]]):
+    """Generic coding-agent persona (NOT the Lean-4-EXPERT template) for the plain_baseline arm.
+
+    Isolates bhgman-specific scaffolding from the task-fairness info a FAIR generic agent must keep:
+    the persona is a plain test-loop coding assistant, but the ask still carries core Lean 4 / NO
+    Mathlib, the preamble, the exact theorem statement, and the output-format instruction — dropping
+    any of those would strawman the arm (forbidden; the arm is weaker only in scaffolding, never in
+    task information). `transcript` = [(proof, error), ...] from prior rounds, rendered as a plain-text
+    session log INSIDE one user message: `_make_complete`'s AgentClient path flattens messages to one
+    system + one user (`next(role==system)` / `next(role==user)`), so a plain agent's growing context
+    lives in the user text, not in multi-turn chat."""
+    sys = {
+        "role": "system",
+        "content": "You are a coding assistant in a test-loop. Write code, read the tool output, and "
+        "fix your code until it passes. Output ONLY the code requested — no explanation, no prose.",
+    }
+    pre = f"Given:\n{task.preamble}\n\n" if task.preamble else ""
+    ask = (
+        f"Prove a theorem in CORE Lean 4 (NO Mathlib).\n{pre}"
+        f"theorem {task.name} {task.signature} := ?\n\n"
+        "Output ONLY the proof term that goes after ':=' (no theorem line, no markdown, no prose)."
+    )
+    for i, (proof, error) in enumerate(transcript, start=1):
+        ask += f"\n\n=== your attempt {i} ===\n{proof}\n=== lean output {i} (fix it) ===\n{error}"
+    return [sys, {"role": "user", "content": ask}]
+
+
+def _arm_plain(task, complete, k, off=0, *, log: TextIO | None = None, run_meta=None):
+    """Plain agent-with-oracle test-loop baseline (prereg §3 `plain_baseline`, K8). A FAIR generic
+    coding agent: same K budget, same ungameable oracle, same task-fairness info, but WITHOUT the
+    bhgman-specific scaffolding that `_arm_repair` adds — and NOTHING else changed:
+      1. conversation ACCUMULATION — the full transcript of every prior attempt + raw Lean error grows
+         inside one user message (a real agent session accumulates), vs repair's structured LAST-proof
+         / LAST-error template;
+      2. FIXED seed = off every round — a plain session does not jitter seeds mid-loop; its variety
+         comes from the grown context, vs repair's per-round varied seed (off+i) diversity injection;
+      3. GENERIC persona — a test-loop coding assistant, vs repair's "Lean 4 expert" persona.
+    If capable-model `repair <= plain`, the edge is a generic gen-verify-gap ("reading informative
+    compiler errors > not", near true-by-construction), NOT a bhgman capability ⇒ operational-only.
+    # KG: LakatosTree_BhgmanCeilingPierce_20260712, PIERCE_PREREGISTRATION §3 plain_baseline (K8)"""
+    transcript: list[tuple[str, str]] = []
+    best = 0.0
+    for i in range(k):
+        proof = _extract_proof(complete(_plain_prompt(task, transcript), off))  # FIXED seed = off
+        ti, to = _usage(complete)
+        v = _eval_attempt(
+            task,
+            proof,
+            arm="plain",
+            attempt=i + 1,
+            seed=off,
+            log=log,
+            run_meta=run_meta,
+            prior_proof=(transcript[-1][0] if transcript else None),
+            used_feedback=bool(transcript),
+            in_tok=ti,
+            out_tok=to,
+        )
+        best = max(best, v.graded_score)
+        if v.proven:
+            return True, 1.0
+        transcript.append((proof, v.error_tail))  # accumulate — the plain agent's growing context
+    return False, best
+
+
 def _summary(rows: list) -> dict:
     """proven counts + graded partial-progress sums for a subset of rows."""
     return {
@@ -309,10 +374,12 @@ def _summary(rows: list) -> dict:
         "repair": sum(1 for r in rows if r["repair"]),
         "bestN": sum(1 for r in rows if r["bestN"]),
         "decoy": sum(1 for r in rows if r.get("decoy")),
+        "plain": sum(1 for r in rows if r.get("plain")),
         "graded_single": round(sum(r["graded_single"] for r in rows), 2),
         "graded_repair": round(sum(r["graded_repair"] for r in rows), 2),
         "graded_bestN": round(sum(r["graded_bestN"] for r in rows), 2),
         "graded_decoy": round(sum(r.get("graded_decoy", 0.0) for r in rows), 2),
+        "graded_plain": round(sum(r.get("graded_plain", 0.0) for r in rows), 2),
         "of": len(rows),
     }
 
@@ -323,7 +390,7 @@ def _run_id(seed_offset: int) -> str:
 
 
 def _task_record(
-    run_meta: dict[str, Any], task, s_p, s_g, r_p, r_g, b_p, b_g, d_p, d_g
+    run_meta: dict[str, Any], task, s_p, s_g, r_p, r_g, b_p, b_g, d_p, d_g, p_p, p_g
 ) -> dict[str, Any]:
     return {
         "record_type": "task_summary",
@@ -338,6 +405,7 @@ def _task_record(
             "repair": {"proven": r_p, "graded_score": r_g},
             "bestN": {"proven": b_p, "graded_score": b_g},
             "decoy": {"proven": d_p, "graded_score": d_g},
+            "plain": {"proven": p_p, "graded_score": p_g},
         },
     }
 
@@ -379,6 +447,7 @@ def _run_once(
         r_p, r_g = _arm_repair(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         b_p, b_g = _arm_bestn(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         d_p, d_g = _arm_decoy(t, complete, k, seed_offset, log=log, run_meta=run_meta)
+        p_p, p_g = _arm_plain(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         rows.append(
             {
                 "task": t.name,
@@ -387,16 +456,21 @@ def _run_once(
                 "repair": r_p,
                 "bestN": b_p,
                 "decoy": d_p,
+                "plain": p_p,
                 "graded_single": s_g,
                 "graded_repair": r_g,
                 "graded_bestN": b_g,
                 "graded_decoy": d_g,
+                "graded_plain": p_g,
             }
         )
-        _log_record(log, _task_record(run_meta, t, s_p, s_g, r_p, r_g, b_p, b_g, d_p, d_g))
+        _log_record(
+            log, _task_record(run_meta, t, s_p, s_g, r_p, r_g, b_p, b_g, d_p, d_g, p_p, p_g)
+        )
         print(
-            f"  [{t.difficulty:8s}] {t.name:12s} proven s/r/b/d={int(s_p)}/{int(r_p)}/{int(b_p)}/{int(d_p)}  "
-            f"graded s/r/b/d={s_g:.1f}/{r_g:.1f}/{b_g:.1f}/{d_g:.1f}"
+            f"  [{t.difficulty:8s}] {t.name:12s} proven s/r/b/d/p="
+            f"{int(s_p)}/{int(r_p)}/{int(b_p)}/{int(d_p)}/{int(p_p)}  "
+            f"graded s/r/b/d/p={s_g:.1f}/{r_g:.1f}/{b_g:.1f}/{d_g:.1f}/{p_g:.1f}"
         )
     hr = [r for r in rows if r["difficulty"] == "headroom"]
     out = {
@@ -414,6 +488,11 @@ def _run_once(
         > sum(r.get("decoy", 0) for r in hr),
         "decoy_minus_bestN_on_headroom_proven": sum(r.get("decoy", 0) for r in hr)
         - sum(r["bestN"] for r in hr),
+        # prereg P3/K8: the edge is bhgman-specific only if repair > plain agent-with-oracle baseline.
+        "repair_beats_plain_on_headroom_proven": sum(r["repair"] for r in hr)
+        > sum(r.get("plain", 0) for r in hr),
+        "plain_minus_repair_on_headroom_proven": sum(r.get("plain", 0) for r in hr)
+        - sum(r["repair"] for r in hr),
     }
     _log_record(log, {"record_type": "run_summary", **out})
     print(json.dumps(out, indent=1))
