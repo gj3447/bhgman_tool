@@ -536,6 +536,44 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="실제 웹 fetcher 주입 (SearXNG self-host 우선, 없으면 DDG).",
     )
+    # PROM16 독립 정지 — 데몬 *누적* 지출 kill-switch (--llm 활성 시 AgentClient 계측).
+    # 기존 상한(max_evaluations/budget_tokens)은 1회 run 안의 것이라 tick 마다 리셋된다.
+    p_bot.add_argument(
+        "--max-llm-calls",
+        type=int,
+        default=None,
+        help="데몬 수명 전체의 누적 LLM 호출 상한. 초과 시 stop_reason=spend_kill (기본 무제한).",
+    )
+    p_bot.add_argument(
+        "--max-total-tokens",
+        type=int,
+        default=None,
+        help="데몬 수명 전체의 누적 토큰(입력+출력) 상한. 초과 시 spend_kill (기본 무제한).",
+    )
+    p_bot.add_argument(
+        "--max-calls-per-minute",
+        type=float,
+        default=None,
+        help="속도 상한 — 60초 윈도우 LLM 호출 수. 초과 시 spend_kill (기본 무제한).",
+    )
+    p_bot.add_argument(
+        "--max-tokens-per-minute",
+        type=float,
+        default=None,
+        help="속도 상한 — 60초 윈도우 토큰 수. 초과 시 spend_kill (기본 무제한).",
+    )
+    p_bot.add_argument(
+        "--journal",
+        default=None,
+        help="tick 체크포인트 JSONL 경로 (append-only). 크래시 후 같은 저널로 재시작하면 "
+        "끝낸 tick 을 건너뛰고 이어서 돈다 (LLM 비용 재지불 0). 생략=내구성 없음(현행).",
+    )
+    p_bot.add_argument(
+        "--run-id",
+        default=None,
+        help="--journal 재개 대상 run 을 명시. 생략 시 저널의 마지막 미완 run 을 이어받고, "
+        "없으면 새 run 을 판다.",
+    )
     p_bot.set_defaults(func=commands.cmd_bot)
 
     p_na = sub.add_parser(

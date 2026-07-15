@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from engine.legion.errors import is_transient
 from engine.legion.legion_models import CommanderStage, LegionRun, StageOutcome
 
 # gate(context) -> (passed, detail). 나생문 oracle gate를 주입 (없으면 gate 생략).
@@ -60,7 +61,15 @@ _DISPATCH_EVENT_MERGE = (
 
 def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list) -> None:
     """Build the stage's measurement from the post-stage context, run decide_dispatch(),
-    collect the DispatchDecisions, and emit each as a :DispatchEvent (best-effort)."""
+    collect the DispatchDecisions, and emit each as a :DispatchEvent (best-effort).
+
+    PROM16 typed taxonomy (2026-07-15): only *transient* failures (KG/network) are absorbed
+    here. A programming error (AttributeError/TypeError/... — a deterministic bug in the
+    measurement or in to_kg_event) is re-raised instead of being silently swallowed: the old
+    blanket `except Exception` made such a bug invisible forever while the daemon kept ticking.
+    The daemon classifies + quarantines it (engine/legion/daemon.py); a bare `legion run` now
+    surfaces it. This is an intentional behavior change.
+    """
     if stage.measure is None:
         return
     commander = stage.measure(ctx)
@@ -68,7 +77,9 @@ def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list) -> None:
         return
     try:
         decisions = commander.decide_dispatch(cycle_id=ctx.get("cycle_id"))
-    except Exception:  # noqa: BLE001 — depth cap / measurement error → no decisions this stage
+    except Exception as e:  # depth cap / transient measurement error → no decisions this stage
+        if not is_transient(e):
+            raise
         return
     sink.extend(decisions)
     wc = ctx.get("write_cypher")
@@ -77,8 +88,9 @@ def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list) -> None:
     for d in decisions:
         try:
             wc(_DISPATCH_EVENT_MERGE, d.to_kg_event(cycle_id=ctx.get("cycle_id")))
-        except Exception:  # noqa: BLE001 — provenance is best-effort, never breaks the run
-            pass
+        except Exception as e:  # provenance is best-effort against transient KG failure only
+            if not is_transient(e):
+                raise
 
 
 class Legion:

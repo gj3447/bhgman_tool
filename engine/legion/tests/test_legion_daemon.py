@@ -39,8 +39,14 @@ def test_pick_work_fallback_when_no_topics():
 
 
 def test_tick_failure_isolated_bot_continues():
+    """transient 실패는 예전처럼 격리되고 봇은 계속 돈다 (재시도 소진 후에도 tick 은 계속).
+
+    (2026-07-15 PROM16: 이 격리 보장은 이제 *transient 로 분류된* 실패에만 해당한다.
+    분류 불가 예외 = programming_error → 격리·정지. 아래 test_programming_error_* 참조.)
+    """
+
     def boom(_ctx, _topic):
-        raise RuntimeError("vllm down")
+        raise ConnectionError("vllm down")
 
     r = run_bot(
         build_ctx=lambda t: {},
@@ -51,6 +57,7 @@ def test_tick_failure_isolated_bot_continues():
     )
     assert len(r) == 2 and not any(x.completed for x in r)
     assert "error" in r[0].detail and "vllm down" in r[0].detail
+    assert r[0].error_class == "transient" and r.stop_reason == "max_ticks"
 
 
 def test_idle_when_no_work():

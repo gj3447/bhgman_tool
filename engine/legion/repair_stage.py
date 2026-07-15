@@ -26,12 +26,25 @@ read-back(best-K)이 unguided best-of-N 과의 유일한 차이 — deceptive la
 
 from __future__ import annotations
 
+import os
+
 from engine.legion.evolve_loop import GenerateFn, evolve
+from engine.legion.journal import JsonlJournal
 from engine.legion.legion_models import CommanderStage
 from engine.naesengmoon.oracle_lens import ScalarOracle
 
 # telemetry 키 — repair 정제 결과를 context 에 첨부(provides 아님, run-level 관찰용).
 REPAIR_KEY = "repair"
+
+
+def _repair_run_id(base_name: str, key: str, ctx: dict) -> str:
+    """이 repair 의 멱등 핸들. 같은 cycle 의 같은 stage/seed_key 는 같은 id → 재개가 이어붙는다.
+
+    cycle_id 가 없으면(ad-hoc 실행) stage 정체성만으로 scope 한다 — 저널 파일이 곧 그 run 의
+    경계이므로 파일을 새로 주면 새 run 이다.
+    """
+    cycle = ctx.get("cycle_id") or ctx.get("run_id") or ""
+    return f"repair:{base_name}:{key}:{cycle}"
 
 
 def make_repair_stage(
@@ -44,6 +57,7 @@ def make_repair_stage(
     patience: int = 2,
     max_evaluations: int | None = None,
     target: float | None = None,
+    journal_path: str | os.PathLike[str] | None = None,
 ) -> CommanderStage:
     """base stage를 oracle-guided repair 루프로 승격한 새 CommanderStage 반환.
 
@@ -61,6 +75,9 @@ def make_repair_stage(
         patience: 무개선 허용 세대 수(초과 시 plateau 종료).
         max_evaluations: 누적 oracle 호출 상한(None=무제한). equal-compute 통제 손잡이.
         target: best score 가 이 값 이상이면 즉시 converged 종료(None=비활성).
+        journal_path: 세대별 append-only 체크포인트 경로(None=비활성, 현행 동작 그대로). 켜면
+            크래시 후 같은 cycle_id 로 재실행할 때 이미 평가한 세대를 oracle 호출 0 으로
+            복원한다 — 재개 결과는 fresh 실행과 동일(evolve 멱등 계약).
 
     Returns:
         CommanderStage — base 와 동일 계약, run() 이 repair 루프로 정제.
@@ -80,6 +97,7 @@ def make_repair_stage(
             key not in out
         ):  # base 계약 위반은 Legion.run 의 _missing_provides 가 잡음 — 여기선 no-op
             return out
+        journal = JsonlJournal(journal_path)
         res = evolve(
             out[key],
             generate,
@@ -88,6 +106,8 @@ def make_repair_stage(
             patience=patience,
             max_evaluations=max_evaluations,
             target=target,
+            journal=journal if journal.enabled else None,
+            run_id=_repair_run_id(base.name, key, ctx) if journal.enabled else None,
         )
         if res.improved and res.best is not None:  # 정직 가드: 개선 없으면 seed 유지(날조 금지)
             out[key] = res.best.payload

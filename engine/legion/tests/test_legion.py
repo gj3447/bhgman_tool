@@ -209,3 +209,83 @@ def test_dispatch_event_persisted_to_local_kg(tmp_path):
     )
     Legion().register(over).run(context={"write_cypher": runner})
     assert store.find_nodes("DispatchEvent")  # the decision reached the KG
+
+
+# ── PROM16 typed taxonomy: programming errors are no longer silently swallowed (GAP-1) ──
+
+
+class _BoomMeasure:
+    """A measurement whose decide_dispatch() raises the given error."""
+
+    def __init__(self, exc):
+        self._exc = exc
+
+    def decide_dispatch(self, *, cycle_id=None):
+        raise self._exc
+
+
+def _measured_stage(exc):
+    return CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": True},
+        measure=lambda _ctx: _BoomMeasure(exc),
+    )
+
+
+def test_transient_measurement_failure_is_still_absorbed():
+    """A KG/network blip during measurement leaves the run intact with no decisions
+    (the pre-existing best-effort contract, now scoped to transient only)."""
+    run = Legion().register(_measured_stage(ConnectionError("kg blip"))).run(context={})
+    assert run.completed is True
+    assert run.dispatch_decisions == ()
+
+
+def test_programming_error_in_measurement_is_reraised():
+    """A deterministic bug must surface instead of vanishing behind `except Exception`
+    (it used to make the daemon tick forever on an invisible defect)."""
+    import pytest
+
+    with pytest.raises(AttributeError, match="deterministic bug"):
+        Legion().register(_measured_stage(AttributeError("deterministic bug"))).run(context={})
+
+
+def test_transient_write_cypher_failure_keeps_provenance_best_effort():
+    from engine.legion.commanders import _measure_prometheus
+
+    def wc(_cypher, _params):
+        raise ConnectionError("neo4j down")
+
+    over = CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": {"fetched": True, "findings": 20}},
+        measure=_measure_prometheus,
+    )
+    run = Legion().register(over).run(context={"write_cypher": wc})
+    assert run.completed is True  # provenance is best-effort against transient failure
+    assert run.dispatch_decisions  # the decision still lives in LegionRun
+
+
+def test_programming_error_in_provenance_write_is_reraised():
+    import pytest
+
+    from engine.legion.commanders import _measure_prometheus
+
+    def wc(_cypher, _params):
+        raise TypeError("bad param shape")
+
+    over = CommanderStage(
+        "prometheus",
+        "획득",
+        (),
+        ("acquired",),
+        run=lambda _ctx: {"acquired": {"fetched": True, "findings": 20}},
+        measure=_measure_prometheus,
+    )
+    with pytest.raises(TypeError, match="bad param shape"):
+        Legion().register(over).run(context={"write_cypher": wc})

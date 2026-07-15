@@ -40,6 +40,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from engine.legion.journal import KIND_EVOLVE_DONE, KIND_EVOLVE_GEN, JsonlJournal
 from engine.naesengmoon.oracle_lens import ScalarOracle
 
 # generate(parents, generation) -> 자식 payload 들.
@@ -169,6 +170,179 @@ def _stagnation(
     return stagnant, stagnant >= patience
 
 
+def _plateaued(stagnant: int, patience: int) -> bool:
+    """`stagnant` 상태가 곧 plateau 인가 — _stagnation 의 plateau 조건과 정확히 동치.
+
+    _stagnation 은 *증가시킨 뒤*(stagnant>=1) 에만 plateaued=True 를 낼 수 있으므로
+    max(1, patience) 가 그 술어다. patience<=0 에서 개선 세대를 plateau 로 오판하지 않는다.
+    재개 경로가 fresh 실행과 같은 지점에서 멈추게 하는 데 쓴다 (아래 loop-top 검사).
+    """
+    return stagnant >= max(1, patience)
+
+
+def _reconstruct_stagnation(history: Sequence[float]) -> int:
+    """history 꼬리의 연속 무개선 세대 수 — 재개 시 stagnant 복원 (_stagnation 누적과 동치)."""
+    stagnant = 0
+    for i in range(len(history) - 1, 0, -1):
+        if history[i] > history[i - 1] + _EPS:
+            break
+        stagnant += 1
+    return stagnant
+
+
+@dataclass
+class _Progress:
+    """evolve 의 재개 가능한 상태 — fresh 초기화와 저널 복원이 같은 모양을 낸다."""
+
+    db: ProgramDatabase
+    seed_score: float
+    evaluations: int
+    history: list[float]
+    generations_run: int
+    stagnant: int
+    done_reason: str | None = None
+
+
+def _journal_generation(
+    journal: JsonlJournal, run_id: str, gen: int, cands: Sequence[Candidate], evaluations: int
+) -> None:
+    """한 세대 완료를 체크포인트. payload 는 JSON 직렬화 가능해야 한다 (journal.py 계약)."""
+    journal.append(
+        KIND_EVOLVE_GEN,
+        run_id,
+        unit=str(gen),
+        payload={
+            "generation": gen,
+            "evaluations": evaluations,
+            "candidates": [
+                {"payload": c.payload, "score": c.score, "parent": c.parent} for c in cands
+            ],
+        },
+    )
+
+
+def _replay_evolve(journal: JsonlJournal, run_id: str) -> _Progress | None:
+    """저널된 세대를 oracle 호출 0 으로 복원. 기록 없으면 None (fresh)."""
+    entries = journal.entries(run_id=run_id, kind=KIND_EVOLVE_GEN)
+    if not entries:
+        return None
+    db = ProgramDatabase()
+    history: list[float] = []
+    evaluations = 0
+    generations_run = 0
+    seed_score = float("-inf")
+    for e in entries:
+        gen = int(e.payload.get("generation", 0))
+        for c in e.payload.get("candidates", []):
+            db.add(
+                payload=c.get("payload"),
+                score=float(c.get("score", 0.0)),
+                generation=gen,
+                parent=c.get("parent"),
+            )
+        evaluations = int(e.payload.get("evaluations", evaluations))
+        history.append(_best_score(db))
+        if gen == 0 and db.size:
+            seed_score = db.all()[0].score
+        generations_run = max(generations_run, gen)
+    done = journal.entries(run_id=run_id, kind=KIND_EVOLVE_DONE)
+    return _Progress(
+        db=db,
+        seed_score=seed_score,
+        evaluations=evaluations,
+        history=history,
+        generations_run=generations_run,
+        stagnant=_reconstruct_stagnation(history),
+        done_reason=str(done[-1].payload.get("stop_reason", "budget")) if done else None,
+    )
+
+
+def _seed_progress(
+    seed: Any, oracle: ScalarOracle, journal: JsonlJournal | None, run_id: str
+) -> _Progress:
+    """gen 0 = seed 평가 + 체크포인트."""
+    db = ProgramDatabase()
+    ev = oracle.evaluate(seed)
+    db.add(payload=seed, score=ev.value, generation=0, parent=None)
+    if journal is not None:
+        _journal_generation(journal, run_id, 0, db.all(), 1)
+    return _Progress(
+        db=db, seed_score=ev.value, evaluations=1, history=[ev.value], generations_run=0, stagnant=0
+    )
+
+
+def _resolve_journal(
+    journal: JsonlJournal | None, run_id: str | None
+) -> tuple[JsonlJournal | None, str]:
+    """(활성 저널|None, run scope). 저널을 켰는데 run_id 가 없으면 fail-closed."""
+    jr = journal if (journal is not None and journal.enabled) else None
+    if jr is not None and not run_id:
+        raise ValueError("evolve: journal 을 켜면 run_id 가 필요하다 (run scope 없는 재개 금지)")
+    return jr, run_id or ""
+
+
+def _pre_gen_stop(
+    p: _Progress, *, patience: int, target: float | None, max_evaluations: int | None
+) -> str | None:
+    """세대 생성 *전* 종료 판정 → stop_reason|None.
+
+    plateau 를 여기서도 보는 것이 재개 멱등의 핵심(FIX-B): plateau 를 유발한 세대 직후
+    크래시했다면 fresh 는 거기서 멈췄으므로 재개도 여분 세대 없이 멈춰야 한다. fresh
+    실행에선 세대 직후 _stagnation 이 먼저 break 하므로 이 검사는 no-op 이다.
+    """
+    if _plateaued(p.stagnant, patience):
+        return "plateau"
+    if target is not None and _best_score(p.db) >= target:
+        return "converged"
+    if max_evaluations is not None and p.evaluations >= max_evaluations:
+        return "budget"
+    return None
+
+
+def _advance(
+    p: _Progress,
+    generate: GenerateFn,
+    oracle: ScalarOracle,
+    gen: int,
+    *,
+    k_parents: int,
+    patience: int,
+    max_evaluations: int | None,
+    journal: JsonlJournal | None,
+    run_id: str,
+) -> bool:
+    """한 세대 생성·평가·체크포인트 → plateau 도달 여부."""
+    prev_best = _best_score(p.db)
+    spawned_from = p.db.size
+    p.evaluations = _spawn_generation(
+        p.db,
+        generate,
+        oracle,
+        gen,
+        k_parents=k_parents,
+        evaluations=p.evaluations,
+        max_evaluations=max_evaluations,
+    )
+    p.generations_run = gen
+    p.history.append(_best_score(p.db))
+    if journal is not None:
+        _journal_generation(journal, run_id, gen, p.db.all()[spawned_from:], p.evaluations)
+    p.stagnant, plateaued = _stagnation(p.stagnant, prev_best, _best_score(p.db), patience)
+    return plateaued
+
+
+def _to_result(p: _Progress, stop_reason: str) -> EvolveResult:
+    return EvolveResult(
+        best=p.db.best(),
+        seed_score=p.seed_score,
+        generations=p.generations_run,
+        evaluations=p.evaluations,
+        history=tuple(p.history),
+        stop_reason=stop_reason,
+        database=p.db,
+    )
+
+
 def evolve(
     seed: Any,
     generate: GenerateFn,
@@ -179,6 +353,8 @@ def evolve(
     k_parents: int = 2,
     patience: int = 3,
     target: float | None = None,
+    journal: JsonlJournal | None = None,
+    run_id: str | None = None,
 ) -> EvolveResult:
     """검증접지 합성 fixpoint loop.
 
@@ -195,58 +371,49 @@ def evolve(
         k_parents: read-back 부모 수 (<=0 이면 unguided = best_of_n 에 수렴).
         patience: 무개선 허용 세대 수 (초과 시 plateau 종료).
         target: best score 가 이 값 이상이면 즉시 converged 종료 (None=비활성).
+        journal: 세대별 append-only 체크포인트 (None/비활성=현행 동작 그대로). 켜면 크래시 후
+            같은 run_id 로 재호출 시 이미 평가한 세대를 oracle 호출 0 으로 복원하고 이어서
+            돈다 — **재개 결과는 fresh 실행과 동일하다**(멱등).
+        run_id: journal 을 켤 때 필수 — 이 evolve 실행의 멱등 핸들.
 
     Returns:
         EvolveResult — best 후보 + 단조 history + 종료 사유 + 전체 database.
+
+    Raises:
+        ValueError: journal 을 켰는데 run_id 가 없을 때 (scope 없는 저널은 서로 다른 run 을
+            뒤섞어 조용히 틀린 재개를 만든다 — fail-closed).
     """
-    db = ProgramDatabase()
-    ev = oracle.evaluate(seed)
-    db.add(payload=seed, score=ev.value, generation=0, parent=None)
-    seed_score = ev.value
-    evaluations = 1
-    history = [seed_score]
-    stagnant = 0
-    generations_run = 0
+    jr, rid = _resolve_journal(journal, run_id)
+    replayed = _replay_evolve(jr, rid) if jr is not None else None
+    if replayed is not None and replayed.done_reason is not None:
+        return _to_result(replayed, replayed.done_reason)  # 이미 끝난 run — 재지불 0
+    p = replayed if replayed is not None else _seed_progress(seed, oracle, jr, rid)
     stop_reason = "budget"
 
-    for gen in range(1, max(0, max_generations) + 1):
-        if target is not None and _best_score(db) >= target:
-            stop_reason = "converged"
+    for gen in range(p.generations_run + 1, max(0, max_generations) + 1):
+        early = _pre_gen_stop(p, patience=patience, target=target, max_evaluations=max_evaluations)
+        if early is not None:
+            stop_reason = early
             break
-        if max_evaluations is not None and evaluations >= max_evaluations:
-            stop_reason = "budget"
-            break
-
-        prev_best = _best_score(db)
-        evaluations = _spawn_generation(
-            db,
+        if _advance(
+            p,
             generate,
             oracle,
             gen,
             k_parents=k_parents,
-            evaluations=evaluations,
+            patience=patience,
             max_evaluations=max_evaluations,
-        )
-        generations_run = gen
-        history.append(_best_score(db))
-
-        stagnant, plateaued = _stagnation(stagnant, prev_best, _best_score(db), patience)
-        if plateaued:
+            journal=jr,
+            run_id=rid,
+        ):
             stop_reason = "plateau"
             break
 
-    if target is not None and _best_score(db) >= target:
+    if target is not None and _best_score(p.db) >= target:
         stop_reason = "converged"
-
-    return EvolveResult(
-        best=db.best(),
-        seed_score=seed_score,
-        generations=generations_run,
-        evaluations=evaluations,
-        history=tuple(history),
-        stop_reason=stop_reason,
-        database=db,
-    )
+    if jr is not None:
+        jr.append(KIND_EVOLVE_DONE, rid, payload={"stop_reason": stop_reason})
+    return _to_result(p, stop_reason)
 
 
 def best_of_n(

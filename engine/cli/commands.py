@@ -1455,6 +1455,23 @@ def cmd_legion(args: argparse.Namespace) -> int:
     return 0 if run.completed else 1
 
 
+def _bot_spend_meter(args: argparse.Namespace):
+    """--max-llm-calls/--max-total-tokens/--max-*-per-minute → SpendMeter|None.
+
+    아무 상한도 안 주면 None = 계측 없음 = 현행 동작 그대로 (기본은 무제한).
+    # KG: prom16-harness-loop-standard (independent stop / spend kill-switch)
+    """
+    from engine.legion.spend import SpendLimits, SpendMeter  # noqa: PLC0415
+
+    limits = SpendLimits(
+        max_llm_calls=getattr(args, "max_llm_calls", None),
+        max_total_tokens=getattr(args, "max_total_tokens", None),
+        max_calls_per_minute=getattr(args, "max_calls_per_minute", None),
+        max_tokens_per_minute=getattr(args, "max_tokens_per_minute", None),
+    )
+    return SpendMeter(limits) if limits.any_set else None
+
+
 def cmd_bot(args: argparse.Namespace) -> int:
     # KG: bhgman-bot-daemon-2026-06-16
     """bhgman 봇 — legion 닫힌루프 백그라운드 자율 데몬 (vLLM 추론 + KG + SearXNG + 하네스).
@@ -1482,6 +1499,7 @@ def cmd_bot(args: argparse.Namespace) -> int:
         from engine.prometheus.web import make_web_fetcher  # noqa: PLC0415
 
         fetcher = make_web_fetcher()  # SearXNG(self-host) 우선, 없으면 DDG
+    meter = _bot_spend_meter(args)
     if getattr(args, "llm", False):
         agents, reason = _agent_runtime()
         if agents is None:
@@ -1492,6 +1510,10 @@ def cmd_bot(args: argparse.Namespace) -> int:
         else:
             grounding, close_g = _grounding_source(args)
             client = agents.AgentClient()
+            if meter is not None:  # 지출 kill-switch 는 계측된 client 를 통해서만 실효
+                from engine.legion.spend import instrument_agent_client  # noqa: PLC0415
+
+                instrument_agent_client(client, meter)
 
     import datetime as _dt  # noqa: PLC0415
 
@@ -1539,14 +1561,31 @@ def cmd_bot(args: argparse.Namespace) -> int:
         max_ticks=1 if getattr(args, "once", False) else getattr(args, "max_ticks", None),
         topics=tuple(getattr(args, "topics", None) or ()),
         apply=apply,
+        journal_path=getattr(args, "journal", None),
+        run_id=getattr(args, "run_id", None),
     )
+    if meter is not None and client is None:
+        print(
+            "[bot] 지출 상한이 주어졌으나 --llm 이 비활성(또는 runtime 불가) — "
+            "결정론 코어는 LLM 을 쓰지 않으므로 상한은 발동하지 않는다.",
+            file=sys.stderr,
+        )
     try:
-        results = run_bot(build_ctx=build_ctx, run_tick=run_tick, cfg=cfg, pick_work=pick_work)
+        results = run_bot(
+            build_ctx=build_ctx,
+            run_tick=run_tick,
+            cfg=cfg,
+            pick_work=pick_work,
+            spend_probe=meter.probe() if meter is not None else None,
+        )
     finally:
         close()
         close_g()
     completed = sum(1 for r in results if r.completed)
-    print(f"[bot] done — {completed}/{len(results)} ticks completed")
+    stop = getattr(results, "stop_reason", "")
+    print(f"[bot] done — {completed}/{len(results)} ticks completed (stop_reason={stop})")
+    if meter is not None:
+        print(f"[bot] spend — llm_calls={meter.calls} tokens={meter.tokens}")
     return 0
 
 
