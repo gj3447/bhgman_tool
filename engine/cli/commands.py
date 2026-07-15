@@ -1449,6 +1449,10 @@ def cmd_legion(args: argparse.Namespace) -> int:
     for oc in run.outcomes:
         mark = "ok" if oc.ok else "FAIL"
         print(f"  [{mark}] {oc.verb} ({oc.stage}): {oc.detail}")
+    # T1-2 dispatch_errors 소비 (적대검증 2026-07-15): 실명화해 놓고 아무도 안 읽으면
+    # 이 시리즈가 닫겠다던 emit-without-consume 을 그대로 재생산한다.
+    for err in run.dispatch_errors:
+        print(f"  [dispatch-error] {err}", file=sys.stderr)
     print(
         f"[legion] {'completed' if run.completed else 'halted'} — {run.ran}/6 stages, "
         f"keys={list(run.final_context_keys)}"

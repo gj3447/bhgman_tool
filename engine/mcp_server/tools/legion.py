@@ -167,6 +167,9 @@ def legion_run_impl(
             }
             for d in run.dispatch_decisions
         ],
+        # 측정·provenance 실패의 실명 관측면 (T1-2, 적대검증 2026-07-15 이 소비자 0 을 지적):
+        # fail-soft 는 유지하되 무엇이 조용히 실패했는지 caller 가 본다. 기본 [].
+        "dispatch_errors": list(run.dispatch_errors),
         # G5-C5 소비 관측면 (opt-in; 기본 [] — 기존 응답 스키마는 additive 확장만).
         "dispatch_consumed": consumed_block,
         "jaebaeman": {

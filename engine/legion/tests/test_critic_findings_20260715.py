@@ -120,5 +120,71 @@ def test_resolve_thresholds_warns_on_loader_failure(monkeypatch, caplog):
     )
 
 
+def test_g2_detail_does_not_claim_passed_on_conditional_pass():
+    """G2 는 집계 대수가 방금 'clean PASS 불가'로 계산한 verdict 를 'passed' 로 보고하면 안 된다.
+
+    자기모순 보고 = C6 위반. 게이트 계약(적대검증이 돌았고 거부 안 함)상 status 는 PASS 지만
+    detail 은 clean 여부를 구분해 말한다. (CONDITIONAL_PASS 가 실현을 막아야 하는지는 별개의
+    열린 설계 문제 — KG: q-conditional-pass-has-no-teeth.)"""
+    from engine.legion.gated_run import eval_g2_adversary_ran
+    from engine.legion.legion_models import LegionRun, StageOutcome
+
+    def _run(ensemble: str) -> LegionRun:
+        return LegionRun(
+            outcomes=(StageOutcome("naesengmoon", "검증", True, "ran"),),
+            final_verdict={"oracle": "PASS", "ensemble": ensemble},
+        )
+
+    cond = eval_g2_adversary_ran(_run("CONDITIONAL_PASS"))
+    assert cond.status == "PASS"  # 게이트는 여전히 admit (동작 불변)
+    assert "ran and passed" not in cond.detail, f"자기모순 보고: {cond.detail}"
+    assert "NOT a clean PASS" in cond.detail
+
+    clean = eval_g2_adversary_ran(_run("PASS"))
+    assert clean.status == "PASS" and "ran and passed" in clean.detail
+
+
+def test_reason_is_inside_signed_payload(monkeypatch):
+    """threshold 유도 provenance(reason)가 HMAC 무결성 안에 있어야 한다 —
+    밖에 두면 KG 의 :DispatchEvent.reason(유도 근거를 담은 유일 필드)을 조작해도 서명이
+    유효해 '무결성'이 그 근거를 보호하지 못한다."""
+    monkeypatch.setenv(DISPATCH_HMAC_ENV, _STRONG_KEY)
+    evt = _decision().to_kg_event(cycle_id="cyc-t")
+    assert DispatchDecision.verify_signature(evt) is True
+    tampered = dict(evt, reason="유도근거 조작 [toml:fabricated]")
+    assert DispatchDecision.verify_signature(tampered) is False, "reason 조작이 탐지되지 않는다"
+
+
+def test_dispatch_errors_have_consumers():
+    """dispatch_errors 를 실명화해 놓고 아무도 안 읽으면 이 시리즈가 닫겠다던
+    emit-without-consume 을 그대로 재생산한다 — CLI 와 MCP 표면이 소비해야 한다."""
+    from engine.cli import commands
+    from engine.mcp_server.tools import legion as mcp_legion
+
+    assert "run.dispatch_errors" in inspect.getsource(commands.cmd_legion)
+    assert "dispatch_errors" in inspect.getsource(mcp_legion)
+
+
+def test_unmatched_toml_row_is_named_not_silent(tmp_path, monkeypatch, caplog):
+    """코드에 대응 규칙이 없는 TOML 행은 아무 효과가 없다 — 조용히 무시하면 'dead control'
+    이 이름-drift 에서 파싱-drift 로 자리만 옮긴다. 실명 경고해야 한다."""
+    import logging
+
+    from engine.legion.measurement import OccamMeasurement, resolve_thresholds
+
+    ghost = tmp_path / "ghost.toml"
+    ghost.write_text(
+        '[[threshold]]\ncommander = "occam"\ntarget_commander = "naesengmoon"\n'
+        'metric = "typo_metric_not_in_code"\nvalue = 0.5\ncomparator = "less"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BHGMAN_THRESHOLD_CONFIG", str(ghost))
+    with caplog.at_level(logging.WARNING):
+        resolve_thresholds(OccamMeasurement.dispatch_thresholds, "occam")
+    assert any("dead row" in r.getMessage() for r in caplog.records), (
+        "미매칭 TOML 행이 무기록으로 증발했다"
+    )
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

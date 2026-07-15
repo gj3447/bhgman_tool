@@ -95,6 +95,11 @@ class DispatchDecision:
                 str(self.depth),
                 self.decided_at,
                 cycle_id or "",
+                # reason 은 threshold 유도 provenance(TOML derivation_method)를 담은 *유일한*
+                # 필드다 (T1-3). payload 밖에 두면 KG 의 :DispatchEvent.reason 을 임의로
+                # 조작해도 서명이 여전히 유효해 "무결성"이 그 근거를 보호하지 못한다
+                # (적대검증 2026-07-15).
+                self.reason,
             ]
         )
 
@@ -145,6 +150,7 @@ class DispatchDecision:
                 str(kg_event.get("depth", 0)),
                 kg_event.get("decided_at", ""),
                 kg_event.get("cycle_id") or "",
+                kg_event.get("reason", ""),  # 유도 provenance 도 무결성 안에 (적대검증 2026-07-15)
             ]
         )
         expected = _sign(payload)
@@ -184,6 +190,20 @@ def resolve_thresholds(
         return rules
     if not entries:
         return rules
+    # TOML 은 *기존 코드 규칙의 값만* override 한다 — 코드에 대응 규칙이 없는 TOML 행은
+    # 아무 효과가 없다. 조용히 무시하면 "고쳤다고 믿는 dead control" 이 이름-drift 에서
+    # 파싱-drift 로 자리만 옮긴다 (적대검증 2026-07-15). 이 commander 를 겨냥한 미매칭 행을
+    # 실명 경고한다.
+    known = {(r.source, r.metric) for r in rules}
+    for key, entry in entries.items():
+        if key[0] == name and key not in known:
+            logger.warning(
+                "thresholds.toml (%s) 의 행 %s 은 %s 의 어떤 코드 규칙과도 매칭되지 않아 "
+                "무시된다 — metric 이름/타깃을 코드 정본에 맞추라 (dead row).",
+                entry.source,
+                key,
+                name,
+            )
     out: list[DispatchThreshold] = []
     for rule in rules:
         entry = entries.get((rule.source, rule.metric))

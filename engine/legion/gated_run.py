@@ -111,11 +111,20 @@ def eval_g2_adversary_ran(run: LegionRun, gate: object | None = None) -> GateVer
             "FAIL",
             "adversary verdict signature invalid/absent (forged or unsigned)",
         )
-    return GateVerdict(
-        "G2_ADVERSARY_RAN",
-        "PASS",
-        f"naesengmoon 검증 ran and passed (oracle={oracle}, ensemble={ensemble})",
-    )
+    # 정직 보고 (적대검증 2026-07-15): ensemble 이 CONDITIONAL_PASS 면 집계 대수가 방금
+    # "이건 clean PASS 가 될 수 없다"(n_eff < floor)고 계산한 것이다 — 그걸 "passed" 로
+    # 보고하면 같은 문자열 안에서 자기모순이고 C6(측정 안 된 주장 금지) 위반이다.
+    # G2 의 계약은 여전히 "적대검증이 돌았고 거부하지 않았다"이므로 status 는 PASS 지만,
+    # detail 은 clean 여부를 구분해 말한다. (CONDITIONAL_PASS 가 *실현* 을 막아야 하는지는
+    # 별개의 열린 설계 문제 — KG: q-conditional-pass-has-no-teeth.)
+    if ensemble == "PASS":
+        detail = f"naesengmoon 검증 ran and passed (oracle={oracle}, ensemble={ensemble})"
+    else:
+        detail = (
+            f"naesengmoon 검증 ran and was not rejected, but the ensemble is NOT a clean PASS "
+            f"(oracle={oracle}, ensemble={ensemble}) — gate admits; certification is conditional"
+        )
+    return GateVerdict("G2_ADVERSARY_RAN", "PASS", detail)
 
 
 def eval_g3_ground_truth(
