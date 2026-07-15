@@ -54,6 +54,21 @@ def _in_repo(path: str) -> bool:
     return _REPO_SEGMENT.search(path) is not None
 
 
+_LINE_ANCHOR = re.compile(r":\d+$")
+
+
+def _disk_key(path: str) -> str:
+    """디스크-실존 비교 전용 키: normalize_path + 말미 `:N` 라인앵커 제거.
+
+    심볼-레벨 SourceCodeNode 는 sourcePath 를 `file.py:250`(파일:시작줄)로 식별한다 — 그런
+    파일명은 디스크에 없으므로 disk_paths(실파일 경로 집합)와 조인하려면 앵커를 벗겨 `file.py`
+    로 맞춘다. **node-identity/grouping(normalize_path)엔 쓰지 않는다** — 같은 파일의 서로 다른
+    심볼 `file.py:250` vs `file.py:818` 은 별개 노드라 구분 유지해야 dedup 이 안 깨진다. 앵커
+    미제거 시 심볼노드가 전부 false disk-orphan (라이브 full-KG 실측 2026-07-15: 60샘플 59실존,
+    precision 1.7%)."""
+    return _LINE_ANCHOR.sub("", normalize_path(path))
+
+
 _WT_SEGMENT = re.compile(r"(?:^|(?<=/))bhgman_tool-wt-[^/]+/")
 
 
@@ -118,8 +133,8 @@ def _detect_sha_moves(
         norms = {normalize_path(n.source_path) for n in group}
         if len(norms) < 2:
             continue  # 단일 경로 = mode-1이 이미 처리(또는 중복 아님)
-        live = [n for n in group if normalize_path(n.source_path) in disk_paths]
-        orphan = [n for n in group if normalize_path(n.source_path) not in disk_paths]
+        live = [n for n in group if _disk_key(n.source_path) in disk_paths]
+        orphan = [n for n in group if _disk_key(n.source_path) not in disk_paths]
         if not (live and orphan):
             continue  # 전부 live(디스크상 동일내용 사본, 보존) 또는 전부 orphan(mode-3로)
         current = min(live, key=lambda n: normalize_path(n.source_path))
@@ -157,12 +172,12 @@ def _detect_disk_orphans(
         # 외부 노드 + 워크트리 lineage = 이 체크아웃 디스크로 실존 판정 불가/금지.
         if not _existence_judgeable(node.source_path):
             continue
-        if normalize_path(node.source_path) in disk_paths:
+        if _disk_key(node.source_path) in disk_paths:
             continue
         has_live_twin = any(
             other is not node
             and other.sha256 == node.sha256
-            and normalize_path(other.source_path) in disk_paths
+            and _disk_key(other.source_path) in disk_paths
             for other in nodes
         )
         if not has_live_twin:
