@@ -154,8 +154,11 @@ class TestFailOpen:
         monkeypatch.setattr(symposium.subprocess, "run", fake_run)
         out = symposium._ssh_cypher("MATCH (n) RETURN count(n)", {"x": "y"})
         assert out["ok"] is True
-        assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
-        assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
+        # T1-4 bhg-f-secrets-on-argv: -i(stdin 도달) + password 는 argv 아닌 stdin 첫 줄.
+        assert "kubectl exec -i -n data neo4j-0" in calls[0][0][2]
+        assert "cypher-shell -u neo4j" in calls[0][0][2]
+        assert "pw" not in calls[0][0][2]
+        assert calls[0][1]["input"].startswith("pw\n")
 
     def test_ssh_cypher_no_password_fails_closed(self, monkeypatch):
         """No hardcoded password default: with no NEO4J password env set, return degraded
