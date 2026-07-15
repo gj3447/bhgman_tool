@@ -53,7 +53,15 @@ class LLMHTTPError(RuntimeError):
 
     urllib.request.urlopen 은 4xx/5xx 에 HTTPError 를 던지지만 http.client(keep-alive 풀드)는
     안 던지므로, 두 transport 의 의미를 일치시켜 dead tier-1 이 graceful degrade 되게 한다.
+
+    ``status`` 는 HTTP 상태코드(정수). errors.classify_error 가 이걸 보고 5xx=transient(서버측
+    일시장애, 재시도 유효) / 4xx=programming(요청·인증 버그, 재시도 무의미)으로 가른다 —
+    urllib.HTTPError 와 의미를 맞춘다. 파싱 불가하면 None(→ 보수적으로 programming).
     """
+
+    def __init__(self, message: str, *, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 def _local_base_url() -> str | None:
@@ -187,7 +195,9 @@ def _pooled_post(url: str, payload: dict, headers: dict, timeout: float) -> dict
             data = resp.read()  # keep-alive 유지하려면 응답 본문을 반드시 다 읽어야 함
             conns[key] = conn
             if status >= 400:  # 4xx/5xx (예: 122B OOM 500) → urllib 처럼 raise → caller fallback
-                raise LLMHTTPError(f"HTTP {status}: {data[:200].decode(errors='replace')}")
+                raise LLMHTTPError(
+                    f"HTTP {status}: {data[:200].decode(errors='replace')}", status=status
+                )
             return json.loads(data.decode())
         except LLMHTTPError:
             raise  # 상태 에러는 재연결로 안 풀림 — 바로 위로 (소켓은 keep-alive 유지 가능)

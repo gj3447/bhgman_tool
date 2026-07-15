@@ -62,11 +62,27 @@ def test_programming_family_is_not_retryable(exc):
     assert not is_transient(exc)
 
 
-def test_repo_llm_http_error_is_transient():
-    """repo 자체 래퍼(vLLM non-2xx)는 transient 로 해석돼야 — 122B OOM 500 은 일시장애."""
+def test_repo_llm_http_error_5xx_is_transient():
+    """repo 래퍼의 5xx(예: 122B OOM 500)는 일시장애 → transient. status 기반(urllib.HTTPError 규칙)."""
     from engine.agents.client import LLMHTTPError
 
-    assert classify_error(LLMHTTPError("122B OOM 500")) is ErrorClass.TRANSIENT
+    assert classify_error(LLMHTTPError("122B OOM 500", status=500)) is ErrorClass.TRANSIENT
+    assert classify_error(LLMHTTPError("bad gateway", status=503)) is ErrorClass.TRANSIENT
+
+
+def test_repo_llm_http_error_4xx_is_programming():
+    """repo 래퍼의 4xx(401/404 등)는 요청·인증 버그 → programming. 무한 재시도 금지(이 분기의 핵심)."""
+    from engine.agents.client import LLMHTTPError
+
+    assert classify_error(LLMHTTPError("401 unauthorized", status=401)) is ErrorClass.PROGRAMMING
+    assert classify_error(LLMHTTPError("404 no model", status=404)) is ErrorClass.PROGRAMMING
+
+
+def test_repo_llm_http_error_missing_status_is_programming():
+    """status 파싱 불가 시 보수적으로 programming — 조용한 무한 재시도보다 fail-fast."""
+    from engine.agents.client import LLMHTTPError
+
+    assert classify_error(LLMHTTPError("no status field")) is ErrorClass.PROGRAMMING
 
 
 def test_retry_recovers_transient_within_budget():

@@ -55,13 +55,25 @@ _STDLIB_TRANSIENT: tuple[type[BaseException], ...] = (
 )
 
 # (module, attr) — 선택 의존성이라 import 가능성이 환경마다 다르다. 지연 해석 + 캐시.
+# 주의: LLMHTTPError 는 여기 없다. status 코드에 따라 5xx=transient / 4xx=programming 으로
+# 갈리므로 무조건-transient 목록에 넣으면 401/404 를 영원히 재시도하게 된다(urllib.HTTPError 와
+# 의미가 어긋남). classify_error 가 LLMHTTPError.status 를 보고 별도 분기한다.
 _REPO_TRANSIENT_REFS: tuple[tuple[str, str], ...] = (
-    ("engine.agents.client", "LLMHTTPError"),  # openai-compat 백엔드 non-2xx (122B OOM 500 등)
     ("engine.gate.gate_endpoint", "TransientGateError"),  # APT gate retry 대상
     ("neo4j.exceptions", "ServiceUnavailable"),
     ("neo4j.exceptions", "TransientError"),
     ("neo4j.exceptions", "SessionExpired"),
 )
+
+
+@lru_cache(maxsize=1)
+def _llm_http_error_type() -> type[BaseException] | None:
+    """engine.agents.client.LLMHTTPError (import 가능하면). status 기반 분류 전용."""
+    try:
+        from engine.agents.client import LLMHTTPError
+    except Exception:  # noqa: BLE001 — 선택 extra 미설치/부작용 import 실패
+        return None
+    return LLMHTTPError
 
 
 @lru_cache(maxsize=1)
@@ -84,6 +96,15 @@ def classify_error(exc: BaseException) -> ErrorClass:
     if isinstance(exc, urllib.error.HTTPError):
         # HTTPError ⊂ URLError 이므로 반드시 먼저 본다. 5xx=서버측 일시장애 / 4xx=요청 버그.
         return ErrorClass.TRANSIENT if int(exc.code) >= 500 else ErrorClass.PROGRAMMING
+    llm_http = _llm_http_error_type()
+    if llm_http is not None and isinstance(exc, llm_http):
+        # openai-compat 백엔드 non-2xx. urllib.HTTPError 와 같은 규칙으로 status 를 본다:
+        # 5xx=일시장애(재시도 유효) / 4xx=요청·인증 버그(재시도 무의미). status 파싱 불가면
+        # 보수적으로 programming(조용한 무한 재시도보다 fail-fast 가 안전).
+        status = getattr(exc, "status", None)
+        if isinstance(status, int):
+            return ErrorClass.TRANSIENT if status >= 500 else ErrorClass.PROGRAMMING
+        return ErrorClass.PROGRAMMING
     if isinstance(exc, _STDLIB_TRANSIENT) or isinstance(exc, repo_transient_types()):
         return ErrorClass.TRANSIENT
     return ErrorClass.PROGRAMMING
