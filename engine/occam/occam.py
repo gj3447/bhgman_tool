@@ -54,6 +54,23 @@ def _in_repo(path: str) -> bool:
     return _REPO_SEGMENT.search(path) is not None
 
 
+# 심볼-레벨 line anchor (falsifier 2026-07-15): KG SourceCodeNode 는 `commands.py:250` 처럼
+# 한 파일의 서로 다른 심볼을 ':N' 접미로 구분해 저장한다 (정당한 앵커, 오염 아님). 하지만
+# *디스크 실존* 은 파일 단위 진실이라 stat 전 ':N' 을 떼야 한다 — 안 떼면 `foo.py:250` 을 그대로
+# stat → 그런 파일 없음 → 실존 파일이 false-orphan (라이브 dry-run precision 1.7%). grouping/
+# dedup identity(normalize_path)는 ':N' 을 *보존* 해 심볼 구분을 지킨다 (떼면 별개 심볼 병합=손상).
+_LINE_ANCHOR = re.compile(r":[0-9]+$")
+
+
+def _disk_key(path: str) -> str:
+    # KG: occam-kam-canonical-2026-05-26
+    """디스크-실존 확인 전용 키: normalize_path 후 심볼-레벨 line anchor(':N') 제거.
+
+    normalize_path (grouping identity, ':N' 보존) ⊋ _disk_key (파일-단위 실존, ':N' strip).
+    disk_paths(scan_disk_paths 산물, line anchor 없는 실파일 경로)와 조인하는 모든 곳에서만 사용."""
+    return _LINE_ANCHOR.sub("", normalize_path(path))
+
+
 _WT_SEGMENT = re.compile(r"(?:^|(?<=/))bhgman_tool-wt-[^/]+/")
 
 
@@ -118,8 +135,9 @@ def _detect_sha_moves(
         norms = {normalize_path(n.source_path) for n in group}
         if len(norms) < 2:
             continue  # 단일 경로 = mode-1이 이미 처리(또는 중복 아님)
-        live = [n for n in group if normalize_path(n.source_path) in disk_paths]
-        orphan = [n for n in group if normalize_path(n.source_path) not in disk_paths]
+        # 실존 판정만 _disk_key(':N' strip); 정체성/현재선정은 normalize_path 불변.
+        live = [n for n in group if _disk_key(n.source_path) in disk_paths]
+        orphan = [n for n in group if _disk_key(n.source_path) not in disk_paths]
         if not (live and orphan):
             continue  # 전부 live(디스크상 동일내용 사본, 보존) 또는 전부 orphan(mode-3로)
         current = min(live, key=lambda n: normalize_path(n.source_path))
@@ -157,12 +175,13 @@ def _detect_disk_orphans(
         # 외부 노드 + 워크트리 lineage = 이 체크아웃 디스크로 실존 판정 불가/금지.
         if not _existence_judgeable(node.source_path):
             continue
-        if normalize_path(node.source_path) in disk_paths:
+        # 실존 판정만 _disk_key(':N' strip) — 심볼 앵커 노드의 base 파일이 디스크에 있으면 orphan 아님.
+        if _disk_key(node.source_path) in disk_paths:
             continue
         has_live_twin = any(
             other is not node
             and other.sha256 == node.sha256
-            and normalize_path(other.source_path) in disk_paths
+            and _disk_key(other.source_path) in disk_paths
             for other in nodes
         )
         if not has_live_twin:

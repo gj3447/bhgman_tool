@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import datetime
+
 from engine.occam.occam import normalize_path, occam_pass
 from engine.occam.occam_models import Confidence, NodeRecord
 from engine.occam.scoring import EntrenchmentTier, NodeScoreMeta
@@ -319,3 +321,75 @@ def test_pick_current_deterministic_on_line_count_tie():
     assert len(c1) == len(c2) == 1
     assert c1[0].current.sha256 == c2[0].current.sha256  # order-independent
     assert c1[0].stale.sha256 == c2[0].stale.sha256
+
+
+# ─── falsifier 2026-07-15: line-anchor disk-존재 오판 + timestamp 타입혼재 크래시 ───
+# 근거: verification/falsifier_occam_dedupe_2026-07-15.md — 라이브 309k KG dry-run에서
+# occam disk-orphan precision 1.7% (98% false-positive) + full-scan 크래시. 원인:
+#  (1) KG sourcePath 의 정당한 심볼-레벨 ':N' 앵커(foo.py:250)를 그대로 stat → 실존 파일이
+#      false-orphan. ':N'은 오염이 아니라 심볼 앵커라 grouping identity 에선 보존해야 함.
+#  (2) Neo4j DateTime 과 str 타임스탬프 혼재 → _current_rank tuple '>' 비교 사망.
+
+
+def test_line_anchor_node_on_disk_is_not_false_orphan():
+    """(1) foo.py:12 심볼 앵커 노드 — 디스크엔 foo.py 만 존재. ':N'을 떼고 실존 판정해야
+    false-orphan 이 안 난다. disk_paths 는 line anchor 없는 실파일 경로 집합."""
+    anchored = NodeRecord(
+        "oracle_lens.py:12",
+        "bhgman_tool/engine/occam/oracle_lens.py:12",
+        "sha_sym",
+        4,
+    )
+    disk = frozenset({"engine/occam/oracle_lens.py"})  # 실파일엔 ':N' 없음
+    report = occam_pass([anchored], disk_paths=disk)
+    assert report.orphan_count == 0  # fix 전: 1 (false-orphan)
+    assert report.superseded_count == 0
+
+
+def test_line_anchor_symbols_stay_distinct_in_grouping():
+    """정정 준수: ':N' 을 grouping identity 에서 떼면 별개 심볼이 병합돼 손상.
+    같은 base 파일의 서로 다른 심볼(:250 / :818)은 dup 이 아니어야 한다."""
+    sym_a = NodeRecord("commands.py:250", "bhgman_tool/commands.py:250", "sha_a", 30)
+    sym_b = NodeRecord("commands.py:818", "bhgman_tool/commands.py:818", "sha_b", 40)
+    disk = frozenset({"commands.py"})
+    report = occam_pass([sym_a, sym_b], disk_paths=disk)
+    # 서로 다른 심볼 → mode-1 dup 아님, 둘 다 디스크 실존 → orphan 아님
+    assert report.superseded_count == 0
+    assert report.orphan_count == 0
+
+
+def test_line_anchor_orphan_still_detected_when_file_gone():
+    """false-negative 방어: base 파일이 진짜 디스크에 없으면 ':N' 앵커 노드도 여전히 orphan."""
+    dead = NodeRecord(
+        "deleted_mod.py:5",
+        "bhgman_tool/engine/gone/deleted_mod.py:5",
+        "sha_dead",
+        10,
+    )
+    disk = frozenset({"engine/occam/oracle_lens.py"})  # deleted_mod.py 없음
+    report = occam_pass([dead], disk_paths=disk)
+    assert report.orphan_count == 1
+    assert report.orphans[0].name == "deleted_mod.py:5"
+
+
+def test_current_rank_survives_datetime_str_timestamp_mix():
+    """(2) 한 노드의 last_validated 가 (Neo4j) DateTime 객체, 다른 노드는 str.
+    _current_rank tuple '>' 비교가 타입혼재에 크래시하면 안 된다. datetime.datetime 은
+    str 과 '>' 비교 시 TypeError 를 내므로 Neo4j DateTime 크래시를 그대로 재현한다."""
+    dt_node = NodeRecord(
+        "a.py",
+        "bhgman_tool/mix.py",
+        "sha_dt",
+        50,
+        last_validated=datetime.datetime(2026, 6, 1),  # DateTime-like 객체 (str 아님)
+    )
+    str_node = NodeRecord(
+        "b.py",
+        "bhgman_tool/mix.py",
+        "sha_str",
+        50,
+        last_validated="2026-01-01",
+    )
+    # fix 전: TypeError("'>' not supported between instances of 'str' and 'datetime.datetime'")
+    report = occam_pass([dt_node, str_node])
+    assert report.superseded_count == 1  # 크래시 없이 lineage 정리
