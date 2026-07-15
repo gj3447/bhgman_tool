@@ -75,7 +75,9 @@ def run_experiment(seed: int = 7, n_events: int = 800, noise: bool = False) -> E
         t += 1.0
 
     # 창발 관찰: Hebbian 엣지 강도 (final 시점 decay)
-    intra, inter, edge_rows = [], [], []
+    intra: list[float] = []
+    inter: list[float] = []
+    edge_rows: list[tuple[str, str, float]] = []
     for ekey, e in eng.edges.items():
         _, a, b = ekey.split("::")
         w = hawkes.decayed_weight(e.w, e.t_last, t, cfg.lam)
