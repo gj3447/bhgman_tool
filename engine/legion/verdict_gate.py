@@ -444,6 +444,33 @@ def build_gate_from_env(ledger: Any = None) -> Any:
     return VerdictGate.from_env(ledger=ledger)
 
 
+def prepare_forward_ctx(
+    ctx: dict,
+    *,
+    cycle_id: str | None = None,
+    store: object | None = None,
+    artifact_id: str | None = None,
+) -> dict:
+    """정방향 legion-run ctx 를 mint 된 cycle_id + (store 있을 때) verdict_gate 로 채운다 (in-place).
+
+    MCP legion 툴과 CLI cmd_legion 이 *동일* 경로로 ctx 를 준비하게 하는 공유 헬퍼 (jbm-s3 패리티,
+    T0-3). cycle_id 는 항상 스탬프 — :DispatchEvent.cycle_id 가 null 이 되지 않는다(정방향 provenance
+    결손 봉합). verdict_gate + artifact_id leg 는 KG store(duck-typed find_one/merge_node/save)가
+    주어지고 verdict 키가 강할 때만 주입한다: store 부재/약키면 legacy(비게이트·비파괴) 경로 유지 —
+    가짜 게이트로 fail-open 하지 않는다. (neo4j runner 경로의 store-less ledger 는 별개 follow-up:
+    q-legion-cli-verdict-ledger.)
+    """
+    cid = ctx.get("cycle_id") or cycle_id or mint_cycle_id()
+    ctx["cycle_id"] = cid
+    if store is not None:
+        try:
+            ctx["verdict_gate"] = build_gate_from_env(ledger=KgVerdictLedger(store))
+            ctx["artifact_id"] = artifact_id or cid
+        except WeakVerdictKeyError:
+            pass  # 약/무키 → legacy negative-check 경로 (비파괴), fail-open 아님
+    return ctx
+
+
 __all__ = [
     "VERDICT_SOURCE",
     "VERDICT_SECRET_ENV",
@@ -451,6 +478,7 @@ __all__ = [
     "ED25519_PUBLIC_ENV",
     "mint_cycle_id",
     "build_gate_from_env",
+    "prepare_forward_ctx",
     "WeakVerdictKeyError",
     "GateResult",
     "VerdictLedger",

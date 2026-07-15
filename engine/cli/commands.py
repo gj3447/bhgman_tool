@@ -1371,6 +1371,13 @@ def cmd_legion(args: argparse.Namespace) -> int:
         "repo_root": None if getattr(args, "no_disk_scan", False) else str(_repo_root()),
         "researched_at": _now_iso(),
     }
+    # T0-3 정방향 패리티: cycle_id 스탬프 → :DispatchEvent.cycle_id 가 null 이 되지 않는다.
+    # verdict_gate leg 는 store-backed ledger 필요 — neo4j/MCP runner 는 store 를 노출하지 않으므로
+    # (make_kg_runners 는 (run,write,close)만 반환) 여기선 cycle_id 패리티만. store-less ledger =
+    # 별개 follow-up(q-legion-cli-verdict-ledger). MCP legion 툴과 동일 헬퍼.
+    from engine.legion.verdict_gate import prepare_forward_ctx  # noqa: PLC0415
+
+    prepare_forward_ctx(ctx)
     if getattr(args, "web", False):
         from engine.prometheus.web import make_web_fetcher  # noqa: PLC0415
 
