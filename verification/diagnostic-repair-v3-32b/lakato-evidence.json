@@ -5,16 +5,16 @@
     "env": "python=3.9.6;model=qwen2.5:32b-instruct;endpoint_class=openai-compatible;lean=leanprover/lean4:v4.27.0",
     "git_commit": "30504b06d1c0205649ca7c4494b25a1c19741dea",
     "script": "verification/diagnostic-repair-v3-32b/build_evidence.py",
-    "timestamp": "2026-07-16T16:01:04.849274+00:00"
+    "timestamp": "2026-07-16T16:08:36.597891+00:00"
   },
   "measurement": {
     "derived": {
       "B1": {
         "exit_code": 0,
-        "finished_at": "2026-07-16T14:39:12Z",
+        "finished_at": "2026-07-16T16:08:11Z",
         "git_head": "30504b06d1c0205649ca7c4494b25a1c19741dea",
         "git_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "started_at": "2026-07-16T14:39:11Z",
+        "started_at": "2026-07-16T16:07:43Z",
         "state": "PASS"
       },
       "P1": "ABSENT",
@@ -57,8 +57,8 @@
       },
       {
         "name": "b1_preflight",
-        "sha256": "4d18b882e5c554de60c46a9df7675af0281833f511a0947576b797b0b6851531",
-        "source": "verification/diagnostic-repair-v3-32b/b1-preflight.log"
+        "sha256": "966f7ba3e8947ffb3e68763929e0e9cfd4079fa20d69f5770c5f2a4bff973530",
+        "source": "verification/diagnostic-repair-v3-32b/b1-measurement.log"
       },
       {
         "name": "frozen_manifest",

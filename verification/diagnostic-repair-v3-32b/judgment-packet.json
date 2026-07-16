@@ -19,7 +19,7 @@
         "grounded": true,
         "path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakato-evidence.json",
         "schema": "lakato-evidence-record/v1",
-        "sha256": "a7fdec8c969edcaa9cc52aa4d3b0c9e3923f58748721a740a69e9a2aa865a209"
+        "sha256": "2245f7931eab2b09a14d58bafd8a5b0387ab2ea567c791cf9636a9ab4e333eef"
       }
     ],
     "started_at": "2026-07-16T14:42:20.052359+00:00"
@@ -58,6 +58,6 @@
     "receipt_chain_sha256": "8131df89c04913d20f734a5fa920b4650dceeb0e864b504061018d31f7bc1a03",
     "scripted_source_confirmed": true,
     "verify_output_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-verify.json",
-    "verify_output_sha256": "ab78051477274633735c287d05391bc53c675e39d0c3b16536df67ca94d9ccc2"
+    "verify_output_sha256": "94ff02308da2a5c7afbdd9ae8bef9c36510cb8424897b0f0e63885e18ad3eea1"
   }
 }

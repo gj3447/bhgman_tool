@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +50,10 @@ def relative(path: Path, root: Path) -> str:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 def git_head(path: Path) -> str:
@@ -198,6 +203,17 @@ def main() -> int:
         evidence["harness"].get("git_commit")
         == prereg_request["frozen_sources"]["git_head"],
         "evidence git commit does not match the frozen source",
+    )
+    b1_started_at = evidence["measurement"]["derived"]["B1"]["started_at"]
+    live_started_at = analysis["timestamps_utc"][0]
+    measurement_started_at = min(
+        parse_timestamp(b1_started_at),
+        parse_timestamp(live_started_at),
+    )
+    require(
+        parse_timestamp(prereg_request["registered_at"])
+        < measurement_started_at,
+        "a credited measurement predates preregistration",
     )
     verify_evidence_inputs(evidence)
     require(
@@ -395,6 +411,7 @@ def main() -> int:
         "response_matches_fresh_derivation": True,
         "scripted_source_confirmed": scripted_source_confirmed,
         "judge_script_sha256": judge_source_sha,
+        "judge_runner_sha256": sha256(JUDGE_RUNNER),
         "evidence_sha256": sha256(evidence_path),
     }
     require(scripted_source_confirmed, "judge source hash does not match preregistration")
@@ -431,7 +448,7 @@ def main() -> int:
             "judge_script_sha256": judge_source_sha,
         },
         "measurement": {
-            "started_at": analysis["timestamps_utc"][0],
+            "started_at": measurement_started_at.isoformat(),
             "evidence_records": [
                 {
                     "path": relative(evidence_path, SYMPOSIUM_ROOT),

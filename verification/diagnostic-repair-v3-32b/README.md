@@ -46,6 +46,13 @@ sandbox execution, and the batch completed instead of crashing.
 - Untouched restore result: exit 0
 - Original and restored analysis SHA-256:
   `d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61`
+- `b1-preflight.log` is the pre-registration bridge smoke and receives no
+  measurement credit.
+- Credited B1 was remeasured from a clean detached checkout of frozen commit
+  `30504b0` at `2026-07-16T16:07:43Z` in `b1-measurement.log`.
+- The earliest credited measurement remains the live batch start at
+  `2026-07-16T14:42:20.052359+00:00`, after registration at
+  `2026-07-16T14:39:30Z`.
 
 ## Gate interpretation
 
@@ -69,12 +76,14 @@ and did not clear the stronger causal, task-level, and compute-parity gates.
 
 - `analysis.json`: primary analyzer output
 - `analysis-restored.json`: untouched re-analysis with identical SHA
+- `b1-measurement.log`: post-registration B1 measurement used for gate credit
 - `negative-oracle.json`: active fault-injection and restore receipt
 - `ooptdd-receipt.json`: linked runtime-integrity envelope
 - `lakato-evidence.json`: grounded, verdict-free evidence record
 - `judge-response.json`: raw pure-judge machine result
 - `judge-chain.json` and `judge-verify.json`: content-addressed re-derivation
 - `judgment-packet.json`: verdict-free LakatoTree handoff
+- `timeline-validation.log`: credited-measurement preregistration ordering check
 - `ooptdd-validation.log` and `judgment-validation.log`: linked-hash validator
   outputs
 
