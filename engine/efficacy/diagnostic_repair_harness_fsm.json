@@ -1,0 +1,335 @@
+{
+  "schema_version": "fsm-spec/v1",
+  "name": "pi-diagnostic-repair-arm-loop",
+  "conformance_status": "REFERENCE_MODEL_NOT_RUNTIME_REDUCER",
+  "execution": {
+    "step_interface": "reference semantics only: step(configuration, typed_event) -> next_configuration, effect_commands; the v2 runner does not call a generated reducer",
+    "event_queue": "The reference model assumes FIFO events; the executable runner instead records production diagnostic_repair lifecycle events.",
+    "run_to_completion": "The reference model reduces one model-or-oracle boundary event at a time; runtime conformance is limited to B1 traces and authoritative-pass completion.",
+    "action_order": "Reference order is select transition, update state, then emit commands; these command names are not direct JSONL record types."
+  },
+  "context_schema": {
+    "attempt": {"type": "non-negative integer"},
+    "max_evaluations": {"type": "positive integer"},
+    "run_id": {"type": "string"}
+  },
+  "event_schemas": {
+    "START": {
+      "type": "object",
+      "required": ["run_id", "arm", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "arm": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    },
+    "EVALUATION_FAILED": {
+      "type": "object",
+      "required": ["run_id", "candidate_hash", "diagnostic_hash", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "diagnostic_hash": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    },
+    "CANDIDATE_GENERATED": {
+      "type": "object",
+      "required": ["run_id", "candidate_hash", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    },
+    "EVALUATION_PASSED": {
+      "type": "object",
+      "required": ["run_id", "candidate_hash", "diagnostic_hash", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "diagnostic_hash": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    },
+    "LIMIT_REACHED": {
+      "type": "object",
+      "required": ["run_id", "reason", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "reason": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    },
+    "FAILURE": {
+      "type": "object",
+      "required": ["run_id", "reason", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "reason": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    }
+  },
+  "guards": {},
+  "effects": {
+    "RecordArmStart": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "arm", "event_id"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "arm": {"type": "string"},
+          "event_id": {"type": "string"}
+        }
+      }
+    },
+    "RecordObservation": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "candidate_hash", "diagnostic_hash", "status"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "candidate_hash": {"type": "string"},
+          "diagnostic_hash": {"type": "string"},
+          "status": {"type": "string"}
+        }
+      }
+    },
+    "RecordCandidate": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "candidate_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "candidate_hash": {"type": "string"}
+        }
+      }
+    },
+    "RecordTerminal": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "status", "reason"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "status": {"type": "string"},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "AuditInvalidTransition": {
+      "kind": "audit",
+      "payload_schema": {
+        "type": "object",
+        "required": ["state", "event", "actor", "reason", "event_id"],
+        "properties": {
+          "state": {"type": "string"},
+          "event": {"type": "string"},
+          "actor": {"type": "actor-id"},
+          "reason": {"type": "string"},
+          "event_id": {"type": "string"}
+        }
+      }
+    }
+  },
+  "machines": [
+    {
+      "id": "arm-loop",
+      "initial": "prepared",
+      "states": [
+        {"id": "prepared", "kind": "atomic"},
+        {"id": "evaluating", "kind": "atomic"},
+        {"id": "correcting", "kind": "atomic"},
+        {"id": "complete", "kind": "final"},
+        {"id": "capped", "kind": "final"},
+        {"id": "failed", "kind": "final"}
+      ],
+      "events": [
+        "START",
+        "EVALUATION_FAILED",
+        "CANDIDATE_GENERATED",
+        "EVALUATION_PASSED",
+        "LIMIT_REACHED",
+        "FAILURE"
+      ],
+      "invalid_event_policy": {
+        "mode": "reject-and-audit",
+        "guard_false": "reject-and-audit",
+        "state_change": "none",
+        "effect": "AuditInvalidTransition",
+        "effect_binding": {
+          "state": "configuration.state",
+          "event": "event.type",
+          "actor": "event.actor",
+          "reason": "rejection.reason",
+          "event_id": "event.event_id"
+        }
+      },
+      "transitions": [
+        {
+          "id": "start-arm",
+          "from": "prepared",
+          "event": "START",
+          "to": "evaluating",
+          "effects": ["RecordArmStart"],
+          "effect_bindings": {
+            "RecordArmStart": {
+              "run_id": "event.run_id",
+              "arm": "event.arm",
+              "event_id": "event.event_id"
+            }
+          }
+        },
+        {
+          "id": "request-correction",
+          "from": "evaluating",
+          "event": "EVALUATION_FAILED",
+          "to": "correcting",
+          "effects": ["RecordObservation"],
+          "effect_bindings": {
+            "RecordObservation": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash",
+              "diagnostic_hash": "event.diagnostic_hash",
+              "status": "literal:failed"
+            }
+          }
+        },
+        {
+          "id": "evaluate-candidate",
+          "from": "correcting",
+          "event": "CANDIDATE_GENERATED",
+          "to": "evaluating",
+          "effects": ["RecordCandidate"],
+          "effect_bindings": {
+            "RecordCandidate": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash"
+            }
+          }
+        },
+        {
+          "id": "complete-arm",
+          "from": "evaluating",
+          "event": "EVALUATION_PASSED",
+          "to": "complete",
+          "effects": ["RecordObservation"],
+          "effect_bindings": {
+            "RecordObservation": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash",
+              "diagnostic_hash": "event.diagnostic_hash",
+              "status": "literal:passed"
+            }
+          }
+        },
+        {
+          "id": "cap-before-correction",
+          "from": "evaluating",
+          "event": "LIMIT_REACHED",
+          "to": "capped",
+          "effects": ["RecordTerminal"],
+          "effect_bindings": {
+            "RecordTerminal": {
+              "run_id": "event.run_id",
+              "status": "literal:capped",
+              "reason": "event.reason"
+            }
+          }
+        },
+        {
+          "id": "cap-after-observation",
+          "from": "correcting",
+          "event": "LIMIT_REACHED",
+          "to": "capped",
+          "effects": ["RecordTerminal"],
+          "effect_bindings": {
+            "RecordTerminal": {
+              "run_id": "event.run_id",
+              "status": "literal:capped",
+              "reason": "event.reason"
+            }
+          }
+        },
+        {
+          "id": "fail-before-start",
+          "from": "prepared",
+          "event": "FAILURE",
+          "to": "failed",
+          "effects": ["RecordTerminal"],
+          "effect_bindings": {
+            "RecordTerminal": {
+              "run_id": "event.run_id",
+              "status": "literal:failed",
+              "reason": "event.reason"
+            }
+          }
+        },
+        {
+          "id": "fail-during-evaluation",
+          "from": "evaluating",
+          "event": "FAILURE",
+          "to": "failed",
+          "effects": ["RecordTerminal"],
+          "effect_bindings": {
+            "RecordTerminal": {
+              "run_id": "event.run_id",
+              "status": "literal:failed",
+              "reason": "event.reason"
+            }
+          }
+        },
+        {
+          "id": "fail-during-correction",
+          "from": "correcting",
+          "event": "FAILURE",
+          "to": "failed",
+          "effects": ["RecordTerminal"],
+          "effect_bindings": {
+            "RecordTerminal": {
+              "run_id": "event.run_id",
+              "status": "literal:failed",
+              "reason": "event.reason"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "safety_properties": [
+    {
+      "id": "oracle-only-completion",
+      "statement": "Only EVALUATION_PASSED may enter complete.",
+      "verification": "Static incoming-transition check plus model-to-implementation conformance tests."
+    },
+    {
+      "id": "bounded-correction",
+      "statement": "A failed evaluation can only correct, cap, or fail; it cannot silently complete.",
+      "verification": "Transition coverage and invalid-event audit traces."
+    }
+  ],
+  "liveness_properties": [
+    {
+      "id": "bounded-terminal",
+      "statement": "Each started arm eventually completes, caps, or fails.",
+      "assumptions": ["The model and oracle adapters honor their per-call deadline contracts."],
+      "verification": "Bounded trace suite plus diagnostic_repair attempt/evaluation caps."
+    }
+  ],
+  "trace_fixtures": ["diagnostic_repair_harness_fsm_traces.json"],
+  "conformance": {
+    "implementation_step": "engine.legion.diagnostic_repair.diagnostic_repair is bound through the pi_repair and pi_decoy arms.",
+    "model_trace_runner": "fsm-design scripts/run_fsm_traces.py executes the abstract fixtures.",
+    "contract_tests": "The harness tests exercise every abstract terminal path, trace equivalence, decoy feedback, and invalid configuration."
+  }
+}

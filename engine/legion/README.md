@@ -11,6 +11,10 @@
   `threshold_derivation/` 하위 + `record_outcome` calibration은 **현재 미배선(experimental/offline)**.
 - `audit_prom_cycles.py` — Stevens-scale 측정-위반 스캐너 (HMAC 아님 — H8 정정)
 - `legion_models.py` — 데이터 모델 (CommanderStage.measure / LegionRun.dispatch_decisions 포함)
+- `diagnostic_repair.py` — 외부 compiler/test 진단을 다음 시도에 실제 주입하는 bounded loop.
+  `complete/capped/stuck/error`, 반복 상태 digest, best-candidate 보존, append-only receipt를
+  제공한다. 결정론 oracle이 있는 stage만 `make_diagnostic_repair_stage`로 명시적 opt-in한다.
+  사용법·OSS provenance: [`docs/DIAGNOSTIC_REPAIR_LOOP.md`](../../docs/DIAGNOSTIC_REPAIR_LOOP.md).
 
 > 결정론 코어 = 정체성·바닥. LLM = 옵션 enrichment (`project_legion_unification_kg_engine_2026_06_01`).
 > 실행: `uv run pytest` (시스템 python3는 frontmatter 못 찾음).

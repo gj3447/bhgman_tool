@@ -1,0 +1,63 @@
+{
+  "schema_version": "fsm-traces/v1",
+  "cases": [
+    {
+      "id": "repair-to-complete",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "START", "expected_state": "evaluating", "expected_effects": ["RecordArmStart"]},
+        {"event": "EVALUATION_FAILED", "expected_state": "correcting", "expected_effects": ["RecordObservation"]},
+        {"event": "CANDIDATE_GENERATED", "expected_state": "evaluating", "expected_effects": ["RecordCandidate"]},
+        {"event": "EVALUATION_PASSED", "expected_state": "complete", "expected_effects": ["RecordObservation"]}
+      ]
+    },
+    {
+      "id": "cap-before-correction",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "START", "expected_state": "evaluating", "expected_effects": ["RecordArmStart"]},
+        {"event": "LIMIT_REACHED", "expected_state": "capped", "expected_effects": ["RecordTerminal"]}
+      ]
+    },
+    {
+      "id": "cap-after-observation",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "START", "expected_state": "evaluating", "expected_effects": ["RecordArmStart"]},
+        {"event": "EVALUATION_FAILED", "expected_state": "correcting", "expected_effects": ["RecordObservation"]},
+        {"event": "LIMIT_REACHED", "expected_state": "capped", "expected_effects": ["RecordTerminal"]}
+      ]
+    },
+    {
+      "id": "fail-before-start",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "FAILURE", "expected_state": "failed", "expected_effects": ["RecordTerminal"]}
+      ]
+    },
+    {
+      "id": "fail-during-evaluation",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "START", "expected_state": "evaluating", "expected_effects": ["RecordArmStart"]},
+        {"event": "FAILURE", "expected_state": "failed", "expected_effects": ["RecordTerminal"]}
+      ]
+    },
+    {
+      "id": "fail-during-correction",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "START", "expected_state": "evaluating", "expected_effects": ["RecordArmStart"]},
+        {"event": "EVALUATION_FAILED", "expected_state": "correcting", "expected_effects": ["RecordObservation"]},
+        {"event": "FAILURE", "expected_state": "failed", "expected_effects": ["RecordTerminal"]}
+      ]
+    },
+    {
+      "id": "invalid-complete-before-start",
+      "machine": "arm-loop",
+      "steps": [
+        {"event": "EVALUATION_PASSED", "expected_state": "prepared", "expected_effects": ["AuditInvalidTransition"]}
+      ]
+    }
+  ]
+}

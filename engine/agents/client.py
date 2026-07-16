@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false
 """AgentClient — dual-backend LLM 래퍼. LLM 군단장(프로메테우스/나생문/재배맨)의 실행 기반.
 
 두 백엔드 (Anthropic 키 *불필요* 경로 포함):
@@ -137,6 +138,9 @@ class Completion:
     stop_reason: str = ""
     # L6: openai-compat tool-call (FOLLOWUPS emit_followups 등). [{name, arguments(str)}].
     tool_calls: tuple[dict, ...] = ()
+    # True only when the backend response itself carried a non-empty model id.
+    # Keep this at the end so legacy positional Completion callers retain ABI.
+    model_observed: bool = False
 
 
 def _urllib_post(url: str, payload: dict, headers: dict, timeout: float) -> dict:
@@ -369,7 +373,10 @@ class AgentClient:
         느린 로컬 GPU(GB10 ~4tok/s)에서 ReAct 멀티라운드의 think 토큰 폭발을 막아 실용 속도 확보.
         """
         base = base if base is not None else self._base
-        model = model if model is not None else self._model
+        resolved_model = model if model is not None else self._model
+        if not isinstance(resolved_model, str) or not resolved_model:
+            raise AgentRuntimeUnavailable("openai-compat backend model is unavailable")
+        model = resolved_model
         key = key if key is not None else self._key
         payload: dict = {"model": model, "messages": messages, "max_tokens": max_tokens}
         if temperature:  # 0.0 = greedy = 오늘 동작 → 미주입 (back-compat)
@@ -402,9 +409,17 @@ class AgentClient:
                 for tc in msg["tool_calls"]
             )
         usage = resp.get("usage") or {}
+        observed_model = resp.get("model")
+        if isinstance(observed_model, str) and observed_model:
+            response_model = observed_model
+            model_observed = True
+        else:
+            response_model = model
+            model_observed = False
         return Completion(
             text=text,
-            model=resp.get("model", model),
+            model=response_model,
+            model_observed=model_observed,
             input_tokens=usage.get("prompt_tokens", 0) or 0,
             output_tokens=usage.get("completion_tokens", 0) or 0,
             stop_reason=choice.get("finish_reason", "") or "",
@@ -492,13 +507,20 @@ class AgentClient:
         return Completion(
             text=last.text,
             model=last.model,
+            model_observed=last.model_observed,
             input_tokens=tin,
             output_tokens=tout,
             stop_reason=last.stop_reason,
         )
 
     def _complete_anthropic(
-        self, system, user, model, max_tokens, effort, web_search
+        self,
+        system: str,
+        user: str,
+        model: str,
+        max_tokens: int,
+        effort: str | None,
+        web_search: bool,
     ) -> Completion:
         system_blocks = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
         kwargs: dict = {"model": model, "max_tokens": max_tokens, "system": system_blocks}
@@ -519,9 +541,17 @@ class AgentClient:
         assert resp is not None  # loop body runs at least once (max_cont >= 1)
         text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
         usage = getattr(resp, "usage", None)
+        observed_model = getattr(resp, "model", None)
+        if isinstance(observed_model, str) and observed_model:
+            response_model = observed_model
+            model_observed = True
+        else:
+            response_model = model
+            model_observed = False
         return Completion(
             text=text,
-            model=getattr(resp, "model", model),
+            model=response_model,
+            model_observed=model_observed,
             input_tokens=getattr(usage, "input_tokens", 0) or 0,
             output_tokens=getattr(usage, "output_tokens", 0) or 0,
             cache_read_tokens=getattr(usage, "cache_read_input_tokens", 0) or 0,

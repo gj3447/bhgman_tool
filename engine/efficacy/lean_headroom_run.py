@@ -62,30 +62,57 @@ def _make_complete():
         # dropped it. temp default 0.8 (LEAN_HEADROOM_FAIRTEST); temp=0.0 would be greedy and ignore seed.
         temp = float(os.environ.get("LEAN_TEMP") or os.environ.get("P1_TEMP", "0.8"))
 
-        def complete(messages, seed):
+        def _frontier_complete(messages, seed):
             system = next((m["content"] for m in messages if m["role"] == "system"), "")
             user = next((m["content"] for m in messages if m["role"] == "user"), "")
             c = client.complete(
                 system=system, user=user, model=model, max_tokens=mx, temperature=temp, seed=seed
             )
-            # non-breaking token accounting (prereg P4): callers read `complete.last_usage` after each
-            # call. The (messages, seed) -> text contract is unchanged, so test doubles need no update.
-            complete.last_usage = (
-                int(getattr(c, "input_tokens", 0) or 0),
-                int(getattr(c, "output_tokens", 0) or 0),
+            # non-breaking token accounting (prereg P4): callers read dynamic
+            # attributes after each call. The callable contract remains unchanged.
+            setattr(
+                _frontier_complete,
+                "last_usage",
+                (
+                    int(getattr(c, "input_tokens", 0) or 0),
+                    int(getattr(c, "output_tokens", 0) or 0),
+                ),
+            )
+            setattr(
+                _frontier_complete,
+                "last_response_model",
+                str(getattr(c, "model", "") or ""),
+            )
+            setattr(
+                _frontier_complete,
+                "last_response_model_observed",
+                bool(getattr(c, "model_observed", False)),
             )
             return c.text
 
-        complete.last_usage = (0, 0)
-        return complete, f"frontier:{model}"
+        setattr(_frontier_complete, "last_usage", (0, 0))
+        setattr(_frontier_complete, "last_response_model", "")
+        setattr(_frontier_complete, "last_response_model_observed", False)
+        return _frontier_complete, f"frontier:{model}"
 
-    def complete(messages, seed):
+    def _local_complete(messages, seed):
         text, _ = _ollama(messages, seed)
-        complete.last_usage = (0, 0)  # local ollama does not surface per-call token usage here
+        # local ollama does not surface per-call token usage here.
+        setattr(_local_complete, "last_usage", (0, 0))
+        setattr(
+            _local_complete,
+            "last_response_model",
+            os.environ.get("P1_MODEL", "qwen2.5:0.5b-instruct"),
+        )
+        setattr(_local_complete, "last_response_model_observed", False)
         return text
 
-    complete.last_usage = (0, 0)
-    return complete, f"local-ollama:{os.environ.get('P1_MODEL', 'qwen2.5:0.5b-instruct')}"
+    setattr(_local_complete, "last_usage", (0, 0))
+    setattr(_local_complete, "last_response_model", "")
+    setattr(_local_complete, "last_response_model_observed", False)
+    return _local_complete, (
+        f"local-ollama:{os.environ.get('P1_MODEL', 'qwen2.5:0.5b-instruct')}"
+    )
 
 
 def _extract_proof(text: str) -> str:
