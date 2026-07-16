@@ -1,0 +1,44 @@
+{
+  "schema": "pi-diagnostic-repair-lakatotree-preregistration/v1",
+  "programme": "BHGMAN_DiagnosticRepair_Efficacy_20260716",
+  "branch": "exact-qwen2.5-32b-six-arm-confirmatory-v3",
+  "conjecture": "The production diagnostic-repair loop clears the frozen B1 bridge and all five preregistered causal, compute, and integrity gates in the exact 32B reproduction.",
+  "registered_at": "2026-07-16T14:39:30Z",
+  "registered_before_measurement": true,
+  "prediction": {
+    "metric": "confirmed_gate_count",
+    "direction": "higher",
+    "baseline": 5.5,
+    "noise_band": 0.0,
+    "scale_type": "ratio",
+    "unit": "gates",
+    "required_gates": [
+      "B1",
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ]
+  },
+  "kill_condition": "confirmed_gate_count < 6, B1 exit_code != 0, analyzer replay invalid, or any P1-P5 status other than PASS",
+  "negative_oracle": {
+    "technique": "fault_injection",
+    "injection": "On an isolated copy only, replace the first run_start.model_id with fault-injected-model-id.",
+    "expected_result": "The frozen analyzer exits 2 with ContractError before producing claim-bearing analysis.",
+    "restore_check": "Re-run the analyzer against the untouched original JSONL directory and require exit 0 plus the original analysis SHA-256."
+  },
+  "frozen_sources": {
+    "git_head": "30504b06d1c0205649ca7c4494b25a1c19741dea",
+    "manifest_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
+    "manifest_sha256": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+    "preregistration_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md",
+    "preregistration_sha256": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+    "b1_log_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/b1-preflight.log",
+    "b1_log_sha256": "4d18b882e5c554de60c46a9df7675af0281833f511a0947576b797b0b6851531",
+    "judge_script_path": "PI/lakatotree/lakatos/programme/record_judge.py",
+    "judge_script_sha256": "3f7b393f6a3eccc3372b203f5545829cb7bef519797244992a92f7f4b48fcd9d",
+    "evidence_builder_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/build_evidence.py",
+    "evidence_builder_sha256": "54dc65f5da0fa081223c3723121a066278dfcf86c5db7dfb66eb0b95975246ce"
+  }
+}

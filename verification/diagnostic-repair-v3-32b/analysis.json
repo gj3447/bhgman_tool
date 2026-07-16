@@ -1,0 +1,1992 @@
+{
+  "K": 4,
+  "arms": [
+    "single",
+    "bestN",
+    "legacy_repair",
+    "pi_repair",
+    "pi_decoy",
+    "plain_baseline"
+  ],
+  "backend": "frontier:qwen2.5:32b-instruct",
+  "comparisons": {
+    "pi_repair_vs_bestN": {
+      "all_headroom": {
+        "per_run": {
+          "baseline": "bestN",
+          "deltas": [
+            1,
+            -1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            2
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 6,
+          "p_two_sided": 0.21875,
+          "ties": 4,
+          "treatment": "pi_repair",
+          "wins": 5
+        },
+        "per_task": {
+          "baseline": "bestN",
+          "deltas": [
+            3,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -3
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 4,
+          "p_two_sided": 0.625,
+          "ties": 6,
+          "treatment": "pi_repair",
+          "wins": 3
+        }
+      },
+      "live_discriminating": {
+        "per_run": {
+          "baseline": "bestN",
+          "deltas": [
+            1,
+            -1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            2
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 6,
+          "p_two_sided": 0.21875,
+          "ties": 4,
+          "treatment": "pi_repair",
+          "wins": 5
+        },
+        "per_task": {
+          "baseline": "bestN",
+          "deltas": [
+            3,
+            3,
+            2,
+            0,
+            0,
+            -3
+          ],
+          "losses": 1,
+          "n": 6,
+          "non_ties": 4,
+          "p_two_sided": 0.625,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 3
+        }
+      },
+      "matched_cumulative_tokens": {
+        "available": true,
+        "budget_max": 711,
+        "budget_mean": 430.0,
+        "budget_min": 150,
+        "observations": 60,
+        "per_run": {
+          "baseline": "bestN",
+          "deltas": [
+            0,
+            -1,
+            -1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            -1,
+            0
+          ],
+          "losses": 3,
+          "n": 10,
+          "non_ties": 5,
+          "p_two_sided": 1.0,
+          "ties": 5,
+          "treatment": "pi_repair",
+          "wins": 2
+        },
+        "per_task": {
+          "baseline": "bestN",
+          "deltas": [
+            0,
+            0,
+            2,
+            0,
+            -1,
+            -2
+          ],
+          "losses": 2,
+          "n": 6,
+          "non_ties": 3,
+          "p_two_sided": 1.0,
+          "ties": 3,
+          "treatment": "pi_repair",
+          "wins": 1
+        },
+        "scope": "live_discriminating_headroom_tasks"
+      }
+    },
+    "pi_repair_vs_legacy_repair": {
+      "all_headroom": {
+        "per_run": {
+          "baseline": "legacy_repair",
+          "deltas": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            0,
+            0
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 1,
+          "p_two_sided": 1.0,
+          "ties": 9,
+          "treatment": "pi_repair",
+          "wins": 0
+        },
+        "per_task": {
+          "baseline": "legacy_repair",
+          "deltas": [
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 1,
+          "p_two_sided": 1.0,
+          "ties": 9,
+          "treatment": "pi_repair",
+          "wins": 0
+        }
+      },
+      "live_discriminating": {
+        "per_run": {
+          "baseline": "legacy_repair",
+          "deltas": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            0,
+            0
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 1,
+          "p_two_sided": 1.0,
+          "ties": 9,
+          "treatment": "pi_repair",
+          "wins": 0
+        },
+        "per_task": {
+          "baseline": "legacy_repair",
+          "deltas": [
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "losses": 1,
+          "n": 6,
+          "non_ties": 1,
+          "p_two_sided": 1.0,
+          "ties": 5,
+          "treatment": "pi_repair",
+          "wins": 0
+        }
+      },
+      "matched_cumulative_tokens": {
+        "available": true,
+        "budget_max": 1423,
+        "budget_mean": 643.7833,
+        "budget_min": 150,
+        "observations": 60,
+        "per_run": {
+          "baseline": "legacy_repair",
+          "deltas": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            0,
+            0
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 1,
+          "p_two_sided": 1.0,
+          "ties": 9,
+          "treatment": "pi_repair",
+          "wins": 0
+        },
+        "per_task": {
+          "baseline": "legacy_repair",
+          "deltas": [
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "losses": 1,
+          "n": 6,
+          "non_ties": 1,
+          "p_two_sided": 1.0,
+          "ties": 5,
+          "treatment": "pi_repair",
+          "wins": 0
+        },
+        "scope": "live_discriminating_headroom_tasks"
+      }
+    },
+    "pi_repair_vs_pi_decoy": {
+      "all_headroom": {
+        "per_run": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            1,
+            0,
+            1,
+            1,
+            1,
+            2,
+            1,
+            0,
+            1,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 8,
+          "p_two_sided": 0.0078125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 8
+        },
+        "per_task": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            3,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 4,
+          "p_two_sided": 0.125,
+          "ties": 6,
+          "treatment": "pi_repair",
+          "wins": 4
+        }
+      },
+      "live_discriminating": {
+        "per_run": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            1,
+            0,
+            1,
+            1,
+            1,
+            2,
+            1,
+            0,
+            1,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 8,
+          "p_two_sided": 0.0078125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 8
+        },
+        "per_task": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            3,
+            3,
+            2,
+            0,
+            0,
+            3
+          ],
+          "losses": 0,
+          "n": 6,
+          "non_ties": 4,
+          "p_two_sided": 0.125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 4
+        }
+      },
+      "matched_cumulative_tokens": {
+        "available": true,
+        "budget_max": 1423,
+        "budget_mean": 637.8333,
+        "budget_min": 150,
+        "observations": 60,
+        "per_run": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            2,
+            1,
+            0,
+            1,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 7,
+          "p_two_sided": 0.015625,
+          "ties": 3,
+          "treatment": "pi_repair",
+          "wins": 7
+        },
+        "per_task": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            3,
+            3,
+            2,
+            0,
+            -1,
+            3
+          ],
+          "losses": 1,
+          "n": 6,
+          "non_ties": 5,
+          "p_two_sided": 0.375,
+          "ties": 1,
+          "treatment": "pi_repair",
+          "wins": 4
+        },
+        "scope": "live_discriminating_headroom_tasks"
+      }
+    },
+    "pi_repair_vs_plain_baseline": {
+      "all_headroom": {
+        "per_run": {
+          "baseline": "plain_baseline",
+          "deltas": [
+            2,
+            0,
+            1,
+            2,
+            2,
+            1,
+            1,
+            2,
+            0,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 8,
+          "p_two_sided": 0.0078125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 8
+        },
+        "per_task": {
+          "baseline": "plain_baseline",
+          "deltas": [
+            3,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            8,
+            -2
+          ],
+          "losses": 1,
+          "n": 10,
+          "non_ties": 6,
+          "p_two_sided": 0.21875,
+          "ties": 4,
+          "treatment": "pi_repair",
+          "wins": 5
+        }
+      },
+      "live_discriminating": {
+        "per_run": {
+          "baseline": "plain_baseline",
+          "deltas": [
+            2,
+            0,
+            1,
+            2,
+            2,
+            1,
+            1,
+            2,
+            0,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 8,
+          "p_two_sided": 0.0078125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 8
+        },
+        "per_task": {
+          "baseline": "plain_baseline",
+          "deltas": [
+            3,
+            3,
+            1,
+            1,
+            8,
+            -2
+          ],
+          "losses": 1,
+          "n": 6,
+          "non_ties": 6,
+          "p_two_sided": 0.21875,
+          "ties": 0,
+          "treatment": "pi_repair",
+          "wins": 5
+        }
+      },
+      "matched_cumulative_tokens": {
+        "available": true,
+        "budget_max": 1423,
+        "budget_mean": 611.0833,
+        "budget_min": 150,
+        "observations": 60,
+        "per_run": {
+          "baseline": "plain_baseline",
+          "deltas": [
+            4,
+            1,
+            2,
+            4,
+            3,
+            2,
+            4,
+            3,
+            2,
+            5
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 10,
+          "p_two_sided": 0.001953125,
+          "ties": 0,
+          "treatment": "pi_repair",
+          "wins": 10
+        },
+        "per_task": {
+          "baseline": "plain_baseline",
+          "deltas": [
+            3,
+            3,
+            2,
+            10,
+            10,
+            2
+          ],
+          "losses": 0,
+          "n": 6,
+          "non_ties": 6,
+          "p_two_sided": 0.03125,
+          "ties": 0,
+          "treatment": "pi_repair",
+          "wins": 6
+        },
+        "scope": "live_discriminating_headroom_tasks"
+      }
+    }
+  },
+  "confirm": false,
+  "confirm_scope": "P1-P5_STATISTICAL_GATES_ONLY",
+  "decoy_vs_bestN": {
+    "per_run": {
+      "baseline": "bestN",
+      "deltas": [
+        0,
+        -1,
+        -1,
+        0,
+        -1,
+        -1,
+        0,
+        0,
+        -1,
+        -1
+      ],
+      "losses": 6,
+      "n": 10,
+      "non_ties": 6,
+      "p_two_sided": 0.03125,
+      "ties": 4,
+      "treatment": "pi_decoy",
+      "wins": 0
+    },
+    "tost": {
+      "alpha": 0.05,
+      "degrees_of_freedom": 9,
+      "equivalent": true,
+      "margin": 1.0,
+      "mean_delta": -0.6,
+      "method": "paired-student-t-tost",
+      "n": 10,
+      "p_lower": 0.01839375,
+      "p_upper": 2.12e-06,
+      "small_n_caveat": true,
+      "standard_error": 0.163299,
+      "status": "PASS"
+    }
+  },
+  "endpoint_class": "openai-compatible",
+  "endpoint_fingerprint": "5bf3f9f9847cc9a588b0d848efd7a51890ae725cc3cd363b3f4e3776c800f0ca",
+  "external_gates": {
+    "B1_implementation_bridge": {
+      "evidence_contract": {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/tests/test_diagnostic_repair_harness.py",
+        "pytest_nodeid": "engine/efficacy/tests/test_diagnostic_repair_harness.py::test_legacy_and_pi_repair_have_equivalent_generation_and_oracle_traces",
+        "relative_path": "engine/efficacy/tests/test_diagnostic_repair_harness.py",
+        "sha256": "1381440af1ea50af480ce0478e369610e8e175e93039b1acecf54477c69653f3"
+      },
+      "note": "This analyzer computes P1-P5 only and does not infer pytest state.",
+      "required_for_final_claim": true,
+      "status": "EXTERNAL_REQUIRED"
+    }
+  },
+  "final_claim_confirm": null,
+  "gates": {
+    "P1": {
+      "live_task_count": 6,
+      "per_run": {
+        "baseline": "bestN",
+        "deltas": [
+          1,
+          -1,
+          0,
+          1,
+          0,
+          1,
+          1,
+          0,
+          0,
+          2
+        ],
+        "losses": 1,
+        "n": 10,
+        "non_ties": 6,
+        "p_two_sided": 0.21875,
+        "ties": 4,
+        "treatment": "pi_repair",
+        "wins": 5
+      },
+      "per_task": {
+        "baseline": "bestN",
+        "deltas": [
+          3,
+          3,
+          2,
+          0,
+          0,
+          -3
+        ],
+        "losses": 1,
+        "n": 6,
+        "non_ties": 4,
+        "p_two_sided": 0.625,
+        "ties": 2,
+        "treatment": "pi_repair",
+        "wins": 3
+      },
+      "reasons": [
+        "P1 requires >=6 non-ties per-run and per-task"
+      ],
+      "status": "ABSENT"
+    },
+    "P2": {
+      "decoy_vs_bestN_tost": {
+        "alpha": 0.05,
+        "degrees_of_freedom": 9,
+        "equivalent": true,
+        "margin": 1.0,
+        "mean_delta": -0.6,
+        "method": "paired-student-t-tost",
+        "n": 10,
+        "p_lower": 0.01839375,
+        "p_upper": 2.12e-06,
+        "small_n_caveat": true,
+        "standard_error": 0.163299,
+        "status": "PASS"
+      },
+      "pi_vs_decoy": {
+        "per_run": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            1,
+            0,
+            1,
+            1,
+            1,
+            2,
+            1,
+            0,
+            1,
+            3
+          ],
+          "losses": 0,
+          "n": 10,
+          "non_ties": 8,
+          "p_two_sided": 0.0078125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 8
+        },
+        "per_task": {
+          "baseline": "pi_decoy",
+          "deltas": [
+            3,
+            3,
+            2,
+            0,
+            0,
+            3
+          ],
+          "losses": 0,
+          "n": 6,
+          "non_ties": 4,
+          "p_two_sided": 0.125,
+          "ties": 2,
+          "treatment": "pi_repair",
+          "wins": 4
+        }
+      },
+      "reasons": [
+        "P2 requires >=6 non-ties per-run and per-task"
+      ],
+      "status": "ABSENT"
+    },
+    "P3": {
+      "per_run": {
+        "baseline": "plain_baseline",
+        "deltas": [
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          2,
+          0,
+          3
+        ],
+        "losses": 0,
+        "n": 10,
+        "non_ties": 8,
+        "p_two_sided": 0.0078125,
+        "ties": 2,
+        "treatment": "pi_repair",
+        "wins": 8
+      },
+      "per_task": {
+        "baseline": "plain_baseline",
+        "deltas": [
+          3,
+          3,
+          1,
+          1,
+          8,
+          -2
+        ],
+        "losses": 1,
+        "n": 6,
+        "non_ties": 6,
+        "p_two_sided": 0.21875,
+        "ties": 0,
+        "treatment": "pi_repair",
+        "wins": 5
+      },
+      "reasons": [
+        "pi_repair must beat plain_baseline at p<alpha per-run and per-task"
+      ],
+      "status": "FAIL"
+    },
+    "P4": {
+      "matched_cumulative_tokens": {
+        "bestN": {
+          "available": true,
+          "budget_max": 711,
+          "budget_mean": 430.0,
+          "budget_min": 150,
+          "observations": 60,
+          "per_run": {
+            "baseline": "bestN",
+            "deltas": [
+              0,
+              -1,
+              -1,
+              0,
+              0,
+              1,
+              1,
+              0,
+              -1,
+              0
+            ],
+            "losses": 3,
+            "n": 10,
+            "non_ties": 5,
+            "p_two_sided": 1.0,
+            "ties": 5,
+            "treatment": "pi_repair",
+            "wins": 2
+          },
+          "per_task": {
+            "baseline": "bestN",
+            "deltas": [
+              0,
+              0,
+              2,
+              0,
+              -1,
+              -2
+            ],
+            "losses": 2,
+            "n": 6,
+            "non_ties": 3,
+            "p_two_sided": 1.0,
+            "ties": 3,
+            "treatment": "pi_repair",
+            "wins": 1
+          },
+          "scope": "live_discriminating_headroom_tasks"
+        },
+        "pi_decoy": {
+          "available": true,
+          "budget_max": 1423,
+          "budget_mean": 637.8333,
+          "budget_min": 150,
+          "observations": 60,
+          "per_run": {
+            "baseline": "pi_decoy",
+            "deltas": [
+              1,
+              0,
+              1,
+              1,
+              0,
+              2,
+              1,
+              0,
+              1,
+              3
+            ],
+            "losses": 0,
+            "n": 10,
+            "non_ties": 7,
+            "p_two_sided": 0.015625,
+            "ties": 3,
+            "treatment": "pi_repair",
+            "wins": 7
+          },
+          "per_task": {
+            "baseline": "pi_decoy",
+            "deltas": [
+              3,
+              3,
+              2,
+              0,
+              -1,
+              3
+            ],
+            "losses": 1,
+            "n": 6,
+            "non_ties": 5,
+            "p_two_sided": 0.375,
+            "ties": 1,
+            "treatment": "pi_repair",
+            "wins": 4
+          },
+          "scope": "live_discriminating_headroom_tasks"
+        },
+        "plain_baseline": {
+          "available": true,
+          "budget_max": 1423,
+          "budget_mean": 611.0833,
+          "budget_min": 150,
+          "observations": 60,
+          "per_run": {
+            "baseline": "plain_baseline",
+            "deltas": [
+              4,
+              1,
+              2,
+              4,
+              3,
+              2,
+              4,
+              3,
+              2,
+              5
+            ],
+            "losses": 0,
+            "n": 10,
+            "non_ties": 10,
+            "p_two_sided": 0.001953125,
+            "ties": 0,
+            "treatment": "pi_repair",
+            "wins": 10
+          },
+          "per_task": {
+            "baseline": "plain_baseline",
+            "deltas": [
+              3,
+              3,
+              2,
+              10,
+              10,
+              2
+            ],
+            "losses": 0,
+            "n": 6,
+            "non_ties": 6,
+            "p_two_sided": 0.03125,
+            "ties": 0,
+            "treatment": "pi_repair",
+            "wins": 6
+          },
+          "scope": "live_discriminating_headroom_tasks"
+        }
+      },
+      "raw_ratios": {
+        "bestN": {
+          "model_calls": 0.95092,
+          "oracle_calls": 0.95092,
+          "total_tokens": 1.486902
+        },
+        "legacy_repair": {
+          "model_calls": 1.0,
+          "oracle_calls": 1.0,
+          "total_tokens": 1.003546
+        },
+        "pi_decoy": {
+          "model_calls": 0.91716,
+          "oracle_calls": 0.91716,
+          "total_tokens": 0.891157
+        },
+        "plain_baseline": {
+          "model_calls": 0.763547,
+          "oracle_calls": 0.763547,
+          "total_tokens": 0.622249
+        }
+      },
+      "reasons": [
+        "matched-token controls require >=6 non-ties per-run and per-task"
+      ],
+      "status": "ABSENT"
+    },
+    "P5": {
+      "artifact_hashes": {
+        "agent_client": "d03773f2e0caa8137aa3164b1d463b6c1edcfd7e55e0f4371d2aaf42499de6f5",
+        "agent_runtime": "3b1b593a8ab1b8753183f3c9351a1afe07dd710b584b4a9fbb23479fb7ab5826",
+        "analyzer": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+        "diagnostic_oracle": "e9fff40235d4cbee8b89eaffb8091541cf68db48a21c1d84d170d3d930e15a63",
+        "diagnostic_repair": "7e7fcb016e75753ddb1a898090df1af7b330388a3fdd822853b653b9a530d3d0",
+        "fsm": "d574c25772c8df4fd980a0a34a450b824392a82f22d2741fd5b007fd75eda0ee",
+        "fsm_traces": "90650f6b91727c3ae2fd6ec9b97084e48b8ebdadf8aea91abfe88af3bd205963",
+        "lean_headroom_run": "112267121fa45ab2319f1cff73c172115f10b96e03accb742476f3f182932617",
+        "lean_oracle": "803b025443c86a926b25824beec6a31830df9e0d057f9ed32e56ae8c7923eb5d",
+        "lean_sandbox_runner_macos": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+        "lean_tasks": "4a73146e0e300439acf02a96390ca1303f25cd1b671d9ad3cb0462998504c2df",
+        "lean_toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+        "loop_contract": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+        "manifest": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+        "preregistration_v3": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+        "runner": "0a178752d55f775ac72dd4ac8bb6128c44969d15ca2bd6b0428e2b99937412b4"
+      },
+      "git": {
+        "commit": "30504b06d1c0205649ca7c4494b25a1c19741dea",
+        "dirty": false,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "verification": {
+          "checked": {
+            "engine/agents/client.py": "d03773f2e0caa8137aa3164b1d463b6c1edcfd7e55e0f4371d2aaf42499de6f5",
+            "engine/cli/runtime.py": "3b1b593a8ab1b8753183f3c9351a1afe07dd710b584b4a9fbb23479fb7ab5826",
+            "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+            "engine/efficacy/analyze_diagnostic_repair_harness.py": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+            "engine/efficacy/diagnostic_repair_harness.py": "0a178752d55f775ac72dd4ac8bb6128c44969d15ca2bd6b0428e2b99937412b4",
+            "engine/efficacy/diagnostic_repair_harness_contract.json": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+            "engine/efficacy/diagnostic_repair_harness_fsm.json": "d574c25772c8df4fd980a0a34a450b824392a82f22d2741fd5b007fd75eda0ee",
+            "engine/efficacy/diagnostic_repair_harness_fsm_traces.json": "90650f6b91727c3ae2fd6ec9b97084e48b8ebdadf8aea91abfe88af3bd205963",
+            "engine/efficacy/diagnostic_repair_harness_manifest.v3.json": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+            "engine/efficacy/lean_headroom_run.py": "112267121fa45ab2319f1cff73c172115f10b96e03accb742476f3f182932617",
+            "engine/efficacy/lean_oracle.py": "803b025443c86a926b25824beec6a31830df9e0d057f9ed32e56ae8c7923eb5d",
+            "engine/efficacy/lean_sandbox_runner_macos.py": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+            "engine/efficacy/lean_tasks.py": "4a73146e0e300439acf02a96390ca1303f25cd1b671d9ad3cb0462998504c2df",
+            "engine/efficacy/tests/test_diagnostic_repair_harness.py": "1381440af1ea50af480ce0478e369610e8e175e93039b1acecf54477c69653f3",
+            "engine/legion/diagnostic_repair.py": "7e7fcb016e75753ddb1a898090df1af7b330388a3fdd822853b653b9a530d3d0",
+            "engine/naesengmoon/diagnostic_oracle.py": "e9fff40235d4cbee8b89eaffb8091541cf68db48a21c1d84d170d3d930e15a63",
+            "git_commit_timestamp_utc": "2026-07-16T14:38:34+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl": "2026-07-16T14:47:09.761771+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144709.761962Z-5a12b39c-seed-10.jsonl": "2026-07-16T14:52:18.333893+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145218.334062Z-cb489ed3-seed-20.jsonl": "2026-07-16T14:57:37.033157+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145737.033324Z-76200606-seed-30.jsonl": "2026-07-16T15:02:16.357373+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150216.357512Z-c387db69-seed-40.jsonl": "2026-07-16T15:07:37.368314+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150737.368475Z-1ab2c1d7-seed-50.jsonl": "2026-07-16T15:12:37.119469+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151237.119615Z-b87feae4-seed-60.jsonl": "2026-07-16T15:17:40.030502+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151740.030655Z-bd3deb94-seed-70.jsonl": "2026-07-16T15:22:37.178769+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152237.178966Z-478cc391-seed-80.jsonl": "2026-07-16T15:28:00.262352+00:00",
+            "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152800.262495Z-2f3bbd88-seed-90.jsonl": "2026-07-16T15:32:58.188035+00:00",
+            "lean/lean-toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+            "run_timestamp_utc[0]": "2026-07-16T14:42:20.052359+00:00",
+            "run_timestamp_utc[1]": "2026-07-16T14:47:09.762032+00:00",
+            "run_timestamp_utc[2]": "2026-07-16T14:52:18.334140+00:00",
+            "run_timestamp_utc[3]": "2026-07-16T14:57:37.033386+00:00",
+            "run_timestamp_utc[4]": "2026-07-16T15:02:16.357565+00:00",
+            "run_timestamp_utc[5]": "2026-07-16T15:07:37.368536+00:00",
+            "run_timestamp_utc[6]": "2026-07-16T15:12:37.119675+00:00",
+            "run_timestamp_utc[7]": "2026-07-16T15:17:40.030708+00:00",
+            "run_timestamp_utc[8]": "2026-07-16T15:22:37.179030+00:00",
+            "run_timestamp_utc[9]": "2026-07-16T15:28:00.262548+00:00"
+          },
+          "errors": [],
+          "ok": true
+        }
+      },
+      "manifest": {
+        "artifact_hashes": {
+          "agent_client": "d03773f2e0caa8137aa3164b1d463b6c1edcfd7e55e0f4371d2aaf42499de6f5",
+          "agent_runtime": "3b1b593a8ab1b8753183f3c9351a1afe07dd710b584b4a9fbb23479fb7ab5826",
+          "analyzer": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+          "diagnostic_oracle": "e9fff40235d4cbee8b89eaffb8091541cf68db48a21c1d84d170d3d930e15a63",
+          "diagnostic_repair": "7e7fcb016e75753ddb1a898090df1af7b330388a3fdd822853b653b9a530d3d0",
+          "fsm": "d574c25772c8df4fd980a0a34a450b824392a82f22d2741fd5b007fd75eda0ee",
+          "fsm_traces": "90650f6b91727c3ae2fd6ec9b97084e48b8ebdadf8aea91abfe88af3bd205963",
+          "lean_headroom_run": "112267121fa45ab2319f1cff73c172115f10b96e03accb742476f3f182932617",
+          "lean_oracle": "803b025443c86a926b25824beec6a31830df9e0d057f9ed32e56ae8c7923eb5d",
+          "lean_sandbox_runner_macos": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+          "lean_tasks": "4a73146e0e300439acf02a96390ca1303f25cd1b671d9ad3cb0462998504c2df",
+          "lean_toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+          "loop_contract": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+          "runner": "0a178752d55f775ac72dd4ac8bb6128c44969d15ca2bd6b0428e2b99937412b4"
+        },
+        "artifact_paths": {
+          "agent_client": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/agents/client.py",
+          "agent_runtime": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/cli/runtime.py",
+          "analyzer": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/analyze_diagnostic_repair_harness.py",
+          "diagnostic_oracle": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/naesengmoon/diagnostic_oracle.py",
+          "diagnostic_repair": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/legion/diagnostic_repair.py",
+          "fsm": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_fsm.json",
+          "fsm_traces": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_fsm_traces.json",
+          "lean_headroom_run": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_headroom_run.py",
+          "lean_oracle": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_oracle.py",
+          "lean_sandbox_runner_macos": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_sandbox_runner_macos.py",
+          "lean_tasks": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_tasks.py",
+          "lean_toolchain": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/lean/lean-toolchain",
+          "loop_contract": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_contract.json",
+          "runner": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py"
+        },
+        "artifact_relative_paths": {
+          "agent_client": "engine/agents/client.py",
+          "agent_runtime": "engine/cli/runtime.py",
+          "analyzer": "engine/efficacy/analyze_diagnostic_repair_harness.py",
+          "diagnostic_oracle": "engine/naesengmoon/diagnostic_oracle.py",
+          "diagnostic_repair": "engine/legion/diagnostic_repair.py",
+          "fsm": "engine/efficacy/diagnostic_repair_harness_fsm.json",
+          "fsm_traces": "engine/efficacy/diagnostic_repair_harness_fsm_traces.json",
+          "lean_headroom_run": "engine/efficacy/lean_headroom_run.py",
+          "lean_oracle": "engine/efficacy/lean_oracle.py",
+          "lean_sandbox_runner_macos": "engine/efficacy/lean_sandbox_runner_macos.py",
+          "lean_tasks": "engine/efficacy/lean_tasks.py",
+          "lean_toolchain": "lean/lean-toolchain",
+          "loop_contract": "engine/efficacy/diagnostic_repair_harness_contract.json",
+          "runner": "engine/efficacy/diagnostic_repair_harness.py"
+        },
+        "bridge_conformance": {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/tests/test_diagnostic_repair_harness.py",
+          "pytest_nodeid": "engine/efficacy/tests/test_diagnostic_repair_harness.py::test_legacy_and_pi_repair_have_equivalent_generation_and_oracle_traces",
+          "relative_path": "engine/efficacy/tests/test_diagnostic_repair_harness.py",
+          "sha256": "1381440af1ea50af480ce0478e369610e8e175e93039b1acecf54477c69653f3"
+        },
+        "harness_version": "2.0.1",
+        "manifest_relative_path": "engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
+        "preregistration_v3_path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md",
+        "preregistration_v3_relative_path": "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md",
+        "preregistration_v3_sha256": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+        "repo_root": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716",
+        "run_design": {
+          "backend": "frontier:qwen2.5:32b-instruct",
+          "endpoint_class": "openai-compatible",
+          "k": 4,
+          "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+          "lean_toolchain": "leanprover/lean4:v4.27.0",
+          "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+          "max_tokens_per_attempt": 3072,
+          "model_id": "qwen2.5:32b-instruct",
+          "oracle_isolation": "external-sandbox-runner/v2",
+          "replications": 10,
+          "seed_offsets": [
+            0,
+            10,
+            20,
+            30,
+            40,
+            50,
+            60,
+            70,
+            80,
+            90
+          ],
+          "task_band": [
+            {
+              "difficulty": "easy",
+              "name": "zero_add",
+              "task_sha256": "af064742cc84aca5dece8ac4ae603a201084d5ef4232b3d5a44bb89ed4d7163f"
+            },
+            {
+              "difficulty": "easy",
+              "name": "app_nil",
+              "task_sha256": "dd885dff9681cd58b87a3f02b23a281348fe0836753ce4d9b8fc240c4611b08b"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "gauss",
+              "task_sha256": "f4ac0ef126649b4688d7f421ed23a4d4f8b03acc1c35980c1dd2223d1cfd60b8"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "double",
+              "task_sha256": "4c49a64949a519163f9b6752f8767934b99512121640c894e94a9260f5748147"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "cnt_len",
+              "task_sha256": "6bd81cdc21a687d25b10038ffa7ad7c591463cdfc3265ddf65d3b011049fdc5a"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "sumto_mono",
+              "task_sha256": "608013f68da858994983e852dfc9f3ab947e3c54e3a6ed1642f44d1f55492162"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "sumlist_app",
+              "task_sha256": "3b362383f2c07c04d719711c0e8c00834c1de7f7ce35bf71645326f0f7a293f2"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "addone_len",
+              "task_sha256": "a04ef27f60e9702656828356783d300f144188f539867fc2c49acbf40775ebc3"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "repl_len",
+              "task_sha256": "32f7e3e323c04bea9b5bb4e469a3a76881e3001b3a37d103162672d1918cbd8c"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "pow2_pos",
+              "task_sha256": "4a1bc109a3946fc59f93a6eb1d3e8a2ef79056f78ed5e5bc91e7a2ba814050b3"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "le_sumto",
+              "task_sha256": "d50fb479f32d7b425191c183024601d1e2652be7b68f8ac77dcbc07ec4463103"
+            },
+            {
+              "difficulty": "headroom",
+              "name": "dbl_ge",
+              "task_sha256": "baedcda804ddefb5468f85d0b9e3e2b407e64deedf4b528a93805257ec371843"
+            }
+          ],
+          "temperature": 0.8
+        },
+        "sha256": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+        "thresholds": {
+          "alpha": 0.05,
+          "min_live_tasks": 6,
+          "parity_high": 1.25,
+          "parity_low": 0.8,
+          "top_task_concentration": 0.5,
+          "tost_margin": 1.0
+        }
+      },
+      "oracle_replay": {
+        "attempt_count": 1821,
+        "errors": [],
+        "identity": {
+          "expected": {
+            "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+            "lean_toolchain": "leanprover/lean4:v4.27.0",
+            "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+            "runner_sha256": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b"
+          },
+          "observed": {
+            "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+            "lean_toolchain": "leanprover/lean4:v4.27.0",
+            "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+            "runner_sha256": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b"
+          }
+        },
+        "mismatch_count": 0,
+        "mismatches": [],
+        "receipt_sha256": "a128fb4c85b7854e122549510d4309db61f0d613d9b6168ffcc4440c9dcadb62",
+        "replayed_count": 1821,
+        "setup_count": 120,
+        "setup_replayed_count": 120,
+        "status": "PASS"
+      },
+      "payload_mode": "full",
+      "provenance_mismatches": {},
+      "raw_jsonl_sha256": [
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl",
+          "sha256": "e51023f9c3ec6a3a2841665655d10b06b3b0ca0f53d826784e7aa5cfab90e8e9"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144709.761962Z-5a12b39c-seed-10.jsonl",
+          "sha256": "f9bc18b114a5207083d5f26f9553954b92ddc7ba16c3d200e5438e50f22bb6f7"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145218.334062Z-cb489ed3-seed-20.jsonl",
+          "sha256": "e77701b3e1d47b52e2367ab3c10e8ae0d225f33ddf78faff71706a366472d551"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145737.033324Z-76200606-seed-30.jsonl",
+          "sha256": "852101bba0daade43e4920203044fecb64409f968c182e7491b30d879807b712"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150216.357512Z-c387db69-seed-40.jsonl",
+          "sha256": "8c23f6263267f4a525d986d1b8cd1031f7c1395e7cf8ec7b1caa9eaebbc0875f"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150737.368475Z-1ab2c1d7-seed-50.jsonl",
+          "sha256": "43f2918d3075efe1f179463fa68526ef6358e46608de8e7ad24a81c2ac8683ed"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151237.119615Z-b87feae4-seed-60.jsonl",
+          "sha256": "c083e50faa578eec79960f9ba09584dedc0a0cc234340eea01e69cae2eaa48fb"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151740.030655Z-bd3deb94-seed-70.jsonl",
+          "sha256": "8999dcc1a45dcbc4522083b35aa67fefc8479bcdf0c8107165bfc236511e70b0"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152237.178966Z-478cc391-seed-80.jsonl",
+          "sha256": "e1ca44e5cc1147d812a8f3cb35384dbcbc8d5e7431a8183b3404a7841eef465d"
+        },
+        {
+          "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152800.262495Z-2f3bbd88-seed-90.jsonl",
+          "sha256": "e6f9bda2f6e08857cdbf383be83709287850ecf0d99a6205ad9169a73deadb36"
+        }
+      ],
+      "raw_payload_complete": true,
+      "reasons": [],
+      "run_design_mismatches": {},
+      "signal_concentrated": false,
+      "status": "PASS",
+      "threshold_override": false,
+      "threshold_overrides": {},
+      "top_task_delta_fraction": 0.375
+    }
+  },
+  "harness_version": "2.0.1",
+  "headroom_task_count": 10,
+  "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+  "lean_toolchain": "leanprover/lean4:v4.27.0",
+  "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+  "live_discriminating_task_count": 6,
+  "live_discriminating_tasks": [
+    "dbl_ge",
+    "double",
+    "sumlist_app",
+    "repl_len",
+    "sumto_mono",
+    "addone_len"
+  ],
+  "max_tokens_per_attempt": 3072,
+  "model_id": "qwen2.5:32b-instruct",
+  "oracle_isolation": "external-sandbox-runner/v2",
+  "payload_mode": "full",
+  "provenance": {
+    "artifact_hashes": {
+      "agent_client": "d03773f2e0caa8137aa3164b1d463b6c1edcfd7e55e0f4371d2aaf42499de6f5",
+      "agent_runtime": "3b1b593a8ab1b8753183f3c9351a1afe07dd710b584b4a9fbb23479fb7ab5826",
+      "analyzer": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+      "diagnostic_oracle": "e9fff40235d4cbee8b89eaffb8091541cf68db48a21c1d84d170d3d930e15a63",
+      "diagnostic_repair": "7e7fcb016e75753ddb1a898090df1af7b330388a3fdd822853b653b9a530d3d0",
+      "fsm": "d574c25772c8df4fd980a0a34a450b824392a82f22d2741fd5b007fd75eda0ee",
+      "fsm_traces": "90650f6b91727c3ae2fd6ec9b97084e48b8ebdadf8aea91abfe88af3bd205963",
+      "lean_headroom_run": "112267121fa45ab2319f1cff73c172115f10b96e03accb742476f3f182932617",
+      "lean_oracle": "803b025443c86a926b25824beec6a31830df9e0d057f9ed32e56ae8c7923eb5d",
+      "lean_sandbox_runner_macos": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+      "lean_tasks": "4a73146e0e300439acf02a96390ca1303f25cd1b671d9ad3cb0462998504c2df",
+      "lean_toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+      "loop_contract": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+      "manifest": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+      "preregistration_v3": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+      "runner": "0a178752d55f775ac72dd4ac8bb6128c44969d15ca2bd6b0428e2b99937412b4"
+    },
+    "git": {
+      "commit": "30504b06d1c0205649ca7c4494b25a1c19741dea",
+      "dirty": false,
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification": {
+        "checked": {
+          "engine/agents/client.py": "d03773f2e0caa8137aa3164b1d463b6c1edcfd7e55e0f4371d2aaf42499de6f5",
+          "engine/cli/runtime.py": "3b1b593a8ab1b8753183f3c9351a1afe07dd710b584b4a9fbb23479fb7ab5826",
+          "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+          "engine/efficacy/analyze_diagnostic_repair_harness.py": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+          "engine/efficacy/diagnostic_repair_harness.py": "0a178752d55f775ac72dd4ac8bb6128c44969d15ca2bd6b0428e2b99937412b4",
+          "engine/efficacy/diagnostic_repair_harness_contract.json": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+          "engine/efficacy/diagnostic_repair_harness_fsm.json": "d574c25772c8df4fd980a0a34a450b824392a82f22d2741fd5b007fd75eda0ee",
+          "engine/efficacy/diagnostic_repair_harness_fsm_traces.json": "90650f6b91727c3ae2fd6ec9b97084e48b8ebdadf8aea91abfe88af3bd205963",
+          "engine/efficacy/diagnostic_repair_harness_manifest.v3.json": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+          "engine/efficacy/lean_headroom_run.py": "112267121fa45ab2319f1cff73c172115f10b96e03accb742476f3f182932617",
+          "engine/efficacy/lean_oracle.py": "803b025443c86a926b25824beec6a31830df9e0d057f9ed32e56ae8c7923eb5d",
+          "engine/efficacy/lean_sandbox_runner_macos.py": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+          "engine/efficacy/lean_tasks.py": "4a73146e0e300439acf02a96390ca1303f25cd1b671d9ad3cb0462998504c2df",
+          "engine/efficacy/tests/test_diagnostic_repair_harness.py": "1381440af1ea50af480ce0478e369610e8e175e93039b1acecf54477c69653f3",
+          "engine/legion/diagnostic_repair.py": "7e7fcb016e75753ddb1a898090df1af7b330388a3fdd822853b653b9a530d3d0",
+          "engine/naesengmoon/diagnostic_oracle.py": "e9fff40235d4cbee8b89eaffb8091541cf68db48a21c1d84d170d3d930e15a63",
+          "git_commit_timestamp_utc": "2026-07-16T14:38:34+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl": "2026-07-16T14:47:09.761771+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144709.761962Z-5a12b39c-seed-10.jsonl": "2026-07-16T14:52:18.333893+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145218.334062Z-cb489ed3-seed-20.jsonl": "2026-07-16T14:57:37.033157+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145737.033324Z-76200606-seed-30.jsonl": "2026-07-16T15:02:16.357373+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150216.357512Z-c387db69-seed-40.jsonl": "2026-07-16T15:07:37.368314+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150737.368475Z-1ab2c1d7-seed-50.jsonl": "2026-07-16T15:12:37.119469+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151237.119615Z-b87feae4-seed-60.jsonl": "2026-07-16T15:17:40.030502+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151740.030655Z-bd3deb94-seed-70.jsonl": "2026-07-16T15:22:37.178769+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152237.178966Z-478cc391-seed-80.jsonl": "2026-07-16T15:28:00.262352+00:00",
+          "jsonl_mtime_utc:/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152800.262495Z-2f3bbd88-seed-90.jsonl": "2026-07-16T15:32:58.188035+00:00",
+          "lean/lean-toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+          "run_timestamp_utc[0]": "2026-07-16T14:42:20.052359+00:00",
+          "run_timestamp_utc[1]": "2026-07-16T14:47:09.762032+00:00",
+          "run_timestamp_utc[2]": "2026-07-16T14:52:18.334140+00:00",
+          "run_timestamp_utc[3]": "2026-07-16T14:57:37.033386+00:00",
+          "run_timestamp_utc[4]": "2026-07-16T15:02:16.357565+00:00",
+          "run_timestamp_utc[5]": "2026-07-16T15:07:37.368536+00:00",
+          "run_timestamp_utc[6]": "2026-07-16T15:12:37.119675+00:00",
+          "run_timestamp_utc[7]": "2026-07-16T15:17:40.030708+00:00",
+          "run_timestamp_utc[8]": "2026-07-16T15:22:37.179030+00:00",
+          "run_timestamp_utc[9]": "2026-07-16T15:28:00.262548+00:00"
+        },
+        "errors": [],
+        "ok": true
+      }
+    },
+    "manifest": {
+      "artifact_hashes": {
+        "agent_client": "d03773f2e0caa8137aa3164b1d463b6c1edcfd7e55e0f4371d2aaf42499de6f5",
+        "agent_runtime": "3b1b593a8ab1b8753183f3c9351a1afe07dd710b584b4a9fbb23479fb7ab5826",
+        "analyzer": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+        "diagnostic_oracle": "e9fff40235d4cbee8b89eaffb8091541cf68db48a21c1d84d170d3d930e15a63",
+        "diagnostic_repair": "7e7fcb016e75753ddb1a898090df1af7b330388a3fdd822853b653b9a530d3d0",
+        "fsm": "d574c25772c8df4fd980a0a34a450b824392a82f22d2741fd5b007fd75eda0ee",
+        "fsm_traces": "90650f6b91727c3ae2fd6ec9b97084e48b8ebdadf8aea91abfe88af3bd205963",
+        "lean_headroom_run": "112267121fa45ab2319f1cff73c172115f10b96e03accb742476f3f182932617",
+        "lean_oracle": "803b025443c86a926b25824beec6a31830df9e0d057f9ed32e56ae8c7923eb5d",
+        "lean_sandbox_runner_macos": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+        "lean_tasks": "4a73146e0e300439acf02a96390ca1303f25cd1b671d9ad3cb0462998504c2df",
+        "lean_toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+        "loop_contract": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+        "runner": "0a178752d55f775ac72dd4ac8bb6128c44969d15ca2bd6b0428e2b99937412b4"
+      },
+      "artifact_paths": {
+        "agent_client": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/agents/client.py",
+        "agent_runtime": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/cli/runtime.py",
+        "analyzer": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/analyze_diagnostic_repair_harness.py",
+        "diagnostic_oracle": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/naesengmoon/diagnostic_oracle.py",
+        "diagnostic_repair": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/legion/diagnostic_repair.py",
+        "fsm": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_fsm.json",
+        "fsm_traces": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_fsm_traces.json",
+        "lean_headroom_run": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_headroom_run.py",
+        "lean_oracle": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_oracle.py",
+        "lean_sandbox_runner_macos": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_sandbox_runner_macos.py",
+        "lean_tasks": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_tasks.py",
+        "lean_toolchain": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/lean/lean-toolchain",
+        "loop_contract": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_contract.json",
+        "runner": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py"
+      },
+      "artifact_relative_paths": {
+        "agent_client": "engine/agents/client.py",
+        "agent_runtime": "engine/cli/runtime.py",
+        "analyzer": "engine/efficacy/analyze_diagnostic_repair_harness.py",
+        "diagnostic_oracle": "engine/naesengmoon/diagnostic_oracle.py",
+        "diagnostic_repair": "engine/legion/diagnostic_repair.py",
+        "fsm": "engine/efficacy/diagnostic_repair_harness_fsm.json",
+        "fsm_traces": "engine/efficacy/diagnostic_repair_harness_fsm_traces.json",
+        "lean_headroom_run": "engine/efficacy/lean_headroom_run.py",
+        "lean_oracle": "engine/efficacy/lean_oracle.py",
+        "lean_sandbox_runner_macos": "engine/efficacy/lean_sandbox_runner_macos.py",
+        "lean_tasks": "engine/efficacy/lean_tasks.py",
+        "lean_toolchain": "lean/lean-toolchain",
+        "loop_contract": "engine/efficacy/diagnostic_repair_harness_contract.json",
+        "runner": "engine/efficacy/diagnostic_repair_harness.py"
+      },
+      "bridge_conformance": {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/tests/test_diagnostic_repair_harness.py",
+        "pytest_nodeid": "engine/efficacy/tests/test_diagnostic_repair_harness.py::test_legacy_and_pi_repair_have_equivalent_generation_and_oracle_traces",
+        "relative_path": "engine/efficacy/tests/test_diagnostic_repair_harness.py",
+        "sha256": "1381440af1ea50af480ce0478e369610e8e175e93039b1acecf54477c69653f3"
+      },
+      "harness_version": "2.0.1",
+      "manifest_relative_path": "engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
+      "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
+      "preregistration_v3_path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md",
+      "preregistration_v3_relative_path": "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md",
+      "preregistration_v3_sha256": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+      "repo_root": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716",
+      "run_design": {
+        "backend": "frontier:qwen2.5:32b-instruct",
+        "endpoint_class": "openai-compatible",
+        "k": 4,
+        "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+        "lean_toolchain": "leanprover/lean4:v4.27.0",
+        "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+        "max_tokens_per_attempt": 3072,
+        "model_id": "qwen2.5:32b-instruct",
+        "oracle_isolation": "external-sandbox-runner/v2",
+        "replications": 10,
+        "seed_offsets": [
+          0,
+          10,
+          20,
+          30,
+          40,
+          50,
+          60,
+          70,
+          80,
+          90
+        ],
+        "task_band": [
+          {
+            "difficulty": "easy",
+            "name": "zero_add",
+            "task_sha256": "af064742cc84aca5dece8ac4ae603a201084d5ef4232b3d5a44bb89ed4d7163f"
+          },
+          {
+            "difficulty": "easy",
+            "name": "app_nil",
+            "task_sha256": "dd885dff9681cd58b87a3f02b23a281348fe0836753ce4d9b8fc240c4611b08b"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "gauss",
+            "task_sha256": "f4ac0ef126649b4688d7f421ed23a4d4f8b03acc1c35980c1dd2223d1cfd60b8"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "double",
+            "task_sha256": "4c49a64949a519163f9b6752f8767934b99512121640c894e94a9260f5748147"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "cnt_len",
+            "task_sha256": "6bd81cdc21a687d25b10038ffa7ad7c591463cdfc3265ddf65d3b011049fdc5a"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "sumto_mono",
+            "task_sha256": "608013f68da858994983e852dfc9f3ab947e3c54e3a6ed1642f44d1f55492162"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "sumlist_app",
+            "task_sha256": "3b362383f2c07c04d719711c0e8c00834c1de7f7ce35bf71645326f0f7a293f2"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "addone_len",
+            "task_sha256": "a04ef27f60e9702656828356783d300f144188f539867fc2c49acbf40775ebc3"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "repl_len",
+            "task_sha256": "32f7e3e323c04bea9b5bb4e469a3a76881e3001b3a37d103162672d1918cbd8c"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "pow2_pos",
+            "task_sha256": "4a1bc109a3946fc59f93a6eb1d3e8a2ef79056f78ed5e5bc91e7a2ba814050b3"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "le_sumto",
+            "task_sha256": "d50fb479f32d7b425191c183024601d1e2652be7b68f8ac77dcbc07ec4463103"
+          },
+          {
+            "difficulty": "headroom",
+            "name": "dbl_ge",
+            "task_sha256": "baedcda804ddefb5468f85d0b9e3e2b407e64deedf4b528a93805257ec371843"
+          }
+        ],
+        "temperature": 0.8
+      },
+      "sha256": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+      "thresholds": {
+        "alpha": 0.05,
+        "min_live_tasks": 6,
+        "parity_high": 1.25,
+        "parity_low": 0.8,
+        "top_task_concentration": 0.5,
+        "tost_margin": 1.0
+      }
+    },
+    "oracle_replay": {
+      "attempt_count": 1821,
+      "errors": [],
+      "identity": {
+        "expected": {
+          "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+          "lean_toolchain": "leanprover/lean4:v4.27.0",
+          "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+          "runner_sha256": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b"
+        },
+        "observed": {
+          "lean_binary_sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+          "lean_toolchain": "leanprover/lean4:v4.27.0",
+          "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+          "runner_sha256": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b"
+        }
+      },
+      "mismatch_count": 0,
+      "mismatches": [],
+      "receipt_sha256": "a128fb4c85b7854e122549510d4309db61f0d613d9b6168ffcc4440c9dcadb62",
+      "replayed_count": 1821,
+      "setup_count": 120,
+      "setup_replayed_count": 120,
+      "status": "PASS"
+    },
+    "raw_jsonl_sha256": [
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl",
+        "sha256": "e51023f9c3ec6a3a2841665655d10b06b3b0ca0f53d826784e7aa5cfab90e8e9"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144709.761962Z-5a12b39c-seed-10.jsonl",
+        "sha256": "f9bc18b114a5207083d5f26f9553954b92ddc7ba16c3d200e5438e50f22bb6f7"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145218.334062Z-cb489ed3-seed-20.jsonl",
+        "sha256": "e77701b3e1d47b52e2367ab3c10e8ae0d225f33ddf78faff71706a366472d551"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T145737.033324Z-76200606-seed-30.jsonl",
+        "sha256": "852101bba0daade43e4920203044fecb64409f968c182e7491b30d879807b712"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150216.357512Z-c387db69-seed-40.jsonl",
+        "sha256": "8c23f6263267f4a525d986d1b8cd1031f7c1395e7cf8ec7b1caa9eaebbc0875f"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T150737.368475Z-1ab2c1d7-seed-50.jsonl",
+        "sha256": "43f2918d3075efe1f179463fa68526ef6358e46608de8e7ad24a81c2ac8683ed"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151237.119615Z-b87feae4-seed-60.jsonl",
+        "sha256": "c083e50faa578eec79960f9ba09584dedc0a0cc234340eea01e69cae2eaa48fb"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T151740.030655Z-bd3deb94-seed-70.jsonl",
+        "sha256": "8999dcc1a45dcbc4522083b35aa67fefc8479bcdf0c8107165bfc236511e70b0"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152237.178966Z-478cc391-seed-80.jsonl",
+        "sha256": "e1ca44e5cc1147d812a8f3cb35384dbcbc8d5e7431a8183b3404a7841eef465d"
+      },
+      {
+        "path": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T152800.262495Z-2f3bbd88-seed-90.jsonl",
+        "sha256": "e6f9bda2f6e08857cdbf383be83709287850ecf0d99a6205ad9169a73deadb36"
+      }
+    ]
+  },
+  "runs": 10,
+  "sandbox_runner_sha256": "9a70d14697bf7eee5b65b18fb871e3265ca0e81cd9e429fe1f34406e74d5df6b",
+  "schema": "pi-diagnostic-repair-harness/v2",
+  "seed_offsets": [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    60,
+    70,
+    80,
+    90
+  ],
+  "signal_concentrated": false,
+  "tasks": [
+    {
+      "counts": {
+        "bestN": 3,
+        "legacy_repair": 8,
+        "pi_decoy": 6,
+        "pi_repair": 9,
+        "plain_baseline": 10,
+        "single": 1
+      },
+      "delta_pi_repair_bestN": 6,
+      "difficulty": "easy",
+      "discriminating": true,
+      "live_discriminating": false,
+      "partial": true,
+      "runs": 10,
+      "task": "zero_add"
+    },
+    {
+      "counts": {
+        "bestN": 0,
+        "legacy_repair": 4,
+        "pi_decoy": 0,
+        "pi_repair": 3,
+        "plain_baseline": 0,
+        "single": 0
+      },
+      "delta_pi_repair_bestN": 3,
+      "difficulty": "headroom",
+      "discriminating": true,
+      "live_discriminating": true,
+      "partial": true,
+      "runs": 10,
+      "task": "dbl_ge"
+    },
+    {
+      "counts": {
+        "bestN": 0,
+        "legacy_repair": 3,
+        "pi_decoy": 0,
+        "pi_repair": 3,
+        "plain_baseline": 0,
+        "single": 0
+      },
+      "delta_pi_repair_bestN": 3,
+      "difficulty": "headroom",
+      "discriminating": true,
+      "live_discriminating": true,
+      "partial": true,
+      "runs": 10,
+      "task": "double"
+    },
+    {
+      "counts": {
+        "bestN": 0,
+        "legacy_repair": 2,
+        "pi_decoy": 0,
+        "pi_repair": 2,
+        "plain_baseline": 1,
+        "single": 0
+      },
+      "delta_pi_repair_bestN": 2,
+      "difficulty": "headroom",
+      "discriminating": true,
+      "live_discriminating": true,
+      "partial": true,
+      "runs": 10,
+      "task": "sumlist_app"
+    },
+    {
+      "counts": {
+        "bestN": 10,
+        "legacy_repair": 10,
+        "pi_decoy": 10,
+        "pi_repair": 10,
+        "plain_baseline": 10,
+        "single": 10
+      },
+      "delta_pi_repair_bestN": 0,
+      "difficulty": "headroom",
+      "discriminating": false,
+      "live_discriminating": false,
+      "partial": false,
+      "runs": 10,
+      "task": "cnt_len"
+    },
+    {
+      "counts": {
+        "bestN": 0,
+        "legacy_repair": 0,
+        "pi_decoy": 0,
+        "pi_repair": 0,
+        "plain_baseline": 0,
+        "single": 0
+      },
+      "delta_pi_repair_bestN": 0,
+      "difficulty": "headroom",
+      "discriminating": false,
+      "live_discriminating": false,
+      "partial": false,
+      "runs": 10,
+      "task": "gauss"
+    },
+    {
+      "counts": {
+        "bestN": 0,
+        "legacy_repair": 0,
+        "pi_decoy": 0,
+        "pi_repair": 0,
+        "plain_baseline": 0,
+        "single": 0
+      },
+      "delta_pi_repair_bestN": 0,
+      "difficulty": "headroom",
+      "discriminating": false,
+      "live_discriminating": false,
+      "partial": false,
+      "runs": 10,
+      "task": "le_sumto"
+    },
+    {
+      "counts": {
+        "bestN": 0,
+        "legacy_repair": 0,
+        "pi_decoy": 0,
+        "pi_repair": 0,
+        "plain_baseline": 0,
+        "single": 0
+      },
+      "delta_pi_repair_bestN": 0,
+      "difficulty": "headroom",
+      "discriminating": false,
+      "live_discriminating": false,
+      "partial": false,
+      "runs": 10,
+      "task": "pow2_pos"
+    },
+    {
+      "counts": {
+        "bestN": 10,
+        "legacy_repair": 10,
+        "pi_decoy": 10,
+        "pi_repair": 10,
+        "plain_baseline": 9,
+        "single": 10
+      },
+      "delta_pi_repair_bestN": 0,
+      "difficulty": "headroom",
+      "discriminating": true,
+      "live_discriminating": true,
+      "partial": true,
+      "runs": 10,
+      "task": "repl_len"
+    },
+    {
+      "counts": {
+        "bestN": 10,
+        "legacy_repair": 10,
+        "pi_decoy": 10,
+        "pi_repair": 10,
+        "plain_baseline": 2,
+        "single": 9
+      },
+      "delta_pi_repair_bestN": 0,
+      "difficulty": "headroom",
+      "discriminating": true,
+      "live_discriminating": true,
+      "partial": true,
+      "runs": 10,
+      "task": "sumto_mono"
+    },
+    {
+      "counts": {
+        "bestN": 10,
+        "legacy_repair": 8,
+        "pi_decoy": 8,
+        "pi_repair": 8,
+        "plain_baseline": 10,
+        "single": 8
+      },
+      "delta_pi_repair_bestN": -2,
+      "difficulty": "easy",
+      "discriminating": true,
+      "live_discriminating": false,
+      "partial": true,
+      "runs": 10,
+      "task": "app_nil"
+    },
+    {
+      "counts": {
+        "bestN": 10,
+        "legacy_repair": 7,
+        "pi_decoy": 4,
+        "pi_repair": 7,
+        "plain_baseline": 9,
+        "single": 4
+      },
+      "delta_pi_repair_bestN": -3,
+      "difficulty": "headroom",
+      "discriminating": true,
+      "live_discriminating": true,
+      "partial": true,
+      "runs": 10,
+      "task": "addone_len"
+    }
+  ],
+  "temperature": 0.8,
+  "threshold_override": false,
+  "threshold_overrides": {},
+  "thresholds": {
+    "alpha": 0.05,
+    "min_live_tasks": 6,
+    "parity_high": 1.25,
+    "parity_low": 0.8,
+    "top_task_concentration": 0.5,
+    "tost_margin": 1.0
+  },
+  "timestamps_utc": [
+    "2026-07-16T14:42:20.052359+00:00",
+    "2026-07-16T14:47:09.762032+00:00",
+    "2026-07-16T14:52:18.334140+00:00",
+    "2026-07-16T14:57:37.033386+00:00",
+    "2026-07-16T15:02:16.357565+00:00",
+    "2026-07-16T15:07:37.368536+00:00",
+    "2026-07-16T15:12:37.119675+00:00",
+    "2026-07-16T15:17:40.030708+00:00",
+    "2026-07-16T15:22:37.179030+00:00",
+    "2026-07-16T15:28:00.262548+00:00"
+  ],
+  "top_task_delta_fraction": 0.375,
+  "usage": {
+    "all_tasks": {
+      "bestN": {
+        "input_tokens": 43718,
+        "model_calls": 341,
+        "oracle_calls": 341,
+        "output_tokens": 8234,
+        "total_tokens": 51952
+      },
+      "legacy_repair": {
+        "input_tokens": 69277,
+        "model_calls": 325,
+        "oracle_calls": 325,
+        "output_tokens": 9301,
+        "total_tokens": 78578
+      },
+      "pi_decoy": {
+        "input_tokens": 75529,
+        "model_calls": 347,
+        "oracle_calls": 347,
+        "output_tokens": 9065,
+        "total_tokens": 84594
+      },
+      "pi_repair": {
+        "input_tokens": 68846,
+        "model_calls": 323,
+        "oracle_calls": 323,
+        "output_tokens": 9336,
+        "total_tokens": 78182
+      },
+      "plain_baseline": {
+        "input_tokens": 101720,
+        "model_calls": 365,
+        "oracle_calls": 365,
+        "output_tokens": 7995,
+        "total_tokens": 109715
+      },
+      "single": {
+        "input_tokens": 15250,
+        "model_calls": 120,
+        "oracle_calls": 120,
+        "output_tokens": 2920,
+        "total_tokens": 18170
+      }
+    },
+    "headroom_tasks": {
+      "bestN": {
+        "input_tokens": 38918,
+        "model_calls": 293,
+        "oracle_calls": 293,
+        "output_tokens": 7815,
+        "total_tokens": 46733
+      },
+      "legacy_repair": {
+        "input_tokens": 63250,
+        "model_calls": 285,
+        "oracle_calls": 285,
+        "output_tokens": 8728,
+        "total_tokens": 71978
+      },
+      "pi_decoy": {
+        "input_tokens": 68172,
+        "model_calls": 299,
+        "oracle_calls": 299,
+        "output_tokens": 8502,
+        "total_tokens": 76674
+      },
+      "pi_repair": {
+        "input_tokens": 63242,
+        "model_calls": 285,
+        "oracle_calls": 285,
+        "output_tokens": 8819,
+        "total_tokens": 72061
+      },
+      "plain_baseline": {
+        "input_tokens": 99660,
+        "model_calls": 345,
+        "oracle_calls": 345,
+        "output_tokens": 7835,
+        "total_tokens": 107495
+      },
+      "single": {
+        "input_tokens": 13250,
+        "model_calls": 100,
+        "oracle_calls": 100,
+        "output_tokens": 2703,
+        "total_tokens": 15953
+      }
+    },
+    "live_discriminating_tasks": {
+      "bestN": {
+        "input_tokens": 21618,
+        "model_calls": 163,
+        "oracle_calls": 163,
+        "output_tokens": 4455,
+        "total_tokens": 26073
+      },
+      "legacy_repair": {
+        "input_tokens": 33974,
+        "model_calls": 155,
+        "oracle_calls": 155,
+        "output_tokens": 4657,
+        "total_tokens": 38631
+      },
+      "pi_decoy": {
+        "input_tokens": 38659,
+        "model_calls": 169,
+        "oracle_calls": 169,
+        "output_tokens": 4844,
+        "total_tokens": 43503
+      },
+      "pi_repair": {
+        "input_tokens": 33979,
+        "model_calls": 155,
+        "oracle_calls": 155,
+        "output_tokens": 4789,
+        "total_tokens": 38768
+      },
+      "plain_baseline": {
+        "input_tokens": 58049,
+        "model_calls": 203,
+        "oracle_calls": 203,
+        "output_tokens": 4254,
+        "total_tokens": 62303
+      },
+      "single": {
+        "input_tokens": 7980,
+        "model_calls": 60,
+        "oracle_calls": 60,
+        "output_tokens": 1659,
+        "total_tokens": 9639
+      }
+    },
+    "pi_repair_ratios": {
+      "bestN": {
+        "model_calls": 0.95092,
+        "oracle_calls": 0.95092,
+        "total_tokens": 1.486902
+      },
+      "legacy_repair": {
+        "model_calls": 1.0,
+        "oracle_calls": 1.0,
+        "total_tokens": 1.003546
+      },
+      "pi_decoy": {
+        "model_calls": 0.91716,
+        "oracle_calls": 0.91716,
+        "total_tokens": 0.891157
+      },
+      "plain_baseline": {
+        "model_calls": 0.763547,
+        "oracle_calls": 0.763547,
+        "total_tokens": 0.622249
+      }
+    },
+    "setup_oracle_calls_excluded": {
+      "all_tasks": {
+        "bestN": 0,
+        "legacy_repair": 0,
+        "pi_decoy": 120,
+        "pi_repair": 0,
+        "plain_baseline": 0,
+        "single": 0
+      },
+      "headroom_tasks": {
+        "bestN": 0,
+        "legacy_repair": 0,
+        "pi_decoy": 100,
+        "pi_repair": 0,
+        "plain_baseline": 0,
+        "single": 0
+      }
+    },
+    "zero_usage_attempts": []
+  }
+}

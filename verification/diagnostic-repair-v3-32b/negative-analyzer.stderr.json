@@ -1,0 +1,1 @@
+{"detail": "/private/tmp/pi-diagnostic-repair-v3-negative.SIVojP/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl:2: model_id='qwen2.5:32b-instruct' does not match run_start 'fault-injected-model-id'", "error": "ContractError", "ok": false, "schema": "pi-diagnostic-repair-harness/v2"}
