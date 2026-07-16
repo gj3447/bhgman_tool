@@ -1,0 +1,150 @@
+{
+  "schema_version": "pi-cycle/v1",
+  "template_only": false,
+  "cycle_id": "pi-diagnostic-repair-v3-32b-20260716",
+  "mode": "write",
+  "kind": "experiment",
+  "runtime_behavior": true,
+  "progress_claim": true,
+  "repo": {
+    "name": "bhgman_tool",
+    "logical_path": "PI/bhgman_tool",
+    "resolved_root": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716",
+    "git_head": "486edc43bb97e1fc4aba43213efb037e9fbde98d",
+    "instructions_read": [
+      "AGENTS.md",
+      "PI/AGENTS.md",
+      "SKILLS/pi-workbench/SKILL.md",
+      "SKILLS/ooptdd-receipt/SKILL.md",
+      "SKILLS/lakatotree-judge/SKILL.md"
+    ]
+  },
+  "roles": {
+    "coordinator": "root",
+    "implementer": "codex-pi-diagnostic-repair-live-20260716",
+    "judge": "lakatotree-local-pure-judge"
+  },
+  "coordination": {
+    "task_id": "pi-diagnostic-repair-live-20260716",
+    "agent_id": "codex-pi-diagnostic-repair-live-20260716",
+    "writes": [
+      "bhgman_tool/engine/efficacy/**",
+      "bhgman_tool/engine/legion/**",
+      "bhgman_tool/engine/naesengmoon/**",
+      "bhgman_tool/engine/agents/client.py",
+      "bhgman_tool/engine/agents/tests/test_client_dispatch.py",
+      "bhgman_tool/engine/cli/runtime.py",
+      "bhgman_tool/docs/DIAGNOSTIC_REPAIR_LOOP.md",
+      "bhgman_tool/verification/diagnostic-repair-v2-32b/**",
+      "bhgman_tool/verification/diagnostic-repair-v3-32b/**"
+    ],
+    "claim_status": "HELD",
+    "orbit_id": "orb-3c385144d777",
+    "fence": 108,
+    "heartbeat_at": "2026-07-17T01:11:16.885285+09:00",
+    "released": true,
+    "cancelled": true,
+    "additional_orbits": [
+      {
+        "orbit_id": "orb-eba6837b5bc6",
+        "fence": 110,
+        "path": "bhgman_tool/engine/efficacy/lean_headroom_run.py and AgentClient binding",
+        "released": true
+      },
+      {
+        "orbit_id": "orb-af2b96f458c0",
+        "fence": 111,
+        "path": "bhgman_tool/engine/cli/runtime.py",
+        "released": true
+      },
+      {
+        "orbit_id": "orb-20d82fcbff35",
+        "fence": 112,
+        "path": "bhgman_tool/engine/agents/tests/test_client_dispatch.py",
+        "released": true
+      },
+      {
+        "orbit_id": "orb-d6155961a325",
+        "fence": 113,
+        "path": "bhgman_tool/verification/diagnostic-repair-v3-32b/**",
+        "released": true
+      }
+    ],
+    "terminal_task_state": "ABORTED",
+    "terminal_reason": "Lease-only experiment task completed and was cancelled after all write orbits were released.",
+    "authority_caveat": "The original primary orbit named the v2 evidence directory. The dedicated v3 orbit was acquired before final receipt writes but after earlier v3 artifact creation, so it is not represented as retroactive authorization."
+  },
+  "finalization_coordination": {
+    "task_id": "pi-diagnostic-repair-v3-finalize-20260717",
+    "agent_id": "codex-pi-diagnostic-repair-finalizer-20260717",
+    "orbit_id": "orb-5f3026f9ac4e",
+    "fence": 114,
+    "path": "bhgman_tool/verification/diagnostic-repair-v3-32b/pi-cycle.json",
+    "additional_orbits": [
+      {
+        "orbit_id": "orb-03a894cd9d19",
+        "fence": 115,
+        "path": "bhgman_tool/verification/diagnostic-repair-v3-32b/pi-cycle-validation.log"
+      }
+    ]
+  },
+  "measurement": {
+    "measurement_type": "ooptdd_receipt",
+    "receipt_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/ooptdd-receipt.json",
+    "receipt_sha256": "eef8da5d11d670ceca96e8d503aa71dd6efbefa9a306dd6d7b0b36be7f1a770f",
+    "evidence_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakato-evidence.json",
+    "evidence_sha256": "2245f7931eab2b09a14d58bafd8a5b0387ab2ea567c791cf9636a9ab4e333eef",
+    "test_command": "uv run python -m engine.efficacy.analyze_diagnostic_repair_harness --json verification/diagnostic-repair-v3-32b",
+    "positive_verdict": "green",
+    "negative_verdict": "rejected",
+    "replications": 10,
+    "task_summaries": 120,
+    "jsonl_records": 3661,
+    "oracle_attempts_replayed": 1821,
+    "oracle_setups_replayed": 120,
+    "oracle_mismatches": 0,
+    "analyzer_confirm": false,
+    "confirmed_gate_count": 2,
+    "required_gate_count": 6
+  },
+  "judgment": {
+    "packet_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judgment-packet.json",
+    "packet_sha256": "820203a07b9446d4a6a65314b37a3feb4a8432a1a74fcae01faacba3cdc8f289",
+    "judge_command": "PYTHONPATH=PI/lakatotree PI/lakatotree/.venv/bin/python GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/run_pure_judge.py --evidence GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakato-evidence.json --output GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-response.json --rc-output GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge.rc",
+    "source": "scripted",
+    "verified_from_receipt": true,
+    "raw_response_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-response.json"
+  },
+  "verification": [
+    {
+      "command": "python3 SKILLS/ooptdd-receipt/scripts/validate_receipt.py GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/ooptdd-receipt.json --verify-linked --root /Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716",
+      "exit_code": 0,
+      "output_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/ooptdd-validation.log",
+      "output_sha256": "30be3a4b302a1a2cbdb81c422e8ad5853b3ad62fe6d73b4b73faf5465c5772cd"
+    },
+    {
+      "command": "python3 SKILLS/lakatotree-judge/scripts/validate_judgment.py GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judgment-packet.json --stage complete --verify-linked --root /Users/lagyeongjun/CD/SYMPOSIUM",
+      "exit_code": 0,
+      "output_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judgment-validation.log",
+      "output_sha256": "c30f35915c8b84df495ce762c68f88f522f481fbe79e2623da3a24553c8274ca"
+    },
+    {
+      "command": "python3 credited-measurement timeline check",
+      "exit_code": 0,
+      "output_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/timeline-validation.log",
+      "output_sha256": "62f0d484e948c2204b3ac2d0003ab4e76b70e3668f94f07659730ca3780908ad"
+    }
+  ],
+  "offload": {
+    "host": "precision7960",
+    "server": "vLLM Qwen/Qwen2.5-32B-Instruct BF16",
+    "served_model_id": "qwen2.5:32b-instruct",
+    "sandbox": {
+      "memory_max": "80G",
+      "memory_high": "72G",
+      "gpu_memory_utilization": 0.85
+    },
+    "server_stopped": true,
+    "post_run_gpu": "1161 MiB / 97887 MiB, 0%"
+  }
+}
