@@ -35,8 +35,8 @@ from engine.legion.diagnostic_repair import candidate_fingerprint
 from engine.naesengmoon.diagnostic_oracle import feedback_from_value
 
 SCHEMA = "pi-diagnostic-repair-harness/v2"
-MANIFEST_SCHEMA = "pi-diagnostic-repair-harness-manifest/v2"
-DEFAULT_MANIFEST_PATH = Path(__file__).with_name("diagnostic_repair_harness_manifest.v2.json")
+MANIFEST_SCHEMA = "pi-diagnostic-repair-harness-manifest/v3"
+DEFAULT_MANIFEST_PATH = Path(__file__).with_name("diagnostic_repair_harness_manifest.v3.json")
 ARMS = (
     "single",
     "bestN",
@@ -65,7 +65,7 @@ MANIFEST_ARTIFACT_KEYS = (
 ARTIFACT_HASH_KEYS = (
     *MANIFEST_ARTIFACT_KEYS,
     "manifest",
-    "preregistration_v2",
+    "preregistration_v3",
 )
 ARM_ORDER_POLICY = "cyclic_rotation:(seed_offset+task_index)%6"
 ORACLE_ISOLATION = "external-sandbox-runner/v2"
@@ -107,7 +107,7 @@ _FROZEN_RUN_DESIGN = {
 
 
 class ContractError(ValueError):
-    """The raw batch is incomplete, internally inconsistent, or not the frozen v2 contract."""
+    """The raw batch is incomplete, internally inconsistent, or not the frozen v3 contract."""
 
 
 @dataclass(frozen=True)
@@ -459,7 +459,7 @@ def _load_manifest(path: Path) -> dict[str, Any]:
     if not isinstance(manifest, dict):
         raise ContractError(f"{path}: manifest must be a JSON object")
     if manifest.get("schema") != MANIFEST_SCHEMA or manifest.get("status") != "frozen":
-        raise ContractError(f"{path}: manifest schema/status is not the frozen v2 contract")
+        raise ContractError(f"{path}: manifest schema/status is not the frozen v3 contract")
     harness_version = manifest.get("harness_version")
     if not isinstance(harness_version, str) or not harness_version:
         raise ContractError(f"{path}: harness_version must be a non-empty string")
@@ -501,7 +501,7 @@ def _load_manifest(path: Path) -> dict[str, Any]:
     }
     if normalized_thresholds != _FROZEN_THRESHOLDS:
         raise ContractError(
-            f"{path}: thresholds differ from the frozen v2 values {_FROZEN_THRESHOLDS!r}"
+            f"{path}: thresholds differ from the frozen v3 values {_FROZEN_THRESHOLDS!r}"
         )
     run_design = manifest.get("run_design")
     run_design_keys = {*_FROZEN_RUN_DESIGN, "task_band"}
@@ -623,14 +623,14 @@ def _load_manifest(path: Path) -> dict[str, Any]:
         artifact_hashes[name] = actual_hash
         artifact_paths[name] = str(artifact_path)
         artifact_relative_paths[name] = relative_path
-    prereg_relative = manifest.get("preregistration_v2_path")
+    prereg_relative = manifest.get("preregistration_v3_path")
     if not isinstance(prereg_relative, str) or not prereg_relative:
-        raise ContractError(f"{path}: preregistration_v2_path must be non-empty")
+        raise ContractError(f"{path}: preregistration_v3_path must be non-empty")
     prereg_path = (repo_root / prereg_relative).resolve()
     if prereg_path != repo_root and repo_root not in prereg_path.parents:
-        raise ContractError(f"{path}: preregistration_v2_path escapes repository root")
+        raise ContractError(f"{path}: preregistration_v3_path escapes repository root")
     if not prereg_path.is_file():
-        raise ContractError(f"{path}: preregistration v2 file does not exist: {prereg_path}")
+        raise ContractError(f"{path}: preregistration v3 file does not exist: {prereg_path}")
     bridge = manifest.get("bridge_conformance")
     if not isinstance(bridge, dict) or set(bridge) != {"path", "sha256", "pytest_nodeid"}:
         raise ContractError(
@@ -671,9 +671,9 @@ def _load_manifest(path: Path) -> dict[str, Any]:
         "artifact_paths": artifact_paths,
         "artifact_relative_paths": artifact_relative_paths,
         "manifest_relative_path": str(path.resolve().relative_to(repo_root)),
-        "preregistration_v2_path": str(prereg_path),
-        "preregistration_v2_relative_path": prereg_relative,
-        "preregistration_v2_sha256": _sha256_file(prereg_path),
+        "preregistration_v3_path": str(prereg_path),
+        "preregistration_v3_relative_path": prereg_relative,
+        "preregistration_v3_sha256": _sha256_file(prereg_path),
         "bridge_conformance": {
             "path": str(bridge_path),
             "relative_path": bridge_relative,
@@ -770,8 +770,8 @@ def _verify_git_provenance(
             for name, digest in manifest["artifact_hashes"].items()
         },
         str(manifest["manifest_relative_path"]): str(manifest["sha256"]),
-        str(manifest["preregistration_v2_relative_path"]): str(
-            manifest["preregistration_v2_sha256"]
+        str(manifest["preregistration_v3_relative_path"]): str(
+            manifest["preregistration_v3_sha256"]
         ),
         str(manifest["bridge_conformance"]["relative_path"]): str(
             manifest["bridge_conformance"]["sha256"]
@@ -1043,7 +1043,8 @@ def _replay_oracle_integrity(
                     if proof is None or diagnostic is None:
                         raise AssertionError("full-payload replay precondition drifted")
                     try:
-                        verdict = evaluator(
+                        verdict = lean_oracle.evaluate_untrusted_candidate(
+                            evaluator,
                             task.name,
                             task.signature,
                             proof,
@@ -2976,7 +2977,7 @@ def analyze_paths(
     expected_run_hashes = {
         **manifest["artifact_hashes"],
         "manifest": manifest["sha256"],
-        "preregistration_v2": manifest["preregistration_v2_sha256"],
+        "preregistration_v3": manifest["preregistration_v3_sha256"],
     }
     provenance_mismatches = {
         key: {"run": runs[0].artifact_hashes.get(key), "expected": expected}
@@ -3153,7 +3154,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--manifest",
         default=str(DEFAULT_MANIFEST_PATH),
-        help="Frozen v2 manifest (default: sibling diagnostic_repair_harness_manifest.v2.json).",
+        help="Frozen v3 manifest (default: sibling diagnostic_repair_harness_manifest.v3.json).",
     )
     parser.add_argument("--compact", action="store_true", help="Emit compact JSON.")
     return parser.parse_args(argv)

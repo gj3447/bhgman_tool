@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from collections import defaultdict
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -44,9 +45,9 @@ def _synthetic_manifest(task_count: int = 6) -> dict[str, Any]:
     artifact_hashes = {name: _sha(f"artifact:{name}") for name in analyzer.MANIFEST_ARTIFACT_KEYS}
     artifact_paths = {name: f"engine/efficacy/{name}.synthetic" for name in artifact_hashes}
     return {
-        "path": "/synthetic/repo/engine/efficacy/diagnostic_repair_harness_manifest.v2.json",
+        "path": "/synthetic/repo/engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
         "sha256": _sha("manifest"),
-        "harness_version": "2.0.0",
+        "harness_version": "2.0.1",
         "thresholds": dict(analyzer._FROZEN_THRESHOLDS),
         "run_design": {
             **copy.deepcopy(analyzer._FROZEN_RUN_DESIGN),
@@ -56,14 +57,14 @@ def _synthetic_manifest(task_count: int = 6) -> dict[str, Any]:
         "artifact_hashes": artifact_hashes,
         "artifact_paths": artifact_paths,
         "artifact_relative_paths": artifact_paths,
-        "manifest_relative_path": ("engine/efficacy/diagnostic_repair_harness_manifest.v2.json"),
-        "preregistration_v2_path": (
-            "/synthetic/repo/engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V2.md"
+        "manifest_relative_path": ("engine/efficacy/diagnostic_repair_harness_manifest.v3.json"),
+        "preregistration_v3_path": (
+            "/synthetic/repo/engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md"
         ),
-        "preregistration_v2_relative_path": (
-            "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V2.md"
+        "preregistration_v3_relative_path": (
+            "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md"
         ),
-        "preregistration_v2_sha256": _sha("preregistration"),
+        "preregistration_v3_sha256": _sha("preregistration"),
         "bridge_conformance": {
             "path": "/synthetic/repo/engine/efficacy/tests/test_diagnostic_repair_harness.py",
             "relative_path": ("engine/efficacy/tests/test_diagnostic_repair_harness.py"),
@@ -80,7 +81,7 @@ def _envelope(manifest: dict[str, Any]) -> dict[str, str]:
     return {
         **manifest["artifact_hashes"],
         "manifest": manifest["sha256"],
-        "preregistration_v2": manifest["preregistration_v2_sha256"],
+        "preregistration_v3": manifest["preregistration_v3_sha256"],
     }
 
 
@@ -297,7 +298,7 @@ def _batch(
         run_id = f"run-{run_index}"
         common = {
             "schema": SCHEMA,
-            "harness_version": "2.0.0",
+            "harness_version": "2.0.1",
             "run_id": run_id,
             "backend": frozen["run_design"]["backend"],
             "model_id": frozen["run_design"]["model_id"],
@@ -695,13 +696,67 @@ def test_real_replay_helper_hashes_receipt_and_detects_exact_diagnostic_drift(
         "ExternalSandboxLeanEvaluator",
         FakeSandboxEvaluator,
     )
+    replayed_candidates: list[str] = []
+    real_candidate_adapter = analyzer.lean_oracle.evaluate_untrusted_candidate
+
+    def recording_candidate_adapter(
+        evaluator: Any,
+        name: str,
+        signature: str,
+        proof: str,
+        *,
+        preamble: str = "",
+    ) -> Any:
+        replayed_candidates.append(proof)
+        return real_candidate_adapter(
+            evaluator,
+            name,
+            signature,
+            proof,
+            preamble=preamble,
+        )
+
+    monkeypatch.setattr(
+        analyzer.lean_oracle,
+        "evaluate_untrusted_candidate",
+        recording_candidate_adapter,
+    )
     passed = REAL_ORACLE_REPLAY(runs=runs, manifest=manifest)
     assert passed["status"] == "PASS"
     assert passed["replayed_count"] == passed["attempt_count"] == 21
     assert passed["setup_replayed_count"] == passed["setup_count"] == 1
     assert len(passed["receipt_sha256"]) == 64
+    assert len(replayed_candidates) == passed["attempt_count"]
 
     first_proof = next(iter(verdicts))
+    first_key = next(
+        key
+        for key, attempts in runs[0].attempts.items()
+        if any(attempt.proof == first_proof for attempt in attempts)
+    )
+    first_index = next(
+        index
+        for index, attempt in enumerate(runs[0].attempts[first_key])
+        if attempt.proof == first_proof
+    )
+    original_attempt = runs[0].attempts[first_key][first_index]
+    unsafe_proof = "by\n  trivial\n#check Nat"
+    runs[0].attempts[first_key][first_index] = replace(
+        original_attempt,
+        proof=unsafe_proof,
+        proof_sha256=_sha(unsafe_proof),
+        compiles=False,
+        proven=False,
+        sorry_tainted=False,
+        graded_score=0.0,
+        diagnostic=analyzer.lean_oracle.UNSAFE_PAYLOAD_DIAGNOSTIC,
+        diagnostic_sha256=_sha(analyzer.lean_oracle.UNSAFE_PAYLOAD_DIAGNOSTIC),
+    )
+    unsafe_replay = REAL_ORACLE_REPLAY(runs=runs, manifest=manifest)
+    assert unsafe_replay["status"] == "PASS"
+    assert unsafe_replay["replayed_count"] == unsafe_replay["attempt_count"]
+    runs[0].attempts[first_key][first_index] = original_attempt
+
     original = verdicts[first_proof]
     verdicts[first_proof] = analyzer.lean_oracle.LeanVerdict(
         compiles=original.compiles,

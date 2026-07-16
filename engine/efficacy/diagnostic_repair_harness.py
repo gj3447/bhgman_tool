@@ -55,7 +55,7 @@ from engine.legion.diagnostic_repair import (
 from engine.naesengmoon.diagnostic_oracle import DiagnosticFeedback, feedback_from_value
 
 SCHEMA = "pi-diagnostic-repair-harness/v2"
-HARNESS_VERSION = "2.0.0"
+HARNESS_VERSION = "2.0.1"
 ARMS = (
     "single",
     "bestN",
@@ -78,7 +78,7 @@ _RUN_METADATA_KEYS = {
     "lean_binary_sha256",
     "timestamp_utc",
 }
-_FROZEN_MANIFEST = Path(__file__).with_name("diagnostic_repair_harness_manifest.v2.json")
+_FROZEN_MANIFEST = Path(__file__).with_name("diagnostic_repair_harness_manifest.v3.json")
 _RUN_DESIGN_KEYS = {
     "backend",
     "model_id",
@@ -132,8 +132,8 @@ def _artifact_hashes() -> dict[str, str]:
         "loop_contract": _file_sha256(efficacy / "diagnostic_repair_harness_contract.json"),
         "fsm": _file_sha256(efficacy / "diagnostic_repair_harness_fsm.json"),
         "fsm_traces": _file_sha256(efficacy / "diagnostic_repair_harness_fsm_traces.json"),
-        "manifest": _file_sha256(efficacy / "diagnostic_repair_harness_manifest.v2.json"),
-        "preregistration_v2": _file_sha256(efficacy / "DIAGNOSTIC_REPAIR_PREREGISTRATION_V2.md"),
+        "manifest": _file_sha256(efficacy / "diagnostic_repair_harness_manifest.v3.json"),
+        "preregistration_v3": _file_sha256(efficacy / "DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md"),
     }
 
 
@@ -477,7 +477,8 @@ def _evaluate_attempt(
     evaluate_fn: Any,
     log: TextIO | None,
 ) -> tuple[LeanVerdict, dict[str, Any]]:
-    verdict = evaluate_fn(
+    verdict = lean_oracle.evaluate_untrusted_candidate(
+        evaluate_fn,
         task.name,
         task.signature,
         pending.proof,
@@ -668,7 +669,8 @@ class _PiLeanOracle:
         if _sha256(candidate) != _sha256(pending.proof):
             raise RuntimeError("PI candidate does not match pending attempt metadata")
         self.pending = None
-        verdict = self.evaluate_fn(
+        verdict = lean_oracle.evaluate_untrusted_candidate(
+            self.evaluate_fn,
             self.task.name,
             self.task.signature,
             candidate,

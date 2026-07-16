@@ -1,0 +1,39 @@
+frozen diagnostic-repair run starting at 2026-07-16T14:12:59Z
+git_head=8b6a17da9649f5d6c9057ec5277381a0b7ebadae
+model=qwen2.5:32b-instruct endpoint=http://127.0.0.1:8100/v1
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py", line 1255, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py", line 1236, in main
+    run_once(
+    ~~~~~~~~^
+        complete,
+        ^^^^^^^^^
+    ...<8 lines>...
+        run_metadata=run_metadata,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py", line 1083, in run_once
+    outcome = _run_plain_baseline(meta, task, complete, resolved_evaluator, log)
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py", line 901, in _run_plain_baseline
+    verdict, record = _evaluate_attempt(meta, task, "plain_baseline", pending, evaluate_fn, log)
+                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/diagnostic_repair_harness.py", line 480, in _evaluate_attempt
+    verdict = evaluate_fn(
+        task.name,
+    ...<2 lines>...
+        preamble=task.preamble,
+    )
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_oracle.py", line 302, in __call__
+    _reject_obvious_command_escape(proof)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716/engine/efficacy/lean_oracle.py", line 154, in _reject_obvious_command_escape
+    raise UnsafeLeanPayload(
+        "Lean proof contains an obvious command-level payload; the proof slot accepts terms only"
+    )
+engine.efficacy.lean_oracle.UnsafeLeanPayload: Lean proof contains an obvious command-level payload; the proof slot accepts terms only
+frozen diagnostic-repair run finished at 2026-07-16T14:14:44Z rc=1

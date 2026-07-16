@@ -2,7 +2,7 @@
   "schema_version": "loop-contract/v1",
   "name": "pi-diagnostic-repair-six-arm-efficacy-harness",
   "tier": "L_RT",
-  "workflow_version": "2.0.0",
+  "workflow_version": "2.0.1",
   "state_schema_version": "1.0.0",
   "conformance_status": "TARGET_CONTRACT_NOT_RUNTIME_CONFORMANT",
   "implemented_slice": {
@@ -13,7 +13,8 @@
     "atomic_checkpoint_or_rename": false,
     "aggregate_wall_token_cost_governor": false,
     "publication_outbox_or_reconciliation": false,
-    "fsm_runtime_reducer": false
+    "fsm_runtime_reducer": false,
+    "unsafe_model_payload_is_failed_observation": true
   },
   "control_owner": {
     "continuation": "deterministic six-arm experiment runner",
@@ -403,10 +404,10 @@
     "one_time": true,
     "revocation": "revocation before publication-intent commit invalidates approval",
     "stale_outcome": "target behavior is return to READY_FOR_REVIEW; current runner has no publication or approval path",
-    "implementation": "TARGET_ONLY: publication is outside the executable v2 harness"
+    "implementation": "TARGET_ONLY: publication is outside the executable v3 harness"
   },
   "verification": {
-    "success_predicate": "B1 passes externally and all P1-P5 gates pass over a hash-valid, sandboxed, frozen-design batch; local harness success does not itself authorize publication",
+    "success_predicate": "B1 passes externally and all P1-P5 gates pass over a hash-valid frozen-oracle-boundary batch; safe candidates are sandboxed and canonical unsafe payload rejections cannot pass; local harness success does not itself authorize publication",
     "invariant_checks": [
       "only the deterministic oracle can mark a proof complete",
       "required six arms are present for every task and run",
@@ -414,6 +415,7 @@
       "pi_repair and pi_decoy use the production diagnostic_repair function",
       "physical JSONL order matches the frozen task, arm, attempt, lifecycle, task-summary, and run-summary execution order",
       "PI lifecycle kinds, candidate fingerprints, and diagnostic fingerprints bind every recorded attempt",
+      "an UnsafeLeanPayload from a generated candidate is recorded as a deterministic failed observation without invoking the sandbox; sandbox and protocol failures remain terminal",
       "every attempt has visible nonzero token telemetry and output tokens do not exceed the frozen per-attempt ceiling",
       "the exact Lean toolchain pin, version, executable SHA-256, and sandbox runner match the frozen manifest",
       "the recorded clean commit predates every run timestamp and result JSONL modification time",
@@ -422,7 +424,7 @@
     "environment_evidence": "raw JSONL in physical execution order, Lean verdicts, lifecycle fingerprints, artifact and compiler-identity hashes, token and call ledgers, commit and file timestamps, and matched-budget recomputation",
     "evaluator_independence": "the analyzer consumes records and does not generate proofs or oracle verdicts",
     "human_gray_band": "missing usage, fewer than six live/non-tied tasks, concentrated single-task signal, sandbox absence, or hash drift remains inconclusive",
-    "calibration": "thresholds and equivalence margin are frozen in the v2 preregistration before any live batch",
+    "calibration": "thresholds and equivalence margin are frozen in the v3 preregistration before any claim-bearing live batch",
     "fault_tests": [
       "missing arm",
       "hash drift",
@@ -440,6 +442,7 @@
       "attempt or task-block reordering",
       "per-attempt output-token overflow",
       "Lean child stdout or stderr flood",
+      "generated command-level Lean payload rejection across direct, PI, and analyzer replay paths",
       "backend response model omission or mismatch",
       "forged recorded oracle verdict or diagnostic",
       "diagnostic-decoy setup or transform tampering",
@@ -456,11 +459,11 @@
       "read-only verifier sandbox",
       "analyzer re-execution of every attempt and diagnostic-decoy setup with exact verdict and normalized diagnostic equality"
     ],
-    "implemented_evidence_replay": "the claim analyzer replays every full-payload Lean attempt and pi_decoy setup through the frozen sandbox before statistics; replay absence or any verdict, score, diagnostic, or hash mismatch invalidates the batch"
+    "implemented_evidence_replay": "before statistics, the claim analyzer replays every full-payload attempt through the frozen oracle boundary: safe candidates and every pi_decoy setup execute in the frozen sandbox, while obvious generated command payloads reproduce the canonical failed observation without spawning Lean; replay absence or any verdict, score, diagnostic, or hash mismatch invalidates the batch"
   },
   "security": {
-    "untrusted_content": "model output and diagnostics are data and cannot issue harness control events",
-    "tool_least_privilege": "live v2 must use the hash-recorded least-privilege sandbox runner; file contents are readable only from the private source directory, the exact frozen Lean toolchain, and minimum system runtime paths, while arbitrary home, repository, temporary, and /etc reads plus network, child execution, and outside-sandbox writes are denied; compiler output is incrementally captured with a hard byte ceiling and sandbox paths are normalized before replay comparison",
+    "untrusted_content": "model output and diagnostics are data and cannot issue harness control events; generated proof payloads rejected before sandbox execution become deterministic failed observations rather than terminal loop failures",
+    "tool_least_privilege": "live v3 must use the hash-recorded least-privilege sandbox runner; file contents are readable only from the private source directory, the exact frozen Lean toolchain, and minimum system runtime paths, while arbitrary home, repository, temporary, and /etc reads plus network, child execution, and outside-sandbox writes are denied; compiler output is incrementally captured with a hard byte ceiling and sandbox paths are normalized before replay comparison",
     "compiler_identity": "run-start and manifest bind lean/lean-toolchain, the full Lean version line, and the resolved Lean executable SHA-256; mutable elan defaults are forbidden",
     "provenance_snapshots": "record source paths, git commit, SHA-256, model identity, endpoint class, and run time",
     "secret_isolation": "raw JSONL and model prompts exclude credentials; publication credentials are unavailable to the model"

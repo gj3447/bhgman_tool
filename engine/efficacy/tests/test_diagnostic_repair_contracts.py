@@ -10,8 +10,8 @@ REPO_ROOT = ROOT.parents[1]
 CONTRACT = ROOT / "diagnostic_repair_harness_contract.json"
 FSM = ROOT / "diagnostic_repair_harness_fsm.json"
 TRACES = ROOT / "diagnostic_repair_harness_fsm_traces.json"
-MANIFEST = ROOT / "diagnostic_repair_harness_manifest.v2.json"
-PREREGISTRATION = ROOT / "DIAGNOSTIC_REPAIR_PREREGISTRATION_V2.md"
+MANIFEST = ROOT / "diagnostic_repair_harness_manifest.v3.json"
+PREREGISTRATION = ROOT / "DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md"
 
 ARMS = {
     "single",
@@ -33,9 +33,9 @@ def _sha256(path: Path) -> str:
 
 def test_frozen_manifest_hashes_every_authoritative_artifact_and_b1_fixture() -> None:
     manifest = _load(MANIFEST)
-    assert manifest["schema"] == "pi-diagnostic-repair-harness-manifest/v2"
+    assert manifest["schema"] == "pi-diagnostic-repair-harness-manifest/v3"
     assert manifest["status"] == "frozen"
-    assert manifest["harness_version"] == "2.0.0"
+    assert manifest["harness_version"] == "2.0.1"
     assert manifest["thresholds"] == {
         "alpha": 0.05,
         "tost_margin": 1.0,
@@ -119,6 +119,7 @@ def test_loop_contract_freezes_six_arm_l_rt_boundary() -> None:
         "aggregate_wall_token_cost_governor": False,
         "publication_outbox_or_reconciliation": False,
         "fsm_runtime_reducer": False,
+        "unsafe_model_payload_is_failed_observation": True,
     }
     assert set(contract["experiment"]["arms"]) == ARMS
     assert contract["experiment"]["primary_treatment"] == "pi_repair"
@@ -132,9 +133,13 @@ def test_loop_contract_freezes_six_arm_l_rt_boundary() -> None:
         for invariant in contract["verification"]["invariant_checks"]
     )
     assert "Lean child stdout or stderr flood" in contract["verification"]["fault_tests"]
-    assert "replays every full-payload Lean attempt" in contract["replay"][
-        "implemented_evidence_replay"
-    ]
+    assert (
+        "generated command-level Lean payload rejection across direct, PI, and analyzer replay paths"
+        in contract["verification"]["fault_tests"]
+    )
+    assert "replays every full-payload attempt through the frozen oracle boundary" in contract[
+        "replay"
+    ]["implemented_evidence_replay"]
     assert contract["commander_dispatch"]["fixed_uses_edges"] is False
 
 

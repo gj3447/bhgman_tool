@@ -113,6 +113,48 @@ def test_obvious_eval_payload_is_rejected_before_runner_invocation(
     assert capture.exists() is False
 
 
+def test_untrusted_candidate_adapter_records_unsafe_payload_as_failed_observation(
+    tmp_path: Path,
+) -> None:
+    runner, capture = _fake_runner(tmp_path)
+    evaluator = lean_oracle.ExternalSandboxLeanEvaluator(runner=runner, timeout=2)
+
+    verdict = lean_oracle.evaluate_untrusted_candidate(
+        evaluator,
+        "sandbox_escape",
+        ": True",
+        'by trivial\n#eval IO.println "escaped"',
+    )
+
+    assert verdict == lean_oracle.LeanVerdict(
+        compiles=False,
+        proven=False,
+        sorry_tainted=False,
+        error_tail=lean_oracle.UNSAFE_PAYLOAD_DIAGNOSTIC,
+    )
+    assert capture.exists() is False
+
+
+def test_untrusted_candidate_adapter_does_not_swallow_evaluator_failures() -> None:
+    def broken_evaluator(
+        name: str,
+        signature: str,
+        proof: str,
+        *,
+        preamble: str = "",
+    ) -> lean_oracle.LeanVerdict:
+        del name, signature, proof, preamble
+        raise lean_oracle.SandboxProtocolError("runner contract drift")
+
+    with pytest.raises(lean_oracle.SandboxProtocolError, match="contract drift"):
+        lean_oracle.evaluate_untrusted_candidate(
+            broken_evaluator,
+            "safe_name",
+            ": True",
+            "by trivial",
+        )
+
+
 @pytest.mark.skipif(
     platform.system() != "Darwin"
     or not Path("/usr/bin/sandbox-exec").is_file()

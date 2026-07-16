@@ -11,7 +11,7 @@
 - `run_all_commanders.py` / `run_kg_efficacy.py` — 러너
 - `metrics.py` / `scoring_bridge.py` — 지표
 
-## Diagnostic-repair v2 harness
+## Diagnostic-repair v3 harness
 
 새 diagnostic loop의 구현 정확성과 인과효능을 분리해 검증하는 `L_RT`
 하네스:
@@ -21,13 +21,15 @@
   `plain_baseline`)을 실행한다. `pi_repair`/`pi_decoy`는
   `engine.legion.diagnostic_repair.diagnostic_repair`를 직접 호출한다.
 - `analyze_diagnostic_repair_harness.py` — schema/hash/conservation 검증 후
-  모든 proof와 decoy setup을 frozen sandbox에서 재실행하고 exact verdict와
-  diagnostic을 대조한 뒤, per-run·per-task exact sign test, paired Student-t
+  모든 proof를 frozen oracle boundary에서 재실행한다. 안전한 proof와 decoy
+  setup은 sandbox에서, 명백한 command payload는 canonical pre-sandbox
+  rejection으로 재현하고 exact verdict와 diagnostic을 대조한 뒤,
+  per-run·per-task exact sign test, paired Student-t
   TOST, live-task compute parity, comparator별 matched-token 결과, power와
   concentration을 계산한다.
-- `diagnostic_repair_harness_manifest.v2.json` — claim-bearing run의 코드·oracle·
+- `diagnostic_repair_harness_manifest.v3.json` — claim-bearing run의 코드·oracle·
   task·contract SHA-256과 threshold authority.
-- `DIAGNOSTIC_REPAIR_PREREGISTRATION_V2.md` — 6-arm 정의와 B1/P1–P5 사전등록.
+- `DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md` — 6-arm 정의와 B1/P1–P5 사전등록.
 - `diagnostic_repair_harness_contract.json` — Harness `L_RT` control contract.
 - `diagnostic_repair_harness_fsm.json` +
   `diagnostic_repair_harness_fsm_traces.json` — arm lifecycle 정본과 추상 trace.
@@ -47,10 +49,10 @@ export LEAN_MAX_TOKENS="3072"
 uv run python -m engine.efficacy.diagnostic_repair_harness \
   --k 4 --replications 10 --seed-step 10 \
   --execute-frozen-run \
-  --out-dir verification/diagnostic-repair-v2-32b
+  --out-dir verification/diagnostic-repair-v3-32b
 
 uv run python -m engine.efficacy.analyze_diagnostic_repair_harness \
-  --json verification/diagnostic-repair-v2-32b
+  --json verification/diagnostic-repair-v3-32b
 ```
 
 하네스·manifest·사전등록이 먼저 clean commit되어야 P5가 PASS한다. dirty

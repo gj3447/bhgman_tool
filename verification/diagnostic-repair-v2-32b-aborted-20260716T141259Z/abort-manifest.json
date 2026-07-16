@@ -1,0 +1,54 @@
+{
+  "schema": "pi-diagnostic-repair-abort-bundle/v1",
+  "run_id": "pi-diagnostic-repair-20260716T141300.332538Z-15fc98c0-seed-0",
+  "git_head": "8b6a17da9649f5d6c9057ec5277381a0b7ebadae",
+  "started_at": "2026-07-16T14:12:59Z",
+  "finished_at": "2026-07-16T14:14:44Z",
+  "exit_code": 1,
+  "record_count": 145,
+  "completed_task_summaries": 5,
+  "run_summary_present": false,
+  "failure_class": "uncaught_expected_candidate_rejection",
+  "failure_type": "engine.efficacy.lean_oracle.UnsafeLeanPayload",
+  "non_claim_bearing": true,
+  "no_resume": true,
+  "excluded_from_v3_analysis": true,
+  "artifacts": [
+    {
+      "path": "b1-preflight.log",
+      "sha256": "f7e02939b44b2a59191cbac0479dc66f7b5366cc04ebfc6a540f0039973be1b6"
+    },
+    {
+      "path": "build_evidence.py",
+      "sha256": "54dc65f5da0fa081223c3723121a066278dfcf86c5db7dfb66eb0b95975246ce"
+    },
+    {
+      "path": "lakatotree-preregistration-request.json",
+      "sha256": "d5f1bfd5df3b24cb7711136a1e4775c7f6cb3e6009a4a61a48b4b7129bc931da"
+    },
+    {
+      "path": "lakatotree-preregistration-response.json",
+      "sha256": "f259b1ab13688469c10ae71264742fa9063f57175254c334fb71a55f2c9e273c"
+    },
+    {
+      "path": "pi-diagnostic-repair-20260716T141300.332538Z-15fc98c0-seed-0.jsonl",
+      "sha256": "b0b2bddac389f08a0eda7ea3e425ce5daea10cb704265f28be04bc07bb5f994d"
+    },
+    {
+      "path": "run-b1.sh",
+      "sha256": "0a824a9c4696c993ca7ef33955a25e04a00a504b8126b00ccb0dee92f466ec6b"
+    },
+    {
+      "path": "run-frozen-batch.sh",
+      "sha256": "3078e4f556100c9aae7613bedd41f197785c1561ed7b70245a6e9822526e36e6"
+    },
+    {
+      "path": "run.log",
+      "sha256": "b3e5cbeaf2c6d9aa7c0110ccf3e38d00ec2ed47756c9bb9d40a311795b92acab"
+    },
+    {
+      "path": "run.rc",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    }
+  ]
+}

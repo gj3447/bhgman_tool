@@ -45,6 +45,7 @@ ORACLE_ISOLATION = "external-sandbox-runner/v2"
 SANDBOX_RUNNER_ENV = "PI_LEAN_SANDBOX_RUNNER"
 _REFERENCE_MACOS_RUNNER = Path(__file__).with_name("lean_sandbox_runner_macos.py")
 _MAX_RUNNER_OUTPUT = 64_000
+UNSAFE_PAYLOAD_DIAGNOSTIC = "unsafe Lean payload rejected before sandbox execution"
 
 
 class SandboxUnavailable(RuntimeError):
@@ -154,6 +155,34 @@ def _reject_obvious_command_escape(proof: str) -> None:
         raise UnsafeLeanPayload(
             "Lean proof contains an obvious command-level payload; the proof slot accepts terms only"
         )
+
+
+def evaluate_untrusted_candidate(
+    evaluator: Any,
+    name: str,
+    signature: str,
+    proof: str,
+    *,
+    preamble: str = "",
+) -> LeanVerdict:
+    """Evaluate model output without letting an expected payload rejection abort the loop.
+
+    ``ExternalSandboxLeanEvaluator`` stays strict: callers that submit malformed theorem
+    metadata or command-level proof payloads still receive ``UnsafeLeanPayload``.  Harnesses
+    handling untrusted model candidates use this adapter so that a blocked payload becomes a
+    deterministic failed oracle observation.  Operational failures such as sandbox
+    unavailability or protocol corruption deliberately continue to propagate.
+    """
+    try:
+        _reject_obvious_command_escape(proof)
+    except UnsafeLeanPayload:
+        return LeanVerdict(
+            compiles=False,
+            proven=False,
+            sorry_tainted=False,
+            error_tail=UNSAFE_PAYLOAD_DIAGNOSTIC,
+        )
+    return evaluator(name, signature, proof, preamble=preamble)
 
 
 def _kill_process_group(process: subprocess.Popen[str]) -> None:
@@ -422,7 +451,9 @@ __all__ = [
     "SANDBOX_RUNNER_ENV",
     "SandboxProtocolError",
     "SandboxUnavailable",
+    "UNSAFE_PAYLOAD_DIAGNOSTIC",
     "UnsafeLeanPayload",
+    "evaluate_untrusted_candidate",
     "evaluate",
     "lean_available",
     "sandbox_available",

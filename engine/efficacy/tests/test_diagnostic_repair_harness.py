@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from engine.efficacy import diagnostic_repair_harness as harness
+from engine.efficacy import lean_oracle
 from engine.efficacy.lean_tasks import TASKS
 from engine.legion import diagnostic_repair as repair_module
 
@@ -26,7 +27,7 @@ ARTIFACT_KEYS = (
     "fsm",
     "fsm_traces",
     "manifest",
-    "preregistration_v2",
+    "preregistration_v3",
 )
 
 
@@ -176,6 +177,184 @@ def test_legacy_and_pi_repair_have_equivalent_generation_and_oracle_traces(
     assert pi_stop[0]["stop"] == "complete"
     assert pi_stop[0]["evaluations"] == 3
     assert pi_stop[0]["repairs"] == 2
+
+
+def test_unsafe_model_payload_is_a_failed_attempt_in_direct_and_pi_loops() -> None:
+    task = TASKS[2]
+    other = TASKS[3]
+    meta = harness.RunMeta("unsafe-run", "fake", 2, 0)
+
+    evaluator_calls: list[str] = []
+
+    def evaluate_setup_only(
+        name: str,
+        signature: str,
+        proof: str,
+        *,
+        preamble: str = "",
+    ) -> Verdict:
+        del name, signature, preamble
+        evaluator_calls.append(proof)
+        return Verdict(proven=False, diagnostic="trusted setup failure")
+
+    unsafe = "by\n  trivial\n#check Nat"
+    plain_complete = ScriptedComplete([unsafe, unsafe])
+    pi_complete = ScriptedComplete([unsafe, unsafe])
+    plain_log = io.StringIO()
+    pi_log = io.StringIO()
+
+    plain = harness._run_plain_baseline(
+        meta,
+        task,
+        plain_complete,
+        evaluate_setup_only,
+        plain_log,
+    )
+    pi = harness._run_pi_repair(
+        meta,
+        task,
+        pi_complete,
+        evaluate_setup_only,
+        pi_log,
+        decoy=False,
+        tasks=(task, other),
+    )
+
+    assert plain.proven is False
+    assert pi.proven is False
+    assert len(plain.attempts) == len(pi.attempts) == 2
+    assert all(
+        item["diagnostic"] == lean_oracle.UNSAFE_PAYLOAD_DIAGNOSTIC
+        for item in plain.attempts
+    )
+    assert all(
+        item["diagnostic"] == lean_oracle.UNSAFE_PAYLOAD_DIAGNOSTIC
+        for item in pi.attempts
+    )
+    assert records(pi_log, "pi_stop")[0]["stop"] == "capped"
+    assert evaluator_calls == []
+
+
+def test_unsafe_first_candidate_preserves_legacy_pi_bridge_trace() -> None:
+    task = TASKS[2]
+    unsafe = "by\n  trivial\n#check Nat"
+
+    def evaluator_must_not_run(*args: Any, **kwargs: Any) -> Verdict:
+        del args, kwargs
+        raise AssertionError("unsafe generated candidates must be rejected before the evaluator")
+
+    legacy_complete = ScriptedComplete([unsafe, unsafe])
+    pi_complete = ScriptedComplete([unsafe, unsafe])
+    meta = harness.RunMeta("unsafe-bridge", "fake", 2, 7)
+    legacy_log = io.StringIO()
+    pi_log = io.StringIO()
+
+    legacy = harness._run_legacy_repair(
+        meta,
+        task,
+        legacy_complete,
+        evaluator_must_not_run,
+        legacy_log,
+    )
+    pi = harness._run_pi_repair(
+        meta,
+        task,
+        pi_complete,
+        evaluator_must_not_run,
+        pi_log,
+        decoy=False,
+        tasks=(task, TASKS[3]),
+    )
+
+    fields = (
+        "attempt",
+        "seed",
+        "used_feedback",
+        "feedback_source",
+        "proven",
+        "graded_score",
+        "proof_sha256",
+        "diagnostic_sha256",
+        "supplied_feedback_sha256",
+        "prior_proof_sha256",
+        "input_tokens",
+        "output_tokens",
+        "model_calls",
+        "oracle_calls",
+    )
+    legacy_trace = [
+        tuple(item[field] for field in fields) for item in records(legacy_log, "attempt")
+    ]
+    pi_trace = [tuple(item[field] for field in fields) for item in records(pi_log, "attempt")]
+    assert legacy.proven is pi.proven is False
+    assert legacy_trace == pi_trace
+    assert records(pi_log, "pi_stop")[0]["stop"] == "capped"
+
+
+def test_all_six_arms_record_unsafe_candidates_without_aborting() -> None:
+    tasks = (TASKS[2], TASKS[3])
+    unsafe = "by\n  trivial\n#check Nat"
+    complete = ScriptedComplete([unsafe] * 22)
+    evaluator_calls: list[str] = []
+
+    def evaluate_setup(
+        name: str,
+        signature: str,
+        proof: str,
+        *,
+        preamble: str = "",
+    ) -> Verdict:
+        del name, signature, preamble
+        evaluator_calls.append(proof)
+        return Verdict(proven=False, diagnostic="trusted decoy setup failure")
+
+    metadata = {**claim_run_metadata(), "model_id": "injected-test-model"}
+    log = io.StringIO()
+    summary = harness.run_once(
+        complete,
+        "frontier:injected-test-model",
+        k=2,
+        seed_offset=0,
+        log=log,
+        run_id="unsafe-six-arm",
+        tasks=tasks,
+        evaluate_fn=evaluate_setup,
+        include_payloads=True,
+        git_provenance={
+            "git_commit": "a" * 40,
+            "git_dirty": False,
+            "git_status_sha256": "0" * 64,
+        },
+        run_metadata=metadata,
+    )
+
+    attempts = records(log, "attempt")
+    assert len(attempts) == 22
+    assert {
+        arm: sum(item["arm"] == arm for item in attempts)
+        for arm in harness.ARMS
+    } == {
+        "single": 2,
+        "bestN": 4,
+        "legacy_repair": 4,
+        "pi_repair": 4,
+        "pi_decoy": 4,
+        "plain_baseline": 4,
+    }
+    assert all(
+        item["diagnostic"] == lean_oracle.UNSAFE_PAYLOAD_DIAGNOSTIC
+        for item in attempts
+    )
+    assert all(
+        item["model_calls"] == item["oracle_calls"] == 1
+        and item["input_tokens"] > 0
+        and item["output_tokens"] > 0
+        for item in attempts
+    )
+    assert len(evaluator_calls) == len(tasks)
+    assert all(item["stop"] == "capped" for item in records(log, "pi_stop"))
+    assert all(item["kind"] != "oracle_error" for item in records(log, "pi_event"))
+    assert summary["all"]["of"] == len(tasks)
 
 
 def test_pi_decoy_uses_wrong_diagnostic_but_real_oracle_acceptance() -> None:

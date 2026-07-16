@@ -100,14 +100,14 @@ policy for multi-file generated code.
 The exact efficacy bridge lives in
 `engine/efficacy/diagnostic_repair_harness.py`. It compares the production
 `diagnostic_repair` loop with legacy repair, best-N, diagnostic-decoy, single,
-and plain-agent controls under the v2 manifest/preregistration. A passing unit
+and plain-agent controls under the v3 manifest/preregistration. A passing unit
 suite proves the mechanism and trace contract; only a clean, hash-frozen live
 batch can move the efficacy verdict.
 
 ### Live Lean isolation boundary
 
 Lean source is executable: a model can append command-level syntax or
-compile-time IO after an otherwise valid proof. Therefore the v2 efficacy
+compile-time IO after an otherwise valid proof. Therefore the v3 efficacy
 harness never falls back to the historical host `lean_oracle.evaluate` path.
 It uses `ExternalSandboxLeanEvaluator` and fails before model initialization
 when the frozen sandbox runner is unavailable or its hash drifts.
@@ -126,11 +126,13 @@ incrementally into a bounded first/last-byte buffer; the process group is killed
 at 64,000 bytes, so generated compile-time output cannot exhaust the trusted
 parent. Random sandbox paths are normalized before recording so deterministic
 replay can require exact diagnostic equality.
-Obvious trailing Lean commands are rejected before this boundary, but that
-parser is defense in depth; the sandbox is the security authority.
+Obvious trailing Lean commands are rejected before this boundary as a canonical
+failed observation. They never invoke Lean and cannot pass. The parser is
+defense in depth; the sandbox remains the security and scoring authority for
+safe proof terms.
 
 The legacy host evaluator remains only for historical callers and local oracle
-unit tests. It must not be passed to a live v2 run.
+unit tests. It must not be passed to a live v3 run.
 
 ### Contract conformance boundary
 
@@ -153,9 +155,12 @@ attempts back into shape. It requires the frozen task and counterbalanced arm
 blocks, contiguous attempts, the exact
 `oracle_evaluated -> (repair_requested -> oracle_evaluated)* -> stopped`
 lifecycle, and production candidate/diagnostic fingerprints that recompute from
-the full payload. Before calculating any statistic, it replays every proof and
-every diagnostic-decoy setup through the exact frozen sandbox and compares the
-compile/proven/sorry verdict, graded score, normalized diagnostic, and hashes.
+the full payload. Before calculating any statistic, it replays every proof
+through the exact frozen oracle boundary. Safe proofs and every
+diagnostic-decoy setup execute in the frozen sandbox; obvious generated command
+payloads reproduce the canonical pre-sandbox failed observation. It then
+compares the compile/proven/sorry verdict, graded score, normalized diagnostic,
+and hashes.
 It also binds each attempt to the model ID actually returned by the backend,
 rejects hidden endpoint/template overrides, hidden usage, per-attempt output
 above the frozen maximum, and a recorded commit that does not predate every run
