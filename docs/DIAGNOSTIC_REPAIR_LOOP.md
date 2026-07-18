@@ -161,6 +161,30 @@ diagnostic-decoy setup execute in the frozen sandbox; obvious generated command
 payloads reproduce the canonical pre-sandbox failed observation. It then
 compares the compile/proven/sorry verdict, graded score, normalized diagnostic,
 and hashes.
+
+### Frozen-v3 P4 erratum
+
+The frozen v3 analyzer is retained byte-for-byte because its SHA-256 is part of
+the preregistered manifest and every live run. It has one tri-state ordering
+defect: when a raw compute-parity ratio is already outside the required
+`[0.8, 1.25]` interval but a matched-token sign block is underpowered, it emits
+`P4=ABSENT`. P4 is a conjunction, so the known false conjunct must dominate the
+unknown conjunct and the correct status is `P4=FAIL`.
+
+`engine.efficacy.diagnostic_repair_analysis_errata` produces a deterministic,
+content-addressed overlay without rewriting the frozen source analysis or raw
+measurement. The v3 final claim remains rejected; this correction changes only
+the P4 explanation from underpowered to compute-confounded. Future experiment
+analyzers must implement `KNOWN_FALSE_DOMINATES_UNKNOWN` directly instead of
+copying the historical check order.
+
+```bash
+uv run python -m engine.efficacy.diagnostic_repair_analysis_errata \
+  verification/diagnostic-repair-v3-32b/analysis.json \
+  --root "$PWD" \
+  --output verification/diagnostic-repair-v3-32b-p4-erratum/erratum.json
+```
+
 It also binds each attempt to the model ID actually returned by the backend,
 rejects hidden endpoint/template overrides, hidden usage, per-attempt output
 above the frozen maximum, and a recorded commit that does not predate every run
