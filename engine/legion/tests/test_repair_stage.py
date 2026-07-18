@@ -15,7 +15,15 @@ import pytest
 
 from engine.legion.legion import Legion
 from engine.legion.legion_models import CommanderStage
-from engine.legion.repair_stage import REPAIR_KEY, make_repair_stage
+from engine.legion.repair_stage import (
+    REPAIR_KEY,
+    make_diagnostic_repair_stage,
+    make_repair_stage,
+)
+from engine.naesengmoon.diagnostic_oracle import (
+    CallableDiagnosticOracle,
+    feedback_from_value,
+)
 from engine.naesengmoon.oracle_lens import ScalarOracle
 
 SPACE = 1_000_000
@@ -112,3 +120,203 @@ def test_raises_without_provides():
     empty = CommanderStage(name="void", verb="창조", requires=(), provides=(), run=lambda _c: {})
     with pytest.raises(ValueError, match="provides"):
         make_repair_stage(empty, oracle=_dist_oracle(), generate=_generate)
+
+
+def test_diagnostic_stage_feeds_failure_to_next_attempt_and_preserves_contract():
+    seen: list[str] = []
+
+    def evaluate(candidate: str):
+        passed = candidate == "answer = 42"
+        return feedback_from_value(
+            lens="python",
+            kind="test",
+            passed=passed,
+            score=float(passed),
+            diagnostic="PASS" if passed else "NameError: replace BROKEN with 42",
+        )
+
+    def repair(ctx):
+        seen.append(ctx.missing)
+        return ctx.current.replace("BROKEN", "42")
+
+    base = CommanderStage(
+        name="code-creator",
+        verb="실현",
+        requires=(),
+        provides=("source",),
+        run=lambda _ctx: {"source": "answer = BROKEN"},
+    )
+    stage = make_diagnostic_repair_stage(
+        base,
+        oracle=CallableDiagnosticOracle("python", "test", evaluate),
+        repair=repair,
+    )
+    out = stage.run({})
+    assert out["source"] == "answer = 42"
+    assert out[REPAIR_KEY]["mode"] == "diagnostic"
+    assert out[REPAIR_KEY]["verified"] is True
+    assert out[REPAIR_KEY]["stop_reason"] == "complete"
+    assert seen == ["NameError: replace BROKEN with 42"]
+    assert (stage.name, stage.verb, stage.requires, stage.provides) == (
+        base.name,
+        base.verb,
+        base.requires,
+        base.provides,
+    )
+    assert Legion().register(stage).run().completed is True
+
+
+def test_diagnostic_stage_keeps_seed_when_no_candidate_improves():
+    def evaluate(candidate: str):
+        score = {"seed": 1.0, "regression": 0.0}[candidate]
+        return feedback_from_value(
+            lens="test",
+            kind="test",
+            passed=False,
+            score=score,
+            diagnostic="still red",
+        )
+
+    base = CommanderStage(
+        name="code-creator",
+        verb="실현",
+        requires=(),
+        provides=("source",),
+        run=lambda _ctx: {"source": "seed"},
+    )
+    stage = make_diagnostic_repair_stage(
+        base,
+        oracle=CallableDiagnosticOracle("test", "test", evaluate),
+        repair=lambda _ctx: "regression",
+        max_attempts=1,
+    )
+    out = stage.run({})
+    assert out["source"] == "seed"
+    assert out[REPAIR_KEY]["verified"] is False
+    assert out[REPAIR_KEY]["improved"] is False
+
+
+def test_diagnostic_stage_keeps_unverified_improvement_by_default():
+    def evaluate(candidate: str):
+        return feedback_from_value(
+            lens="test",
+            kind="test",
+            passed=False,
+            score={0: 0.0, "improved-but-red": 1.0}[candidate],
+            diagnostic="still red",
+        )
+
+    stage = make_diagnostic_repair_stage(
+        _seed_stage(0, provides=("source",)),
+        oracle=CallableDiagnosticOracle("test", "test", evaluate),
+        repair=lambda _ctx: "improved-but-red",
+        max_attempts=1,
+    )
+    out = stage.run({})
+    assert out["source"] == 0
+    assert out[REPAIR_KEY]["verified"] is False
+    assert out[REPAIR_KEY]["improved"] is True
+    assert out[REPAIR_KEY]["adopted"] is False
+    assert out[REPAIR_KEY]["adopt_unverified_improvement"] is False
+
+
+def test_diagnostic_stage_can_opt_in_to_unverified_improvement():
+    def evaluate(candidate):
+        return feedback_from_value(
+            lens="test",
+            kind="test",
+            passed=False,
+            score={0: 0.0, "improved-but-red": 1.0}[candidate],
+            diagnostic="still red",
+        )
+
+    stage = make_diagnostic_repair_stage(
+        _seed_stage(0, provides=("source",)),
+        oracle=CallableDiagnosticOracle("test", "test", evaluate),
+        repair=lambda _ctx: "improved-but-red",
+        max_attempts=1,
+        adopt_unverified_improvement=True,
+    )
+    out = stage.run({})
+    assert out["source"] == "improved-but-red"
+    assert out[REPAIR_KEY]["verified"] is False
+    assert out[REPAIR_KEY]["improved"] is True
+    assert out[REPAIR_KEY]["adopted"] is True
+    assert out[REPAIR_KEY]["adopt_unverified_improvement"] is True
+
+
+def test_repair_telemetry_cannot_overwrite_business_output():
+    base = CommanderStage(
+        name="business-repair",
+        verb="실현",
+        requires=(),
+        provides=(REPAIR_KEY,),
+        run=lambda _ctx: {REPAIR_KEY: "business-value"},
+    )
+    with pytest.raises(ValueError, match="telemetry_key collides"):
+        make_repair_stage(base, oracle=_dist_oracle(), generate=_generate)
+
+    oracle = CallableDiagnosticOracle(
+        "test",
+        "test",
+        lambda candidate: feedback_from_value(
+            lens="test",
+            kind="test",
+            passed=False,
+            score=0.0,
+            diagnostic=str(candidate),
+        ),
+    )
+    with pytest.raises(ValueError, match="telemetry_key collides"):
+        make_diagnostic_repair_stage(base, oracle=oracle, repair=lambda ctx: ctx.current)
+
+
+def test_custom_telemetry_key_preserves_repair_business_value():
+    base = CommanderStage(
+        name="business-repair",
+        verb="실현",
+        requires=(),
+        provides=(REPAIR_KEY,),
+        run=lambda _ctx: {REPAIR_KEY: "business-value"},
+    )
+    stage = make_repair_stage(
+        base,
+        oracle=ScalarOracle(name="flat", kind="test", score=lambda _candidate: 0.0),
+        generate=lambda _parents, _generation: (),
+        telemetry_key="_pi_repair_telemetry",
+    )
+    out = stage.run({})
+    assert out[REPAIR_KEY] == "business-value"
+    assert out["_pi_repair_telemetry"]["improved"] is False
+
+
+@pytest.mark.parametrize("diagnostic", [False, True])
+def test_repair_telemetry_cannot_overwrite_incoming_context(diagnostic: bool):
+    base = CommanderStage(
+        name="context-collision",
+        verb="실현",
+        requires=(REPAIR_KEY,),
+        provides=("source",),
+        run=lambda _ctx: {"source": "seed"},
+    )
+    if diagnostic:
+        oracle = CallableDiagnosticOracle(
+            "test",
+            "test",
+            lambda candidate: feedback_from_value(
+                lens="test",
+                kind="test",
+                passed=False,
+                score=0.0,
+                diagnostic=str(candidate),
+            ),
+        )
+        stage = make_diagnostic_repair_stage(
+            base,
+            oracle=oracle,
+            repair=lambda ctx: ctx.current,
+        )
+    else:
+        stage = make_repair_stage(base, oracle=_dist_oracle(), generate=_generate)
+    with pytest.raises(ValueError, match="input context"):
+        stage.run({REPAIR_KEY: "business-value"})

@@ -1,0 +1,12 @@
+{
+  "evidence_sha256": "2245f7931eab2b09a14d58bafd8a5b0387ab2ea567c791cf9636a9ab4e333eef",
+  "from_receipt": true,
+  "head_receipt_sha256": "cacc2b87303c1f295afc9479fa8b56926d70e5f77cd57b73b29f233f5ceeb376",
+  "judge_runner_sha256": "ce6dad270c10b8f0dc724d7eb7e5854d6cc240fbb9ec376c58e72d0162988c75",
+  "judge_script_sha256": "3f7b393f6a3eccc3372b203f5545829cb7bef519797244992a92f7f4b48fcd9d",
+  "ok": true,
+  "prev_receipt_sha256": "1a28eabd052c817c37b69c3f263c9e7459d1166431552cf7de099714e421c763",
+  "response_matches_fresh_derivation": true,
+  "schema": "local-pure-judge-verification/v1",
+  "scripted_source_confirmed": true
+}

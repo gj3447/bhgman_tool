@@ -56,6 +56,8 @@ def test_openai_compat_backend_overrides_model_skips_anthropic_features(monkeypa
         system="S", user="hi", model="claude-haiku-4-5", web_search=True, effort="high"
     )
     assert out.text == "echo:hi"
+    assert out.model == "qwen3.6-27b"
+    assert out.model_observed is True
     url, payload, headers = calls[0]
     assert url.endswith("/chat/completions")
     assert payload["model"] == "qwen3.6-27b"  # claude-* 무시, 로컬 모델 override
@@ -63,6 +65,26 @@ def test_openai_compat_backend_overrides_model_skips_anthropic_features(monkeypa
         "tools" not in payload and "output_config" not in payload
     )  # web_search/effort 미지원 무시
     assert headers["Authorization"].startswith("Bearer ")
+
+
+def test_openai_model_fallback_is_marked_unobserved(monkeypatch):
+    monkeypatch.setenv("BHGMAN_LLM_MODEL", "requested-model")
+
+    def fake_post(url, payload, headers, timeout):
+        del url, payload, headers, timeout
+        return {
+            "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+        }
+
+    out = AgentClient(http_post=fake_post).complete(
+        system="S",
+        user="u",
+        model="ignored-model",
+    )
+
+    assert out.model == "requested-model"
+    assert out.model_observed is False
 
 
 def test_complete_returns_text_and_caches_system():

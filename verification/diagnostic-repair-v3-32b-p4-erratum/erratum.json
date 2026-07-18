@@ -1,0 +1,66 @@
+{
+  "correction": {
+    "corrected_confirm": false,
+    "final_claim_changed": false,
+    "original_confirm": false,
+    "reasons": [
+      "known live-task usage ratios outside [0.8, 1.25]: bestN.total_tokens=1.486902, plain_baseline.model_calls=0.763547, plain_baseline.oracle_calls=0.763547, plain_baseline.total_tokens=0.622249",
+      "matched-token underpower cannot mask an already false required conjunct"
+    ],
+    "status": "FAIL"
+  },
+  "erratum_id": "p4-known-false-dominates-unknown-v1",
+  "generator": {
+    "path": "engine/efficacy/diagnostic_repair_analysis_errata.py",
+    "sha256": "733912c6e7c7e6aba619f3889b86cc4a29879a99805988d26c402bc4bc5dad0c"
+  },
+  "immutability": {
+    "raw_measurement_reinterpreted": false,
+    "scope": "gate-status correction only; raw data and historical analysis remain frozen",
+    "source_rewritten": false
+  },
+  "observation": {
+    "bounds": {
+      "high": 1.25,
+      "low": 0.8
+    },
+    "original_reasons": [
+      "matched-token controls require >=6 non-ties per-run and per-task"
+    ],
+    "original_status": "ABSENT",
+    "ratio_failures": [
+      {
+        "baseline": "bestN",
+        "metric": "total_tokens",
+        "value": 1.486902
+      },
+      {
+        "baseline": "plain_baseline",
+        "metric": "model_calls",
+        "value": 0.763547
+      },
+      {
+        "baseline": "plain_baseline",
+        "metric": "oracle_calls",
+        "value": 0.763547
+      },
+      {
+        "baseline": "plain_baseline",
+        "metric": "total_tokens",
+        "value": 0.622249
+      }
+    ]
+  },
+  "rule": {
+    "gate": "P4",
+    "operator": "AND",
+    "preregistered_requirement": "all raw ratios must remain within bounds",
+    "semantics": "KNOWN_FALSE_DOMINATES_UNKNOWN"
+  },
+  "schema": "pi-diagnostic-repair-analysis-erratum/v1",
+  "source": {
+    "path": "verification/diagnostic-repair-v3-32b/analysis.json",
+    "schema": "pi-diagnostic-repair-harness/v2",
+    "sha256": "d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61"
+  }
+}

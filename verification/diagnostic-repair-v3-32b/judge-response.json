@@ -1,0 +1,13 @@
+{
+  "baseline": 5.5,
+  "baseline_key": "value",
+  "delta": -3.5,
+  "direction": "higher",
+  "improved": false,
+  "measured": 2.0,
+  "metric": "confirmed_gate_count",
+  "node_tag": "exact-qwen2.5-32b-six-arm-confirmatory",
+  "source_record": "The production diagnostic-repair loop clears the frozen B1 bridge and all five preregistered causal, compute, and integrity gates in the exact 32B reproduction.@verification/diagnostic-repair-v3-32b/build_evidence.py",
+  "status": "judged",
+  "verdict": "rejected"
+}

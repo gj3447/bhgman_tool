@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "schema": "pi-diagnostic-repair-lakatotree-preregistration-receipt/v1",
+  "route": "local-content-addressed-pure-judge",
+  "programme": "BHGMAN_DiagnosticRepair_Efficacy_20260716",
+  "branch": "exact-qwen2.5-32b-six-arm-confirmatory",
+  "registered_at": "2026-07-16T13:27:24Z",
+  "request_sha256": "d5f1bfd5df3b24cb7711136a1e4775c7f6cb3e6009a4a61a48b4b7129bc931da",
+  "prediction_receipt_sha256": "d5f1bfd5df3b24cb7711136a1e4775c7f6cb3e6009a4a61a48b4b7129bc931da",
+  "judge_entrypoint": "lakatos.programme.record_judge:judge_record",
+  "note": "Prediction content was frozen before the first live model result. The pure judge may only derive a result from the later grounded evidence record."
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": "symposium-ooptdd-receipt/v1",
+  "template_only": false,
+  "receipt_id": "diagnostic-repair-v3-p4-erratum",
+  "cycle_id": "pi-diagnostic-repair-p4-erratum-20260718",
+  "requirement_group": "P4-KNOWN-FALSE-DOMINATES-UNKNOWN",
+  "spec": {
+    "path": "engine/efficacy/tests/test_diagnostic_repair_analysis_errata.py",
+    "sha256": "cdea64e885456120547da453bcb638c95c5835d538c9674b1fce87b30020d53b",
+    "locked_before_positive_run": true
+  },
+  "producer": {
+    "command": "uv run python verification/diagnostic-repair-v3-32b-p4-erratum/run_erratum_checks.py",
+    "cwd": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716",
+    "git_head": "99a6460149223fdb9ff9dce57e5b0f8f741e504f",
+    "entrypoint": "run_erratum_checks:main",
+    "source_path": "engine/efficacy/diagnostic_repair_analysis_errata.py",
+    "source_symbol": "build_p4_erratum",
+    "real_code_path": true,
+    "exit_code": 0
+  },
+  "correlation": {
+    "cid": "pi-diagnostic-repair-v3-p4-erratum-20260718"
+  },
+  "requirements": [
+    {
+      "id": "P4-DEFECT",
+      "role": "guard_defect",
+      "event": "known_out_of_bounds_ratio_classified_as_fail"
+    },
+    {
+      "id": "P4-MECHANISM",
+      "role": "guard_mechanism",
+      "event": "frozen_source_preserved_and_overlay_read_back"
+    }
+  ],
+  "positive": {
+    "observed_verdict": "green",
+    "receipt_path": "verification/diagnostic-repair-v3-32b-p4-erratum/erratum.json",
+    "receipt_sha256": "438130a6aa5f87ece20034f137ceae898a211424e8c0e9b8e6d350f14abcfc3e",
+    "evidence_tier": "arrived",
+    "charge_ratio": 1.0,
+    "forbidden_events_passed": true,
+    "loop": {
+      "complete": true,
+      "methodology_ok": true,
+      "done": 2,
+      "total": 2
+    }
+  },
+  "negative_oracle": {
+    "spec_sha256": "cdea64e885456120547da453bcb638c95c5835d538c9674b1fce87b30020d53b",
+    "technique": "mutation",
+    "injection": "Replace every raw P4 ratio with the in-bounds value 1.0; the overlay must refuse to invent a failure.",
+    "observed_verdict": "red",
+    "receipt_path": "verification/diagnostic-repair-v3-32b-p4-erratum/negative.json",
+    "receipt_sha256": "3e2bf42bfe793ba87add83cd62fca90ecf770eebdacdf9bb16e5c67cb711bd97",
+    "restored": true
+  },
+  "oracle": {
+    "separate_source": false,
+    "corroborated": false,
+    "emit_identity": "file://verification/diagnostic-repair-v3-32b-p4-erratum/erratum.json",
+    "read_identity": "run_erratum_checks:json-readback"
+  },
+  "source_binding": {
+    "path": "engine/efficacy/diagnostic_repair_analysis_errata.py",
+    "symbol": "build_p4_erratum",
+    "sha256": "733912c6e7c7e6aba619f3889b86cc4a29879a99805988d26c402bc4bc5dad0c"
+  }
+}

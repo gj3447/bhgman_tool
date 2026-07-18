@@ -1,0 +1,33 @@
+{
+  "expected_result": {
+    "analyzer_exit_code": 2,
+    "claim_bearing_analysis_emitted": false,
+    "error": "ContractError"
+  },
+  "injection": "On an isolated copy only, replace the first run_start.model_id with fault-injected-model-id.",
+  "observed_result": {
+    "analyzer_exit_code": 2,
+    "detail": "/private/tmp/pi-diagnostic-repair-v3-negative.SIVojP/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl:2: model_id='qwen2.5:32b-instruct' does not match run_start 'fault-injected-model-id'",
+    "error": "ContractError",
+    "modified_run_start_path": "verification/diagnostic-repair-v3-32b/negative-run-start.json",
+    "modified_run_start_sha256": "23df799683b0c6054a262c633db403aa1d506e94fa75baaf41d9fdb755afc7f2",
+    "ok": false,
+    "original_jsonl_path": "verification/diagnostic-repair-v3-32b/pi-diagnostic-repair-20260716T144220.052322Z-5cbdaca6-seed-0.jsonl",
+    "original_jsonl_sha256": "e51023f9c3ec6a3a2841665655d10b06b3b0ca0f53d826784e7aa5cfab90e8e9",
+    "original_run_start_model_id": "qwen2.5:32b-instruct",
+    "original_run_start_sha256": "610898e6bd2054a903556f702cf955466d3d137dcc8b77e536583dc74bc138eb",
+    "stderr_path": "verification/diagnostic-repair-v3-32b/negative-analyzer.stderr.json",
+    "stderr_sha256": "d91637581e8987d06b84eca970adf2a8842a619b0156455861043efdecbc35f7"
+  },
+  "restore_check": {
+    "hashes_equal": true,
+    "original_analysis_path": "verification/diagnostic-repair-v3-32b/analysis.json",
+    "original_analysis_sha256": "d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61",
+    "restored": true,
+    "restored_analysis_path": "verification/diagnostic-repair-v3-32b/analysis-restored.json",
+    "restored_analysis_sha256": "d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61",
+    "restored_analyzer_exit_code": 0
+  },
+  "schema": "pi-diagnostic-repair-negative-oracle/v1",
+  "technique": "fault_injection"
+}

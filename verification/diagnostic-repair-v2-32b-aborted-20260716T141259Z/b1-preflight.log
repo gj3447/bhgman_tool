@@ -1,0 +1,8 @@
+b1_started_at=2026-07-16T13:23:09Z
+git_head=8b6a17da9649f5d6c9057ec5277381a0b7ebadae
+git_status_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+command=uv run --all-extras pytest -q engine/efficacy/tests/test_diagnostic_repair_harness.py::test_legacy_and_pi_repair_have_equivalent_generation_and_oracle_traces
+.                                                                        [100%]
+1 passed in 0.13s
+exit_code=0
+b1_finished_at=2026-07-16T13:23:09Z

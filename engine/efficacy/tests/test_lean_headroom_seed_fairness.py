@@ -20,6 +20,8 @@ from engine.efficacy import lean_headroom_run as lhr
 
 class _SpyCompletion:
     text = "by rfl"
+    model = "qwen2.5:32b-instruct"
+    model_observed = True
     input_tokens = 3
     output_tokens = 5
 
@@ -81,6 +83,15 @@ def test_frontier_forwards_prompt_and_model(monkeypatch):
     complete([{"role": "system", "content": "SYS"}, {"role": "user", "content": "USR"}], 1)
     call = _SPY.calls[0]
     assert call["system"] == "SYS" and call["user"] == "USR" and call["model"] == "qwen3.6-27b"
+
+
+def test_frontier_records_actual_response_model(monkeypatch):
+    """The claim-bearing harness must bind the backend's response model, not only the request."""
+    _install_frontier(monkeypatch)
+    complete, _ = lhr._make_complete()
+    complete([{"role": "system", "content": "S"}, {"role": "user", "content": "U"}], 1)
+    assert complete.last_response_model == _SpyCompletion.model
+    assert complete.last_response_model_observed is True
 
 
 def test_lean_temp_overrides_p1_temp(monkeypatch):

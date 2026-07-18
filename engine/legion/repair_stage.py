@@ -26,8 +26,18 @@ read-back(best-K)이 unguided best-of-N 과의 유일한 차이 — deceptive la
 
 from __future__ import annotations
 
+from engine.legion.diagnostic_repair import (
+    CandidateFingerprintFn,
+    CandidateSnapshotFn,
+    EventSink,
+    RepairFn,
+    candidate_fingerprint,
+    candidate_snapshot,
+    diagnostic_repair,
+)
 from engine.legion.evolve_loop import GenerateFn, evolve
 from engine.legion.legion_models import CommanderStage
+from engine.naesengmoon.diagnostic_oracle import DiagnosticOracle
 from engine.naesengmoon.oracle_lens import ScalarOracle
 
 # telemetry 키 — repair 정제 결과를 context 에 첨부(provides 아님, run-level 관찰용).
@@ -44,6 +54,7 @@ def make_repair_stage(
     patience: int = 2,
     max_evaluations: int | None = None,
     target: float | None = None,
+    telemetry_key: str = REPAIR_KEY,
 ) -> CommanderStage:
     """base stage를 oracle-guided repair 루프로 승격한 새 CommanderStage 반환.
 
@@ -72,14 +83,20 @@ def make_repair_stage(
         if not base.provides:
             raise ValueError(f"{base.name}: provides 가 비어 repair seed_key 를 정할 수 없음")
         seed_key = base.provides[0]
+    if telemetry_key in base.provides:
+        raise ValueError(f"{base.name}: telemetry_key collides with provides: {telemetry_key}")
     key = seed_key
 
     def _looped_run(ctx: dict) -> dict:
+        if telemetry_key in ctx:
+            raise ValueError(f"{base.name}: telemetry_key already exists in input context")
         out = dict(base.run(ctx))
         if (
             key not in out
         ):  # base 계약 위반은 Legion.run 의 _missing_provides 가 잡음 — 여기선 no-op
             return out
+        if telemetry_key in out:
+            raise ValueError(f"{base.name}: telemetry_key already exists in stage output")
         res = evolve(
             out[key],
             generate,
@@ -91,7 +108,7 @@ def make_repair_stage(
         )
         if res.improved and res.best is not None:  # 정직 가드: 개선 없으면 seed 유지(날조 금지)
             out[key] = res.best.payload
-        out[REPAIR_KEY] = {
+        out[telemetry_key] = {
             "seed_key": key,
             "improved": res.improved,
             "lift": res.lift,
@@ -111,4 +128,102 @@ def make_repair_stage(
     )
 
 
-__all__ = ["REPAIR_KEY", "make_repair_stage"]
+def make_diagnostic_repair_stage(
+    base: CommanderStage,
+    *,
+    oracle: DiagnosticOracle,
+    repair: RepairFn,
+    seed_key: str | None = None,
+    max_attempts: int = 3,
+    max_evaluations: int | None = None,
+    max_wall_seconds: float | None = 300.0,
+    max_repeated_states: int = 2,
+    fingerprint: CandidateFingerprintFn = candidate_fingerprint,
+    snapshot: CandidateSnapshotFn = candidate_snapshot,
+    event_sink: EventSink | None = None,
+    adopt_unverified_improvement: bool = False,
+    telemetry_key: str = REPAIR_KEY,
+) -> CommanderStage:
+    """Wrap a stage with prompt-visible diagnostic repair and re-verification.
+
+    Unlike :func:`make_repair_stage`, which gives a generator only scalar-ranked
+    parents, this adapter passes the last oracle diagnostic to ``repair`` through
+    ``RepairContext.feedback``/``missing``.  The wrapped stage keeps its original
+    Contract and, by default, only replaces the seed when an authoritative oracle
+    passes.  A scalar improvement that still fails verification remains visible in
+    telemetry but is not adopted unless ``adopt_unverified_improvement=True`` is
+    explicitly selected for an experimental caller.
+
+    This is opt-in because only tasks with a deterministic external verifier
+    qualify.  Narrative, canon, and subjective judgment stages must not be
+    wrapped with an LLM-as-oracle approximation.
+    """
+    if seed_key is None:
+        if not base.provides:
+            raise ValueError(f"{base.name}: provides is empty; cannot select repair seed_key")
+        seed_key = base.provides[0]
+    if telemetry_key in base.provides:
+        raise ValueError(f"{base.name}: telemetry_key collides with provides: {telemetry_key}")
+    key = seed_key
+
+    def _looped_run(ctx: dict) -> dict:
+        if telemetry_key in ctx:
+            raise ValueError(f"{base.name}: telemetry_key already exists in input context")
+        out = dict(base.run(ctx))
+        if key not in out:
+            return out
+        if telemetry_key in out:
+            raise ValueError(f"{base.name}: telemetry_key already exists in stage output")
+        result = diagnostic_repair(
+            out[key],
+            repair,
+            oracle,
+            max_attempts=max_attempts,
+            max_evaluations=max_evaluations,
+            max_wall_seconds=max_wall_seconds,
+            max_repeated_states=max_repeated_states,
+            fingerprint=fingerprint,
+            snapshot=snapshot,
+            event_sink=event_sink,
+        )
+        adopted = result.verified or (adopt_unverified_improvement and result.improved)
+        if adopted:
+            out[key] = result.output
+        out[telemetry_key] = {
+            "mode": "diagnostic",
+            "run_id": result.run_id,
+            "seed_key": key,
+            "verified": result.verified,
+            "improved": result.improved,
+            "adopted": adopted,
+            "adopt_unverified_improvement": adopt_unverified_improvement,
+            "stop_reason": result.stop.value,
+            "repairs": result.repairs,
+            "evaluations": result.evaluations,
+            "reported_input_tokens": result.reported_input_tokens,
+            "reported_output_tokens": result.reported_output_tokens,
+            "best_attempt": result.best.index,
+            "attempts": [
+                {
+                    "index": item.index,
+                    "status": item.feedback.status,
+                    "score": item.feedback.score,
+                    "candidate_fingerprint": item.candidate_fingerprint,
+                    "diagnostic_fingerprint": item.feedback.fingerprint,
+                }
+                for item in result.attempts
+            ],
+        }
+        return out
+
+    return CommanderStage(
+        name=base.name,
+        verb=base.verb,
+        requires=base.requires,
+        provides=base.provides,
+        run=_looped_run,
+        measure=base.measure,
+    )
+
+
+__all__ = ["REPAIR_KEY", "make_diagnostic_repair_stage", "make_repair_stage"]

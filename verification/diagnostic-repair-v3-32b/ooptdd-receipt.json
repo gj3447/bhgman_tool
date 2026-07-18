@@ -1,0 +1,71 @@
+{
+  "correlation": {
+    "cid": "pi-diagnostic-repair-v3-32b-20260716"
+  },
+  "cycle_id": "pi-diagnostic-repair-live-20260716",
+  "negative_oracle": {
+    "injection": "On an isolated copy only, replace the first run_start.model_id with fault-injected-model-id.",
+    "observed_verdict": "rejected",
+    "receipt_path": "verification/diagnostic-repair-v3-32b/negative-oracle.json",
+    "receipt_sha256": "0bb843f36064856cc0ba28fe845c6944d031e240c8aab7c859b1744a6c2da74f",
+    "restored": true,
+    "spec_sha256": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f",
+    "technique": "fault_injection"
+  },
+  "oracle": {
+    "corroborated": false,
+    "emit_identity": "file://verification/diagnostic-repair-v3-32b/analysis.json",
+    "read_identity": "file://verification/diagnostic-repair-v3-32b/analysis.json",
+    "separate_source": false
+  },
+  "positive": {
+    "charge_ratio": 1.0,
+    "evidence_tier": "arrived",
+    "forbidden_events_passed": true,
+    "loop": {
+      "complete": true,
+      "done": 10,
+      "methodology_ok": true,
+      "total": 10
+    },
+    "observed_verdict": "green",
+    "receipt_path": "verification/diagnostic-repair-v3-32b/analysis.json",
+    "receipt_sha256": "d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61"
+  },
+  "producer": {
+    "command": "uv run python -m engine.efficacy.analyze_diagnostic_repair_harness --json verification/diagnostic-repair-v3-32b > verification/diagnostic-repair-v3-32b/analysis.json 2> /tmp/pi-diagnostic-repair-v3-analysis-20260717.stderr",
+    "cwd": "/Users/lagyeongjun/CD/SYMPOSIUM/GIT/bhgman_tool-wt-pi-runtime-20260716",
+    "entrypoint": "engine.efficacy.analyze_diagnostic_repair_harness:analyze_paths",
+    "exit_code": 0,
+    "git_head": "30504b06d1c0205649ca7c4494b25a1c19741dea",
+    "real_code_path": true,
+    "source_path": "engine/efficacy/analyze_diagnostic_repair_harness.py",
+    "source_symbol": "analyze_paths"
+  },
+  "receipt_id": "bhgman-diagnostic-repair-v3-integrity",
+  "requirement_group": "DIAGNOSTIC-REPAIR-V3-INTEGRITY",
+  "requirements": [
+    {
+      "event": "fault_injected_model_id_rejected_with_contract_error",
+      "id": "DR-V3-CONTRACT-DRIFT",
+      "role": "guard_defect"
+    },
+    {
+      "event": "untouched_analysis_reproduces_original_sha256",
+      "id": "DR-V3-RESTORE-REPLAY",
+      "role": "guard_mechanism"
+    }
+  ],
+  "schema_version": "symposium-ooptdd-receipt/v1",
+  "source_binding": {
+    "path": "engine/efficacy/analyze_diagnostic_repair_harness.py",
+    "sha256": "1548ef06ce19cdbf35558a31f917013b970a349fc6d844b8e6e865575e916d7b",
+    "symbol": "analyze_paths"
+  },
+  "spec": {
+    "locked_before_positive_run": true,
+    "path": "engine/efficacy/diagnostic_repair_harness_contract.json",
+    "sha256": "b354bfa1e3cd41561f265a7da5cbdbdb83c777d154f1c190764e12f211c53d0f"
+  },
+  "template_only": false
+}

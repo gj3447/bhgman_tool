@@ -1,0 +1,63 @@
+{
+  "branch": "exact-qwen2.5-32b-six-arm-confirmatory-v3",
+  "conjecture": "The production diagnostic-repair loop clears the frozen B1 bridge and all five preregistered causal, compute, and integrity gates in the exact 32B reproduction.",
+  "judge": {
+    "command": "PYTHONPATH=PI/lakatotree PI/lakatotree/.venv/bin/python GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/run_pure_judge.py --evidence GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakato-evidence.json --output GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-response.json --rc-output GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge.rc > GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge.stdout.log 2> GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge.stderr.log",
+    "cwd": "/Users/lagyeongjun/CD/SYMPOSIUM",
+    "entrypoint": "lakatos.programme.record_judge:judge_record",
+    "exit_code": 0,
+    "git_head": "fd4c695b17d571c04036ccb21d53720de8c91a01",
+    "prev_receipt_sha256": "1a28eabd052c817c37b69c3f263c9e7459d1166431552cf7de099714e421c763",
+    "response_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-response.json",
+    "response_sha256": "cacc2b87303c1f295afc9479fa8b56926d70e5f77cd57b73b29f233f5ceeb376",
+    "verdict_receipt_sha256": "cacc2b87303c1f295afc9479fa8b56926d70e5f77cd57b73b29f233f5ceeb376"
+  },
+  "measurement": {
+    "evidence_records": [
+      {
+        "contains_verdict": false,
+        "grounded": true,
+        "path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakato-evidence.json",
+        "schema": "lakato-evidence-record/v1",
+        "sha256": "2245f7931eab2b09a14d58bafd8a5b0387ab2ea567c791cf9636a9ab4e333eef"
+      }
+    ],
+    "started_at": "2026-07-16T14:42:20.052359+00:00"
+  },
+  "preregistration": {
+    "judge_script_path": "GIT/lakatotree_codex_harness_20260714/lakatos/programme/record_judge.py",
+    "judge_script_sha256": "3f7b393f6a3eccc3372b203f5545829cb7bef519797244992a92f7f4b48fcd9d",
+    "kill_condition": "confirmed_gate_count < 6, B1 exit_code != 0, analyzer replay invalid, or any P1-P5 status other than PASS",
+    "prediction": {
+      "baseline": 5.5,
+      "direction": "higher",
+      "metric": "confirmed_gate_count",
+      "noise_band": 0.0,
+      "scale_type": "ratio"
+    },
+    "prediction_receipt_sha256": "1a28eabd052c817c37b69c3f263c9e7459d1166431552cf7de099714e421c763",
+    "registered_at": "2026-07-16T14:39:30Z",
+    "registered_before_measurement": true,
+    "request_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakatotree-preregistration-request.json",
+    "request_sha256": "1a28eabd052c817c37b69c3f263c9e7459d1166431552cf7de099714e421c763",
+    "response_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/lakatotree-preregistration-response.json",
+    "response_sha256": "bce5b305d9e42c55ee5c3da6b49bb7e482a8131ee045b93bc524eb094156424b"
+  },
+  "programme": "BHGMAN_DiagnosticRepair_Efficacy_20260716",
+  "roles": {
+    "implementer": "codex-pi-diagnostic-repair-live-20260716",
+    "judge": "lakatotree-local-pure-judge"
+  },
+  "schema_version": "symposium-lakatotree-judgment/v1",
+  "template_only": false,
+  "verification": {
+    "from_receipt": true,
+    "head_receipt_sha256": "cacc2b87303c1f295afc9479fa8b56926d70e5f77cd57b73b29f233f5ceeb376",
+    "ok": true,
+    "receipt_chain_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-chain.json",
+    "receipt_chain_sha256": "8131df89c04913d20f734a5fa920b4650dceeb0e864b504061018d31f7bc1a03",
+    "scripted_source_confirmed": true,
+    "verify_output_path": "GIT/bhgman_tool-wt-pi-runtime-20260716/verification/diagnostic-repair-v3-32b/judge-verify.json",
+    "verify_output_sha256": "94ff02308da2a5c7afbdd9ae8bef9c36510cb8424897b0f0e63885e18ad3eea1"
+  }
+}

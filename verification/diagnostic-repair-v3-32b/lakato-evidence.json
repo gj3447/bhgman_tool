@@ -1,0 +1,91 @@
+{
+  "branch": "exact-qwen2.5-32b-six-arm-confirmatory-v3",
+  "conjecture": "The production diagnostic-repair loop clears the frozen B1 bridge and all five preregistered causal, compute, and integrity gates in the exact 32B reproduction.",
+  "harness": {
+    "env": "python=3.9.6;model=qwen2.5:32b-instruct;endpoint_class=openai-compatible;lean=leanprover/lean4:v4.27.0",
+    "git_commit": "30504b06d1c0205649ca7c4494b25a1c19741dea",
+    "script": "verification/diagnostic-repair-v3-32b/build_evidence.py",
+    "timestamp": "2026-07-16T16:08:36.597891+00:00"
+  },
+  "measurement": {
+    "derived": {
+      "B1": {
+        "exit_code": 0,
+        "finished_at": "2026-07-16T16:08:11Z",
+        "git_head": "30504b06d1c0205649ca7c4494b25a1c19741dea",
+        "git_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "started_at": "2026-07-16T16:07:43Z",
+        "state": "PASS"
+      },
+      "P1": "ABSENT",
+      "P2": "ABSENT",
+      "P3": "FAIL",
+      "P4": "ABSENT",
+      "P5": "PASS",
+      "analyzer_confirm_P1_through_P5": false,
+      "b1_credit": 1,
+      "statistical_gate_count": 1
+    },
+    "metric": "confirmed_gate_count",
+    "unit": "gates",
+    "value": 2
+  },
+  "node_tag": "exact-qwen2.5-32b-six-arm-confirmatory",
+  "preregistration": {
+    "claim": "The production diagnostic-repair loop clears the frozen B1 bridge and all five preregistered causal, compute, and integrity gates in the exact 32B reproduction.",
+    "direction": "higher",
+    "kill_condition": "confirmed_gate_count < 6, B1 exit_code != 0, analyzer replay invalid, or any P1-P5 status other than PASS",
+    "noise_band": 0.0,
+    "predicted": {
+      "metric": "confirmed_gate_count",
+      "unit": "gates",
+      "value": 5.5
+    },
+    "prediction_receipt_sha256": "1a28eabd052c817c37b69c3f263c9e7459d1166431552cf7de099714e421c763",
+    "registered_at": "2026-07-16T14:39:30Z",
+    "registered_before_measurement": true
+  },
+  "programme": "BHGMAN_DiagnosticRepair_Efficacy_20260716",
+  "provenance": {
+    "data_manifest": "engine/efficacy/diagnostic_repair_harness_manifest.v3.json",
+    "grounded": true,
+    "inputs": [
+      {
+        "name": "analysis",
+        "sha256": "d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61",
+        "source": "verification/diagnostic-repair-v3-32b/analysis.json"
+      },
+      {
+        "name": "b1_preflight",
+        "sha256": "966f7ba3e8947ffb3e68763929e0e9cfd4079fa20d69f5770c5f2a4bff973530",
+        "source": "verification/diagnostic-repair-v3-32b/b1-measurement.log"
+      },
+      {
+        "name": "frozen_manifest",
+        "sha256": "795c3fd6d36f5c72f1457f0d249c5efbb5174775bc0734dbd8e434feaf82761f",
+        "source": "engine/efficacy/diagnostic_repair_harness_manifest.v3.json"
+      },
+      {
+        "name": "frozen_preregistration",
+        "sha256": "ff5afd73e006f00efbb3f32c8d1d0aad34a37ed1a5994ebdbed15133f54d5d92",
+        "source": "engine/efficacy/DIAGNOSTIC_REPAIR_PREREGISTRATION_V3.md"
+      },
+      {
+        "name": "lakatotree_preregistration_request",
+        "sha256": "1a28eabd052c817c37b69c3f263c9e7459d1166431552cf7de099714e421c763",
+        "source": "verification/diagnostic-repair-v3-32b/lakatotree-preregistration-request.json"
+      },
+      {
+        "name": "lakatotree_preregistration_response",
+        "sha256": "bce5b305d9e42c55ee5c3da6b49bb7e482a8131ee045b93bc524eb094156424b",
+        "source": "verification/diagnostic-repair-v3-32b/lakatotree-preregistration-response.json"
+      },
+      {
+        "name": "evidence_builder",
+        "sha256": "54dc65f5da0fa081223c3723121a066278dfcf86c5db7dfb66eb0b95975246ce",
+        "source": "verification/diagnostic-repair-v3-32b/build_evidence.py"
+      }
+    ]
+  },
+  "schema": "lakato-evidence-record/v1"
+}

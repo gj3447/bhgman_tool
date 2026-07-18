@@ -242,6 +242,16 @@ verify = "warn"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# These five v3 experiment artifacts are byte-for-byte inputs to the frozen
+# manifest and 3,661-record evidence set. Formatting them in place would make
+# the preregistered run unreplayable. New efficacy code remains fully gated.
+extend-exclude = [
+  "engine/efficacy/diagnostic_repair_harness.py",
+  "engine/efficacy/lean_headroom_run.py",
+  "engine/efficacy/lean_sandbox_runner_macos.py",
+  "engine/efficacy/tests/test_diagnostic_repair_contracts.py",
+  "engine/efficacy/tests/test_diagnostic_repair_harness.py",
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Test files commonly use `sys.path.insert(...)` before imports to bridge package roots
