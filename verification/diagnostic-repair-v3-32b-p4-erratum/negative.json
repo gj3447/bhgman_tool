@@ -1,0 +1,9 @@
+{
+  "cid": "pi-diagnostic-repair-v3-p4-erratum-20260718",
+  "error": "no known raw-ratio violation exists; P4 cannot be corrected to FAIL",
+  "error_type": "ErratumError",
+  "injection": "replace every raw P4 ratio with the in-bounds value 1.0",
+  "observed": "red",
+  "schema": "pi-diagnostic-repair-analysis-erratum-negative/v1",
+  "source_sha256": "d92cdea0390f39d461d907ed030c0649808e59c91de6d7c933acdc5ebc213a61"
+}

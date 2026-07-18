@@ -1,0 +1,7 @@
+{
+  "cid": "pi-diagnostic-repair-v3-p4-erratum-20260718",
+  "erratum_sha256": "438130a6aa5f87ece20034f137ceae898a211424e8c0e9b8e6d350f14abcfc3e",
+  "restored_matches_positive": true,
+  "schema": "pi-diagnostic-repair-analysis-erratum-restore/v1",
+  "source_unchanged": true
+}
