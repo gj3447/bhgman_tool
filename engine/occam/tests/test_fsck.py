@@ -30,6 +30,12 @@ def test_cypher_gates_on_archived_label_and_live_target():
     assert "LIVE_TARGETS <> 1" in up  # 0(dangling) 또는 >1(ambiguous) 위반
 
 
+def test_cypher_exempts_terminal_tombstones():
+    # terminal(파일삭제/퇴화 종단 무덤)은 후계자가 원래 없음 — exactly-1 은 supersession 무덤에만.
+    up = _ARCHIVE_INTEGRITY_CYPHER.upper()
+    assert "COALESCE(A.TERMINAL, FALSE) = FALSE" in up
+
+
 def test_clean_kg_has_no_violations():
     assert check_archive_integrity(_Runner([])) == []
 

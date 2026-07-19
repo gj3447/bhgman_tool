@@ -165,7 +165,10 @@ _SUPERSEDE_CYPHER = (
     "WHERE size(ss) = 1 AND size(cs) = 1 "
     "WITH ss[0] AS stale, cs[0] AS current "
     "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동일키 no-op)
-    "SET stale.status = 'SUPERSEDED', "
+    # canonical 아카이브 마커 = :ARCHIVED 라벨 (C1). writer 가 라벨을 안 쓰면 공유
+    # current-view(views.current_only, 라벨 게이트)가 occam 무덤을 못 거른다. 2026-07-19.
+    "SET stale:ARCHIVED, "
+    "stale.status = 'SUPERSEDED', "
     "stale.supersededBy = $current_path, "
     "stale.supersededReason = $reason, "
     "stale.supersededAt = datetime(), "
