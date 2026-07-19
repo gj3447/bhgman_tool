@@ -40,12 +40,22 @@ def make_native_complete(model: str, *, think: bool, base_url: str = "http://loc
             "model": model, "think": think, "stream": False, "messages": list(messages),
             "options": {"temperature": temp, "num_predict": num_predict, "seed": int(seed)},
         }).encode()
-        req = urllib.request.Request(
-            f"{base_url}/api/chat", body, {"Content-Type": "application/json"})
-        data = json.load(urllib.request.urlopen(req, timeout=timeout))
-        complete.last_usage = (
-            int(data.get("prompt_eval_count", 0)), int(data.get("eval_count", 0)))
-        return data.get("message", {}).get("content", "")
+        # A single hung generation must NOT abort the whole run (seed-0 timeout killed rung A).
+        # A per-call timeout returns an EMPTY proof = an honest FAIL for that attempt (the arm
+        # simply doesn't prove it), never a crash. num_predict already caps runaway thinking.
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(
+                    f"{base_url}/api/chat", body, {"Content-Type": "application/json"})
+                data = json.load(urllib.request.urlopen(req, timeout=timeout))
+                complete.last_usage = (
+                    int(data.get("prompt_eval_count", 0)), int(data.get("eval_count", 0)))
+                return data.get("message", {}).get("content", "")
+            except Exception:  # noqa: BLE001 - timeout/transient => empty proof = honest fail
+                complete.last_usage = (0, 0)
+                if attempt == 0:
+                    continue
+                return ""
 
     complete.last_usage = (0, 0)
     return complete
