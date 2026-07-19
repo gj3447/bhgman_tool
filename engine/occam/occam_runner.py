@@ -25,6 +25,8 @@ from engine.occam.kg_adapter import (
 )
 from engine.occam.escalation import is_confident_supersede
 from engine.occam.occam import normalize_path, occam_pass
+from engine.occam.decision_log import append_decision_records, build_decision_record
+from engine.occam.fsck import IntegrityViolation, check_archive_integrity
 from engine.occam.occam_models import NodeRecord, OccamReport
 from engine.occam.scoring import NodeScoreMeta
 
@@ -186,12 +188,16 @@ def run_occam(
     apply: bool = False,
     disk_truth: dict[str, str] | None = None,
     repo_root: str | Path | None = None,
+    decision_log_path: str | Path | None = None,
 ) -> OccamRunResult:
-    # KG: occam-kam-canonical-2026-05-26
+    # KG: occam-kam-canonical-2026-05-26, prom6-occam-advancement-synthesis-2026-07-19 (C6)
     """KG SourceCodeNode dedup pass. apply=False(기본) → dry-run, supersede write 없음.
 
     repo_root 주면 디스크를 스캔해 disk_paths 도출 → sha-이동/disk-orphan(mode-2/3) 탐지 활성.
     None이면 same-path 중복(mode-1)만.
+
+    decision_log_path 주면 각 후보의 feature-vector + σ + verdict 를 jsonl 로 append
+    (PROM 6 C6 — σ 자가보정 학습셋). None이면 로깅 없음(기존 동작 불변).
     """
     nodes = fetch_source_nodes(run_cypher, scope)
     disk_paths = scan_disk_paths(repo_root) if repo_root is not None else None
@@ -211,7 +217,21 @@ def run_occam(
         dry_run=not apply,
         should_apply=is_confident_supersede,
     )
+    if decision_log_path is not None and report.candidates:
+        decided_at = datetime.now(timezone.utc).isoformat()
+        records = [
+            build_decision_record(c, decided_at=decided_at, run_id=scope)
+            for c in report.candidates
+        ]
+        append_decision_records(records, decision_log_path)
     return OccamRunResult(report=report, apply_result=apply_result, scope=scope)
+
+
+def run_fsck(run_cypher: CypherRunner) -> list[IntegrityViolation]:
+    # KG: prom6-occam-advancement-synthesis-2026-07-19 (C8), occam-kam-canonical-2026-05-26
+    """아카이브 무결성 검사 (read-only): 모든 :ARCHIVED 노드가 정확히 1개의 live
+    SUPERSEDED_BY 타겟을 갖는지. 빈 리스트 = 무결. dangling/ambiguous 무덤 탐지."""
+    return check_archive_integrity(run_cypher)
 
 
 __all__ = ["OccamRunResult", "run_occam", "scan_disk_paths"]
