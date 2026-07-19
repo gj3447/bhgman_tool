@@ -218,10 +218,12 @@ class LonginusDaemon:
     # KG: ATOM_Skill_longinus
     """Multi-repo drift watch daemon."""
 
-    def __init__(self, config_path: Path) -> None:
+    def __init__(self, config_path: Path, occam_dirty_db: Path | None = None) -> None:
         self.config_path = config_path
         self.workers: dict[str, _Worker] = {}
         self.drift_queue: mp.Queue = mp.Queue()
+        # occam dirty-set 큐 DB (None = dirty_queue 기본 ~/.bhgman/occam_dirty.db)
+        self.occam_dirty_db = occam_dirty_db
         self._stop = False
 
     def start(self) -> None:
@@ -321,7 +323,27 @@ class LonginusDaemon:
                 break
         for ev in events:
             logger.info(f"drift detected: {ev}")
+        if events:
+            self._enqueue_occam_dirty(events)
         return events
+
+    def _enqueue_occam_dirty(self, events: list[dict]) -> None:
+        """drift 이벤트 → occam dirty-set 큐 (PROM 6 C7/A2 배선, 2026-07-19).
+
+        sha 드리프트가 감지된 경로를 occam 증분 재감사 대상으로 영속 enqueue —
+        occam 소비 흐름: pending(now_ms) → run_incremental(scope) → ack().
+        lazy import + fail-open: occam 측 오류가 daemon 을 죽이지 않는다.
+        # KG: prom6-occam-advancement-synthesis-2026-07-19, rf-occam-adv-A2-2026-07-19
+        """
+        try:
+            from engine.occam.dirty_queue import DirtyQueue, enqueue_from_drift  # noqa: PLC0415
+
+            q = DirtyQueue(self.occam_dirty_db) if self.occam_dirty_db else DirtyQueue()
+            for ev in events:
+                at_ms = int(float(ev.get("detected_at", 0)) * 1000)
+                enqueue_from_drift(q, [str(ev.get("path", ""))], at_ms=at_ms)
+        except Exception as e:  # noqa: BLE001 — daemon liveness > queue delivery
+            logger.warning(f"occam dirty enqueue failed (daemon continues): {e}")
 
     def _signal_stop(self, signum: int, frame: object) -> None:
         logger.info(f"received signal {signum}; initiating shutdown")
