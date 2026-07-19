@@ -239,5 +239,7 @@ def test_supersede_cypher_guards_against_already_archived_nodes():
     assert "NOT S:ARCHIVED" in up and "NOT C:ARCHIVED" in up, (
         "write guard must gate on :ARCHIVED label (both sides)"
     )
+    # writer 도 라벨을 SET 해야 공유 current-view(라벨 게이트)가 occam 무덤을 거른다 (C1 정합).
+    assert "SET STALE:ARCHIVED" in up, "supersede write must add the canonical :ARCHIVED label"
     # 유일성 가드: 비유일 (path,sha) 다중매치는 write 대신 0-row 로 fail-close 해야 한다.
     assert "SIZE(SS) = 1" in up and "SIZE(CS) = 1" in up, "missing uniqueness guard"

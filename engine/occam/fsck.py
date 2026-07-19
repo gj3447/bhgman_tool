@@ -19,8 +19,12 @@ from dataclasses import dataclass
 CypherRunner = Callable[[str, "dict"], "list[dict]"]
 
 # 모든 :ARCHIVED 노드의 live(비아카이브) SUPERSEDED_BY 타겟 수 집계 → 1이 아닌 것만.
+# terminal 무덤(a.terminal=true — 파일 삭제/퇴화 등 *후계자가 원래 없는* 종단 아카이브)은
+# 면제: supersession 무덤에만 exactly-1 불변식이 성립한다 (2026-07-19 라이브 데이터 정밀화 —
+# 레거시 dangling 13건 중 1건이 정당한 terminal 이었음).
 _ARCHIVE_INTEGRITY_CYPHER = (
     "MATCH (a:SourceCodeNode:ARCHIVED) "
+    "WHERE coalesce(a.terminal, false) = false "
     "OPTIONAL MATCH (a)-[:SUPERSEDED_BY]->(t) WHERE NOT t:ARCHIVED "
     "WITH a, count(t) AS live_targets "
     "WHERE live_targets <> 1 "
