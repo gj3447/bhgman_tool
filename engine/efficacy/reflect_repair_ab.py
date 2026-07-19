@@ -57,6 +57,42 @@ def _distill(task, complete, proof, error, seed) -> str:
     return _THINK.sub(" ", note).strip()[:400]
 
 
+def _make_claude_reflector(model: str | None = None):
+    """(messages, seed) -> text via the Anthropic API — the STRONGER reflector arm.
+
+    Key: $ANTHROPIC_API_KEY else ~/.config/anthropic/api_key. This is a LARGER compute class
+    than the 27b generator ("27b draws + claude reflector") and must be labelled as such —
+    never reported as a 27b equal-compute win. Seed is accepted for signature parity but the
+    API is not seeded; temperature 0.3 keeps the hint stable."""
+    import json as _json
+    import urllib.request
+
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        key_path = Path.home() / ".config" / "anthropic" / "api_key"
+        key = key_path.read_text().strip() if key_path.exists() else ""
+    if not key:
+        raise RuntimeError("no Anthropic API key (env ANTHROPIC_API_KEY or ~/.config/anthropic/api_key)")
+    resolved = model or os.environ.get("STRONG_REFLECTOR_MODEL", "claude-sonnet-4-6")
+
+    def _reflect(messages, seed):  # noqa: ARG001 - seed unused (API not seeded)
+        system = next((m["content"] for m in messages if m["role"] == "system"), "")
+        user = next(m["content"] for m in messages if m["role"] == "user")
+        body = _json.dumps({
+            "model": resolved, "max_tokens": 200, "temperature": 0.3,
+            "system": system, "messages": [{"role": "user", "content": user}],
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages", body,
+            {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+        )
+        data = _json.load(urllib.request.urlopen(req, timeout=120))
+        return "".join(b.get("text", "") for b in data.get("content", []))
+
+    _reflect.model = resolved
+    return _reflect
+
+
 def _reflect_prompt(task, note: str):
     sys = {
         "role": "system",
@@ -72,9 +108,12 @@ def _reflect_prompt(task, note: str):
     return [sys, {"role": "user", "content": ask}]
 
 
-def _arm_reflect(task, complete, k, off=0, *, log=None, run_meta=None):
+def _arm_reflect(task, complete, k, off=0, *, log=None, run_meta=None, reflect_complete=None):
     """Round 1 fresh; rounds 2..K = distill(error)->note, then generate from the NOTE (proof dropped).
-    Keep-best. Uses K generations + (K-1) reflect calls (a bigger compute class than bestN)."""
+    Keep-best. Uses K generations + (K-1) reflect calls (a bigger compute class than bestN).
+    ``reflect_complete`` (default: the generator itself) is the distillation client — pass
+    ``_make_claude_reflector()`` for the STRONGER-reflector arm."""
+    rc = reflect_complete or complete
     proof = _gen(task, complete, off)
     ti, to = _usage(complete)
     v = _eval_attempt(task, proof, arm="reflect", attempt=1, seed=off, log=log, run_meta=run_meta,
@@ -84,7 +123,7 @@ def _arm_reflect(task, complete, k, off=0, *, log=None, run_meta=None):
     best = v.graded_score
     prev_proof, prev_err = proof, v.error_tail
     for i in range(1, k):
-        note = _distill(task, complete, prev_proof, prev_err, off + i)
+        note = _distill(task, rc, prev_proof, prev_err, off + i)
         proof = _extract_proof(complete(_reflect_prompt(task, note), off + i))
         ti, to = _usage(complete)
         v = _eval_attempt(task, proof, arm="reflect", attempt=i + 1, seed=off + i, log=log,
@@ -97,15 +136,18 @@ def _arm_reflect(task, complete, k, off=0, *, log=None, run_meta=None):
     return False, best
 
 
-def _run_ab_once(complete, backend, *, k, seed_offset, log=None, run_id=None):
+def _run_ab_once(complete, backend, *, k, seed_offset, log=None, run_id=None, reflect_complete=None):
+    reflector = getattr(reflect_complete, "model", None) if reflect_complete else "self"
     run_meta = {"run_id": run_id or _run_id(seed_offset), "backend": backend, "K": k, "seed_offset": seed_offset}
     _log_record(log, {"record_type": "run_start", **run_meta, "arms": ["reflect", "repair", "bestN"],
+                      "reflector": reflector,  # honest compute-class label
                       "n_tasks": len(TASKS),
                       "tasks": [{"name": t.name, "difficulty": t.difficulty, "signature": t.signature} for t in TASKS]})
-    print(f"[reflect-ab] backend={backend} K={k} seed_offset={seed_offset} n={len(TASKS)}")
+    print(f"[reflect-ab] backend={backend} reflector={reflector} K={k} seed_offset={seed_offset} n={len(TASKS)}")
     rows = []
     for t in TASKS:
-        f_p, f_g = _arm_reflect(t, complete, k, seed_offset, log=log, run_meta=run_meta)
+        f_p, f_g = _arm_reflect(t, complete, k, seed_offset, log=log, run_meta=run_meta,
+                                reflect_complete=reflect_complete)
         r_p, r_g = _arm_repair(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         b_p, b_g = _arm_bestn(t, complete, k, seed_offset, log=log, run_meta=run_meta)
         rows.append({"task": t.name, "difficulty": t.difficulty, "reflect": f_p, "repair": r_p, "bestN": b_p,
@@ -138,6 +180,9 @@ def _parse_args(argv=None):
     p.add_argument("--seed-offset", type=int, default=int(os.environ.get("SEED_OFFSET", "0")))
     p.add_argument("--seed-step", type=int, default=int(os.environ.get("LEAN_SEED_STEP", "10")))
     p.add_argument("--out-dir", default=os.environ.get("LEAN_OUT_DIR"))
+    p.add_argument("--reflector", choices=["self", "claude"], default="self",
+                   help="'claude' = stronger-model distillation (larger compute class, "
+                        "labelled '27b draws + claude reflector').")
     return p.parse_args(argv)
 
 
@@ -150,6 +195,7 @@ def main(argv=None) -> int:
         print("[reflect-ab] lean toolchain not on PATH — cannot run.")
         return 2
     complete, backend = _make_complete()
+    reflect_complete = _make_claude_reflector() if args.reflector == "claude" else None
     out_dir = Path(args.out_dir) if args.out_dir else None
     if out_dir is not None:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -157,11 +203,13 @@ def main(argv=None) -> int:
         seed_offset = args.seed_offset + rep * args.seed_step
         rid = _run_id(seed_offset)
         if out_dir is None:
-            _run_ab_once(complete, backend, k=args.k, seed_offset=seed_offset)
+            _run_ab_once(complete, backend, k=args.k, seed_offset=seed_offset,
+                         reflect_complete=reflect_complete)
             continue
         with (out_dir / f"seed_{seed_offset}.jsonl").open("w", encoding="utf-8") as log:
             print(f"[reflect-ab] raw_jsonl={out_dir / f'seed_{seed_offset}.jsonl'}")
-            _run_ab_once(complete, backend, k=args.k, seed_offset=seed_offset, log=log, run_id=rid)
+            _run_ab_once(complete, backend, k=args.k, seed_offset=seed_offset, log=log, run_id=rid,
+                         reflect_complete=reflect_complete)
     return 0
 
 

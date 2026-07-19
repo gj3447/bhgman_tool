@@ -81,3 +81,22 @@ def test_early_exit_round1_no_reflect():
     proven, score = _arm_reflect(_task(), fake, k=4, off=0)
     assert (proven, score) == (True, 1.0)
     assert len(fake.calls) == 1  # proven on the first fresh draw, no reflect spend
+
+
+def test_strong_reflector_routes_distill_to_reflect_complete_only():
+    """The stronger-reflector arm: distillation goes to reflect_complete, ALL generations stay on
+    the (weaker) generator — the compute-class boundary the honest label depends on."""
+    reflect_calls = []
+
+    def strong(messages, seed):
+        assert "ONE sentence" in messages[0]["content"], "reflector must only see distill prompts"
+        reflect_calls.append(seed)
+        return "USE_INDUCTION"
+
+    fake = _Fake(gen2="WIN")
+    proven, score = _arm_reflect(_task(), fake, k=4, off=0, reflect_complete=strong)
+    assert (proven, score) == (True, 1.0)
+    assert reflect_calls == [1]                      # distill went to the strong reflector
+    kinds = [c[0] for c in fake.calls]
+    assert "distill" not in kinds                    # generator never distilled
+    assert kinds == ["gen1", "gen2"]                 # generator did all generations
