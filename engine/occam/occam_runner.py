@@ -217,13 +217,18 @@ def run_occam(
         dry_run=not apply,
         should_apply=is_confident_supersede,
     )
-    if decision_log_path is not None and report.candidates:
-        decided_at = datetime.now(timezone.utc).isoformat()
-        records = [
-            build_decision_record(c, decided_at=decided_at, run_id=scope)
-            for c in report.candidates
-        ]
-        append_decision_records(records, decision_log_path)
+    if decision_log_path is not None:
+        # C6 폐합: 새 결정 기록 *전에* 기존 크리틱 verdict 를 수확해 라벨 백필 (멱등).
+        from engine.occam.verdict_harvest import harvest_and_apply  # noqa: PLC0415 (cycle 방지)
+
+        harvest_and_apply(run_cypher, decision_log_path)
+        if report.candidates:
+            decided_at = datetime.now(timezone.utc).isoformat()
+            records = [
+                build_decision_record(c, decided_at=decided_at, run_id=scope)
+                for c in report.candidates
+            ]
+            append_decision_records(records, decision_log_path)
     return OccamRunResult(report=report, apply_result=apply_result, scope=scope)
 
 
