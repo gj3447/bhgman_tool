@@ -332,6 +332,7 @@ def stage_5_naesengmoon_gate(abstract_classes: list[AbstractClass]) -> list[Abst
 _PERSIST_AC_CYPHER = (
     "MERGE (a:AbstractClass {name: $name}) "
     "SET a.verdictStatus = $verdictStatus, a.status = $status, a.summary = $summary, "
+    "a.createdAt = coalesce(a.createdAt, $createdAt), "
     "a.inductionMethod = $inductionMethod, a.cycleId = $cycleId, "
     "a.extent = $extent, a.intent = $intent, a.stabilityScore = $stabilityScore, "
     "a.semanticName = $semanticName, a.mechanism = $mechanism, a.scope = $scope, "
@@ -410,6 +411,7 @@ def _persist_params(ac: AbstractClass, *, accept: bool) -> dict[str, Any]:
         "verdictStatus": "ACCEPTED" if accept else "VERDICT_PENDING",
         "status": ac.status.value,
         "summary": ac.summary,
+        "createdAt": ac.createdAt.isoformat(),
         "inductionMethod": ac.inductionMethod,
         "cycleId": ac.cycleId,
         "extent": ac.extent or [],
