@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from engine.longinus_drift_audit.models import (
+    Confidence,
     KgRefRecord,
     KnowledgeHubRecord,
     ReferenceLayer,
@@ -328,6 +329,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 "WHERE n.sourceId IS NOT NULL AND n.sourcePath IS NOT NULL "
                 "AND ($repo_tag IS NULL OR n.repo_tag = $repo_tag) "
                 "RETURN n.sourceId AS sourceId, n.sourcePath AS sourcePath, "
+                "n.confidence AS confidence, "
                 "n.sha256 AS sha256, n.sha256_baseline AS sha256_baseline, "
                 "n.sha256_status AS sha256_status, n.kg_anchor AS kg_anchor, "
                 "n.layer AS layer, n.last_validated AS last_validated, "
@@ -363,6 +365,14 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 ly = _coerce_enum(r.get("layer"), ReferenceLayer)
                 if ly is not None:
                     kwargs["layer"] = ly
+                # Confidence (P0 2026-07-21): hydrate across the KG round-trip.
+                # A missing OR non-enum stored value hydrates to UNKNOWN — never the
+                # model's EXTRACTED default — so a confidence that was never persisted
+                # is never silently promoted (design §8/§10, HSWM lens-duality). The
+                # explicit set (not the pydantic field default) IS the fix; the field
+                # default stays EXTRACTED only for fresh scan-time mint sites.
+                conf = _coerce_enum(r.get("confidence"), Confidence)
+                kwargs["confidence"] = conf if conf is not None else Confidence.UNKNOWN
                 try:
                     out.append(ReferenceSite(**kwargs))
                 except Exception:  # noqa: BLE001 — genuinely broken row; count, never silently swallow
@@ -381,6 +391,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 """
                 MERGE (n:ReferenceSite {sourceId: $sourceId})
                 SET n.sourcePath = $sourcePath,
+                    n.confidence = $confidence,
                     n.sha256 = $sha256,
                     n.sha256_baseline = $sha256_baseline,
                     n.sha256_status = $sha256_status,
@@ -399,6 +410,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 """,
                 sourceId=site.sourceId,
                 sourcePath=site.sourcePath,
+                confidence=site.confidence.value,
                 sha256=site.sha256,
                 sha256_baseline=site.sha256_baseline,
                 sha256_status=site.sha256_status.value if site.sha256_status else None,
@@ -426,7 +438,8 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 WITH kg LIMIT 1
                 WITH kg WHERE kg IS NOT NULL
                 MERGE (rs:ReferenceSite {sourceId: $sourceId, sourcePath: $sourcePath})
-                  SET rs.sha256 = $sha256,
+                  SET rs.confidence = $confidence,
+                      rs.sha256 = $sha256,
                       rs.sha256_baseline = $sha256_baseline,
                       rs.kg_anchor = $kg_ref,
                       rs.layer = $layer,
@@ -443,6 +456,7 @@ class Neo4jKgClient(KgClient):  # pragma: no cover
                 kg_ref=kg_ref,
                 sourceId=site.sourceId,
                 sourcePath=site.sourcePath,
+                confidence=site.confidence.value,
                 sha256=site.sha256,
                 sha256_baseline=site.sha256_baseline,
                 layer=site.layer.value if site.layer else None,
@@ -689,7 +703,8 @@ class McpKgClient(Neo4jKgClient):  # pragma: no cover
             """
             MATCH (kg {name: $kg_ref}) WITH kg LIMIT 1
             MERGE (rs:ReferenceSite {sourceId: $sourceId, sourcePath: $sourcePath})
-              SET rs.sha256 = $sha256, rs.sha256_baseline = $sha256_baseline,
+              SET rs.confidence = $confidence,
+                  rs.sha256 = $sha256, rs.sha256_baseline = $sha256_baseline,
                   rs.kg_anchor = $kg_ref, rs.layer = $layer, rs.repo_tag = $repo_tag,
                   rs.signature_baseline = $signature_baseline, rs.last_validated = $last_validated
             MERGE (scn:SourceCodeNode {sourcePath: $sourcePath})
@@ -701,6 +716,7 @@ class McpKgClient(Neo4jKgClient):  # pragma: no cover
             kg_ref=kg_ref,
             sourceId=site.sourceId,
             sourcePath=site.sourcePath,
+            confidence=site.confidence.value,
             sha256=site.sha256,
             sha256_baseline=site.sha256_baseline,
             layer=site.layer.value if site.layer else None,
