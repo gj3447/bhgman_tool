@@ -18,6 +18,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from engine.occam.occam_models import NodeRecord, OccamReport, SupersessionCandidate
+from engine.occam.views import current_only
 
 # 실전=Neo4j read/write, 테스트=fake rows. (eureka/hades와 동일 시그니처)
 CypherRunner = Callable[[str, dict], "list[dict]"]
@@ -42,8 +43,17 @@ def _assert_archive_only(cypher: str) -> None:
 
 # ── READ ────────────────────────────────────────────────────────────────────
 
-# 이미 SUPERSEDED된 노드는 제외 — 아카이브된 과거를 재-아카이브하지 않는다 (dogfood 교훈 2026-05-27).
-_NOT_ALREADY_ARCHIVED = "(s.status IS NULL OR s.status <> 'SUPERSEDED')"
+# 이미 아카이브된 노드는 제외 — 아카이브된 과거를 재-아카이브하지 않는다 (dogfood 교훈 2026-05-27).
+# canonical 아카이브 마커 = :ARCHIVED 라벨. status 는 보조/legacy 신호 (서브타입·대소문자 관용).
+# 2026-07-19 픽스: status == 'SUPERSEDED' exact-match 만 보면 (a) :ARCHIVED 라벨만 있고 status
+# 서브타입이 다른 노드('SUPERSEDED_FILE_DELETED' 등), (b) 소문자 'superseded' 를 놓쳐 무덤을
+# 매 pass 재검출한다. 라벨 우선 + status prefix(대소문자 무관) 로 견고화.
+# # KG: lesson-occam-refetch-archived-status-exact-match-2026-07-19
+# 라벨 게이트는 views.current_only 단일 진실원(C1) 경유. status prefix 는 legacy 보조.
+_NOT_ALREADY_ARCHIVED = (
+    f"{current_only('s')} "
+    "AND (s.status IS NULL OR NOT toUpper(s.status) STARTS WITH 'SUPERSEDED')"
+)
 _REQUIRED = "s.sha256 IS NOT NULL AND s.lineCount IS NOT NULL AND s.sourcePath IS NOT NULL"
 # inbound 참조 수 + recency(lastValidated/createdAt)를 함께 fetch → _pick_current 다신호 보강.
 # count(x)는 비집계 RETURN 항(name/path/...)으로 그룹핑. "RETURN s.name AS name" prefix 유지
@@ -73,6 +83,29 @@ def fetch_cypher(scope: str | None) -> tuple[str, dict]:
     if scope:
         return _FETCH_SCOPED, {"scope": scope}
     return _FETCH_ALL, {}
+
+
+def fetch_cypher_since(watermark: int, scope: str | None = None) -> tuple[str, dict]:
+    # KG: prom6-occam-advancement-synthesis-2026-07-19 (C7), rf-occam-adv-A2-2026-07-19
+    """증분(incremental) fetch: `updatedAt > $watermark` 인 노드만 → 풀스캔 O(all) → O(changed).
+
+    C7 프리미티브. watermark=0 이면 사실상 전체(모든 stamped 노드). 전제: 모든 SourceCodeNode
+    write(longinus 바인딩·code_to_kg·occam supersede)가 `updatedAt = timestamp()` 를 SET 해야
+    한다(스탬핑 규율). dirty-set 데몬/checkpoint 는 P2.
+    """
+    since = "s.updatedAt IS NOT NULL AND s.updatedAt > $watermark"
+    if scope:
+        cypher = (
+            "MATCH (s:SourceCodeNode) WHERE s.sourcePath CONTAINS $scope "
+            f"AND {_REQUIRED} AND {_NOT_ALREADY_ARCHIVED} AND {since} "
+            f"{_OPTIONAL_INBOUND}{_RETURN}"
+        )
+        return cypher, {"scope": scope, "watermark": watermark}
+    cypher = (
+        f"MATCH (s:SourceCodeNode) WHERE {_REQUIRED} AND {_NOT_ALREADY_ARCHIVED} AND {since} "
+        f"{_OPTIONAL_INBOUND}{_RETURN}"
+    )
+    return cypher, {"watermark": watermark}
 
 
 def parse_node_records(rows: list[dict]) -> list[NodeRecord]:
@@ -121,20 +154,25 @@ _SUPERSEDE_CYPHER = (
     "MATCH (s:SourceCodeNode {sourcePath: $stale_path, sha256: $stale_sha}) "
     # Tier-1 write-safety (H3): 이미 아카이브된 노드는 어느 쪽도 건드리지 않는다.
     # stale-guard = 멱등(재-아카이브 금지, parse가 status 미필터해도 write는 0-row no-op).
-    "WHERE (s.status IS NULL OR s.status <> 'SUPERSEDED') "
+    # :ARCHIVED 라벨 우선 (canonical 마커) + status guard (legacy 보조). 2026-07-19.
+    "WHERE NOT s:ARCHIVED AND (s.status IS NULL OR s.status <> 'SUPERSEDED') "
     "WITH collect(s) AS ss "
     "MATCH (c:SourceCodeNode {sourcePath: $current_path, sha256: $current_sha}) "
     # current-guard = no-survivor 방지: 병렬 두 패스가 Y→X, X→Y 로 엇갈려도 한쪽이 먼저
     #   아카이브되면 반대 write 의 current 매치가 0 → SUPERSEDED_BY 사이클(생존자 0) 불가.
-    "WHERE (c.status IS NULL OR c.status <> 'SUPERSEDED') "
+    "WHERE NOT c:ARCHIVED AND (c.status IS NULL OR c.status <> 'SUPERSEDED') "
     "WITH ss, collect(c) AS cs "
     "WHERE size(ss) = 1 AND size(cs) = 1 "
     "WITH ss[0] AS stale, cs[0] AS current "
     "WHERE stale <> current "  # self-supersession 차단 (exact-dup 동일키 no-op)
-    "SET stale.status = 'SUPERSEDED', "
+    # canonical 아카이브 마커 = :ARCHIVED 라벨 (C1). writer 가 라벨을 안 쓰면 공유
+    # current-view(views.current_only, 라벨 게이트)가 occam 무덤을 못 거른다. 2026-07-19.
+    "SET stale:ARCHIVED, "
+    "stale.status = 'SUPERSEDED', "
     "stale.supersededBy = $current_path, "
     "stale.supersededReason = $reason, "
     "stale.supersededAt = datetime(), "
+    "stale.updatedAt = timestamp(), "  # C7 watermark 스탬핑 (모든 write 가 stamp)
     "stale.occamPass = 'occam' "
     "MERGE (stale)-[:SUPERSEDED_BY]->(current) "  # reversible: 원본 보존 + 엣지
     "RETURN stale.sourcePath AS superseded, current.sourcePath AS current"

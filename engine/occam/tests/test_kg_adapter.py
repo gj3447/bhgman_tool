@@ -53,9 +53,17 @@ def test_fetch_cypher_scope_binds_param():
 
 def test_fetch_cypher_excludes_already_superseded():
     # dogfood 교훈: 이미 아카이브된 과거를 재처리하지 않는다.
+    # 2026-07-19 회귀 방지: status == 'SUPERSEDED' exact-match 만 보면 :ARCHIVED 라벨만 있고
+    # status 서브타입이 다른 노드('SUPERSEDED_FILE_DELETED')·소문자 무덤을 매 pass 재검출한다.
     for scope in (None, "engine/occam"):
         cypher, _ = fetch_cypher(scope)
-        assert "SUPERSEDED" in cypher  # exclusion clause present
+        up = cypher.upper()
+        assert "NOT S:ARCHIVED" in up, (
+            "fetch must exclude :ARCHIVED-labeled nodes (canonical marker)"
+        )
+        assert "STARTS WITH 'SUPERSEDED'" in up, (
+            "fetch must exclude any SUPERSEDED* status (subtype/case tolerant)"
+        )
 
 
 def test_parse_skips_incomplete_rows():
@@ -227,5 +235,11 @@ def test_supersede_cypher_guards_against_already_archived_nodes():
     assert "S.STATUS" in up and "C.STATUS" in up, "missing not-archived guard"
     # both guards must gate on SUPERSEDED (not merely mention .status somewhere)
     assert up.count("<> 'SUPERSEDED'") >= 2, "guard must exclude SUPERSEDED on both sides"
+    # 2026-07-19: :ARCHIVED 라벨(canonical 마커)도 양측 가드해야 status 서브타입 무관 견고.
+    assert "NOT S:ARCHIVED" in up and "NOT C:ARCHIVED" in up, (
+        "write guard must gate on :ARCHIVED label (both sides)"
+    )
+    # writer 도 라벨을 SET 해야 공유 current-view(라벨 게이트)가 occam 무덤을 거른다 (C1 정합).
+    assert "SET STALE:ARCHIVED" in up, "supersede write must add the canonical :ARCHIVED label"
     # 유일성 가드: 비유일 (path,sha) 다중매치는 write 대신 0-row 로 fail-close 해야 한다.
     assert "SIZE(SS) = 1" in up and "SIZE(CS) = 1" in up, "missing uniqueness guard"
