@@ -87,12 +87,7 @@ def legion_run_impl(
     from engine.kg_local.runner import make_local_runner  # noqa: PLC0415
     from engine.kg_local.store import LocalKgStore  # noqa: PLC0415
     from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
-    from engine.legion.verdict_gate import (  # noqa: PLC0415
-        KgVerdictLedger,
-        WeakVerdictKeyError,
-        build_gate_from_env,
-        mint_cycle_id,
-    )
+    from engine.legion.verdict_gate import mint_cycle_id, prepare_forward_ctx  # noqa: PLC0415
 
     # R6: 서버-mint — 기본 sentinel 이면 run 마다 고유 cycle (ledger false-collision 방지).
     if not cycle_id or cycle_id == "mcp-legion":
@@ -107,18 +102,13 @@ def legion_run_impl(
 
     ctx: dict[str, Any] = {
         "run_cypher": run_cypher,
-        "cycle_id": cycle_id,
         "grounding": LocalGroundingSource(store),
         "claim": f"legion closed loop completed for {cycle_id}",
     }
-    # R7: verdict 키 설정 시 in-loop 게이트 주입 — _run_verify(producer 서명) + _run_realize
-    # (consumer 검증). 미설정 → legacy(게이트 없음, 비파괴). artifact_id 는 run-level 바인딩
-    # (per-node 바인딩은 OQ1b selection-node 서명 경로).
-    try:
-        ctx["verdict_gate"] = build_gate_from_env(ledger=KgVerdictLedger(store))
-        ctx["artifact_id"] = cycle_id
-    except WeakVerdictKeyError:
-        pass
+    # R6/R7: cycle_id 스탬프 + (강키 시) in-loop verdict 게이트 주입 — _run_verify(producer 서명)
+    # + _run_realize(consumer 검증). 약/무키 → legacy(비파괴). CLI cmd_legion 과 동일 헬퍼 경유
+    # (jbm-s3 패리티, T0-3). artifact_id 는 run-level 바인딩(per-node 는 OQ1b selection-node 경로).
+    prepare_forward_ctx(ctx, cycle_id=cycle_id, store=store)
 
     # G4 봉합: CLI cmd_legion 과 동일한 substrate 경로 — legion.run 은 여전히 executor,
     # 재배맨은 그 위 plan(7 seeds)·lifecycle(출격→수확)·audit(:JaebaemanRun) 층.
@@ -177,6 +167,9 @@ def legion_run_impl(
             }
             for d in run.dispatch_decisions
         ],
+        # 측정·provenance 실패의 실명 관측면 (T1-2, 적대검증 2026-07-15 이 소비자 0 을 지적):
+        # fail-soft 는 유지하되 무엇이 조용히 실패했는지 caller 가 본다. 기본 [].
+        "dispatch_errors": list(run.dispatch_errors),
         # G5-C5 소비 관측면 (opt-in; 기본 [] — 기존 응답 스키마는 additive 확장만).
         "dispatch_consumed": consumed_block,
         "jaebaeman": {

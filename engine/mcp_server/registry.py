@@ -72,6 +72,12 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
         "read",
     ),
     (
+        "prometheus_ingest",
+        "연구 findings → PROPOSE-only MERGE cypher 결정화 (프로메테우스 KG-write 반쪽; 적용은 caller 몫).",
+        "crystallizing gathered research findings into idempotent KG cyphers to apply via kg_query",
+        "write",
+    ),
+    (
         "eureka_induce",
         "KG 패턴→추상 개념 FCA induction (창조, PROPOSE-only) — EARNED counts (stages_ok 아님).",
         "inducing candidate abstractions from the local KG with honest earned counts",
@@ -128,12 +134,14 @@ _CATALOG_SEED: list[tuple[str, str, str, str]] = [
 ]
 
 TOOL_CATALOG: dict[str, ToolMeta] = {
+    # TOOL_CAPABILITIES[name] 직접 인덱싱 (T1-4): 카탈로그에 실리면서 capability 미등록인
+    # tool 은 import 시점 KeyError — 세 장부가 "일관되게 같이 누락"되는 class 를 차단.
     name: ToolMeta(
         name=name,
         summary=summary,
         when_to_use=when,
         category=category,
-        capabilities=sorted(c.value for c in TOOL_CAPABILITIES.get(name, frozenset())),
+        capabilities=sorted(c.value for c in TOOL_CAPABILITIES[name]),
     )
     for (name, summary, when, category) in _CATALOG_SEED
 }
@@ -182,9 +190,13 @@ def catalog_is_consistent_with_security() -> bool:
     """Invariant: every catalogued tool's capabilities match the security registry.
 
     Guards against catalog ↔ security.TOOL_CAPABILITIES drift (single-source rule).
+    A catalogued tool MISSING from TOOL_CAPABILITIES is inconsistent (fail-closed, T1-4) —
+    the old `.get(default)` let both ledgers agree on an empty set (consistent-but-wrong).
     """
     for name, meta in TOOL_CATALOG.items():
-        expected = sorted(c.value for c in TOOL_CAPABILITIES.get(name, frozenset()))
+        if name not in TOOL_CAPABILITIES:
+            return False
+        expected = sorted(c.value for c in TOOL_CAPABILITIES[name])
         if meta.capabilities != expected:
             return False
     return True

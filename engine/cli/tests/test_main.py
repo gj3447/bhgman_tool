@@ -91,8 +91,12 @@ def test_status_falls_back_to_dgx_data_namespace(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert rc == 0
     assert calls[0][0][0] == "ssh"
-    assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
-    assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
+    # bhg-f-secrets-on-argv (적대검증 2026-07-15): -i(stdin 도달) + 비밀번호는 argv 아닌
+    # stdin 첫 줄. 이 테스트는 이전에 "-p pw" 를 단언하며 누수를 고정하고 있었다.
+    assert "kubectl exec -i -n data neo4j-0" in calls[0][0][2]
+    assert "cypher-shell -u neo4j" in calls[0][0][2]
+    assert "pw" not in calls[0][0][2], "비밀번호가 argv 에 남아있다"
+    assert calls[0][1]["input"].startswith("pw\n")
     assert "cypher-shell not found" in captured.err
 
 

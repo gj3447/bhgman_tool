@@ -14,7 +14,10 @@ ORACLE leg (substrate-disjoint from the LLM judges), so a contradiction VETOES t
 
 Honest scope: this is a lexical overlap + polarity heuristic, not full NLI — it catches a
 claim that directly negates (or is directly negated by) a high-overlap canonical fact, which
-is the single-authority gap that mattered. It abstains (passed=True) when canon is silent.
+is the single-authority gap that mattered. When canon is SILENT it **abstains** — and an
+abstention is not a vote (``CriticVerdict.abstained=True``, excluded from the n_eff
+denominator). 2026-07-15 정정: 이전엔 침묵을 passed=True 로 흘려 vacuous 한 '항상 통과'
+표가 n_eff 를 부풀렸다.
 
 # KG: q-naesengmoon-single-authority, naesengmoon-canonical-2026-05-19
 """
@@ -86,8 +89,22 @@ class KgCorroborationOracle:
     limit: int = 8
 
     def evaluate(self, claim: str) -> CriticVerdict:
+        """3-상태 (적대검증 2026-07-15): 정전이 침묵하면 **기권** — 표가 아니다.
+
+        이전엔 침묵을 passed=True 로 흘렸고, aggregate 가 그걸 완전한 독립 ORACLE 표로
+        계수해 n_eff 를 1.0→2.0 으로 올렸다. MCP 경로는 grounding+claim 을 항상 주입하므로
+        결과적으로 canon 이 아무 말 없어도 언제나 clean PASS 가 나왔다 — clean-PASS floor
+        (T0-1)가 이 경로에서 영영 물지 못한 원인이자, 레포 자신의 "vacuous critic 금지"
+        (commanders.py kg-corroborate 배선) 위반이었다.
+
+        판정:
+          * 고겹침 canonical fact 없음     → 기권 (abstained=True, 정보량 0)
+          * 있고 극성 같음                 → 진짜 corroboration (passed=True)
+          * 있고 극성 반대                 → 모순 → veto (passed=False)
+        """
         terms = _terms(claim)
         claim_negated = _has_negation(claim)
+        examined = False
         passed = True
         for node in self.source.search(terms, self.limit):
             if not _is_canonical(node):
@@ -95,12 +112,17 @@ class KgCorroborationOracle:
             text = _node_text(node)
             if _overlap(terms, text) < self.overlap_threshold:
                 continue
+            examined = True
             # high-overlap canonical fact with OPPOSITE polarity → it contradicts the claim
             if _has_negation(text) != claim_negated:
                 passed = False
                 break
         return CriticVerdict(
-            lens=_LENS, kind=CriticKind.ORACLE, passed=passed, model_family="deterministic"
+            lens=_LENS,
+            kind=CriticKind.ORACLE,
+            passed=passed,
+            model_family="deterministic",
+            abstained=not examined,  # canon 침묵 → 표 없음
         )
 
 

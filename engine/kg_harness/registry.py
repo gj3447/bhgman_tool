@@ -23,7 +23,10 @@ from engine.kg_harness.write_guard import constraint_cypher
 STABLE_IDS: dict[str, str | tuple[str, ...]] = {
     "Apostle": "roman",
     "BreakGlassEntry": "auditId",
-    "DispatchEvent": "source_commander",
+    # ⚠️ 복합 identity — engine/legion/legion.py `_DISPATCH_EVENT_MERGE` 와 1:1 (T0-2).
+    # 단일키(source_commander)면 한 commander 의 2번째 dispatch 가 ConstraintValidationFailed
+    # 로 즉사 → live KG dispatch provenance 파괴. test_registry 가 엔진 MERGE 와 커플링 강제.
+    "DispatchEvent": ("source_commander", "target_commander", "metric_name", "epoch", "decided_at"),
     "DriftCheck": "name",
     "GateAuditEntry": "auditId",
     "HarnessDiagnosis": "name",

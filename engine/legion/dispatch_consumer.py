@@ -69,6 +69,7 @@ _DISPATCH_CONSUME_MERGE = (
     "decided_at:$decided_at}) "
     "SET e.metric_value=$metric_value, e.threshold=$threshold, e.reason=$reason, "
     "e.depth=$depth, e.cycle_id=$cycle_id, e.hmac_signature=$hmac_signature, "
+    "e.signature_status=$signature_status, "
     "e.consumed_at=$consumed_at, e.consume_status=$consume_status, "
     "e.consumed_by=$consumed_by, e.consume_depth=$consume_depth, e.outcome=$outcome "
     "RETURN e.source_commander AS src"
@@ -269,7 +270,9 @@ def consume_dispatch(
                     d,
                     outcome,
                     cycle_id=cycle_id,
-                    dispatch_id=d.to_kg_event(cycle_id=cycle_id)["hmac_signature"],
+                    # 키와 무관한 content hash — 서명은 약키면 None 이라 식별자로 못 쓴다
+                    # (적대검증 2026-07-15: 기본 환경에서 dispatch_id 가 통째로 None 이었다).
+                    dispatch_id=d.decision_id(cycle_id),
                 )
 
         rec = ConsumedRecord(

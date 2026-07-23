@@ -17,6 +17,47 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _registrars() -> list[Any]:
+    """SSOT: 모든 tool register 함수의 단일 목록.
+
+    build_server()(실 FastMCP)와 list_registered_tool_names()(recording fake) 가 같은
+    목록을 소비 — 새 tools 모듈이 둘 중 한쪽에만 붙는 drift 를 구조적으로 차단 (T1-4).
+    """
+    from .tools.apt import register as register_apt
+    # eureka_induce — 창조(FCA induction, PROPOSE-only, EARNED counts) 단독 노출 (실체감사 유레카 갭):
+    # KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/eureka_mcp_earned_counts
+    from .tools.eureka import register as register_eureka
+    # hades_realize — 실현(materialize) behind the verdict-provenance gate (OQ1, 2026-06-20):
+    # KG: adr-legion-runtime-shape-review-2026-06-20
+    from .tools.hades import register as register_hades
+    from .tools.harness import register as register_harness
+    # 7-commander legion (비행기맨#4) — full roster + closed loop (2026-06-18):
+    # KG: adr-seven-commander-legion-architecture-2026-05-27
+    from .tools.legion import register as register_legion
+    from .tools.longinus import register as register_longinus
+    from .tools.occam import register as register_occam
+    from .tools.prometheus import register as register_prometheus  # Legion step 6 (획득)
+    # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):
+    # KG: rs-mcp-symposium-absorb-2026-05-14
+    from .tools.symposium import register as register_symposium
+    from .tools.taliban import register as register_taliban
+    from .tools.tpa import register as register_tpa
+
+    return [
+        register_longinus,
+        register_harness,
+        register_apt,
+        register_taliban,
+        register_tpa,
+        register_prometheus,
+        register_occam,
+        register_eureka,
+        register_symposium,
+        register_legion,
+        register_hades,
+    ]
+
+
 def build_server() -> Any:
     """Construct and configure the FastMCP server.
 
@@ -28,41 +69,8 @@ def build_server() -> Any:
     mcp: Any = FastMCP("bhgman-tool")
 
     # Register tools (each module attaches its @mcp.tool() functions to `mcp`)
-    from .tools.longinus import register as register_longinus
-    from .tools.harness import register as register_harness
-    from .tools.apt import register as register_apt
-    from .tools.taliban import register as register_taliban
-    from .tools.tpa import register as register_tpa
-    from .tools.prometheus import register as register_prometheus  # Legion step 6 (획득)
-    from .tools.occam import register as register_occam
-
-    # eureka_induce — 창조(FCA induction, PROPOSE-only, EARNED counts) 단독 노출 (실체감사 유레카 갭):
-    # KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/eureka_mcp_earned_counts
-    from .tools.eureka import register as register_eureka
-
-    # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):
-    # KG: rs-mcp-symposium-absorb-2026-05-14
-    from .tools.symposium import register as register_symposium
-
-    # 7-commander legion (비행기맨#4) — full roster + closed loop (2026-06-18):
-    # KG: adr-seven-commander-legion-architecture-2026-05-27
-    from .tools.legion import register as register_legion
-
-    # hades_realize — 실현(materialize) behind the verdict-provenance gate (OQ1, 2026-06-20):
-    # KG: adr-legion-runtime-shape-review-2026-06-20
-    from .tools.hades import register as register_hades
-
-    register_longinus(mcp)
-    register_harness(mcp)
-    register_apt(mcp)
-    register_taliban(mcp)
-    register_tpa(mcp)
-    register_prometheus(mcp)
-    register_occam(mcp)
-    register_eureka(mcp)
-    register_symposium(mcp)
-    register_legion(mcp)
-    register_hades(mcp)
+    for register in _registrars():
+        register(mcp)
 
     # Per-call security enforcement (bhg-f-mcp-security-boot-only): a FastMCP middleware
     # runs enforce_call on EVERY tool invocation, scanning the live arguments for
@@ -108,29 +116,42 @@ def build_server() -> Any:
     return mcp
 
 
-def list_registered_tool_names() -> list[str]:
-    """For testing without a live MCP loop: enumerate tools that *would* be registered.
+class _RecordingFakeMcp:
+    """`@mcp.tool` / `@mcp.tool()` 등록을 이름만 기록하는 fake — fastmcp 없이 실등록면 열거.
 
-    KG: skeleton-time introspection helper for pytest verification.
+    두 데코레이터 형태를 모두 받아야 한다: fastmcp 는 bare `@mcp.tool` 도 등록하는데,
+    괄호-호출만 처리하면 bare 형태의 tool 이 *조용히* 기록에서 빠져 prometheus_ingest
+    사고(실등록면엔 있는데 장부엔 없음)가 3-way parity GREEN 인 채로 재현된다
+    (적대검증 2026-07-15).
     """
-    return [
-        # bhgman_tool diagnostic tools (read-only project inspection)
-        "longinus_audit",
-        "harness_diagnose",
-        "apt_phase_detect",
-        "taliban_lens_check",
-        "tpa_drift_audit",
-        "prometheus_research",  # Legion step 6 — 획득(knowledge-first), 2026-05-27
-        "occam_dedupe",
-        "eureka_induce",  # 창조(FCA induction, EARNED counts) — 실체감사 유레카 갭, 2026-07-03
-        # SYMPOSIUM dispatch tools (Wave 7 P2-A absorbed 2026-05-14)
-        "apt_dispatch",
-        "kg_query",
-        "gate_check",
-        "seed_germinate",
-        # 7-commander legion (비행기맨#4), 2026-06-18
-        "legion_roster",
-        "legion_run",
-        # hades_realize — gated 실현 (OQ1, 2026-06-20)
-        "hades_realize",
-    ]
+
+    def __init__(self) -> None:
+        self.names: list[str] = []
+
+    def _record(self, fn: Any, explicit: str | None = None) -> Any:
+        self.names.append(explicit or getattr(fn, "__name__", repr(fn)))
+        return fn
+
+    def tool(self, *args: Any, **kwargs: Any) -> Any:
+        # bare form: @mcp.tool → tool(fn) 로 함수가 직접 넘어온다.
+        if args and callable(args[0]) and not kwargs:
+            return self._record(args[0])
+        # call form: @mcp.tool(...) → 데코레이터를 반환.
+        explicit = kwargs.get("name")
+        return lambda fn: self._record(fn, explicit)
+
+
+def list_registered_tool_names() -> list[str]:
+    """Enumerate the tools that build_server() registers — by actually running the registrars.
+
+    Superseded 2026-07-15 (T1-4): the previous hand-maintained list here drifted from the
+    live surface (`prometheus_ingest` was @mcp.tool()-registered but absent from this list,
+    security.TOOL_CAPABILITIES, AND the registry catalog — so it sailed through the boot
+    trifecta audit with zero capabilities). Introspection over the same `_registrars()` SSOT
+    makes that drift class structurally impossible; the legacy list is preserved in git
+    history (@59654e1). KG: cycle-bhgman-tier0-loop-wiring-2026-07-15.
+    """
+    fake = _RecordingFakeMcp()
+    for register in _registrars():
+        register(fake)
+    return fake.names

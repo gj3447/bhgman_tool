@@ -25,7 +25,7 @@ from engine.jaebaeman.lifecycle import CypherRunner, LifecycleResult, SeedOutcom
 from engine.jaebaeman.planner import plan, static_decompose, to_seeds
 from engine.jaebaeman.telemetry import RunRecord, record_to_kg
 from engine.legion.commanders import build_default_legion, default_stages
-from engine.legion.legion import LegionRun
+from engine.legion.legion import GateFn, LegionRun
 
 LEGION_GOAL = "legion-cycle"
 
@@ -69,13 +69,18 @@ def run_legion_via_jaebaeman(
     run_id: str = "legion-run",
     write_cypher: CypherRunner | None = None,
     apply: bool = False,
+    gate: GateFn | None = None,
 ) -> dict:
     """재배맨 substrate로 legion 1회 실행. legion.run이 executor, 재배맨이 plan·lifecycle·audit 층.
 
     반환: {legion_run, lifecycle, run_record, seeds}. apply=True + write_cypher면 RunRecord persist.
+
+    ``gate``: per-stage oracle hard-stop(GateFn) — Legion.run 으로 관통시킨다(T0-3). 이전엔 이
+    substrate 가 gate 를 삼켜 정방향 3진입점(CLI/bot/MCP)이 ADR 이 명시한 나생문 oracle gate 를
+    영영 못 썼다. None(default)이면 legion 은 게이트 없이 실행 — 기존 동작 불변.
     """
     seeds = plan_legion_seeds()
-    run = build_default_legion().run(context=ctx)
+    run = build_default_legion().run(context=ctx, gate=gate)
     lifecycle: LifecycleResult = drive_seeds(
         seeds,
         lambda _s: outcomes_to_seed_outcomes(seeds, run),

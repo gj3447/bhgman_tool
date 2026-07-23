@@ -53,22 +53,33 @@ _DISPATCH_EVENT_MERGE = (
     "target_commander:$target_commander, metric_name:$metric_name, epoch:$epoch, "
     "decided_at:$decided_at}) "
     "SET e.metric_value=$metric_value, e.threshold=$threshold, e.reason=$reason, "
-    "e.depth=$depth, e.cycle_id=$cycle_id, e.hmac_signature=$hmac_signature "
+    "e.depth=$depth, e.cycle_id=$cycle_id, e.hmac_signature=$hmac_signature, "
+    "e.signature_status=$signature_status "
     "RETURN e.source_commander AS src"
 )
 
 
-def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list) -> None:
+def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list, errors: list[str]) -> None:
     """Build the stage's measurement from the post-stage context, run decide_dispatch(),
-    collect the DispatchDecisions, and emit each as a :DispatchEvent (best-effort)."""
+    collect the DispatchDecisions, and emit each as a :DispatchEvent (best-effort).
+
+    T1-2 실명화: fail-soft 는 유지하되(측정·provenance 실패가 run 을 죽이지 않는다)
+    은폐는 제거 — 모든 실패가 ``errors`` 에 "stage:phase: repr" 로 남는다. 이전엔
+    decide 예외가 무기록 증발했고 measure *팩토리* 예외는 try 밖이라 run 전체를
+    크래시시켰다 (양방향 오류; dispatch_consumer 의 실명 규율을 원본에 역적용)."""
     if stage.measure is None:
         return
-    commander = stage.measure(ctx)
+    try:
+        commander = stage.measure(ctx)
+    except Exception as e:  # noqa: BLE001 — fail-soft, but named (no silent swallow)
+        errors.append(f"{stage.name}:measure_factory: {e!r}")
+        return
     if commander is None:
         return
     try:
         decisions = commander.decide_dispatch(cycle_id=ctx.get("cycle_id"))
-    except Exception:  # noqa: BLE001 — depth cap / measurement error → no decisions this stage
+    except Exception as e:  # noqa: BLE001 — depth cap / measurement error → no decisions
+        errors.append(f"{stage.name}:decide_dispatch: {e!r}")
         return
     sink.extend(decisions)
     wc = ctx.get("write_cypher")
@@ -77,8 +88,8 @@ def _measure_and_dispatch(stage: CommanderStage, ctx: dict, sink: list) -> None:
     for d in decisions:
         try:
             wc(_DISPATCH_EVENT_MERGE, d.to_kg_event(cycle_id=ctx.get("cycle_id")))
-        except Exception:  # noqa: BLE001 — provenance is best-effort, never breaks the run
-            pass
+        except Exception as e:  # noqa: BLE001 — provenance is best-effort, never breaks the run
+            errors.append(f"{stage.name}:dispatch_event_write: {e!r}")
 
 
 class Legion:
@@ -100,6 +111,7 @@ class Legion:
         have = set(ctx)
         outcomes: list[StageOutcome] = []
         decisions: list = []  # W2-A: runtime measurement-driven dispatch decisions
+        errors: list[str] = []  # T1-2: named measurement/provenance failures (no silent swallow)
 
         for stage in self._stages:
             missing = _missing_requires(stage, have)
@@ -109,6 +121,7 @@ class Legion:
                     contract_violation=f"{stage.name} requires {list(missing)} not in context",
                     final_context_keys=tuple(have),
                     dispatch_decisions=tuple(decisions),
+                    dispatch_errors=tuple(errors),
                 )
 
             output = stage.run(dict(ctx))
@@ -119,6 +132,7 @@ class Legion:
                     contract_violation=f"{stage.name} did not provide {list(lacks)}",
                     final_context_keys=tuple(have),
                     dispatch_decisions=tuple(decisions),
+                    dispatch_errors=tuple(errors),
                 )
 
             ctx.update(output)
@@ -126,7 +140,7 @@ class Legion:
             outcomes.append(StageOutcome(stage.name, stage.verb, True, f"provided {list(output)}"))
 
             # measure() + decide_dispatch() at runtime — the named essence (was never called).
-            _measure_and_dispatch(stage, ctx, decisions)
+            _measure_and_dispatch(stage, ctx, decisions, errors)
 
             if gate is not None:
                 passed, detail = gate(ctx)
@@ -138,6 +152,7 @@ class Legion:
                         final_context_keys=tuple(have),
                         final_verdict=_verdict_dict(ctx),
                         dispatch_decisions=tuple(decisions),
+                        dispatch_errors=tuple(errors),
                     )
 
         return LegionRun(
@@ -146,4 +161,5 @@ class Legion:
             final_context_keys=tuple(have),
             final_verdict=_verdict_dict(ctx),
             dispatch_decisions=tuple(decisions),
+            dispatch_errors=tuple(errors),
         )

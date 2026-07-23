@@ -1,0 +1,37 @@
+# The Red artifact for engineboy 창발(emergence) 엔진 — the store must OBSERVE these when the
+# REAL engine runs. Counts track genuinely-re-derived engine state, not constants.
+#
+# HONEST-COUNT NOTE:
+#   emergence_cluster_recovered — 1 only when Hebbian intra/inter edge ratio (re-derived from the
+#     REAL engine.edges) exceeds threshold. noise=True (global-random co-access, no latent
+#     structure) => ratio ~1 => 0 => RED.
+#   emergence_private_isolated  — 1 only when a public near-embedding query genuinely FAILS to
+#     land on a private element AND the private embed is absent from the shared bucket. leak=True
+#     (private→public) => the query lands => 0 => RED.
+#   emergence_weight_converged  — 1 only when the REAL Hawkes stream reaches the analytic
+#     equilibrium within tol. short=True => not converged => 0 => RED.
+#   drop=True (silent-loss) turns every count RED while the return value stays green.
+cid_env: OOPTDD_CID
+service: bhgman.emergence
+
+expect:
+  - event: emergence_run_started
+    where: {phase: cluster}
+    op: "=="
+    count: 1
+
+  - event: emergence_cluster_recovered
+    op: "=="
+    count: 1
+
+  - event: emergence_private_isolated
+    op: "=="
+    count: 1
+
+  - event: emergence_weight_converged
+    op: "=="
+    count: 1
+
+  - event: emergence_run_complete
+    op: "=="
+    count: 1

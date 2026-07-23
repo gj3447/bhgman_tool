@@ -32,11 +32,14 @@ complementary static (toolset-composition) trifecta check.
 from __future__ import annotations
 
 import enum
+import logging
 import os
 import re
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class Capability(str, enum.Enum):
@@ -68,6 +71,10 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "taliban_lens_check": frozenset({Capability.READS_PRIVATE_DATA}),
     "tpa_drift_audit": frozenset({Capability.READS_PRIVATE_DATA}),
     "prometheus_research": frozenset({Capability.READS_PRIVATE_DATA}),
+    # prometheus_ingest transforms caller-supplied findings into PROPOSE-only MERGE cyphers —
+    # it neither reads the KG nor applies writes itself (the caller applies via kg_query).
+    # Tagged explicitly so it stops falling through the unknown-tool path (T1-4 drift 현행범).
+    "prometheus_ingest": frozenset(),
     # eureka_induce reads the (local) KG to build the formal context; PROPOSE-only, no writes.
     "eureka_induce": frozenset({Capability.READS_PRIVATE_DATA}),
     "occam_dedupe": frozenset({Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}),
@@ -83,6 +90,27 @@ TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
     # apt_dispatch spawns subagents that may pull web / untrusted content.
     "apt_dispatch": frozenset({Capability.FETCHES_UNTRUSTED}),
 }
+
+# 미등록 tool 의 보수적 가정 (T1-4 fail-closed): 장부에 없는 이름이 빈 capability 로
+# 감사를 통과하던 fail-open 을 뒤집는다. 진짜 capability 는 TOOL_CAPABILITIES 등록으로
+# 좁힌다 — 등록 안 하면 감사가 최악을 가정한다.
+_UNKNOWN_TOOL_CAPS: frozenset[Capability] = frozenset(
+    {Capability.READS_PRIVATE_DATA, Capability.MUTATES_DATA}
+)
+
+
+def capabilities_for(tool_name: str) -> frozenset[Capability]:
+    """단일 조회점: 등록된 tool 은 그 태그, 미등록 tool 은 보수적 가정 (fail-closed)."""
+    caps = TOOL_CAPABILITIES.get(tool_name)
+    if caps is None:
+        logger.warning(
+            "MCP security: tool %r not in TOOL_CAPABILITIES — assuming conservative "
+            "capabilities %s (register it to narrow)",
+            tool_name,
+            sorted(c.value for c in _UNKNOWN_TOOL_CAPS),
+        )
+        return _UNKNOWN_TOOL_CAPS
+    return caps
 
 
 class SecurityMode(str, enum.Enum):
@@ -217,11 +245,12 @@ def audit_toolset(tool_names: list[str]) -> TrifectaReport:
 
     The danger is compositional: any single tool may be safe, but a session that
     can read private data AND ingest untrusted content AND exfiltrate is
-    unconditionally injectable. Unknown tool names contribute no capabilities.
+    unconditionally injectable. Unknown tool names contribute CONSERVATIVE
+    capabilities (fail-closed, T1-4) — register them in TOOL_CAPABILITIES to narrow.
     """
     present: set[Capability] = set()
     for name in tool_names:
-        present |= TOOL_CAPABILITIES.get(name, frozenset())
+        present |= capabilities_for(name)
     all_legs = {
         Capability.READS_PRIVATE_DATA,
         Capability.FETCHES_UNTRUSTED,
@@ -276,7 +305,7 @@ def audit_tool_call(
     """
     m = mode if mode is not None else current_mode()
     detections = _scan_args(args)
-    caps = sorted(c.value for c in TOOL_CAPABILITIES.get(tool_name, frozenset()))
+    caps = sorted(c.value for c in capabilities_for(tool_name))
     high = any(d.is_high for d in detections)
     verdict = "DENY" if (m is SecurityMode.ENFORCE and high) else "ALLOW"
     return SecurityReport(

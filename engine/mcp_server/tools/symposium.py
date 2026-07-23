@@ -173,17 +173,25 @@ def _ssh_cypher(
         # No hardcoded fallback (the CLI already dropped its 'neo4jpassword' default):
         # fail closed instead of authenticating with a known constant. bhg-f-secrets-on-argv.
         return {"ok": False, "error": "neo4j_password_not_configured", "degraded": True}
+    # bhg-f-secrets-on-argv (T1-4): 비밀번호를 어떤 argv 에도 싣지 않는다 — Mac 의 ssh argv 와
+    # dgx 의 kubectl/cypher-shell argv 는 둘 다 `ps` 로 보이는 유출면. 대신 stdin 첫 줄로
+    # pod 안 sh 가 읽어 NEO4J_PASSWORD env 로 export (cypher-shell 이 env 를 인식; POSIX read
+    # 는 byte-wise 라 첫 줄만 소비하고 나머지 stdin=cypher 는 그대로 흘러간다).
+    # `kubectl exec -i` 필수: -i 없이는 stdin 이 pod 에 도달하지 않아 조용히 버려진다.
+    inner = (
+        "IFS= read -r NEO4J_PASSWORD; export NEO4J_PASSWORD; "
+        f"exec cypher-shell -u {shlex.quote(user)} --format plain --param {param_arg}"
+    )
     cmd = [
         "ssh",
         DGX_HOST,
-        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
-        f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} "
-        f"--format plain --param {param_arg}",
+        f"kubectl exec -i -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
+        f"sh -c {shlex.quote(inner)}",
     ]
     try:
         result = subprocess.run(
             cmd,
-            input=cypher,
+            input=f"{password}\n{cypher}",
             capture_output=True,
             text=True,
             timeout=timeout_s,

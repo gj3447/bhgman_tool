@@ -13,7 +13,21 @@
 #
 # Empty derived_at_cycle = derivation pending (P2/P3 ActionPlan).
 #
-# KG: actionplan-threshold-derivation-2026-05-30 P2(b)
+# ⚠️ SSOT 규약 (T1-3, 2026-07-15): metric 이름/target 은 **코드 정본** —
+# measurement.py 의 measure() 가 내는 키 + STEVENS_SCALE 이 코드 이름을 쓴다. 여기 이름이
+# 어긋나면 decide_dispatch 의 metrics.get(metric) 이 None 이라 그 규칙은 영원히 미발화한다
+# (조용한 dead control). 이 파일이 정본인 것은 **value + comparator** 뿐 (코드 수정 없이
+# 튜닝 = P2-b 목적). 두 장부의 (commander,target,metric) 키·값 일치는
+# tests/test_threshold_ssot.py 가 강제 — 한쪽만 고치면 RED.
+#
+# 2026-07-15 정정 이력: 이 파일은 코드 15 규칙 중 6개만 올바로 담고 있었다.
+#   sha256_drift_rate(0.05) → sha256_drift_count(5)   [이름·단위·값 갈림]
+#   rti_fvr → RTI_FVR_pass_rate                        [이름 갈림]
+#   hades→naesengmoon spec_ambiguity → hades→eureka spec_ambiguity_score  [이름·타깃 갈림]
+#   subagent_collect_drift 0.1 → 0.2                   [값 갈림; 코드 rationale 이 lesson 인용]
+#   + 미수록 6 규칙 등재.
+#
+# KG: actionplan-threshold-derivation-2026-05-30 P2(b), cycle-bhgman-tier0-loop-wiring-2026-07-15
 
 # ─── Prometheus ──────────────────────────────────────────────────────────
 [[threshold]]
@@ -51,11 +65,21 @@ comparator = "less"
 derivation_method = "hardcoded_pending_derivation"
 
 # ─── Longinus ────────────────────────────────────────────────────────────
+# T1-3: 이름·단위 정정 — sha256_drift_rate(0.05, 비율) 은 코드가 내는 키가 아니었다.
+# 코드 정본 = sha256_drift_count (건수, invocation-log 실측; KG mention proxy 아님).
 [[threshold]]
 commander = "longinus"
 target_commander = "occam"
-metric = "sha256_drift_rate"
-value = 0.05
+metric = "sha256_drift_count"
+value = 5.0
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
+[[threshold]]
+commander = "longinus"
+target_commander = "prometheus"
+metric = "reference_orphan_count"
+value = 10.0
 comparator = "greater"
 derivation_method = "hardcoded_pending_derivation"
 
@@ -69,11 +93,20 @@ comparator = "less"
 derivation_method = "bayesian_map_beta_bernoulli_berger_1985"
 # N=0 instrumented samples — derived_at_cycle pending OccamPass instrumentation.
 
+[[threshold]]
+commander = "occam"
+target_commander = "occam"
+metric = "dead_node_count"
+value = 10.0
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
 # ─── Naesengmoon ─────────────────────────────────────────────────────────
+# T1-3: 이름 정정 — rti_fvr 는 코드가 내는 키가 아니었다 (정본: RTI_FVR_pass_rate).
 [[threshold]]
 commander = "naesengmoon"
 target_commander = "naesengmoon"
-metric = "rti_fvr"
+metric = "RTI_FVR_pass_rate"
 value = 0.7
 comparator = "less"
 derivation_method = "roc_youden_j_1950"
@@ -81,22 +114,59 @@ derived_at_cycle = "cycle-prom16-threshold-academic-derivation-2026-05-30"
 # Confidence-proxy derivation: τ*=0.680 N=31. Hardcoded 0.7 within ±0.02 of
 # derived value; kept until N_neg ≥ 30.
 
+[[threshold]]
+commander = "naesengmoon"
+target_commander = "user_verdict_trigger"
+metric = "lens_disagreement_ratio"
+value = 0.4
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
 # ─── Jaebaeman ───────────────────────────────────────────────────────────
+# T1-3: 값 정정 0.1 → 0.2 — 코드 rationale 이 근거(4 instance lesson 2026-05-24)를 인용하는
+# 반면 이쪽 0.1 은 무근거 hardcoded 였다. 근거 있는 쪽을 정본으로.
 [[threshold]]
 commander = "jaebaeman"
 target_commander = "naesengmoon"
 metric = "subagent_collect_drift"
-value = 0.1
+value = 0.2
 comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+# ">0.2 self-claim drift (4 instance lesson 2026-05-24) → verify need"
+
+[[threshold]]
+commander = "jaebaeman"
+target_commander = "prometheus"
+metric = "seed_freshness_score"
+value = 0.3
+comparator = "less"
 derivation_method = "hardcoded_pending_derivation"
 
 # ─── Hades ───────────────────────────────────────────────────────────────
+# T1-3: 이름·타깃 정정 — 코드 정본은 hades→eureka spec_ambiguity_score
+# (추상화 부족 → 유레카 재추상, naesengmoon 검증이 아니다).
 [[threshold]]
 commander = "hades"
-target_commander = "naesengmoon"
-metric = "spec_ambiguity"
+target_commander = "eureka"
+metric = "spec_ambiguity_score"
 value = 0.5
 comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
+[[threshold]]
+commander = "hades"
+target_commander = "prometheus"
+metric = "TDD_GREEN_failure_count"
+value = 3.0
+comparator = "greater"
+derivation_method = "hardcoded_pending_derivation"
+
+[[threshold]]
+commander = "hades"
+target_commander = "longinus"
+metric = "binding_completeness"
+value = 0.7
+comparator = "less"
 derivation_method = "hardcoded_pending_derivation"
 
 # ─── Contract (root axiom) ───────────────────────────────────────────────

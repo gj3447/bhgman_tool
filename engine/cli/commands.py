@@ -842,15 +842,27 @@ def cmd_status(_args: argparse.Namespace) -> int:
     )
     pod = os.environ.get("BHGMAN_STATUS_NEO4J_POD") or os.environ.get("BHGMAN_NEO4J_POD", "neo4j-0")
     print(f"[bhgman-tool] ssh {dgx_host} cypher-shell — KG audit", file=sys.stderr)
+    # bhg-f-secrets-on-argv: 비밀번호는 argv 금지 — stdin 첫 줄로 전달해 pod 안 sh 가
+    # NEO4J_PASSWORD 로 export (cypher-shell 이 그 env 를 인식). mcp_server _ssh_cypher 와
+    # 동일 패턴 — 적대검증 2026-07-15 이 두 자매 호출부 중 여기가 미수복임을 지적.
+    # `kubectl exec -i` 필수: -i 없이는 stdin 이 pod 에 도달하지 않는다.
+    inner = (
+        "IFS= read -r NEO4J_PASSWORD; export NEO4J_PASSWORD; "
+        f"exec cypher-shell -u {shlex.quote(user)} --format plain"
+    )
     cmd = [
         "ssh",
         dgx_host,
-        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
-        f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} --format plain",
+        f"kubectl exec -i -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
+        f"sh -c {shlex.quote(inner)}",
     ]
     try:
         result = subprocess.run(
-            cmd, input=_STATUS_CYPHER, text=True, timeout=timeout_s, check=False
+            cmd,
+            input=f"{password}\n{_STATUS_CYPHER}",
+            text=True,
+            timeout=timeout_s,
+            check=False,
         )
         return result.returncode
     except FileNotFoundError:
@@ -1377,6 +1389,13 @@ def cmd_legion(args: argparse.Namespace) -> int:
         "repo_root": None if getattr(args, "no_disk_scan", False) else str(_repo_root()),
         "researched_at": _now_iso(),
     }
+    # T0-3 정방향 패리티: cycle_id 스탬프 → :DispatchEvent.cycle_id 가 null 이 되지 않는다.
+    # verdict_gate leg 는 store-backed ledger 필요 — neo4j/MCP runner 는 store 를 노출하지 않으므로
+    # (make_kg_runners 는 (run,write,close)만 반환) 여기선 cycle_id 패리티만. store-less ledger =
+    # 별개 follow-up(q-legion-cli-verdict-ledger). MCP legion 툴과 동일 헬퍼.
+    from engine.legion.verdict_gate import prepare_forward_ctx  # noqa: PLC0415
+
+    prepare_forward_ctx(ctx)
     if getattr(args, "web", False):
         from engine.prometheus.web import make_web_fetcher  # noqa: PLC0415
 
@@ -1436,6 +1455,10 @@ def cmd_legion(args: argparse.Namespace) -> int:
     for oc in run.outcomes:
         mark = "ok" if oc.ok else "FAIL"
         print(f"  [{mark}] {oc.verb} ({oc.stage}): {oc.detail}")
+    # T1-2 dispatch_errors 소비 (적대검증 2026-07-15): 실명화해 놓고 아무도 안 읽으면
+    # 이 시리즈가 닫겠다던 emit-without-consume 을 그대로 재생산한다.
+    for err in run.dispatch_errors:
+        print(f"  [dispatch-error] {err}", file=sys.stderr)
     print(
         f"[legion] {'completed' if run.completed else 'halted'} — {run.ran}/6 stages, "
         f"keys={list(run.final_context_keys)}"
@@ -1502,6 +1525,7 @@ def cmd_bot(args: argparse.Namespace) -> int:
     import datetime as _dt  # noqa: PLC0415
 
     from engine.legion.jaebaeman_substrate import run_legion_via_jaebaeman  # noqa: PLC0415
+    from engine.legion.verdict_gate import prepare_forward_ctx  # noqa: PLC0415
 
     apply = getattr(args, "apply", False)
 
@@ -1520,6 +1544,11 @@ def cmd_bot(args: argparse.Namespace) -> int:
             ctx["fetcher"] = fetcher
         if agents is not None and client is not None:
             ctx.update(agents=agents, client=client, grounding=grounding)
+        # T0-3 정방향 패리티: bot 도 CLI/MCP 와 동일 헬퍼 경유. build_ctx 는 tick 마다 호출되고
+        # 매 tick = 별개 사이클이므로 여기서 mint 하면 tick 별 고유 cycle_id 가 된다 (ledger
+        # false-collision 방지 — MCP 의 서버-mint 와 같은 이유). 상시 데몬의 :DispatchEvent 가
+        # 전부 cycle_id=null 로 쌓이던 결손 봉합.
+        prepare_forward_ctx(ctx)
         return ctx
 
     def run_tick(ctx: dict, _topic: str) -> dict:

@@ -28,26 +28,45 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import threading
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Final
+
+from engine.legion.threshold_derivation.config import load_thresholds
+
+logger = logging.getLogger(__name__)
 
 
 # A4S4 P1: max_depth=3 (Lawvere-Tierney j-operator idempotence, Knaster-Tarski termination)
 MAX_DISPATCH_DEPTH: Final[int] = 3
 
-# A4S4 P1: DispatchEvent HMAC secret (env override; dev default for tests)
-_HMAC_SECRET: Final[bytes] = os.environ.get(
-    "BHGMAN_DISPATCH_HMAC_SECRET", "bhgman-dev-secret-2026-05-30"
-).encode("utf-8")
+# A4S4 P1 → T1-2: DispatchEvent HMAC secret. call-time 해석 (장수 프로세스 bot/MCP 에서
+# env 교체가 재시작 없이 반영). 약키(부재/dev-default/<32B)면 서명하지 않는다 — repo 에
+# 공개된 키로 서명해 tamper-evident 를 위장하느니 unsigned 를 정직 표기 (verdict_gate 의
+# 키 강도 규율과 정렬; 그쪽은 같은 dev 문자열을 hard-refuse 한다).
+DISPATCH_HMAC_ENV: Final[str] = "BHGMAN_DISPATCH_HMAC_SECRET"
+_DEV_DEFAULT_SECRET: Final[bytes] = b"bhgman-dev-secret-2026-05-30"
+_MIN_KEY_BYTES: Final[int] = 32  # verdict_gate 와 동일 floor
 
 
-def _sign(payload: str) -> str:
-    """HMAC-SHA256 signature for provenance integrity."""
-    return hmac.new(_HMAC_SECRET, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+def _hmac_secret() -> bytes | None:
+    """강키면 bytes, 약키(부재/dev-default/짧음)면 None — None 이면 서명 대신 정직 표기."""
+    raw = os.environ.get(DISPATCH_HMAC_ENV, "").encode("utf-8")
+    if not raw or raw == _DEV_DEFAULT_SECRET or len(raw) < _MIN_KEY_BYTES:
+        return None
+    return raw
+
+
+def _sign(payload: str) -> str | None:
+    """HMAC-SHA256 signature for provenance integrity — None when no strong key (T1-2)."""
+    secret = _hmac_secret()
+    if secret is None:
+        return None
+    return hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -76,11 +95,29 @@ class DispatchDecision:
                 str(self.depth),
                 self.decided_at,
                 cycle_id or "",
+                # reason 은 threshold 유도 provenance(TOML derivation_method)를 담은 *유일한*
+                # 필드다 (T1-3). payload 밖에 두면 KG 의 :DispatchEvent.reason 을 임의로
+                # 조작해도 서명이 여전히 유효해 "무결성"이 그 근거를 보호하지 못한다
+                # (적대검증 2026-07-15).
+                self.reason,
             ]
         )
 
+    def decision_id(self, cycle_id: str | None = None) -> str:
+        """키와 무관한 결정 식별자 — content hash (unkeyed sha256 of the signed payload).
+
+        서명(hmac_signature)은 *무결성* 용이고 약키 체제에선 None 이다. 식별자를 서명에
+        얹으면 키 유무에 따라 id 가 사라진다 (적대검증 2026-07-15: dispatch_id 가 기본
+        환경에서 None 으로 퇴행해 instrument log 의 행 식별자가 소실). 둘은 다른 관심사라
+        분리한다 — id 는 항상 존재, 서명은 강키일 때만."""
+        return hashlib.sha256(self._signed_payload(cycle_id).encode("utf-8")).hexdigest()
+
     def to_kg_event(self, cycle_id: str | None = None) -> dict:
-        """Return :DispatchEvent node properties (signed for forge resistance)."""
+        """Return :DispatchEvent node properties (signed for forge resistance).
+
+        약키 체제에선 hmac_signature=None + signature_status='unsigned_weak_key' —
+        공개 dev 키 서명으로 tamper-evidence 를 위장하지 않는다 (T1-2)."""
+        signature = _sign(self._signed_payload(cycle_id))
         return {
             "source_commander": self.source_commander,
             "target_commander": self.target_commander,
@@ -92,12 +129,16 @@ class DispatchDecision:
             "epoch": self.epoch,
             "depth": self.depth,
             "cycle_id": cycle_id,
-            "hmac_signature": _sign(self._signed_payload(cycle_id)),
+            "hmac_signature": signature,
+            "signature_status": "signed" if signature is not None else "unsigned_weak_key",
         }
 
     @staticmethod
     def verify_signature(kg_event: dict) -> bool:
-        """Verify HMAC signature on a deserialized :DispatchEvent."""
+        """Verify HMAC signature on a deserialized :DispatchEvent.
+
+        약키 체제(강키 env 부재)에선 항상 False — 서명 부재와 공개-dev-키 위조를 구분 없이
+        거부한다 (fail-closed, T1-2). unsigned 이벤트(hmac_signature=None)도 False."""
         payload = "|".join(
             [
                 kg_event.get("source_commander", ""),
@@ -109,11 +150,76 @@ class DispatchDecision:
                 str(kg_event.get("depth", 0)),
                 kg_event.get("decided_at", ""),
                 kg_event.get("cycle_id") or "",
+                kg_event.get("reason", ""),  # 유도 provenance 도 무결성 안에 (적대검증 2026-07-15)
             ]
         )
         expected = _sign(payload)
-        actual = kg_event.get("hmac_signature", "")
+        if expected is None:
+            return False
+        actual = kg_event.get("hmac_signature") or ""
         return hmac.compare_digest(expected, actual)
+
+
+def resolve_thresholds(
+    rules: "tuple[DispatchThreshold, ...]", name: str
+) -> "tuple[DispatchThreshold, ...]":
+    """T1-3 SSOT: TOML(thresholds.toml)의 값·comparator 를 런타임 정본으로 적용한다.
+
+    정본 분담 — metric 이름/타깃/구조는 **코드**(measure() 가 내는 키 + STEVENS_SCALE 이
+    코드 이름을 쓴다; TOML 이름이 어긋나면 metrics.get() 이 None 이라 규칙이 영원히
+    미발화하는 dead control 이 된다), threshold **값**과 comparator 는 **TOML**
+    (P2-b '코드 수정 없이 튜닝'). TOML 미수록 규칙은 코드 상수로 fallback — 하드코딩은
+    삭제가 아니라 강등(supersession)이고, 로더 실패도 fail-soft 로 같은 자리에 착지한다.
+
+    파리티(두 장부의 키·값 일치)는 tests/test_threshold_ssot.py 가 강제한다.
+
+    로더 실패는 fail-soft(코드 상수로 착지)하되 **실명 경고**한다 — T1-2 가 legion 의
+    침묵 삼킴을 실명화한 직후 여기서 같은 패턴을 재도입할 뻔했다(적대검증 2026-07-15).
+    설정 장부가 조용히 코드 상수로 되돌아가는 건 측정 실패보다 위험하다: 튜닝한 값이
+    무시된 채 아무도 모른다.
+    """
+    try:
+        entries = load_thresholds()
+    except Exception as e:  # noqa: BLE001 — 설정 파싱 실패가 dispatch 를 죽이면 안 된다
+        logger.warning(
+            "threshold config 로드 실패 (%r) — %s 는 코드 상수 fallback 으로 진행. "
+            "TOML 튜닝값이 무시된다.",
+            e,
+            name,
+        )
+        return rules
+    if not entries:
+        return rules
+    # TOML 은 *기존 코드 규칙의 값만* override 한다 — 코드에 대응 규칙이 없는 TOML 행은
+    # 아무 효과가 없다. 조용히 무시하면 "고쳤다고 믿는 dead control" 이 이름-drift 에서
+    # 파싱-drift 로 자리만 옮긴다 (적대검증 2026-07-15). 이 commander 를 겨냥한 미매칭 행을
+    # 실명 경고한다.
+    known = {(r.source, r.metric) for r in rules}
+    for key, entry in entries.items():
+        if key[0] == name and key not in known:
+            logger.warning(
+                "thresholds.toml (%s) 의 행 %s 은 %s 의 어떤 코드 규칙과도 매칭되지 않아 "
+                "무시된다 — metric 이름/타깃을 코드 정본에 맞추라 (dead row).",
+                entry.source,
+                key,
+                name,
+            )
+    out: list[DispatchThreshold] = []
+    for rule in rules:
+        entry = entries.get((rule.source, rule.metric))
+        if entry is None or entry.target_commander != rule.target:
+            out.append(rule)  # TOML 미수록 → 코드 상수 fallback
+            continue
+        provenance = entry.derivation_method or "unspecified_derivation"
+        out.append(
+            replace(
+                rule,
+                threshold=entry.value,
+                direction=entry.comparator,
+                rationale=f"{rule.rationale} [toml:{provenance}]",
+            )
+        )
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -230,7 +336,9 @@ class CommanderBase(ABC):
             metrics = self.measure()
             epoch = self._epoch
         decisions: list[DispatchDecision] = []
-        for rule in self.dispatch_thresholds:
+        # T1-3: TOML 이 값의 런타임 정본 (코드 상수는 미수록 시 fallback). 매 호출 해석 —
+        # 장수 프로세스에서 재시작 없이 튜닝이 반영된다 (P2-b 목적).
+        for rule in resolve_thresholds(self.dispatch_thresholds, self.name):
             if rule.source != self.name:
                 continue
             value = metrics.get(rule.metric)
