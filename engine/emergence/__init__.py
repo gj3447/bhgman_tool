@@ -37,6 +37,8 @@ from engine.emergence.resolver import (
     Neo4jVectorResolver,
     VectorResolver,
 )
+from engine.emergence.seed_adapter import EmbedFn, embedding_seed_fn
+from engine.emergence.hades_sink import Neo4jHadesSink
 
 __all__ = [
     "AccessEvent",
@@ -58,4 +60,7 @@ __all__ = [
     "InMemoryVectorResolver",
     "Neo4jVectorResolver",
     "VectorResolver",
+    "EmbedFn",
+    "embedding_seed_fn",
+    "Neo4jHadesSink",
 ]
