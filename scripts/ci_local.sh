@@ -3,7 +3,7 @@
 #
 # Why this exists: the integration branch ran NO CI, so local checks (sibling repos installed
 # editable, Python 3.14, a different ruff build) silently diverged from main's CI (no siblings,
-# Python 3.11–3.13, pinned ruff 0.15.12, mypy+deptry hard gates). A merge that was "1727 passed"
+# Python 3.11–3.13, pinned ruff 0.15.21, mypy+deptry hard gates). A merge that was "1727 passed"
 # locally went fully red on main's CI. This script is the single source of truth for CI-green:
 # run it, make every gate GREEN, and the GitHub run matches.
 #
@@ -27,7 +27,7 @@ skip() { printf '  \033[33m· SKIP %s (%s)\033[0m\n' "$1" "$2"; SKIP+=("$1"); }
 # (e.g. engine/kg_harness/). Scanning engine/ here would false-RED on files CI can't see.
 tracked_py() { git ls-files engine | grep '\.py$'; }
 
-# ── gate 1: ruff check engine/  (ci.yml: ruff, pinned 0.15.12) ───────────────
+# ── gate 1: ruff check engine/  (ci.yml: ruff, pinned 0.15.21) ───────────────
 if want ruff-check; then
   echo "[ruff-check] ruff check (tracked engine/*.py)"
   if "$VENV/ruff" check $(tracked_py) -q 2>/dev/null; then green ruff-check; else
