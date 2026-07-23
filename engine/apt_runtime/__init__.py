@@ -1,5 +1,37 @@
-"""APT vNext deterministic runtime proposal (Slice 0)."""
+"""APT vNext deterministic and SQLite-durable runtime proposal (Slices 0-1A).
 
-from .domain import AptCycleState, EventEnvelope, EventType, state_hash
+Mutation is intentionally exported through :class:`DurableKernel`; concrete
+event-store adapters remain trusted low-level ports under ``adapters``.
+"""
 
-__all__ = ["AptCycleState", "EventEnvelope", "EventType", "state_hash"]
+from .application import (
+    CommandDecision,
+    DecisionKernel,
+    DecisionOutcome,
+    DurableKernel,
+    DurableKernelError,
+    EffectRequest,
+)
+from .domain import (
+    AptCycleState,
+    CanonicalCommandEnvelope,
+    CommandSchemaError,
+    EventEnvelope,
+    EventType,
+    state_hash,
+)
+
+__all__ = [
+    "AptCycleState",
+    "CanonicalCommandEnvelope",
+    "CommandDecision",
+    "CommandSchemaError",
+    "DecisionKernel",
+    "DecisionOutcome",
+    "DurableKernel",
+    "DurableKernelError",
+    "EffectRequest",
+    "EventEnvelope",
+    "EventType",
+    "state_hash",
+]
