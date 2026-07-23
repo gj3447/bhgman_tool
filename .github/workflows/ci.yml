@@ -116,7 +116,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install ruff
-        run: pip install ruff==0.15.21  # pinned — matches .pre-commit rev + pyproject [dev] (no skew)
+        run: pip install ruff==0.15.22  # pinned — matches .pre-commit rev + pyproject [dev] (no skew)
       - name: ruff check
         run: ruff check engine/
       - name: ruff format check
