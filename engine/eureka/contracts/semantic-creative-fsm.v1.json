@@ -1,0 +1,1026 @@
+{
+  "schema_version": "fsm-spec/v1",
+  "name": "eureka-semantic-creative-lifecycle",
+  "implementation_status": {
+    "status": "DESIGN_TARGET",
+    "current_slice": "creative.py in-memory inner loop; not yet reducer-conformant",
+    "designed_only": [
+      "typed command/event reducer",
+      "durable interrupts",
+      "release approval and reconciliation",
+      "trace-fixture conformance",
+      "crash replay"
+    ]
+  },
+  "execution": {
+    "step_interface": "step(versioned_configuration, typed_event) -> next_configuration, typed_effect_commands",
+    "event_queue": "External observations are FIFO per run_id; recorded internal verdict events follow their causative event, and effect responses never re-enter synchronously.",
+    "run_to_completion": "One event is validated, guards are evaluated from immutable configuration and payload, one transition is selected by stable priority, context is reduced, and commands are emitted before the next event.",
+    "action_order": "Validate schema and expected version; evaluate pure guards; select transition; compute bounded context and budget delta; commit the transition; then emit typed effect commands."
+  },
+  "context_schema": {
+    "run_id": {
+      "type": "string"
+    },
+    "producer_id": {
+      "type": "actor-id"
+    },
+    "current_candidate_hash": {
+      "type": "string"
+    },
+    "current_evidence_hash": {
+      "type": "string"
+    },
+    "correction_round": {
+      "type": "non-negative integer"
+    },
+    "max_correction_rounds": {
+      "type": "positive integer"
+    },
+    "steps_remaining": {
+      "type": "non-negative integer"
+    },
+    "run_deadline": {
+      "type": "timestamp",
+      "role": "deadline"
+    },
+    "pending_interrupt": {
+      "type": "string"
+    }
+  },
+  "context_reduction": {
+    "authority": "The deterministic reducer is the only writer of extended context; effects return typed observations and cannot mutate it directly.",
+    "bounds": "correction_round is bounded by max_correction_rounds, steps_remaining is monotonic, hashes are fixed-width content addresses, and pending_interrupt is one of none, cancel, timeout, or budget_exhausted.",
+    "recording": "Clock, random, identifier, model, retrieval, evaluator, and release-port values are committed as event payloads before later guards may read them."
+  },
+  "event_schemas": {
+    "START": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"}
+      }
+    },
+    "PATTERNS_READY": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "evidence_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "evidence_hash": {"type": "string"}
+      }
+    },
+    "ASSOCIATIONS_READY": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "evidence_hash", "association_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "evidence_hash": {"type": "string"},
+        "association_hash": {"type": "string"}
+      }
+    },
+    "CANDIDATES_READY": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "candidate_batch_hash", "producer_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "candidate_batch_hash": {"type": "string"},
+        "producer_id": {"type": "actor-id"}
+      }
+    },
+    "COMPRESSION_COMPLETED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "candidate_hash", "evidence_hash", "producer_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "evidence_hash": {"type": "string"},
+        "producer_id": {"type": "actor-id"}
+      }
+    },
+    "EVALUATION_RECORDED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "candidate_hash", "evidence_hash", "producer_id", "evaluator_id", "receipt_hash", "verdict"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "evidence_hash": {"type": "string"},
+        "producer_id": {"type": "actor-id"},
+        "evaluator_id": {"type": "actor-id"},
+        "receipt_hash": {"type": "string"},
+        "verdict": {"type": "string"}
+      }
+    },
+    "REVISION_READY": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "candidate_hash", "evidence_hash", "producer_id"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "evidence_hash": {"type": "string"},
+        "producer_id": {"type": "actor-id"}
+      }
+    },
+    "PLATEAU": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "fingerprint", "gain"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "fingerprint": {"type": "string"},
+        "gain": {"type": "number"}
+      }
+    },
+    "RETRIES_EXHAUSTED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "failure_class"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "failure_class": {"type": "string"}
+      }
+    },
+    "RETURN_LOCAL_PROPOSAL": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "candidate_hash", "proposal_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "candidate_hash": {"type": "string"},
+        "proposal_hash": {"type": "string"}
+      }
+    },
+    "EXTERNAL_RELEASE_REQUESTED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"}
+      }
+    },
+    "APPROVED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash", "approval_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"},
+        "approval_hash": {"type": "string"}
+      }
+    },
+    "INTENT_COMMITTED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash", "idempotency_key"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"},
+        "idempotency_key": {"type": "string"}
+      }
+    },
+    "ATTEMPT_RECORDED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash", "attempt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"},
+        "attempt_hash": {"type": "string"}
+      }
+    },
+    "RECEIPT_CONFIRMED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash", "receipt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"},
+        "receipt_hash": {"type": "string"}
+      }
+    },
+    "OUTCOME_UNKNOWN": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash", "attempt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"},
+        "attempt_hash": {"type": "string"}
+      }
+    },
+    "ABANDON": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "destination_hash", "reason"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "destination_hash": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    },
+    "NO_PENDING_INTERRUPT_SUCCESS": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "receipt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "receipt_hash": {"type": "string"}
+      }
+    },
+    "NO_PENDING_INTERRUPT_FAILURE": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "proposal_hash", "reason"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "proposal_hash": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    },
+    "PENDING_CANCEL": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "receipt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "receipt_hash": {"type": "string"}
+      }
+    },
+    "PENDING_TIMEOUT": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "receipt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "receipt_hash": {"type": "string"}
+      }
+    },
+    "PENDING_BUDGET_EXHAUSTED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "receipt_hash"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "receipt_hash": {"type": "string"}
+      }
+    },
+    "CANCEL": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "reason"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    },
+    "TIMEOUT": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "deadline", "observed_at"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "deadline": {"type": "timestamp", "role": "deadline"},
+        "observed_at": {"type": "timestamp", "role": "observation_time"}
+      }
+    },
+    "BUDGET_EXHAUSTED": {
+      "type": "object",
+      "required": ["run_id", "actor", "event_id", "budget_kind"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "actor": {"type": "actor-id"},
+        "event_id": {"type": "string"},
+        "budget_kind": {"type": "string"}
+      }
+    }
+  },
+  "guards": {
+    "evaluation_passes": {
+      "reads": ["producer_id", "current_candidate_hash", "current_evidence_hash", "steps_remaining"],
+      "event_reads": ["producer_id", "evaluator_id", "candidate_hash", "evidence_hash", "receipt_hash", "verdict"],
+      "pure": true,
+      "synchronous": true,
+      "semantics": "True only when candidate and evidence hashes match context, evaluator identity and configured independence family differ from producer, verdict is pass, deterministic gates pass, receipt content hash and versions verify, and steps remain."
+    },
+    "evaluation_correctable": {
+      "reads": ["producer_id", "current_candidate_hash", "current_evidence_hash", "correction_round", "max_correction_rounds", "steps_remaining"],
+      "event_reads": ["producer_id", "evaluator_id", "candidate_hash", "evidence_hash", "receipt_hash", "verdict"],
+      "pure": true,
+      "synchronous": true,
+      "semantics": "True only when all identity and hash bindings verify, verdict is revise, no terminal deterministic falsifier fired, correction and step budgets remain, and this semantic fingerprint has not plateaued."
+    },
+    "run_timeout_due": {
+      "kind": "deadline",
+      "deadline_context_field": "run_deadline",
+      "observed_event_field": "observed_at",
+      "reads": ["run_deadline"],
+      "event_reads": ["observed_at"],
+      "pure": true,
+      "synchronous": true,
+      "semantics": "True when observed_at is greater than or equal to the configured run_deadline and the event deadline matches the recorded deadline."
+    }
+  },
+  "effects": {
+    "RequestPatternDetection": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "event_id"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "event_id": {"type": "string"}
+        }
+      }
+    },
+    "RequestAssociations": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "evidence_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "evidence_hash": {"type": "string"}
+        }
+      }
+    },
+    "RequestCandidateGeneration": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "association_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "association_hash": {"type": "string"}
+        }
+      }
+    },
+    "RequestIndependentEvaluation": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "candidate_hash", "evidence_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "candidate_hash": {"type": "string"},
+          "evidence_hash": {"type": "string"}
+        }
+      }
+    },
+    "RequestRevision": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "candidate_hash", "receipt_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "candidate_hash": {"type": "string"},
+          "receipt_hash": {"type": "string"}
+        }
+      }
+    },
+    "RecordLocalProposal": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "candidate_hash", "proposal_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "candidate_hash": {"type": "string"},
+          "proposal_hash": {"type": "string"}
+        }
+      }
+    },
+    "RequestReleaseApproval": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "proposal_hash", "destination_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "proposal_hash": {"type": "string"},
+          "destination_hash": {"type": "string"}
+        }
+      }
+    },
+    "PublishProposedBundle": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "proposal_hash", "destination_hash", "idempotency_key"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "proposal_hash": {"type": "string"},
+          "destination_hash": {"type": "string"},
+          "idempotency_key": {"type": "string"}
+        }
+      }
+    },
+    "ReconcileProposalRelease": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "proposal_hash", "destination_hash", "attempt_hash"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "proposal_hash": {"type": "string"},
+          "destination_hash": {"type": "string"},
+          "attempt_hash": {"type": "string"}
+        }
+      }
+    },
+    "RecordPendingInterrupt": {
+      "kind": "command",
+      "payload_schema": {
+        "type": "object",
+        "required": ["run_id", "interrupt_type", "event_id"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "interrupt_type": {"type": "string"},
+          "event_id": {"type": "string"}
+        }
+      }
+    },
+    "AuditInvalidTransition": {
+      "kind": "audit",
+      "payload_schema": {
+        "type": "object",
+        "required": ["state", "event", "actor", "reason", "event_id"],
+        "properties": {
+          "state": {"type": "string"},
+          "event": {"type": "string"},
+          "actor": {"type": "actor-id"},
+          "reason": {"type": "string"},
+          "event_id": {"type": "string"}
+        }
+      }
+    }
+  },
+  "machines": [
+    {
+      "id": "creative-lifecycle",
+      "initial": "INIT",
+      "states": [
+        {"id": "INIT", "kind": "atomic"},
+        {"id": "DETECT", "kind": "atomic"},
+        {"id": "ASSOCIATE", "kind": "atomic"},
+        {"id": "DIVERGE", "kind": "atomic"},
+        {"id": "COMPRESS", "kind": "atomic"},
+        {"id": "FALSIFY", "kind": "atomic"},
+        {"id": "REVISE", "kind": "atomic"},
+        {"id": "READY_TO_PROPOSE", "kind": "atomic"},
+        {"id": "WAIT_RELEASE_APPROVAL", "kind": "atomic"},
+        {"id": "RELEASE_INTENT", "kind": "atomic"},
+        {"id": "RELEASE", "kind": "atomic"},
+        {"id": "RECONCILE_RELEASE", "kind": "atomic"},
+        {"id": "HUMAN_RECONCILIATION", "kind": "atomic"},
+        {"id": "HONOR_PENDING_INTERRUPT", "kind": "atomic"},
+        {"id": "PROPOSED", "kind": "final"},
+        {"id": "REJECTED", "kind": "final"},
+        {"id": "PLATEAU", "kind": "final"},
+        {"id": "RETRY_EXHAUSTED", "kind": "final"},
+        {"id": "BUDGET_EXHAUSTED", "kind": "final"},
+        {"id": "TIMED_OUT", "kind": "final"},
+        {"id": "CANCELED", "kind": "final"}
+      ],
+      "events": [
+        "START",
+        "PATTERNS_READY",
+        "ASSOCIATIONS_READY",
+        "CANDIDATES_READY",
+        "COMPRESSION_COMPLETED",
+        "EVALUATION_RECORDED",
+        "REVISION_READY",
+        "PLATEAU",
+        "RETRIES_EXHAUSTED",
+        "RETURN_LOCAL_PROPOSAL",
+        "EXTERNAL_RELEASE_REQUESTED",
+        "APPROVED",
+        "INTENT_COMMITTED",
+        "ATTEMPT_RECORDED",
+        "RECEIPT_CONFIRMED",
+        "OUTCOME_UNKNOWN",
+        "ABANDON",
+        "NO_PENDING_INTERRUPT_SUCCESS",
+        "NO_PENDING_INTERRUPT_FAILURE",
+        "PENDING_CANCEL",
+        "PENDING_TIMEOUT",
+        "PENDING_BUDGET_EXHAUSTED",
+        "CANCEL",
+        "TIMEOUT",
+        "BUDGET_EXHAUSTED"
+      ],
+      "invalid_event_policy": {
+        "mode": "reject-and-audit",
+        "guard_false": "reject-and-audit",
+        "state_change": "none",
+        "effect": "AuditInvalidTransition",
+        "effect_binding": {
+          "state": "configuration.state",
+          "event": "event.type",
+          "actor": "event.actor",
+          "reason": "rejection.reason",
+          "event_id": "event.event_id"
+        }
+      },
+      "transitions": [
+        {
+          "id": "start-detection",
+          "from": "INIT",
+          "event": "START",
+          "to": "DETECT",
+          "effects": ["RequestPatternDetection"],
+          "effect_bindings": {
+            "RequestPatternDetection": {
+              "run_id": "event.run_id",
+              "event_id": "event.event_id"
+            }
+          }
+        },
+        {
+          "id": "patterns-to-association",
+          "from": "DETECT",
+          "event": "PATTERNS_READY",
+          "to": "ASSOCIATE",
+          "effects": ["RequestAssociations"],
+          "effect_bindings": {
+            "RequestAssociations": {
+              "run_id": "event.run_id",
+              "evidence_hash": "event.evidence_hash"
+            }
+          }
+        },
+        {
+          "id": "associations-to-divergence",
+          "from": "ASSOCIATE",
+          "event": "ASSOCIATIONS_READY",
+          "to": "DIVERGE",
+          "effects": ["RequestCandidateGeneration"],
+          "effect_bindings": {
+            "RequestCandidateGeneration": {
+              "run_id": "event.run_id",
+              "association_hash": "event.association_hash"
+            }
+          }
+        },
+        {
+          "id": "divergence-to-compression",
+          "from": "DIVERGE",
+          "event": "CANDIDATES_READY",
+          "to": "COMPRESS",
+          "effects": []
+        },
+        {
+          "id": "compression-to-falsification",
+          "from": "COMPRESS",
+          "event": "COMPRESSION_COMPLETED",
+          "to": "FALSIFY",
+          "effects": ["RequestIndependentEvaluation"],
+          "effect_bindings": {
+            "RequestIndependentEvaluation": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash",
+              "evidence_hash": "event.evidence_hash"
+            }
+          }
+        },
+        {
+          "id": "evaluation-pass",
+          "from": "FALSIFY",
+          "event": "EVALUATION_RECORDED",
+          "to": "READY_TO_PROPOSE",
+          "guard": "evaluation_passes",
+          "priority": 30,
+          "effects": []
+        },
+        {
+          "id": "evaluation-revise",
+          "from": "FALSIFY",
+          "event": "EVALUATION_RECORDED",
+          "to": "REVISE",
+          "guard": "evaluation_correctable",
+          "priority": 20,
+          "effects": ["RequestRevision"],
+          "effect_bindings": {
+            "RequestRevision": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash",
+              "receipt_hash": "event.receipt_hash"
+            }
+          }
+        },
+        {
+          "id": "evaluation-reject-default",
+          "from": "FALSIFY",
+          "event": "EVALUATION_RECORDED",
+          "to": "REJECTED",
+          "priority": 10,
+          "effects": []
+        },
+        {
+          "id": "revision-to-falsification",
+          "from": "REVISE",
+          "event": "REVISION_READY",
+          "to": "FALSIFY",
+          "effects": ["RequestIndependentEvaluation"],
+          "effect_bindings": {
+            "RequestIndependentEvaluation": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash",
+              "evidence_hash": "event.evidence_hash"
+            }
+          }
+        },
+        {
+          "id": "revision-plateau",
+          "from": "REVISE",
+          "event": "PLATEAU",
+          "to": "PLATEAU",
+          "effects": []
+        },
+        {
+          "id": "revision-retries-exhausted",
+          "from": "REVISE",
+          "event": "RETRIES_EXHAUSTED",
+          "to": "RETRY_EXHAUSTED",
+          "effects": []
+        },
+        {
+          "id": "return-local-proposal",
+          "from": "READY_TO_PROPOSE",
+          "event": "RETURN_LOCAL_PROPOSAL",
+          "to": "PROPOSED",
+          "effects": ["RecordLocalProposal"],
+          "effect_bindings": {
+            "RecordLocalProposal": {
+              "run_id": "event.run_id",
+              "candidate_hash": "event.candidate_hash",
+              "proposal_hash": "event.proposal_hash"
+            }
+          }
+        },
+        {
+          "id": "request-external-release",
+          "from": "READY_TO_PROPOSE",
+          "event": "EXTERNAL_RELEASE_REQUESTED",
+          "to": "WAIT_RELEASE_APPROVAL",
+          "effects": ["RequestReleaseApproval"],
+          "effect_bindings": {
+            "RequestReleaseApproval": {
+              "run_id": "event.run_id",
+              "proposal_hash": "event.proposal_hash",
+              "destination_hash": "event.destination_hash"
+            }
+          }
+        },
+        {
+          "id": "approve-external-release",
+          "from": "WAIT_RELEASE_APPROVAL",
+          "event": "APPROVED",
+          "to": "RELEASE_INTENT",
+          "effects": []
+        },
+        {
+          "id": "publish-proposed-bundle",
+          "from": "RELEASE_INTENT",
+          "event": "INTENT_COMMITTED",
+          "to": "RELEASE",
+          "effects": ["PublishProposedBundle"],
+          "effect_bindings": {
+            "PublishProposedBundle": {
+              "run_id": "event.run_id",
+              "proposal_hash": "event.proposal_hash",
+              "destination_hash": "event.destination_hash",
+              "idempotency_key": "event.idempotency_key"
+            }
+          }
+        },
+        {
+          "id": "release-to-reconciliation",
+          "from": "RELEASE",
+          "event": "ATTEMPT_RECORDED",
+          "to": "RECONCILE_RELEASE",
+          "effects": ["ReconcileProposalRelease"],
+          "effect_bindings": {
+            "ReconcileProposalRelease": {
+              "run_id": "event.run_id",
+              "proposal_hash": "event.proposal_hash",
+              "destination_hash": "event.destination_hash",
+              "attempt_hash": "event.attempt_hash"
+            }
+          }
+        },
+        {
+          "id": "release-receipt-confirmed",
+          "from": "RECONCILE_RELEASE",
+          "event": "RECEIPT_CONFIRMED",
+          "to": "HONOR_PENDING_INTERRUPT",
+          "effects": []
+        },
+        {
+          "id": "release-outcome-unknown",
+          "from": "RECONCILE_RELEASE",
+          "event": "OUTCOME_UNKNOWN",
+          "to": "HUMAN_RECONCILIATION",
+          "effects": []
+        },
+        {
+          "id": "human-receipt-confirmed",
+          "from": "HUMAN_RECONCILIATION",
+          "event": "RECEIPT_CONFIRMED",
+          "to": "HONOR_PENDING_INTERRUPT",
+          "effects": []
+        },
+        {
+          "id": "human-abandon-release",
+          "from": "HUMAN_RECONCILIATION",
+          "event": "ABANDON",
+          "to": "HONOR_PENDING_INTERRUPT",
+          "effects": []
+        },
+        {
+          "id": "release-success-no-interrupt",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "NO_PENDING_INTERRUPT_SUCCESS",
+          "to": "PROPOSED",
+          "effects": []
+        },
+        {
+          "id": "release-failure-no-interrupt",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "NO_PENDING_INTERRUPT_FAILURE",
+          "to": "REJECTED",
+          "effects": []
+        },
+        {
+          "id": "honor-pending-cancel",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "PENDING_CANCEL",
+          "to": "CANCELED",
+          "effects": []
+        },
+        {
+          "id": "honor-pending-timeout",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "PENDING_TIMEOUT",
+          "to": "TIMED_OUT",
+          "effects": []
+        },
+        {
+          "id": "honor-pending-budget",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "PENDING_BUDGET_EXHAUSTED",
+          "to": "BUDGET_EXHAUSTED",
+          "effects": []
+        },
+        {"id": "cancel-init", "from": "INIT", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-detect", "from": "DETECT", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-associate", "from": "ASSOCIATE", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-diverge", "from": "DIVERGE", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-compress", "from": "COMPRESS", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-falsify", "from": "FALSIFY", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-revise", "from": "REVISE", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-ready", "from": "READY_TO_PROPOSE", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "cancel-wait-approval", "from": "WAIT_RELEASE_APPROVAL", "event": "CANCEL", "to": "CANCELED", "effects": []},
+        {"id": "timeout-init", "from": "INIT", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-detect", "from": "DETECT", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-associate", "from": "ASSOCIATE", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-diverge", "from": "DIVERGE", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-compress", "from": "COMPRESS", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-falsify", "from": "FALSIFY", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-revise", "from": "REVISE", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-ready", "from": "READY_TO_PROPOSE", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "timeout-wait-approval", "from": "WAIT_RELEASE_APPROVAL", "event": "TIMEOUT", "to": "TIMED_OUT", "guard": "run_timeout_due", "effects": []},
+        {"id": "budget-init", "from": "INIT", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-detect", "from": "DETECT", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-associate", "from": "ASSOCIATE", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-diverge", "from": "DIVERGE", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-compress", "from": "COMPRESS", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-falsify", "from": "FALSIFY", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-revise", "from": "REVISE", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-ready", "from": "READY_TO_PROPOSE", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {"id": "budget-wait-approval", "from": "WAIT_RELEASE_APPROVAL", "event": "BUDGET_EXHAUSTED", "to": "BUDGET_EXHAUSTED", "effects": []},
+        {
+          "id": "defer-cancel-release-intent",
+          "from": "RELEASE_INTENT",
+          "event": "CANCEL",
+          "to": "RELEASE_INTENT",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:cancel", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-cancel-release",
+          "from": "RELEASE",
+          "event": "CANCEL",
+          "to": "RELEASE",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:cancel", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-cancel-reconcile",
+          "from": "RECONCILE_RELEASE",
+          "event": "CANCEL",
+          "to": "RECONCILE_RELEASE",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:cancel", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-cancel-human-reconciliation",
+          "from": "HUMAN_RECONCILIATION",
+          "event": "CANCEL",
+          "to": "HUMAN_RECONCILIATION",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:cancel", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-cancel-honor",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "CANCEL",
+          "to": "HONOR_PENDING_INTERRUPT",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:cancel", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-timeout-release-intent",
+          "from": "RELEASE_INTENT",
+          "event": "TIMEOUT",
+          "to": "RELEASE_INTENT",
+          "guard": "run_timeout_due",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:timeout", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-timeout-release",
+          "from": "RELEASE",
+          "event": "TIMEOUT",
+          "to": "RELEASE",
+          "guard": "run_timeout_due",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:timeout", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-timeout-reconcile",
+          "from": "RECONCILE_RELEASE",
+          "event": "TIMEOUT",
+          "to": "RECONCILE_RELEASE",
+          "guard": "run_timeout_due",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:timeout", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-timeout-human-reconciliation",
+          "from": "HUMAN_RECONCILIATION",
+          "event": "TIMEOUT",
+          "to": "HUMAN_RECONCILIATION",
+          "guard": "run_timeout_due",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:timeout", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-timeout-honor",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "TIMEOUT",
+          "to": "HONOR_PENDING_INTERRUPT",
+          "guard": "run_timeout_due",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:timeout", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-budget-release-intent",
+          "from": "RELEASE_INTENT",
+          "event": "BUDGET_EXHAUSTED",
+          "to": "RELEASE_INTENT",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:budget_exhausted", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-budget-release",
+          "from": "RELEASE",
+          "event": "BUDGET_EXHAUSTED",
+          "to": "RELEASE",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:budget_exhausted", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-budget-reconcile",
+          "from": "RECONCILE_RELEASE",
+          "event": "BUDGET_EXHAUSTED",
+          "to": "RECONCILE_RELEASE",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:budget_exhausted", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-budget-human-reconciliation",
+          "from": "HUMAN_RECONCILIATION",
+          "event": "BUDGET_EXHAUSTED",
+          "to": "HUMAN_RECONCILIATION",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:budget_exhausted", "event_id": "event.event_id"}}
+        },
+        {
+          "id": "defer-budget-honor",
+          "from": "HONOR_PENDING_INTERRUPT",
+          "event": "BUDGET_EXHAUSTED",
+          "to": "HONOR_PENDING_INTERRUPT",
+          "effects": ["RecordPendingInterrupt"],
+          "effect_bindings": {"RecordPendingInterrupt": {"run_id": "event.run_id", "interrupt_type": "literal:budget_exhausted", "event_id": "event.event_id"}}
+        }
+      ]
+    }
+  ],
+  "safety_properties": [
+    {
+      "id": "propose-only-authority",
+      "statement": "No transition emits ACCEPTED, mutates canon, materializes KG or source code, or removes the visible PROPOSED status.",
+      "verification": "Static event and effect allowlist plus reducer conformance and forbidden-token contract tests."
+    },
+    {
+      "id": "independent-hash-bound-verdict",
+      "statement": "READY_TO_PROPOSE is reachable only from a receipt whose candidate and evidence hashes match context and whose evaluator identity family differs from the producer.",
+      "verification": "evaluation_passes truth table, forged receipt fixtures, identity-collision cases, and production guard conformance."
+    },
+    {
+      "id": "bounded-correction",
+      "statement": "Correction cannot exceed configured rounds or hard budgets, and repeated semantic fingerprints terminate as PLATEAU rather than resetting progress.",
+      "verification": "Property tests over correction sequences, budget monotonicity, semantic fingerprint repetition, and boundary values."
+    },
+    {
+      "id": "exact-release-gate",
+      "statement": "PublishProposedBundle is emitted only after exact-content approval and committed intent, and unknown outcomes cannot bypass reconciliation.",
+      "verification": "Reachability check, approval mismatch fixtures, crash injection around intent and attempt, and destination receipt conformance."
+    },
+    {
+      "id": "interrupt-safe-effects",
+      "statement": "Cancellation, timeout, and budget exhaustion terminate immediately in safe states but are durably deferred across release intent, attempt, and reconciliation until the visible effect outcome is known.",
+      "verification": "Every-state interrupt traces plus crash and duplicate delivery tests around the five effect-critical states."
+    }
+  ],
+  "liveness_properties": [
+    {
+      "id": "bounded-creative-termination",
+      "statement": "Every admitted run eventually reaches PROPOSED, REJECTED, PLATEAU, RETRY_EXHAUSTED, BUDGET_EXHAUSTED, TIMED_OUT, or CANCELED.",
+      "assumptions": [
+        "Each authorized port returns a recorded observation, a classified failure, or a deadline event within its per-call timeout.",
+        "The external hard governor delivers TIMEOUT or BUDGET_EXHAUSTED when a hard boundary is reached.",
+        "The correction-round and no-progress bounds are finite."
+      ],
+      "verification": "Bounded model check over state, correction round, retry count, and budget abstraction plus terminal-path trace coverage."
+    },
+    {
+      "id": "eventual-release-reconciliation",
+      "statement": "Once proposal release intent is committed, the run reaches a receipt or human reconciliation, then honors any pending interrupt before a terminal outcome.",
+      "assumptions": [
+        "The release adapter records each attempt without abandoning an in-flight visible effect.",
+        "A destination receipt becomes inspectable or a human supplies ABANDON.",
+        "The interrupt reconciler converts the durable ledger into exactly one pending-interrupt or no-pending event."
+      ],
+      "verification": "Crash traces before and after intent, attempt, receipt, and acknowledgement plus duplicate and reordered interrupt traces."
+    }
+  ],
+  "trace_fixtures": [
+    "engine/eureka/tests/fixtures/semantic-creative-fsm-traces.v1.json"
+  ],
+  "conformance": {
+    "implementation_step": "Bind every guard and effect name to typed functions; the production reducer must produce the same state, context delta, commands, rejection mode, and priority choice for every fixture.",
+    "model_trace_runner": "Use the repository fsm-spec abstract trace runner after adding the declared fixture; require every transition, both outcomes of each guard, invalid-event policy, interrupts, and every terminal path.",
+    "contract_tests": "Run semantic source and implementation together on positive, guard-false, forged receipt, duplicate, reordered, plateau, retry exhaustion, timeout boundary, cancellation, budget exhaustion, approval mismatch, unknown release outcome, crash-resume, and deterministic replay cases."
+  }
+}

@@ -3,7 +3,8 @@
 # It states what the store must OBSERVE when engine.eureka.run_from_kg drives a real FCA
 # induction -> quality gate -> naesengmoon gate -> persist over a seeded 8-object cluster.
 # Thresholds match the REAL PipelineRun for the fixture: 2 concepts induced, 2 survive the
-# FCA_STABILITY_MIN=0.50 floor, 2 persisted with verdictStatus=ACCEPTED (persist_accept=True).
+# FCA_STABILITY_MIN=0.50 floor, 2 persisted as VERDICT_PENDING. ACCEPTED requires a
+# content-bound creative validation receipt and is tested at the CLI→Hades seam.
 #
 # HONEST-COUNT NOTE: an EMPTY CypherRunner yields ZERO concepts yet the pipeline's stages_ok
 # is STILL 5 (stage_1-extract etc. report ok=True over zero concepts) — so a gate bound to
@@ -34,10 +35,9 @@ expect:
     op: "=="
     count: 2
 
-  # one per AbstractClass really persisted ACCEPTED by stage_6_persist (==2). A
-  # VERDICT_PENDING (persist_accept=False) row would not match verdictStatus=ACCEPTED => RED.
+  # one per AbstractClass really persisted pending by stage_6_persist (==2).
   - event: eureka_abstraction_persisted
-    where: {verdictStatus: ACCEPTED}
+    where: {verdictStatus: VERDICT_PENDING}
     op: "=="
     count: 2
 
@@ -49,7 +49,7 @@ expect:
   # ── subset present, value-pinned via where (any order) ───────────────────
   - present:
       - {event: eureka_cycle_started, where: {phase: induce}}
-      - {event: eureka_abstraction_persisted, where: {verdictStatus: ACCEPTED}}
+      - {event: eureka_abstraction_persisted, where: {verdictStatus: VERDICT_PENDING}}
       - {event: eureka_cycle_complete}
 
   # ── sequencing: the flow must emit in lifecycle order ────────────────────

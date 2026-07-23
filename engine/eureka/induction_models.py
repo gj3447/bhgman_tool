@@ -61,6 +61,17 @@ class AbstractClass(BaseModel):
     gamma: Optional[float] = Field(None, gt=0.0)
     provenance: Optional[dict] = None
 
+    # Optional semantic-enrichment fields.  Structural inductors remain valid without
+    # them; the creative path requires the content-addressed receipt fields before an
+    # ACCEPTED persist is permitted.
+    semanticName: Optional[str] = Field(None, min_length=1, max_length=96)
+    mechanism: Optional[str] = Field(None, min_length=1, max_length=1200)
+    scope: Optional[str] = Field(None, min_length=1, max_length=600)
+    falsifier: Optional[str] = Field(None, min_length=1, max_length=1000)
+    candidateDigest: Optional[str] = Field(None, pattern=r"^[0-9a-f]{64}$")
+    validationReceiptDigest: Optional[str] = Field(None, pattern=r"^[0-9a-f]{64}$")
+    noveltyScore: Optional[float] = Field(None, ge=0.0, le=1.0)
+
     @field_validator("name")
     @classmethod
     def name_format(cls, v: str) -> str:

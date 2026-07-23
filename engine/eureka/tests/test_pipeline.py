@@ -1,4 +1,9 @@
-from engine.eureka.pipeline import PipelineConfig, run
+import datetime as dt
+
+import pytest
+
+from engine.eureka.induction_models import AbstractClass, AbstractClassStatus, InductionMethod
+from engine.eureka.pipeline import PipelineConfig, run, stage_6_persist
 from engine.eureka.protocols import StageResult
 
 
@@ -46,10 +51,12 @@ _COHESIVE_CONTEXT = {
 }
 
 
-def test_eureka_persist_to_hades_realization_roundtrip(tmp_path):
-    """W1-I: eureka persists ACCEPTED AbstractClass nodes to a (local) KG and hades
-    fetches+realizes them — NO hand-built fixture. Closes the dead producer→consumer seam
-    (hades reads verdictStatus='ACCEPTED', which eureka never wrote before)."""
+def test_structural_candidate_cannot_enter_hades_without_validation_receipt(tmp_path):
+    """A bare structural FCA result is not a semantic acceptance receipt.
+
+    The positive receipt-bound Eureka→Hades roundtrip lives in
+    ``test_eureka_creative_accept.py``; this is its mandatory negative wing.
+    """
     from engine.hades.hades_runner import run_hades
     from engine.kg_local.runner import make_local_runner
     from engine.kg_local.store import LocalKgStore
@@ -60,11 +67,38 @@ def test_eureka_persist_to_hades_realization_roundtrip(tmp_path):
     result = run(reference_sites=[], formal_context=_COHESIVE_CONTEXT, config=cfg)
 
     persist = next(s for s in result.stages if s.stage == "6-persist")
-    assert persist.ok and persist.payload["persisted"] >= 1
+    assert persist.ok is False
+    assert "validation receipt" in persist.error
+    assert run_hades(runner, concept=None).verdicts == ()
 
-    # hades fetches exactly what eureka wrote — no hand-built fixture
-    res = run_hades(runner, concept=None)
-    assert len(res.verdicts) >= 1
+
+def test_stage_6_accept_rejects_digest_only_candidate_before_write():
+    """Two arbitrary SHA-256-shaped strings are not a serialized validation receipt."""
+    writes = []
+    candidate = AbstractClass(
+        name="forged-receipt",
+        summary="Digest-only candidate must fail closed before persistence.",
+        inductionMethod=InductionMethod.FCA,
+        cycleId="forged-cycle",
+        createdAt=dt.datetime.now(dt.timezone.utc),
+        status=AbstractClassStatus.VERDICT_PENDING,
+        extent=["a", "b", "c"],
+        intent=["shared"],
+        stabilityScore=1.0,
+        candidateDigest="a" * 64,
+        validationReceiptDigest="b" * 64,
+    )
+
+    with pytest.raises(ValueError, match="serialized validation receipt"):
+        stage_6_persist(
+            [candidate],
+            lambda query, params: writes.append((query, params)) or [],
+            accept=True,
+            require_acceptance_receipt=True,
+            creative_receipts=[],
+        )
+
+    assert writes == []
 
 
 def test_eureka_persist_without_accept_is_not_hades_realizable(tmp_path):

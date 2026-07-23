@@ -11,10 +11,10 @@ Covenant (eureka = PROPOSE only, 실현은 하데스):
   - no flag  → read-only, no persist (dry-run, like occam/hades).
   - --apply  → persist candidates as verdictStatus='VERDICT_PENDING' (visible to hades but
                NOT realizable — covenant preserved; hades only realizes ACCEPTED).
-  - --accept → explicit PROPOSED→ACCEPTED transition (writes ACCEPTED); implies persist.
+  - --accept → always fail-closed until external human/Naesengmoon verdict ingress exists.
 
 These tests pin the wiring at the PipelineConfig seam (independent of whether FCA induces
-any concept on the test KG): cmd_eureka must inject persist_cypher + persist_accept correctly.
+any concept on the test KG): cmd_eureka may inject pending persistence but never self-accept.
 
 # KG: finding-eureka-stage6-persist-seam-dead-from-cli-2026-06-26
 """
@@ -60,7 +60,7 @@ def test_eureka_parser_defaults_dry_run():
 def test_eureka_default_does_not_wire_persist(monkeypatch):
     _read, write, captured = _patch(monkeypatch)
     rc = cli(["eureka"])
-    assert rc == 0
+    assert rc == 1  # fake run has no earned proposal: honest NO_CANDIDATE
     # covenant: no persist runner injected → stage_6 stays off, nothing written
     assert captured["config"].persist_cypher is None
     assert write.calls == []
@@ -69,17 +69,15 @@ def test_eureka_default_does_not_wire_persist(monkeypatch):
 def test_eureka_apply_wires_persist_as_pending(monkeypatch):
     _read, write, captured = _patch(monkeypatch)
     rc = cli(["eureka", "--apply"])
-    assert rc == 0
+    assert rc == 3  # requested persist has no receipt/stage in this seam fake
     # --apply injects the write runner so stage_6_persist fires...
     assert captured["config"].persist_cypher is write
     # ...but NOT accepted → verdictStatus='VERDICT_PENDING' (hades won't realize it yet)
     assert captured["config"].persist_accept is False
 
 
-def test_eureka_accept_wires_persist_as_accepted(monkeypatch):
-    _read, write, captured = _patch(monkeypatch)
+def test_eureka_accept_without_creative_receipt_is_refused(monkeypatch):
+    _read, write, _captured = _patch(monkeypatch)
     rc = cli(["eureka", "--apply", "--accept"])
-    assert rc == 0
-    assert captured["config"].persist_cypher is write
-    # explicit PROPOSED→ACCEPTED → verdictStatus='ACCEPTED' (the row hades fetches)
-    assert captured["config"].persist_accept is True
+    assert rc == 2
+    assert write.calls == []

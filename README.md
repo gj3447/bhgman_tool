@@ -131,10 +131,21 @@ bhgman-tool tlb "CLAIM-x" --claim "the artifact text"   # 3-lens adversarial ens
 # neo4j 없이 (no server, no setup):
 bhgman-tool occam  --local            # KG node-dedup against ~/.bhgman/kg.json
 bhgman-tool hades  --local --apply    # materialize ACCEPTED abstractions
-bhgman-tool eureka --local            # induce concepts from the local KG
+bhgman-tool eureka --local --json     # structural induction + consumable candidate envelope
+# semantic mode: divergent proposer → content gates → distinct-model critic → one bounded repair
+bhgman-tool eureka --local --creative --json
 # schema is code (no pre-seeded neo4j needed); bootstrap a real neo4j from it:
 bhgman-tool kg-schema --emit neo4j | cypher-shell
 ```
+
+`eureka --creative` is an opt-in semantic layer over the deterministic FCA/AMIE floor. It does not
+claim to add intelligence to the underlying model. It creates conditions for useful novelty—contrastive
+association, divergent hypotheses, explicit near-misses and falsifiers—then rejects prompt echoes,
+single-source paraphrases, baseline renames, self-review, and unbound critic verdicts. Every surviving
+proposal and validation receipt is content-addressed. Dry-run remains the default; `--apply` writes only
+`VERDICT_PENDING`. `--accept` fails closed until an external human/Naesengmoon verdict-ingress protocol
+exists; a candidate cannot approve itself in the invocation that created it. Materialization remains
+Hades' authority.
 
 ---
 

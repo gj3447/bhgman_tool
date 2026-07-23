@@ -8,7 +8,7 @@ whitespace에 견고(정확 문자열 매칭 아님). 미지 쿼리는 조용히
 지원 (engine 핵심 KG 동사):
   - occam: SourceCodeNode fetch / supersede
   - hades: AbstractClass(ACCEPTED) fetch / materialize MERGE / INSTANCE_OF link
-  - eureka: facet formal-context read
+  - eureka: facet formal-context read + held-out fidelity measurement
   - longinus/binding: SourceCodeNode merge + sha256 rebind(UNWIND)
   - prometheus: gap-scan(OpenQuestion/VerdictPending) read + :ResearchFinding ingest write
   - jaebaeman: 분해 anchor 자식 read + SubagentTaskSpec 씨앗 MERGE + HAS_SEED/DECOMPOSES_TO 엣지
@@ -228,6 +228,13 @@ def _eureka_persist_abstractclass(store: LocalKgStore, params: dict) -> list[dic
             "extent": list(params.get("extent") or []),
             "intent": list(params.get("intent") or []),
             "stabilityScore": params.get("stabilityScore"),
+            "semanticName": params.get("semanticName"),
+            "mechanism": params.get("mechanism"),
+            "scope": params.get("scope"),
+            "falsifier": params.get("falsifier"),
+            "candidateDigest": params.get("candidateDigest"),
+            "validationReceiptDigest": params.get("validationReceiptDigest"),
+            "noveltyScore": params.get("noveltyScore"),
         },
     )
     return [{"name": params["name"]}]
@@ -265,6 +272,44 @@ def _eureka_facets(store: LocalKgStore, params: dict) -> list[dict]:
                 dsts.add(dst["props"]["name"])
         if len(dsts) <= hub_cap and len(attrs) >= min_facets:
             rows.append({"object": n["props"].get("name"), "attributes": sorted(attrs)})
+    return rows
+
+
+def _fidelity_top_shared(store: LocalKgStore, member_sources: set[int], witness: str) -> int:
+    sources_by_target: dict[str, set[int]] = {}
+    for edge in store.edges:
+        if edge.get("src") not in member_sources or edge.get("type") != witness:
+            continue
+        target_name = store.nodes[edge["dst"]].get("props", {}).get("name")
+        if target_name is not None:
+            sources_by_target.setdefault(target_name, set()).add(edge["src"])
+    return max((len(sources) for sources in sources_by_target.values()), default=0)
+
+
+def _eureka_fidelity_members(store: LocalKgStore, params: dict) -> list[dict]:
+    """Mirror ``fidelity_members_cypher`` for a pre-materialized member extent.
+
+    Neo4j groups matching outgoing witness relations by target name, counts distinct
+    member source nodes, then returns the largest group for every requested witness.
+    Returning zero rows for absent witnesses would change the fidelity denominator, so
+    the local mirror emits one row per input relation, including explicit zeroes.
+    """
+    members = set(params.get("members") or [])
+    member_sources = {
+        index
+        for index, node in enumerate(store.nodes)
+        if node.get("props", {}).get("name") in members
+    }
+    extent = params.get("extent", len(members))
+    rows: list[dict] = []
+    for witness in params.get("witness_rels") or []:
+        rows.append(
+            {
+                "witness": witness,
+                "top_shared": _fidelity_top_shared(store, member_sources, witness),
+                "extent": extent,
+            }
+        )
     return rows
 
 
@@ -549,6 +594,11 @@ _ROUTES: list[tuple[Callable[[str], bool], Callable, bool]] = [
         True,
     ),
     (lambda c: "q:OpenQuestion OR q:VerdictPending" in c, _gap_scan, False),
+    (
+        lambda c: "UNWIND $witness_rels AS wrel" in c and "$members" in c,
+        _eureka_fidelity_members,
+        False,
+    ),
     (lambda c: "$facet_rels" in c, _eureka_facets, False),
     # both hades fetch variants: _FETCH_ALL `(a:AbstractClass)` and _FETCH_ONE
     # `(a:AbstractClass {name: $concept})` (handler filters on params['concept']). The MERGE

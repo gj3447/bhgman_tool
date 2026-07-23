@@ -3,7 +3,7 @@
 Positive-TDD / log-based gate (ooptdd): the *store* is the judge, not the return value.
 We drive the REAL FCA induction engine through ooptdd/eureka_adapter.py over a seeded
 8-object math/compiler cluster (FCA induce -> quality gate -> naesengmoon -> persist
-ACCEPTED), and the gate in gates/eureka_flow.yaml re-checks arrival, every threshold
+VERDICT_PENDING), and the gate in gates/eureka_flow.yaml re-checks arrival, every threshold
 matching the real PipelineRun.
 
 Four tests:
