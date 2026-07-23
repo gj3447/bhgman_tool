@@ -130,3 +130,103 @@ def test_detect_all_empty_when_backend_unusable():
         raise RuntimeError("unsupported")
 
     assert detect_all(raising) == []
+
+
+# ---- delta-gap blockers ----
+from engine.legion.phase_detect import Blocker, fetch_blockers  # noqa: E402
+
+
+def _blocker_runner(counts, *, sp=None, st=None, scw=None):
+    """fake run_cypher: facts by count + phase-specific blocker rows by unique query marker."""
+
+    def run_cypher(cypher, params):  # noqa: ARG001
+        if "IS NULL AS objective" in cypher:  # PH3_SP blocker query
+            return sp or []
+        if "NOT (leaf)-[:HAS_CONTRACT]" in cypher:  # PH4_ST blocker query
+            return st or []
+        if "NOT (c)-[:MATERIALIZES]" in cypher:  # PH5_SCW blocker query
+            return scw or []
+        if "SourceCodeNode" in cypher:
+            return [{"c": counts["source"]}]
+        if "HAS_CONTRACT" in cypher and "MATERIALIZES" not in cypher:
+            return [{"c": counts["contract"]}]
+        if "AtomicSpan" in cypher and "HAS_CONTRACT" not in cypher:
+            return [{"c": counts["atomic"]}]
+        return [{"c": counts["sa"]}]
+
+    return run_cypher
+
+
+def test_phasestatus_blockers_default_empty():
+    assert classify_phase(PhaseFacts(sa_exists=True)).blockers == ()
+
+
+def test_fetch_blockers_sp_reports_missing_predicates():
+    rows = [
+        {
+            "node": "span_x",
+            "objective": False,
+            "definition": False,
+            "keyAssertion": True,
+            "verification": True,
+            "c_s_predicate": False,
+        }
+    ]
+    bl = fetch_blockers("Proj", "PH3_SP", _blocker_runner({}, sp=rows))
+    assert bl == (Blocker("span_x", "missing C(S): keyAssertion, verification"),)
+
+
+def test_fetch_blockers_sp_all_null_degrades_to_coarse():
+    # KG that doesn't populate C(S) fields → every flag True → coarse msg, not "missing all 5".
+    rows = [
+        {
+            "node": "span_z",
+            **{
+                f: True
+                for f in (
+                    "objective",
+                    "definition",
+                    "keyAssertion",
+                    "verification",
+                    "c_s_predicate",
+                )
+            },
+        }
+    ]
+    bl = fetch_blockers("Proj", "PH3_SP", _blocker_runner({}, sp=rows))
+    assert bl == (Blocker("span_z", "needs crystallization (not yet AtomicSpan)"),)
+
+
+def test_fetch_blockers_st_simple():
+    bl = fetch_blockers("Proj", "PH4_ST", _blocker_runner({}, st=[{"node": "leaf_a"}]))
+    assert bl == (Blocker("leaf_a", "no Contract (HAS_CONTRACT edge missing)"),)
+
+
+def test_fetch_blockers_scw_simple():
+    bl = fetch_blockers("Proj", "PH5_SCW", _blocker_runner({}, scw=[{"node": "Contract_c"}]))
+    assert bl == (Blocker("Contract_c", "no code (MATERIALIZES→SourceCodeNode missing)"),)
+
+
+def test_fetch_blockers_terminal_phase_none():
+    assert fetch_blockers("Proj", "PH5_6_SCW_FEEDBACK", _blocker_runner({})) == ()
+
+
+def test_fetch_blockers_graceful_on_raise():
+    def raising(c, p):  # noqa: ARG001
+        raise RuntimeError("UnsupportedLocalQuery")
+
+    assert fetch_blockers("Proj", "PH4_ST", raising) == ()
+
+
+def test_detect_phase_with_blockers_attaches_delta():
+    counts = {"sa": 1, "atomic": 2, "contract": 0, "source": 0}  # → PH4_ST
+    r = _blocker_runner(counts, st=[{"node": "leaf_a"}, {"node": "leaf_b"}])
+    s = detect_phase("Proj", r, with_blockers=True)
+    assert s.phase == "PH4_ST"
+    assert [b.node for b in s.blockers] == ["leaf_a", "leaf_b"]
+
+
+def test_detect_phase_without_blockers_stays_empty():
+    counts = {"sa": 1, "atomic": 2, "contract": 0, "source": 0}
+    r = _blocker_runner(counts, st=[{"node": "leaf_a"}])
+    assert detect_phase("Proj", r).blockers == ()  # default off = back-compat
