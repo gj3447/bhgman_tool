@@ -1,7 +1,11 @@
-# ooptdd-loop spec — verify the LIVE Grok KG MCP endpoint (SSE) works end-to-end.
-# Each gate is Longinus-bound to a REAL event-emitting literal in run_grok_kg_probe, which
-# ships that event ONLY when the corresponding behaviour is genuinely observed against the
-# live public endpoint (no mocks). A broken/regressed endpoint -> the bound gate goes RED.
+# ooptdd-loop spec — opt-in verification of a LIVE Grok KG MCP endpoint (SSE).
+# The capability URL is secret runtime configuration and MUST NOT be committed. Importing the
+# adapter or running normal CI does no network or KG work. An operator must explicitly provide:
+#   BHGMAN_GROK_KG_LIVE_WRITE_PROBE=1
+#   BHGMAN_GROK_KG_MCP_SSE_URL='https://host.example/<capability>/'
+# Each gate is Longinus-bound to a REAL event-emitting literal in run_grok_kg_probe, which ships
+# that event ONLY when the corresponding behaviour is observed. The write-roundtrip gate requires
+# CREATE=1, read-back=1, DELETE=1, and a post-cleanup residue count of zero.
 #
 # Run:   ooptdd-loop validate-spec ooptdd/grok_kg_requirements.yaml
 #        ooptdd-loop run          ooptdd/grok_kg_requirements.yaml --json
@@ -45,7 +49,7 @@ requirements:
       must_emit: grok_tools_readwrite
 
   - id: REQ-KG-READ
-    description: a real read_neo4j_cypher returns a live node count > 0
+    description: an explicitly enabled real read_neo4j_cypher returns a live node count > 0
     gate:
       - {event: grok_kg_read_ok, op: "==", count: 1}
     longinus:
@@ -55,7 +59,7 @@ requirements:
       must_emit: grok_kg_read_ok
 
   - id: REQ-KG-WRITE-ROUNDTRIP
-    description: CREATE -> read-back(==1) -> DELETE all succeed with no KG residue
+    description: parameterized CREATE -> read-back(==1) -> finally DELETE -> residue(==0)
     gate:
       - {event: grok_kg_write_roundtrip, op: "==", count: 1}
     longinus:
