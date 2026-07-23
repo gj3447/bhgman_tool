@@ -169,8 +169,18 @@ _REDUCER_SEMANTICS = {
     ),
     "invalidation_target": "CURRENT_GENERATION_REFERENCE_REQUIRED",
     "identity_normalization": "ENVELOPE_PAYLOAD_SPEC_AND_STATE_STRINGS_UNICODE_NFC",
+    "effect_claim_commit_barrier": (
+        "OPERATIONAL_CLAIM_MAY_PRECEDE_EFFECT_LEASED; "
+        "EXTERNAL_EXECUTION_FORBIDDEN_UNTIL_EFFECT_LEASED_COMMITS"
+    ),
+    "effect_heartbeat": (
+        "CANONICAL_EVENT_RENEWS_LEASED_OR_RUNNING_LEASE_WITH_MATCHING_OWNER_AND_TOKEN"
+    ),
+    "effect_cancellation": (
+        "EFFECT_CANCELLED_ABSORBING; LATE_OUTCOME_AFTER_CYCLE_CANCELLATION_ONLY"
+    ),
 }
-_EXECUTION_PROFILE_HASH = "57c233766b9f84a95cba9b4be40fba264be9be7ea3639737090366023e2dc55a"
+_EXECUTION_PROFILE_HASH = "cca2bf0125bab2fd7fe6f97bf01d3492ee8ce8c7b8a70f4b4acab32c35f11876"
 _SELECTOR_PARTITIONS = {
     EventType.WORK_ITEM_CLOSED.value: {
         "event.work.closed.leaf": {"closure_kind": "LEAF"},
@@ -297,6 +307,7 @@ _EVENT_CONTRACT_SHAPES = {
         )
         for event_type in (
             EventType.EFFECT_LEASED,
+            EventType.EFFECT_HEARTBEAT_RECORDED,
             EventType.EFFECT_STARTED,
             EventType.EFFECT_SUCCEEDED,
             EventType.EFFECT_FAILED,
@@ -317,9 +328,9 @@ def validate_runtime_profile(spec_value: object) -> None:
         raise ValueError(f"unsupported format_version {spec.format_version}; expected 1")
     if spec.spec_id != "apt_engine_fsm":
         raise ValueError(f"unsupported spec_id {spec.spec_id!r}; expected 'apt_engine_fsm'")
-    if spec.spec_version != "1.0.0-proposal.6":
+    if spec.spec_version != "1.1.0-proposal.8":
         raise ValueError(
-            f"unsupported spec_version {spec.spec_version!r}; expected '1.0.0-proposal.6'"
+            f"unsupported spec_version {spec.spec_version!r}; expected '1.1.0-proposal.8'"
         )
     if spec.status != "DESIGN_PROPOSAL":
         raise ValueError(f"unsupported status {spec.status!r}; expected 'DESIGN_PROPOSAL'")

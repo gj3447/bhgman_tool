@@ -1,4 +1,4 @@
-"""Immutable event envelope for the APT vNext Slice 0 reducer.
+"""Immutable event envelope for the APT vNext reducer.
 
 KG: apt-tpa-legion-engine-canon-2026-06-12
 KG: verdict-bihaenggiman-7commander-unify-2026-06-07
@@ -70,6 +70,7 @@ class EventType(str, Enum):
     EVIDENCE_INVALIDATED = "EvidenceInvalidated"
     EFFECT_QUEUED = "EffectQueued"
     EFFECT_LEASED = "EffectLeased"
+    EFFECT_HEARTBEAT_RECORDED = "EffectHeartbeatRecorded"
     EFFECT_STARTED = "EffectStarted"
     EFFECT_SUCCEEDED = "EffectSucceeded"
     EFFECT_FAILED = "EffectFailed"

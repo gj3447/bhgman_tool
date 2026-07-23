@@ -20,6 +20,8 @@ from engine.apt_runtime.domain.state import (
     ArtifactRecord,
     AssuranceStatus,
     CycleLifecycle,
+    EffectAttemptOutcome,
+    EffectAttemptRecord,
     EffectLifecycle,
     EffectState,
     GenerationHistory,
@@ -97,6 +99,16 @@ def representative_state() -> AptCycleState:
         child_ids=(),
         generations=generations,
     )
+    attempt = EffectAttemptRecord(
+        attempt=1,
+        lease_token="lease-1",
+        lease_owner="worker-1",
+        started_at=NOW,
+        outcome_history=(EffectAttemptOutcome.RUNNING, EffectAttemptOutcome.SUCCEEDED),
+        completed_at=NOW,
+        result_ref="artifact://current",
+        result_hash=HASH_B,
+    )
     effect = EffectState(
         effect_id="effect-1",
         lifecycle=EffectLifecycle.SUCCEEDED,
@@ -110,6 +122,9 @@ def representative_state() -> AptCycleState:
         input_hash=HASH_C,
         result_ref="artifact://current",
         result_hash=HASH_B,
+        lease_token_history=("lease-1",),
+        current_attempt=1,
+        attempts=(attempt,),
     )
     return AptCycleState(
         cycle_id="cycle-é",

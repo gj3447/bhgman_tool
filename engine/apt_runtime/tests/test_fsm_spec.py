@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from engine.apt_runtime.domain.events import EventType
 from engine.apt_runtime.domain.fsm_spec import FsmSpec, SpecValidationError, load_default_spec
 
 
@@ -19,8 +20,94 @@ def test_normative_companion_declares_six_regions_and_three_aggregates() -> None
     assert spec.aggregate_count == 3
     assert len(spec.machines) == 6
     assert sum(len(machine.states) for machine in spec.machines) == 36
-    assert spec.expanded_transition_count == 114
+    assert spec.expanded_transition_count == 117
     assert len(spec.spec_hash) == 64
+
+
+def test_slice2_effect_lease_contract_is_exact_and_fenced_by_token() -> None:
+    spec = load_default_spec()
+
+    assert EventType.EFFECT_HEARTBEAT_RECORDED.value == "EffectHeartbeatRecorded"
+    assert spec.spec_version == "1.1.0-proposal.8"
+    assert spec.source == {
+        "path": "ADRs/apt-vnext-slice2-effect-runtime-2026-07-14.md",
+        "date": "2026-07-14",
+        "authority": "SECONDARY_AI_ENGINEERING_PROPOSAL",
+        "normativity": "NORMATIVE_WITHIN_PROPOSAL",
+    }
+    expected_payloads = {
+        "EffectLeased": (
+            "lease_owner",
+            "lease_token",
+            "lease_expiry",
+            "grant_ref",
+            "grant_hash",
+            "config_version",
+            "authorization_ref",
+            "authorization_hash",
+        ),
+        "EffectHeartbeatRecorded": (
+            "lease_owner",
+            "lease_token",
+            "heartbeat_at",
+            "lease_expiry",
+        ),
+        "EffectStarted": ("attempt", "lease_token"),
+        "EffectSucceeded": ("attempt", "lease_token", "result_ref", "result_hash"),
+        "EffectFailed": ("attempt", "lease_token", "reason"),
+        "EffectLeaseExpired": (
+            "lease_token",
+            "reconciliation_ref",
+            "expected_heartbeat_at",
+            "expected_lease_expiry",
+        ),
+        "EffectTimedOut": (
+            "attempt",
+            "lease_token",
+            "reconciliation_ref",
+            "expected_heartbeat_at",
+            "expected_lease_expiry",
+        ),
+        "EffectRetryQueued": (
+            "guard_result",
+            "guard_evidence_refs",
+            "lease_token",
+            "reconciliation_ref",
+            "reconciliation_outcome",
+        ),
+        "EffectCancelled": ("reason", "authorization_ref", "authorization_hash"),
+    }
+    actual_payloads = {
+        contract.event_type: contract.required_payload
+        for contract in spec.event_contracts
+        if contract.event_type in expected_payloads
+    }
+
+    assert actual_payloads == expected_payloads
+    for lifecycle, transition_id in (
+        ("LEASED", "effect.heartbeat.leased"),
+        ("RUNNING", "effect.heartbeat.running"),
+    ):
+        heartbeat = spec.matching_transitions(
+            "effect.lifecycle",
+            lifecycle,
+            "EffectHeartbeatRecorded",
+            {},
+        )
+        assert len(heartbeat) == 1
+        assert heartbeat[0].id == transition_id
+        assert heartbeat[0].target == lifecycle
+
+    recovery = spec.matching_transitions(
+        "effect.lifecycle",
+        "TIMED_OUT",
+        "EffectSucceeded",
+        {},
+    )
+    assert len(recovery) == 1
+    assert recovery[0].id == "effect.reconcile.succeed"
+    assert recovery[0].target == "SUCCEEDED"
+    assert recovery[0].kind == "RECOVERY"
 
 
 def test_every_declared_state_has_a_witness_path_from_initial_state() -> None:

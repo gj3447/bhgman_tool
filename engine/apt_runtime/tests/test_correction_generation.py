@@ -34,7 +34,12 @@ def _materialized_state():
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://1", "result_hash": "1" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://1",
+                "result_hash": "1" * 64,
+            },
         ),
         SPEC,
     )
@@ -66,7 +71,11 @@ def test_effect_retry_waits_for_work_level_realization_retry_approval() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"reason": "worker failure"},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "reason": "worker failure",
+            },
         ),
         SPEC,
     )
@@ -88,7 +97,11 @@ def test_effect_retry_waits_for_work_level_realization_retry_approval() -> None:
         work_item_id="work-1",
         effect_id="effect-1",
         generation=1,
-        payload=guard_payload(reconciliation_ref="reconciliation://1"),
+        payload=guard_payload(
+            lease_token="lease-effect-1",
+            reconciliation_ref="reconciliation://1",
+            reconciliation_outcome="NOT_APPLIED",
+        ),
     )
     with pytest.raises(InvalidTransitionError, match="RealizationRetryApproved"):
         reduce_event(state, retry_event, SPEC)
@@ -112,7 +125,11 @@ def test_effect_retry_waits_for_work_level_realization_retry_approval() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload=guard_payload(reconciliation_ref="reconciliation://1"),
+            payload=guard_payload(
+                lease_token="lease-effect-1",
+                reconciliation_ref="reconciliation://1",
+                reconciliation_outcome="NOT_APPLIED",
+            ),
         ),
         SPEC,
     )
@@ -167,7 +184,12 @@ def test_each_invalidation_opens_a_generation_and_old_targets_cannot_repeat() ->
             work_item_id="work-1",
             effect_id="effect-2",
             generation=2,
-            payload={"result_ref": "result://2", "result_hash": "3" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-2",
+                "result_ref": "result://2",
+                "result_hash": "3" * 64,
+            },
         ),
         SPEC,
     )

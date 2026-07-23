@@ -35,6 +35,14 @@ from engine.apt_runtime.domain.state import (
 
 SPEC = load_default_spec()
 NOW = "2026-07-13T00:00:00Z"
+LEASE_EXPIRY = "2026-07-13T01:00:00Z"
+GRANT_BINDING: dict[str, object] = {
+    "grant_ref": "grant://effect-runtime/test",
+    "grant_hash": "d" * 64,
+    "config_version": "config-v1",
+    "authorization_ref": "authorization://effect-runtime/test",
+    "authorization_hash": "e" * 64,
+}
 
 
 def event(
@@ -47,6 +55,7 @@ def event(
     generation: int | None = None,
     payload: dict[str, object] | None = None,
     spec: FsmSpec = SPEC,
+    created_at: str = NOW,
 ) -> EventEnvelope:
     return EventEnvelope.create(
         event_id=f"event-{version}",
@@ -65,7 +74,7 @@ def event(
         command_id=f"command-{version}",
         config_version="config-v1",
         payload={} if payload is None else payload,
-        created_at=NOW,
+        created_at=created_at,
     )
 
 
@@ -74,6 +83,18 @@ def guard_payload(**extra: object) -> dict[str, object]:
         "guard_result": GuardResult.PASS.value,
         "guard_evidence_refs": ["evidence-1"],
         **extra,
+    }
+
+
+def lease_payload(**extra: object) -> dict[str, object]:
+    return {**GRANT_BINDING, **extra}
+
+
+def cancel_payload(reason: str) -> dict[str, object]:
+    return {
+        "reason": reason,
+        "authorization_ref": "authorization://effect-runtime/cancel-test",
+        "authorization_hash": "f" * 64,
     }
 
 
@@ -166,6 +187,7 @@ def queue_running_effect(
     provider: str = "Hades",
 ):
     generation = state.work_item(item_id).current_generation
+    lease_token = f"lease-{effect_id}"
     state = reduce_event(
         state,
         event(
@@ -193,7 +215,11 @@ def queue_running_effect(
             work_item_id=item_id,
             effect_id=effect_id,
             generation=generation,
-            payload={"lease_owner": "worker-1", "lease_expiry": NOW},
+            payload=lease_payload(
+                lease_owner="worker-1",
+                lease_token=lease_token,
+                lease_expiry=LEASE_EXPIRY,
+            ),
         ),
         SPEC,
     )
@@ -205,7 +231,7 @@ def queue_running_effect(
             work_item_id=item_id,
             effect_id=effect_id,
             generation=generation,
-            payload={"attempt": 1},
+            payload={"attempt": 1, "lease_token": lease_token},
         ),
         SPEC,
     )
@@ -278,7 +304,12 @@ def test_correction_opens_next_generation_resets_regions_and_preserves_history()
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://1", "result_hash": "d" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://1",
+                "result_hash": "d" * 64,
+            },
         ),
         SPEC,
     )
@@ -371,7 +402,12 @@ def test_stale_effect_success_is_audited_but_cannot_materialize_current_generati
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://late", "result_hash": "f" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://late",
+                "result_hash": "f" * 64,
+            },
         ),
         SPEC,
     )
@@ -416,7 +452,12 @@ def test_late_effect_result_after_cycle_cancel_remains_auditable() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://late", "result_hash": "2" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://late",
+                "result_hash": "2" * 64,
+            },
         ),
         SPEC,
     )
@@ -482,7 +523,11 @@ def test_cycle_cancel_forbids_new_effect_execution_but_allows_quiescing() -> Non
                 work_item_id="work-1",
                 effect_id="effect-pending",
                 generation=1,
-                payload={"lease_owner": "worker-1", "lease_expiry": NOW},
+                payload=lease_payload(
+                    lease_owner="worker-1",
+                    lease_token="lease-effect-pending",
+                    lease_expiry=LEASE_EXPIRY,
+                ),
             ),
             SPEC,
         )
@@ -495,7 +540,7 @@ def test_cycle_cancel_forbids_new_effect_execution_but_allows_quiescing() -> Non
             work_item_id="work-1",
             effect_id="effect-pending",
             generation=1,
-            payload={"reason": "cycle cancelled"},
+            payload=cancel_payload("cycle cancelled"),
         ),
         SPEC,
     )
@@ -548,7 +593,11 @@ def test_correction_fences_old_effect_from_lease_start_or_retry() -> None:
                 work_item_id="work-1",
                 effect_id="effect-stale",
                 generation=1,
-                payload={"lease_owner": "worker-1", "lease_expiry": NOW},
+                payload=lease_payload(
+                    lease_owner="worker-1",
+                    lease_token="lease-effect-stale",
+                    lease_expiry=LEASE_EXPIRY,
+                ),
             ),
             SPEC,
         )
@@ -583,7 +632,11 @@ def test_correction_fences_already_leased_effect_from_start() -> None:
             work_item_id="work-1",
             effect_id="effect-leased",
             generation=1,
-            payload={"lease_owner": "worker-1", "lease_expiry": NOW},
+            payload=lease_payload(
+                lease_owner="worker-1",
+                lease_token="lease-effect-leased",
+                lease_expiry=LEASE_EXPIRY,
+            ),
         ),
         SPEC,
     )
@@ -612,7 +665,7 @@ def test_correction_fences_already_leased_effect_from_start() -> None:
                 work_item_id="work-1",
                 effect_id="effect-leased",
                 generation=1,
-                payload={"attempt": 1},
+                payload={"attempt": 1, "lease_token": "lease-effect-leased"},
             ),
             SPEC,
         )
@@ -628,7 +681,11 @@ def test_correction_fences_failed_effect_from_retry() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"reason": "worker failure"},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "reason": "worker failure",
+            },
         ),
         SPEC,
     )
@@ -657,7 +714,11 @@ def test_correction_fences_failed_effect_from_retry() -> None:
                 work_item_id="work-1",
                 effect_id="effect-1",
                 generation=1,
-                payload=guard_payload(reconciliation_ref="reconcile://1"),
+                payload=guard_payload(
+                    lease_token="lease-effect-1",
+                    reconciliation_ref="reconcile://1",
+                    reconciliation_outcome="NOT_APPLIED",
+                ),
             ),
             SPEC,
         )
@@ -768,7 +829,12 @@ def test_work_events_reject_ghost_or_disagreeing_effect_identity() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://1", "result_hash": "d" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://1",
+                "result_hash": "d" * 64,
+            },
         ),
         SPEC,
     )
@@ -809,7 +875,12 @@ def test_superseded_work_item_rejects_late_artifact_materialization() -> None:
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://late", "result_hash": "4" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://late",
+                "result_hash": "4" * 64,
+            },
         ),
         SPEC,
     )
@@ -843,7 +914,12 @@ def _closed_accepted_materialized_leaf():
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"result_ref": "result://1", "result_hash": "6" * 64},
+            payload={
+                "attempt": 1,
+                "lease_token": "lease-effect-1",
+                "result_ref": "result://1",
+                "result_hash": "6" * 64,
+            },
         ),
         SPEC,
     )
@@ -1054,7 +1130,11 @@ def test_closed_work_item_fences_effect_execution_but_allows_late_audit() -> Non
                 work_item_id="work-1",
                 effect_id="effect-1",
                 generation=1,
-                payload={"lease_owner": "worker-1", "lease_expiry": NOW},
+                payload=lease_payload(
+                    lease_owner="worker-1",
+                    lease_token="lease-effect-1",
+                    lease_expiry=LEASE_EXPIRY,
+                ),
             ),
             SPEC,
         )
@@ -1067,7 +1147,7 @@ def test_closed_work_item_fences_effect_execution_but_allows_late_audit() -> Non
             work_item_id="work-1",
             effect_id="effect-1",
             generation=1,
-            payload={"reason": "closed"},
+            payload=cancel_payload("closed"),
         ),
         SPEC,
     )
