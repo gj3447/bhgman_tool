@@ -45,6 +45,12 @@ class Confidence(str, Enum):
     EXTRACTED = "EXTRACTED"  # explicitly stated in source (import / direct call / type)
     INFERRED = "INFERRED"  # reasonable deduction (call-graph 2-pass / co-occurrence)
     AMBIGUOUS = "AMBIGUOUS"  # uncertain, flagged for human review → :PRELIMINARY
+    UNKNOWN = "UNKNOWN"  # P0 2026-07-21 hydration sentinel: confidence was never
+    #   persisted to the KG (legacy node / pre-fix write). NOT one of the three
+    #   scan-time tiers — deliberately excluded from the T1/T3/T6 Lean triple.
+    #   Its sole guarantee: a KG round-trip of a site with no stored confidence
+    #   yields UNKNOWN, never a silent promotion to EXTRACTED (design §8/§10 P0,
+    #   HSWM/DESIGN_HARNESS_DOC_HSWM_LENS_DUALITY_2026-07-21.md).
 
 
 def requires_human_verdict(c: Confidence) -> bool:
@@ -55,8 +61,20 @@ def requires_human_verdict(c: Confidence) -> bool:
 
 def trust_level(c: Confidence) -> int:
     # KG: ATOM_Skill_longinus
-    """T3 Lean mirror: EXTRACTED (2) > INFERRED (1) > AMBIGUOUS (0)."""
-    return {Confidence.EXTRACTED: 2, Confidence.INFERRED: 1, Confidence.AMBIGUOUS: 0}[c]
+    """T3 Lean mirror: EXTRACTED (2) > INFERRED (1) > AMBIGUOUS (0).
+
+    UNKNOWN (P0 hydration sentinel, 2026-07-21) sits at the trust floor (0) — it is
+    NOT part of the T3 strict-order triple; it only guarantees trust_level < EXTRACTED
+    so a non-persisted confidence is never treated as trusted. Mapped explicitly so
+    trust_level(UNKNOWN) never KeyErrors on a KG-hydrated site (design §10 regression
+    guard: a hydration throw would be swallowed by the read-path bare-except).
+    """
+    return {
+        Confidence.EXTRACTED: 2,
+        Confidence.INFERRED: 1,
+        Confidence.AMBIGUOUS: 0,
+        Confidence.UNKNOWN: 0,
+    }[c]
 
 
 def any_ambiguous(sites: "list[ReferenceSite]") -> bool:
