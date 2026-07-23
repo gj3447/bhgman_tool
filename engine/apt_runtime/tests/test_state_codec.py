@@ -213,7 +213,7 @@ def test_outbox_record_is_canonical_deeply_immutable_and_hash_checked() -> None:
 
 def test_receipt_dtos_validate_hashes_identity_order_and_immutability() -> None:
     draft = CommandReceiptDraft.create(
-        command=canonical_command(),
+        command=replace(canonical_command(), expected_version=0),
         response={"status": "accepted", "version": 2},
         created_at=NOW,
     )

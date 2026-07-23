@@ -130,6 +130,13 @@ harness-console = [
     "psycopg[binary]>=3.2",
     "uvicorn[standard]>=0.32.0",
 ]
+# APT vNext Slice 1B — PostgreSQL parity for the durable event-store port.
+# The adapter imports psycopg lazily so SQLite-only/default installs stay lean.
+# KG: apt-tpa-legion-engine-canon-2026-06-12
+# Design: SYMPOSIUM/THEORY/APT/vnext/APT_ENGINE_FSM_DESIGN_2026-07-13.md §12.1
+apt-postgres = [
+    "psycopg[binary]>=3.2",
+]
 # Test deps for resolver + gate test suites
 resolver-test = [
     "pytest>=8.0",
@@ -149,7 +156,7 @@ gate-test = [
 # code_to_kg / provexport / hades-cst / eureka-leiden / memory / verdict-asym
 # (bhg-f-all-extra-incomplete, 2026-06-16 audit).
 all = [
-    "bhgman_tool[resolver,code_to_kg,provexport,hades-cst,eureka-leiden,gate,longinus,otel,agents,mcp,verdict-asym,memory,harness-console]",
+    "bhgman_tool[resolver,code_to_kg,provexport,hades-cst,eureka-leiden,gate,longinus,otel,agents,mcp,verdict-asym,memory,harness-console,apt-postgres]",
 ]
 # 세 자매 방법론 (sibling repos under PROJECT/PI) — DEV-ONLY, intentionally NOT a package extra:
 #   ooptdd        — log-based / positive-TDD trace gates (pytest11 plugin; memory backend)

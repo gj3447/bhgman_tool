@@ -122,8 +122,8 @@ def test_stream_load_rejects_an_event_rebound_to_another_streams_receipt(
     database = tmp_path / "cross-stream-receipt.sqlite3"
     adapter = SqliteEventStore(database)
     adapter.init_schema()
-    command_a = receipt("command-a")
-    command_b = receipt("command-b")
+    command_a = receipt("command-a", stream_id="cycle-a")
+    command_b = receipt("command-b", stream_id="cycle-b")
     adapter.append(
         "cycle-a",
         0,
@@ -177,4 +177,62 @@ def test_read_paths_rebind_effect_event_to_outbox_payload_after_coherent_tamper(
         adapter.load("cycle-1")
     with pytest.raises(StoreCorruption, match="executable payloads differ"):
         adapter.load_outbox("cycle-1")
+    adapter.close()
+
+
+def test_deleted_outbox_is_rejected_by_the_outbox_stream_read(tmp_path: Path) -> None:
+    database = tmp_path / "deleted-outbox-stream-read.sqlite3"
+    adapter = SqliteEventStore(database)
+    adapter.init_schema()
+    command = receipt("command-deleted-outbox-stream-read")
+    queued = event(
+        1,
+        command.command_id,
+        event_type=EventType.EFFECT_QUEUED,
+        effect_id="effect-deleted-outbox-stream-read",
+    )
+    record = outbox(command.command_id, effect_id="effect-deleted-outbox-stream-read")
+    adapter.append("cycle-1", 0, [queued], [record], command)
+    with sqlite3.connect(database) as connection:
+        connection.execute("DELETE FROM apt_outbox WHERE outbox_id = ?", (record.outbox_id,))
+
+    with pytest.raises(StoreCorruption, match="receipt outbox"):
+        adapter.load_outbox("cycle-1")
+    adapter.close()
+
+
+def test_no_event_receipt_rejects_committed_version_tamper(tmp_path: Path) -> None:
+    database = tmp_path / "no-event-receipt-version-tamper.sqlite3"
+    adapter = SqliteEventStore(database)
+    adapter.init_schema()
+    created = receipt("command-before-no-event")
+    adapter.append("cycle-1", 0, [event(1, created.command_id)], [], created)
+    no_event = receipt("command-no-event-seal", expected_version=1)
+    adapter.append("cycle-1", 1, [], [], no_event)
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE apt_command_receipts SET committed_version = 0 WHERE command_id = ?",
+            (no_event.command_id,),
+        )
+
+    with pytest.raises(StoreCorruption, match="expected_version"):
+        adapter.load_command_receipt(no_event.command_id)
+    adapter.close()
+
+
+def test_receipt_and_retry_reject_stream_binding_tamper(tmp_path: Path) -> None:
+    database = tmp_path / "receipt-stream-binding-tamper.sqlite3"
+    adapter = SqliteEventStore(database)
+    adapter.init_schema()
+    command = receipt("command-head-binding-tamper")
+    adapter.append("cycle-1", 0, [event(1, command.command_id)], [], command)
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE apt_stream_heads SET config_version = 'tampered' WHERE stream_id = 'cycle-1'"
+        )
+
+    with pytest.raises(StoreCorruption, match="stream head"):
+        adapter.load_command_receipt(command.command_id)
+    with pytest.raises(StoreCorruption, match="stream head"):
+        adapter.append("cycle-1", 0, [], [], command)
     adapter.close()

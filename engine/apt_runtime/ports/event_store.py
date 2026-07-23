@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from engine.apt_runtime.domain.canonical import (
     CanonicalEncodingError,
     CanonicalValue,
+    MAX_SIGNED_64,
     as_mapping,
     canonical_sha256,
     deep_freeze,
@@ -93,18 +94,21 @@ class StoreCorruption(StoreError):
 def _text(name: str, value: object) -> str:
     if not isinstance(value, str) or not value:
         raise PersistenceSchemaError(f"{name} must be a non-empty string")
-    return normalize_text(value)
+    normalized = normalize_text(value)
+    if "\x00" in normalized:
+        raise PersistenceSchemaError(f"{name} cannot contain U+0000")
+    return normalized
 
 
 def _positive_integer(name: str, value: object) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-        raise PersistenceSchemaError(f"{name} must be a positive integer")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1 or value > MAX_SIGNED_64:
+        raise PersistenceSchemaError(f"{name} must be a signed 64-bit positive integer")
     return value
 
 
 def _nonnegative_integer(name: str, value: object) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise PersistenceSchemaError(f"{name} must be a non-negative integer")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > MAX_SIGNED_64:
+        raise PersistenceSchemaError(f"{name} must be a signed 64-bit non-negative integer")
     return value
 
 
@@ -196,6 +200,8 @@ class CommandReceiptDraft:
     """Caller-supplied immutable command identity and deterministic response."""
 
     command_id: str
+    stream_id: str
+    expected_version: int
     command_hash: str
     response: Mapping[str, CanonicalValue]
     response_hash: str
@@ -212,6 +218,8 @@ class CommandReceiptDraft:
             raise PersistenceSchemaError("command must be a CanonicalCommandEnvelope")
         frozen = _mapping("response", response)
         object.__setattr__(self, "command_id", command.command_id)
+        object.__setattr__(self, "stream_id", command.cycle_id)
+        object.__setattr__(self, "expected_version", command.expected_version)
         object.__setattr__(self, "command_hash", command.command_hash)
         object.__setattr__(self, "response", frozen)
         object.__setattr__(self, "response_hash", canonical_sha256(frozen))
@@ -242,6 +250,7 @@ class CommandReceipt:
     command_id: str
     stream_id: str
     command_hash: str
+    expected_version: int
     committed_version: int
     event_ids: tuple[str, ...]
     outbox_ids: tuple[str, ...]
@@ -255,12 +264,21 @@ class CommandReceipt:
         object.__setattr__(self, "command_hash", _hash("command_hash", self.command_hash))
         object.__setattr__(
             self,
+            "expected_version",
+            _nonnegative_integer("expected_version", self.expected_version),
+        )
+        object.__setattr__(
+            self,
             "committed_version",
             _nonnegative_integer("committed_version", self.committed_version),
         )
         object.__setattr__(
             self, "event_ids", _identity_tuple("event_ids", self.event_ids, nonempty=False)
         )
+        if self.committed_version != self.expected_version + len(self.event_ids):
+            raise PersistenceSchemaError(
+                "committed_version must equal expected_version plus the event count"
+            )
         object.__setattr__(
             self, "outbox_ids", _identity_tuple("outbox_ids", self.outbox_ids, nonempty=False)
         )
@@ -290,6 +308,7 @@ class CommandReceipt:
             command_id=draft.command_id,
             stream_id=stream_id,
             command_hash=draft.command_hash,
+            expected_version=draft.expected_version,
             committed_version=committed_version,
             event_ids=event_ids,
             outbox_ids=outbox_ids,

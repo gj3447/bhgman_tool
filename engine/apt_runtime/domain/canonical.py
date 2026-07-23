@@ -24,6 +24,7 @@ CanonicalScalar: TypeAlias = None | bool | int | str
 CanonicalValue: TypeAlias = (
     CanonicalScalar | tuple["CanonicalValue", ...] | Mapping[str, "CanonicalValue"]
 )
+MAX_SIGNED_64 = 2**63 - 1
 
 
 def normalize_text(value: str) -> str:

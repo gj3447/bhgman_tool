@@ -17,7 +17,7 @@ from pathlib import Path
 import sqlite3
 from threading import RLock
 
-from engine.apt_runtime.domain.canonical import normalize_text
+from engine.apt_runtime.domain.canonical import MAX_SIGNED_64, normalize_text
 from engine.apt_runtime.domain.events import EventEnvelope
 from engine.apt_runtime.domain.state_codec import decode_state
 from engine.apt_runtime.ports.event_store import (
@@ -59,12 +59,15 @@ from ._sqlite_schema import (
 def _text(name: str, value: object) -> str:
     if not isinstance(value, str) or not value:
         raise PersistenceSchemaError(f"{name} must be a non-empty string")
-    return normalize_text(value)
+    normalized = normalize_text(value)
+    if "\x00" in normalized:
+        raise PersistenceSchemaError(f"{name} cannot contain U+0000")
+    return normalized
 
 
 def _nonnegative_integer(name: str, value: object) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise PersistenceSchemaError(f"{name} must be a non-negative integer")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > MAX_SIGNED_64:
+        raise PersistenceSchemaError(f"{name} must be a signed 64-bit non-negative integer")
     return value
 
 
@@ -347,6 +350,7 @@ class SqliteEventStore(EventStore):
         stream_id = _text("stream_id", stream_id)
         with self._lock:
             try:
+                load_stream_rows(self._connection, stream_id, MAX_SIGNED_64)
                 rows = self._connection.execute(
                     "SELECT * FROM apt_outbox WHERE stream_id = ? ORDER BY rowid", (stream_id,)
                 ).fetchall()

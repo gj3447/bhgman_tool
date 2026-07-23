@@ -1,4 +1,4 @@
-"""APT vNext deterministic and SQLite-durable runtime proposal (Slices 0-1A).
+"""APT vNext deterministic runtime with SQLite/PostgreSQL durability (Slices 0-1B).
 
 Mutation is intentionally exported through :class:`DurableKernel`; concrete
 event-store adapters remain trusted low-level ports under ``adapters``.

@@ -15,6 +15,7 @@ import re
 from .canonical import (
     CanonicalEncodingError,
     CanonicalValue,
+    MAX_SIGNED_64,
     as_mapping,
     canonical_sha256,
     deep_freeze,
@@ -90,12 +91,15 @@ def payload_hash(payload: Mapping[str, object]) -> str:
 def _require_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value:
         raise EventSchemaError(f"{name} must be a non-empty string")
-    return normalize_text(value)
+    normalized = normalize_text(value)
+    if "\x00" in normalized:
+        raise EventSchemaError(f"{name} cannot contain U+0000")
+    return normalized
 
 
 def _require_positive_integer(name: str, value: object) -> None:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-        raise EventSchemaError(f"{name} must be a positive integer")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1 or value > MAX_SIGNED_64:
+        raise EventSchemaError(f"{name} must be a signed 64-bit positive integer")
 
 
 _RFC3339_UTC_Z = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\Z")

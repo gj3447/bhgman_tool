@@ -94,13 +94,17 @@ def event(
 
 
 def receipt(
-    command_id: str, *, intent: str = "test", expected_version: int = 0
+    command_id: str,
+    *,
+    intent: str = "test",
+    expected_version: int = 0,
+    stream_id: str = "cycle-1",
 ) -> CommandReceiptDraft:
     command = CanonicalCommandEnvelope(
         command_id=command_id,
         command_type="TestCommand",
         schema_version="1.0.0",
-        cycle_id="cycle-1",
+        cycle_id=stream_id,
         expected_version=expected_version,
         actor="test",
         authorization_context={"role": "test"},

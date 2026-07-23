@@ -4,6 +4,7 @@
 # KG: APT_SCW_TDAD_canonical
 """
 
+from .postgres_store import PostgresEventStore
 from .sqlite_store import SqliteEventStore
 
-__all__ = ["SqliteEventStore"]
+__all__ = ["PostgresEventStore", "SqliteEventStore"]

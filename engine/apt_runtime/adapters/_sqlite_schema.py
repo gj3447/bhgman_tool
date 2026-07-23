@@ -48,6 +48,7 @@ TABLE_SIGNATURES = {
         ("command_id", "TEXT", 0, 1),
         ("stream_id", "TEXT", 1, 0),
         ("command_hash", "TEXT", 1, 0),
+        ("expected_version", "INTEGER", 1, 0),
         ("committed_version", "INTEGER", 1, 0),
         ("event_ids_json", "BLOB", 1, 0),
         ("outbox_ids_json", "BLOB", 1, 0),
@@ -203,6 +204,7 @@ CREATE TABLE IF NOT EXISTS apt_command_receipts (
     command_id TEXT PRIMARY KEY,
     stream_id TEXT NOT NULL,
     command_hash TEXT NOT NULL,
+    expected_version INTEGER NOT NULL CHECK (expected_version >= 0),
     committed_version INTEGER NOT NULL CHECK (committed_version >= 0),
     event_ids_json BLOB NOT NULL,
     outbox_ids_json BLOB NOT NULL,
@@ -249,9 +251,9 @@ INSERT_EVENT = (
 )
 INSERT_RECEIPT = (
     "INSERT INTO apt_command_receipts"
-    "(command_id, stream_id, command_hash, committed_version, event_ids_json, "
+    "(command_id, stream_id, command_hash, expected_version, committed_version, event_ids_json, "
     "outbox_ids_json, response_json, response_hash, created_at) "
-    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 )
 INSERT_OUTBOX = (
     "INSERT INTO apt_outbox"
