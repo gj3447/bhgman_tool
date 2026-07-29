@@ -112,9 +112,12 @@ def test_apt_phase_detect_latest_phase_wins(tmp_path):
         "SA complete\nSP decomposition\nSCW implementation complete\nMetaReview\n"
     )
     result = apt_phase_detect_impl(str(tmp_path))
-    # All four phase markers present — MetaReview is the latest in APT_PHASES order
-    assert result["current_phase"] == "MetaReview"
-    assert all(result["phases_detected"][p] for p in ("SA", "SP", "SCW", "MetaReview"))
+    # SA/SP/ST/SCW patterns embed activity words (self-contextual) — all count.
+    # Bare 'MetaReview' on its own line has no status context and is NOT evidence
+    # (2026-07-29 context-gate contract — see test_apt_tpa_honesty_20260729.py).
+    assert all(result["phases_detected"][p] for p in ("SA", "SP", "SCW"))
+    assert result["phases_detected"]["MetaReview"] is False
+    assert result["current_phase"] == "SCW"
 
 
 def test_apt_phase_detect_reads_feature_spans(tmp_path):
