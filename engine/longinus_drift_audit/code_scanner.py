@@ -70,7 +70,10 @@ def iter_files(root: Path, *, suffixes: Iterable[str] = (".py",)) -> Iterator[Pa
     for p in root.rglob("*"):
         if not p.is_file():
             continue
-        if any(part in skip_parts for part in p.parts):
+        # skip 기준은 root *낶* 상대경로 — 절대경로(p.parts)로 검사하면
+        # SYMPOSIUM/GIT/<repo> 처럼 repo 자신의 상위에 'GIT' 이 있을 때
+        # 전 파일이 스킵돼 감사가 조용히 0건으로 끝난다 (2026-07-29 실증).
+        if any(part in skip_parts for part in p.relative_to(root).parts):
             continue
         if p.suffix in suffixes:
             yield p

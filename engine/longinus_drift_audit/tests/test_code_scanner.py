@@ -131,3 +131,28 @@ class TestAstSignatureUpgrade:
         p.write_text("def still_found(x, y):  # KG: r\n    return (\n", encoding="utf-8")
         syms = code_scanner.scan_python_symbols(p)
         assert any(s.name == "still_found" and "x, y" in (s.signature or "") for s in syms)
+class TestIterFilesSkipScope:
+    """iter_files skip 기준은 root 낶 상대경로 (2026-07-29 회귀 봉인).
+
+    절대경로 기준 시절, SYMPOSIUM/GIT/<repo> 배치에서 상위 'GIT' 파트가
+    skip_parts 에 매칭돼 전 파일이 스킵됐다 (longinus_audit files_scanned=0).
+    """
+
+    def test_repo_under_GIT_dir_not_blanked(self, tmp_path):
+        root = tmp_path / "GIT" / "repo"
+        (root / "pkg").mkdir(parents=True)
+        f = root / "pkg" / "mod.py"
+        f.write_text("def f():\n    pass\n")
+        assert f in list(code_scanner.iter_files(root))
+
+    def test_intree_GIT_dir_still_skipped(self, tmp_path):
+        root = tmp_path / "repo"
+        nested = root / "GIT" / "nested"
+        nested.mkdir(parents=True)
+        bad = nested / "x.py"
+        bad.write_text("def x():\n    pass\n")
+        good = root / "ok.py"
+        good.write_text("def ok():\n    pass\n")
+        files = list(code_scanner.iter_files(root))
+        assert good in files
+        assert bad not in files

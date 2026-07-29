@@ -31,7 +31,9 @@ def longinus_audit_impl(
             {
                 "audit_id": str,
                 "repo_path": str,
-                "files_scanned": int,
+                "files_scanned": int,          # 실제 스캔한 .py 파일 수
+                "files_with_kg_refs": int,     # 그 중 KG anchor 를 품은 파일 수
+                "kg_simulated_present": bool,  # False 면 drift 판정은 mock-KG 기반
                 "kg_refs_found": int,
                 "refs": [{file, line, kg_id}, ...],
                 "drift_records": [],  # populated when external KG store available
