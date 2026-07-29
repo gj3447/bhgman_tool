@@ -688,7 +688,16 @@ def run_from_kg(
     formal_context, meta = build_formal_context(run_cypher, fc_cfg)
     pr = run(reference_sites=[], formal_context=formal_context, config=config)
     pr.stages.insert(
-        0, StageResult(stage="0-kg-extract-formal-context", ok=bool(formal_context), payload=meta)
+        0,
+        StageResult(
+            stage="0-kg-extract-formal-context",
+            ok=bool(formal_context),
+            payload=meta,
+            error=None
+            if formal_context
+            else "formal context empty: 0 objects with facet intents extracted "
+            "(KG has no usable concept nodes — expected on the minimal local bundle)",
+        ),
     )
     return pr
 

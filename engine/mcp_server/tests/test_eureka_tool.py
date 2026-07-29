@@ -117,3 +117,10 @@ def test_three_file_registration_consistent():
     assert TOOL_CAPABILITIES["eureka_induce"] == frozenset({Capability.READS_PRIVATE_DATA})
     assert catalog_is_consistent_with_security()
     assert "eureka_induce" in set(list_registered_tool_names())
+def test_eureka_induce_surfaces_degrade_reasons():
+    """빈 번들 KG 의 degrade 사유가 stages/error 와 errors 양쪽에 동봉 (2026-07-29)."""
+    resp = eureka_induce_impl(cycle_id="eureka-tool-degraded", store=LocalKgStore())
+    stage0 = next(s for s in resp["stages"] if s["name"] == "0-kg-extract-formal-context")
+    assert stage0["ok"] is False
+    assert stage0["error"], "침묵 degrade 금지 — 빈 formal context 사유 명시"
+    assert stage0["error"] in resp["errors"]

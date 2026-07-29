@@ -302,13 +302,37 @@ def _kg_query_impl(req: KGQueryRequest) -> dict[str, Any]:
     return _ssh_cypher(req.cypher, req.params, req.timeout_s)
 
 
+def _resolve_gate_script(start: Path | None = None) -> Path | None:
+    """Locate cypher_validate.sh: ``$SYMPOSIUM_ROOT/bin`` first, then the first
+    ancestor of ``start`` (default: this file) containing ``bin/cypher_validate.sh``.
+
+    ``_resolve_repo_root`` is NOT reusable here: its pyproject walk-up stops at
+    the nested ``engine/mcp_server`` package (it ships its own pyproject.toml),
+    whose ``bin/`` never holds the script — gate_check degraded on every call.
+    """
+    sym = os.environ.get("SYMPOSIUM_ROOT")
+    if sym:
+        cand = Path(sym).expanduser() / "bin" / "cypher_validate.sh"
+        if cand.is_file():
+            return cand
+    here = (start if start is not None else Path(__file__)).resolve()
+    for parent in here.parents:
+        cand = parent / "bin" / "cypher_validate.sh"
+        if cand.is_file():
+            return cand
+    return None
+
+
 def _gate_check_impl(req: GateCheckRequest) -> dict[str, Any]:
     """Thin wrapper around the existing apt-gate-check / cypher_validate.sh script."""
-    root = _resolve_repo_root()
-    # Prefer SYMPOSIUM/bin/cypher_validate.sh; degrade gracefully if absent.
-    script = root / "bin" / "cypher_validate.sh"
-    if not script.is_file():
-        return {"verdict": "WOULD_FAIL", "reason": f"script not found: {script}", "degraded": True}
+    script = _resolve_gate_script()
+    if script is None:
+        return {
+            "verdict": "WOULD_FAIL",
+            "reason": "script not found: bin/cypher_validate.sh "
+            "(searched $SYMPOSIUM_ROOT/bin, then ancestors of engine/mcp_server)",
+            "degraded": True,
+        }
     try:
         result = subprocess.run(
             [str(script), req.gate_name, req.cycle_id, req.actor],

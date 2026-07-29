@@ -30,8 +30,14 @@ def _line(source_path: str) -> int:
         return 0
 
 
-def _refs_from_symbols(root: Path) -> list[dict[str, Any]]:
+def _refs_from_symbols(root: Path) -> tuple[list[dict[str, Any]], int]:
+    """(KG-anchored refs, 실제 스캔한 .py 파일 수).
+
+    files_scanned 는 반드시 iter_files 실측이어야 한다 — refs 있는 파일만 세면
+    스캔 범위를 ~6배 과소보고한다 (98 vs 598, 2026-07-29 실증).
+    """
     symbols, _ = code_scanner.scan_root(root, parallel=False)
+    files_scanned = sum(1 for _ in code_scanner.iter_files(root))
     refs: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
     for sym in symbols:
@@ -47,7 +53,7 @@ def _refs_from_symbols(root: Path) -> list[dict[str, Any]]:
                     "kg_id": ref,
                 }
             )
-    return refs
+    return refs, files_scanned
 
 
 def _load_simulated_kg(root: Path) -> MockKgClient | None:
@@ -176,14 +182,16 @@ class LonginusEngine(DeterministicCommanderEngine):
             raise FileNotFoundError(f"repo path not found: {repo_path}")
         if not root.is_dir():
             raise NotADirectoryError(f"not a directory: {repo_path}")
-        refs = _refs_from_symbols(root)
+        refs, files_scanned = _refs_from_symbols(root)
         kg = _mcp_default_kg(root, refs)
         report = LonginusAudit(kg=kg, code_root=root).run_full(verify_sha256=False)
         summary = summarize_report(report)
         return {
             "audit_id": f"mcp-{summary['audit_id']}",
             "repo_path": str(root),
-            "files_scanned": len({r["file"] for r in refs}) if refs else 0,
+            "files_scanned": files_scanned,
+            "files_with_kg_refs": len({r["file"] for r in refs}) if refs else 0,
+            "kg_simulated_present": (root / "kg_simulated.json").is_file(),
             "kg_refs_found": len(refs),
             "refs": refs,
             "drift_records": summary["drift_records"],
