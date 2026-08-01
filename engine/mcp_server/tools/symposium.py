@@ -150,6 +150,37 @@ class SeedGerminateRequest:
 # ─── transport (fail-open) ─────────────────────────────────────────────────
 
 
+def _cypher_shell_literal(value: Any) -> str:
+    """Encode JSON-compatible values for cypher-shell's parameter map."""
+    if isinstance(value, dict):
+        keys = list(value)
+        if any(not isinstance(key, str) for key in keys):
+            raise TypeError("Cypher map keys must be strings")
+        if any(chr(0) in key for key in keys):
+            raise ValueError("Cypher parameter keys must not contain NUL")
+        try:
+            for key in keys:
+                key.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Cypher parameter keys must contain valid Unicode") from exc
+        fields = (
+            f"`{key.replace('`', '``')}`: {_cypher_shell_literal(value[key])}"
+            for key in sorted(keys)
+        )
+        return "{" + ", ".join(fields) + "}"
+    if isinstance(value, list):
+        return "[" + ", ".join(_cypher_shell_literal(item) for item in value) + "]"
+    if isinstance(value, str):
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Cypher parameter strings must contain valid Unicode") from exc
+        return json.dumps(value, ensure_ascii=True, allow_nan=False)
+    if value is None or isinstance(value, (bool, int, float)):
+        return json.dumps(value, allow_nan=False)
+    raise TypeError(f"unsupported Cypher parameter type: {type(value).__name__}")
+
+
 def _ssh_cypher(
     cypher: str, params: dict[str, Any] | None = None, timeout_s: float = 5.0
 ) -> dict[str, Any]:
@@ -157,8 +188,10 @@ def _ssh_cypher(
 
     Tests monkeypatch this to inject mocks; do not inline.
     """
-    params_json = json.dumps(params or {})
-    param_arg = shlex.quote(f"p => {params_json}")
+    try:
+        param_arg = shlex.quote(_cypher_shell_literal(params or {}))
+    except (TypeError, ValueError) as exc:
+        return {"ok": False, "error": "invalid_params", "detail": str(exc)}
     namespace = os.environ.get("BHGMAN_STATUS_K8S_NAMESPACE") or os.environ.get(
         "BHGMAN_K8S_NAMESPACE", "data"
     )

@@ -14,6 +14,7 @@ Provenance: SYMPOSIUM/tests/test_kg_invariants.py (absorbed Wave 7 P2-A)
 
 from __future__ import annotations
 
+import shlex
 import subprocess
 
 import pytest
@@ -156,6 +157,58 @@ class TestFailOpen:
         assert out["ok"] is True
         assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
         assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
+        assert shlex.split(calls[0][0][2])[-1] == '{`x`: "y"}'
+        assert "p =>" not in calls[0][0][2]
+
+    def test_ssh_cypher_encodes_nested_params_as_one_argument(self, monkeypatch):
+        from engine.mcp_server.tools import symposium
+
+        monkeypatch.setenv("BHGMAN_STATUS_NEO4J_PASSWORD", "pw")
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append((cmd, kwargs))
+            return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+        monkeypatch.setattr(symposium.subprocess, "run", fake_run)
+        out = symposium._ssh_cypher(
+            "RETURN $message",
+            {
+                "message": 'quote " newline\n한글; $(touch /tmp/nope)',
+                "nested": {"enabled": True, "items": [1, None, "x"]},
+            },
+        )
+
+        assert out["ok"] is True
+        remote = shlex.split(calls[0][0][2])
+        assert "p =>" not in calls[0][0][2]
+        assert remote[-1].startswith('{`message`: "quote \\" newline\\n')
+        assert r"\ud55c\uae00" in remote[-1]
+        assert remote[-1].endswith(', `nested`: {`enabled`: true, `items`: [1, null, "x"]}}')
+        assert calls[0][1]["input"] == "RETURN $message"
+
+    @pytest.mark.parametrize(
+        "invalid",
+        [
+            {1: "value"},
+            {"x": float("nan")},
+            {"x": {1, 2}},
+            {"x": chr(0xD800)},
+            {chr(0xD800): "value"},
+            {chr(0): "value"},
+        ],
+    )
+    def test_ssh_cypher_rejects_non_json_params_without_spawning(self, monkeypatch, invalid):
+        from engine.mcp_server.tools import symposium
+
+        calls = []
+        monkeypatch.setattr(symposium.subprocess, "run", lambda *a, **k: calls.append((a, k)))
+
+        out = symposium._ssh_cypher("RETURN 1", invalid)
+
+        assert out["ok"] is False
+        assert out["error"] == "invalid_params"
+        assert calls == []
 
     def test_ssh_cypher_no_password_fails_closed(self, monkeypatch):
         """No hardcoded password default: with no NEO4J password env set, return degraded
