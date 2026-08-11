@@ -195,12 +195,12 @@ def resolve_thresholds(
     # 파싱-drift 로 자리만 옮긴다 (적대검증 2026-07-15). 이 commander 를 겨냥한 미매칭 행을
     # 실명 경고한다.
     known = {(r.source, r.metric) for r in rules}
-    for key, entry in entries.items():
+    for key, dead in entries.items():
         if key[0] == name and key not in known:
             logger.warning(
                 "thresholds.toml (%s) 의 행 %s 은 %s 의 어떤 코드 규칙과도 매칭되지 않아 "
                 "무시된다 — metric 이름/타깃을 코드 정본에 맞추라 (dead row).",
-                entry.source,
+                dead.source,
                 key,
                 name,
             )

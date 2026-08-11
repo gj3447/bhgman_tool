@@ -19,9 +19,10 @@ Pure-python (stdlib only).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from functools import lru_cache
 
 
 @dataclass(frozen=True)
@@ -35,12 +36,41 @@ class RewardHackVerdict:
     summary: str
 
 
+@lru_cache(maxsize=256)
+def _glob_regex(pat: str) -> re.Pattern[str]:
+    """`**`-aware glob → anchored regex (POSIX path semantics).
+
+    PurePath.full_match 은 3.13+ 전용인데 CI matrix 는 3.11–3.13 을 돈다 — full_match
+    는 이식 불가라 브랜치가 3.11/3.12 에서 collection-time AttributeError 로 죽었다
+    (이 브랜치가 여태 main 에 못 들어간 이유). 직접 번역해 이식성을 확보한다:
+      `**/` → 0개 이상의 path 세그먼트 (그래서 `**/conftest.py` 가 repo-root 의
+              conftest.py 도 매칭 — fnmatch 의 `**` 는 놓친다), `**` → 임의 문자열,
+      `*` → 세그먼트 내부, `?` → 세그먼트 내 1문자.
+    """
+    i, n, out = 0, len(pat), []
+    while i < n:
+        if pat.startswith("**/", i):
+            out.append("(?:[^/]*/)*")
+            i += 3
+        elif pat.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif pat[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif pat[i] == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(pat[i]))
+            i += 1
+    return re.compile("".join(out) + r"\Z")
+
+
 def _matches_any(path: str, patterns: Sequence[str]) -> bool:
-    # PurePath.full_match (3.13+) gives real recursive `**` semantics: `**/conftest.py`
-    # matches conftest.py at the repo root too (fnmatch's `**` would require a leading dir).
-    p = PurePosixPath(path)
-    # full_match is 3.13+ runtime API; mypy 2.2.0's typeshed lacks the stub (attr-defined).
-    return any(p.full_match(pat) for pat in patterns)  # type: ignore[attr-defined]
+    # 3.11-compatible full_match 대체 (recursive `**`; `**/conftest.py` 는 repo-root
+    # conftest.py 도 매칭). CI 3.11/3.12 이식성 (reward-hack-guard-py311-portable-2026-07-15).
+    return any(_glob_regex(pat).match(path) is not None for pat in patterns)
 
 
 def guard_patch(
