@@ -62,9 +62,14 @@ from typing import Iterable
 # ── Configuration ─────────────────────────────────────────────────
 
 NEO4J_URL = os.environ.get(
-    "NEO4J_URL", "http://neo4j.metahumotonic.com/db/neo4j/tx/commit"
+    "NEO4J_URL", "http://127.0.0.1:7474/db/neo4j/tx/commit"
 )
-NEO4J_AUTH = os.environ.get("NEO4J_AUTH", "neo4j:neo4jpassword")
+NEO4J_AUTH = os.environ.get("NEO4J_AUTH") or (
+    f"{os.environ.get('NEO4J_USERNAME') or os.environ.get('NEO4J_USER', 'neo4j')}:"
+    f"{os.environ['NEO4J_PASSWORD']}"
+    if os.environ.get("NEO4J_PASSWORD")
+    else ""
+)
 
 # Clone-portable default: $LONGINUS_SCAN_ROOT else this script's own directory (bin/),
 # which is exactly the tree this scanner is meant to walk — no hardcoded home dir.
@@ -249,6 +254,8 @@ def extract_crate_script(root: Path) -> list[CodeSymbol]:
 
 
 def _cypher_call(stmt: str, params: dict | None = None, timeout_s: int = 10):
+    if not NEO4J_AUTH:
+        raise RuntimeError("set NEO4J_AUTH or NEO4J_PASSWORD")
     body: dict = {"statement": stmt}
     if params:
         body["parameters"] = params

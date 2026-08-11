@@ -46,6 +46,8 @@ def _clear_status_env(monkeypatch):
         "BHGMAN_STATUS_NEO4J_POD",
         "BHGMAN_K8S_NAMESPACE",
         "BHGMAN_NEO4J_POD",
+        "BHGMAN_CANONICAL_NEO4J_SSH",
+        "BHGMAN_CANONICAL_NEO4J_CONTAINER",
         "NEO4J_URI",
         "NEO4J_USER",
         "NEO4J_PASSWORD",
@@ -76,7 +78,7 @@ def test_status_prefers_direct_cypher_shell(monkeypatch, capsys):
     assert "label, count" in captured.out
 
 
-def test_status_falls_back_to_dgx_data_namespace(monkeypatch, capsys):
+def test_status_falls_back_to_canonical_data01_container(monkeypatch, capsys):
     _clear_status_env(monkeypatch)
     monkeypatch.setenv("BHGMAN_STATUS_NEO4J_PASSWORD", "pw")
     monkeypatch.setattr("engine.cli.commands.shutil.which", lambda _name: None)
@@ -91,8 +93,10 @@ def test_status_falls_back_to_dgx_data_namespace(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert rc == 0
     assert calls[0][0][0] == "ssh"
-    assert "kubectl exec -n data neo4j-0" in calls[0][0][2]
-    assert "cypher-shell -u neo4j -p pw" in calls[0][0][2]
+    assert calls[0][0][5] == "metahumotonic27@192.168.0.25"
+    assert "docker exec -i canonical-neo4j" in calls[0][0][6]
+    assert "CANONICAL_NEO4J_PASSWORD" in calls[0][0][6]
+    assert " pw" not in calls[0][0][6]
     assert "cypher-shell not found" in captured.err
 
 

@@ -7,8 +7,7 @@ and appends to the instrument log so downstream derivations have data NOW
 instead of waiting for instrument hook to accumulate from zero.
 
 Run:
-    python -m engine.legion.threshold_derivation.backfill_kg \\
-        --bolt bolt://100.64.0.3:7687 --password neo4jpassword
+    NEO4J_PASSWORD='...' python -m engine.legion.threshold_derivation.backfill_kg
 
 Idempotency: each entry includes a synthetic dispatch_id derived from the
 ValidationResult name + metric, so repeated runs append duplicates.
@@ -20,6 +19,7 @@ Recommended pattern: rm log → run once. Or filter by dispatch_id on read.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -112,15 +112,20 @@ def backfill_one(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="KG VR → instrument log backfill")
-    parser.add_argument("--bolt", default="bolt://100.64.0.3:7687")
-    parser.add_argument("--user", default="neo4j")
-    parser.add_argument("--password", required=True)
+    parser.add_argument(
+        "--bolt",
+        default=os.environ.get("NEO4J_URI", "bolt://127.0.0.1:7687"),
+    )
+    parser.add_argument("--user", default=os.environ.get("NEO4J_USER", "neo4j"))
+    parser.add_argument("--password", default=os.environ.get("NEO4J_PASSWORD"))
     parser.add_argument(
         "--log-path",
         type=Path,
         default=Path.home() / ".cache" / "bhgman" / "dispatch_instrument.jsonl",
     )
     args = parser.parse_args(argv)
+    if not args.password:
+        parser.error("--password or NEO4J_PASSWORD is required")
 
     try:
         from neo4j import GraphDatabase

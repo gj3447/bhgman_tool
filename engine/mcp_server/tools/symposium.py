@@ -7,7 +7,7 @@ Provenance: span-bhgman-cli-mcp-absorption-wave7-2026-05-14
 Exposes 4 SYMPOSIUM core tools that thin-wrap the SYMPOSIUM/bhgman-tool infrastructure:
 
   apt_dispatch    — APT phase routing (sa | sp | st | scw | meta_review)
-  kg_query        — Neo4j Cypher wrapper, fail-open via ssh dgx → data/neo4j-0
+  kg_query        — Neo4j Cypher wrapper, fail-open via ssh data-01 → canonical container
   gate_check      — apt-gate-check.sh wrapper (Resilience4j 4-layer chain)
   seed_germinate  — 재배맨 seed planning via the REAL engine (jbm-s2 promotion):
                     validate_seed_invariants fail-closed → plant_seeds dry-run
@@ -27,7 +27,8 @@ Honest limitations (Goodhart safeguard):
   `SYMPOSIUM_ROOT` first, then falls back to bhgman_tool's repo-root `skills/`.
   Both contain identical apt-{phase} SKILL.md after Wave 7 P1-C sync, so the
   fallback is sound but not guaranteed across drift events.
-- `kg_query` requires `ssh dgx` reachable; absent that, returns degraded dict.
+- `kg_query` requires canonical data-01 SSH and its Neo4j container; absent either,
+  it returns a degraded dict.
 - `gate_check` requires `bin/cypher_validate.sh` on disk; same fallback rules.
 - `seed_germinate` is a dry-run planner: it NEVER writes (registry category 'read').
   The parent applies the returned MERGE-only planned_cyphers explicitly (e.g.
@@ -94,7 +95,12 @@ def _resolve_repo_root() -> Path:
     raise RuntimeError("repo root not found")
 
 
-DGX_HOST = os.environ.get("SYMPOSIUM_DGX_HOST", "dgx")
+CANONICAL_KG_SSH = os.environ.get(
+    "BHGMAN_CANONICAL_NEO4J_SSH", "metahumotonic27@192.168.0.25"
+)
+CANONICAL_KG_CONTAINER = os.environ.get(
+    "BHGMAN_CANONICAL_NEO4J_CONTAINER", "canonical-neo4j"
+)
 
 
 # ─── DTOs ──────────────────────────────────────────────────────────────────
@@ -150,35 +156,79 @@ class SeedGerminateRequest:
 # ─── transport (fail-open) ─────────────────────────────────────────────────
 
 
+def _cypher_shell_literal(value: Any) -> str:
+    """Encode JSON-compatible values for cypher-shell's parameter map."""
+    if isinstance(value, dict):
+        keys = list(value)
+        if any(not isinstance(key, str) for key in keys):
+            raise TypeError("Cypher map keys must be strings")
+        if any(chr(0) in key for key in keys):
+            raise ValueError("Cypher parameter keys must not contain NUL")
+        try:
+            for key in keys:
+                key.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Cypher parameter keys must contain valid Unicode") from exc
+        fields = (
+            f"`{key.replace('`', '``')}`: {_cypher_shell_literal(value[key])}"
+            for key in sorted(keys)
+        )
+        return "{" + ", ".join(fields) + "}"
+    if isinstance(value, list):
+        return "[" + ", ".join(_cypher_shell_literal(item) for item in value) + "]"
+    if isinstance(value, str):
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Cypher parameter strings must contain valid Unicode") from exc
+        return json.dumps(value, ensure_ascii=True, allow_nan=False)
+    if value is None or isinstance(value, (bool, int, float)):
+        return json.dumps(value, allow_nan=False)
+    raise TypeError(f"unsupported Cypher parameter type: {type(value).__name__}")
+
+
 def _ssh_cypher(
     cypher: str, params: dict[str, Any] | None = None, timeout_s: float = 5.0
 ) -> dict[str, Any]:
-    """ssh dgx → kubectl exec → cypher-shell. Fail-open: returns degraded dict on error.
+    """ssh data-01 → canonical container → cypher-shell.
+
+    The database password is expanded only inside the container from its protected
+    environment. It is never required in the MCP process environment or placed on
+    the local/remote process argv. Fail-open: returns a degraded dict on error.
 
     Tests monkeypatch this to inject mocks; do not inline.
     """
-    params_json = json.dumps(params or {})
-    param_arg = shlex.quote(f"p => {params_json}")
-    namespace = os.environ.get("BHGMAN_STATUS_K8S_NAMESPACE") or os.environ.get(
-        "BHGMAN_K8S_NAMESPACE", "data"
+    try:
+        param_arg = _cypher_shell_literal(params or {})
+    except (TypeError, ValueError) as exc:
+        return {"ok": False, "error": "invalid_params", "detail": str(exc)}
+    container_shell = (
+        'exec cypher-shell -a bolt://127.0.0.1:7687 '
+        '-u "${CANONICAL_NEO4J_USER:-neo4j}" '
+        '-p "$CANONICAL_NEO4J_PASSWORD" --format plain --param "$1"'
     )
-    pod = os.environ.get("BHGMAN_STATUS_NEO4J_POD") or os.environ.get("BHGMAN_NEO4J_POD", "neo4j-0")
-    user = os.environ.get("BHGMAN_STATUS_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
-    password = (
-        os.environ.get("BHGMAN_STATUS_NEO4J_PASSWORD")
-        or os.environ.get("NEO4J_PASSWORD")
-        or os.environ.get("SYMPOSIUM_KG_PASSWORD")
+    remote_command = shlex.join(
+        [
+            "sudo",
+            "docker",
+            "exec",
+            "-i",
+            CANONICAL_KG_CONTAINER,
+            "sh",
+            "-c",
+            container_shell,
+            "bhgman-kg-query",
+            param_arg,
+        ]
     )
-    if not password:
-        # No hardcoded fallback (the CLI already dropped its 'neo4jpassword' default):
-        # fail closed instead of authenticating with a known constant. bhg-f-secrets-on-argv.
-        return {"ok": False, "error": "neo4j_password_not_configured", "degraded": True}
     cmd = [
         "ssh",
-        DGX_HOST,
-        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
-        f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} "
-        f"--format plain --param {param_arg}",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=5",
+        CANONICAL_KG_SSH,
+        remote_command,
     ]
     try:
         result = subprocess.run(
@@ -194,6 +244,7 @@ def _ssh_cypher(
             "stdout": result.stdout,
             "stderr": result.stderr,
             "returncode": result.returncode,
+            "transport": f"ssh://{CANONICAL_KG_SSH}/container/{CANONICAL_KG_CONTAINER}",
         }
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": "timeout", "degraded": True}
@@ -478,7 +529,7 @@ def register(mcp: Any) -> None:
         timeout_s: float = 5.0,
         confirm_destructive: bool = False,
     ) -> dict[str, Any]:
-        """Run a Cypher query against the SYMPOSIUM KG (ssh dgx → cypher-shell).
+        """Run a Cypher query against the canonical SYMPOSIUM KG on data-01.
 
         Writes need `mutate=true`; irreversible mass ops (DETACH DELETE / DROP)
         additionally need `confirm_destructive=true`.

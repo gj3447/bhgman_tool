@@ -1,0 +1,17 @@
+{
+  "schema_version": "bhgman.eureka.durable-runtime-gate.v1",
+  "locked_at": "2026-07-15T00:00:00+09:00",
+  "requirement": "Only an executable-evaluator PASS that is bound to the candidate, critic receipt, and input snapshots may become a local PROPOSED archive entry, and the proposal may be returned only after durable readback.",
+  "entrypoint": "engine.eureka.runtime.DurableCreativeRunner.run",
+  "required_observations": [
+    "evaluator_receipt_passed",
+    "lifecycle_reached_proposed",
+    "candidate_archive_readback_proposed"
+  ],
+  "negative_oracle": "Inject a requested check failure through the same evaluator boundary; the candidate must be absent from result.accepted and read back as REJECTED.",
+  "forbidden_outcomes": [
+    "ACCEPTED",
+    "KG_WRITE",
+    "HADES_MATERIALIZATION"
+  ]
+}

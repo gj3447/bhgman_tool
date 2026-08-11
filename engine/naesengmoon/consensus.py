@@ -134,9 +134,20 @@ class ConsensusResult:
     admissions: tuple[Admission, ...]
     summary: str
 
-    def to_kg_shape(self, name: str, target: str) -> dict:
-        """ValidationResult 노드 + USED_LENS 엣지용 dict (secretary/UNWIND 소비)."""
-        return {
+    def to_kg_shape(
+        self,
+        name: str,
+        target: str,
+        *,
+        honesty: object | None = None,
+        hard_fail_honesty: bool = True,
+    ) -> dict:
+        """ValidationResult 노드 + USED_LENS 엣지용 dict (secretary/UNWIND 소비).
+
+        ``honesty``: optional ``VrHonesty`` (engine.naesengmoon.vr_honesty) to stamp
+        dispatch_mode / subagent_count / hswm_mode / traversal_mu / readout.
+        """
+        shape = {
             "name": name,
             "labels": ["ValidationResult"],
             "props": {
@@ -154,6 +165,13 @@ class ConsensusResult:
             "used_lens": [a.vote.lens for a in self.admissions
                           if a.disposition is Disposition.ADMITTED],
         }
+        if honesty is not None:
+            from engine.naesengmoon.vr_honesty import merge_honesty_into_kg_shape
+
+            shape = merge_honesty_into_kg_shape(
+                shape, honesty, hard_fail=hard_fail_honesty
+            )
+        return shape
 
 
 # ---- 1단계: admissibility (D20 / cardinality / HR11 / echo) ----------------------

@@ -35,8 +35,13 @@ import random
 import subprocess
 import sys
 
-NEO4J_URL = os.environ.get("NEO4J_URL", "http://neo4j.metahumotonic.com/db/neo4j/tx/commit")
-NEO4J_AUTH = os.environ.get("NEO4J_AUTH", "neo4j:neo4jpassword")
+NEO4J_URL = os.environ.get("NEO4J_URL", "http://127.0.0.1:7474/db/neo4j/tx/commit")
+NEO4J_AUTH = os.environ.get("NEO4J_AUTH") or (
+    f"{os.environ.get('NEO4J_USERNAME') or os.environ.get('NEO4J_USER', 'neo4j')}:"
+    f"{os.environ['NEO4J_PASSWORD']}"
+    if os.environ.get("NEO4J_PASSWORD")
+    else ""
+)
 
 # 113-lens taxonomy stratification (from THEORY/TALIBAN/113_LENS_TAXONOMY.md §2).
 DOMAINS = {
@@ -49,6 +54,8 @@ TOTAL = sum(DOMAINS.values())  # = 113
 
 
 def cypher(stmt, params=None):
+    if not NEO4J_AUTH:
+        raise RuntimeError("set NEO4J_AUTH or NEO4J_PASSWORD")
     body = {"statement": stmt}
     if params:
         body["parameters"] = params

@@ -30,12 +30,19 @@ import re
 import subprocess
 import sys
 
-NEO4J_URL = os.environ.get("NEO4J_URL", "http://neo4j.metahumotonic.com/db/neo4j/tx/commit")
-NEO4J_AUTH = os.environ.get("NEO4J_AUTH", "neo4j:neo4jpassword")
+NEO4J_URL = os.environ.get("NEO4J_URL", "http://127.0.0.1:7474/db/neo4j/tx/commit")
+NEO4J_AUTH = os.environ.get("NEO4J_AUTH") or (
+    f"{os.environ.get('NEO4J_USERNAME') or os.environ.get('NEO4J_USER', 'neo4j')}:"
+    f"{os.environ['NEO4J_PASSWORD']}"
+    if os.environ.get("NEO4J_PASSWORD")
+    else ""
+)
 PLACEHOLDER_RE = re.compile(r"\$\{MIC_v1\.([A-Za-z][A-Za-z0-9_]*)\}")
 
 
 def cypher(stmt: str) -> dict:
+    if not NEO4J_AUTH:
+        raise RuntimeError("set NEO4J_AUTH or NEO4J_PASSWORD")
     payload = json.dumps({"statements": [{"statement": stmt}]})
     out = subprocess.check_output(
         [

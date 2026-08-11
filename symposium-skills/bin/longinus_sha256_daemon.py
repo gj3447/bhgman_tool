@@ -32,8 +32,13 @@ import subprocess
 import sys
 import time
 
-NEO4J_URL = os.environ.get("NEO4J_URL", "http://neo4j.metahumotonic.com/db/neo4j/tx/commit")
-NEO4J_AUTH = os.environ.get("NEO4J_AUTH", "neo4j:neo4jpassword")
+NEO4J_URL = os.environ.get("NEO4J_URL", "http://127.0.0.1:7474/db/neo4j/tx/commit")
+NEO4J_AUTH = os.environ.get("NEO4J_AUTH") or (
+    f"{os.environ.get('NEO4J_USERNAME') or os.environ.get('NEO4J_USER', 'neo4j')}:"
+    f"{os.environ['NEO4J_PASSWORD']}"
+    if os.environ.get("NEO4J_PASSWORD")
+    else ""
+)
 
 # Fallback chain for path resolution. Priority: explicit $FS_BASE override (one or more
 # roots, os.pathsep-separated), else a chain DERIVED from where this script actually lives
@@ -68,6 +73,8 @@ for _b in _raw_chain:
 
 
 def cypher(stmt, params=None):
+    if not NEO4J_AUTH:
+        raise RuntimeError("set NEO4J_AUTH or NEO4J_PASSWORD")
     body = {"statement": stmt}
     if params:
         body["parameters"] = params

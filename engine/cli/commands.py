@@ -767,7 +767,7 @@ def cmd_gate(args: argparse.Namespace) -> int:
 def _resolve_status_creds() -> tuple[str, str, str, float]:
     """Resolve Neo4j connection params for `status` from env (BHGMAN_STATUS_* → NEO4J_* → default)."""
     uri = os.environ.get("BHGMAN_STATUS_NEO4J_URI") or os.environ.get(
-        "NEO4J_URI", "bolt://100.64.0.3:7687"
+        "NEO4J_URI", "bolt://127.0.0.1:7687"
     )
     user = os.environ.get("BHGMAN_STATUS_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
     # No hard-coded default password (W4): shipping `neo4jpassword` is a weak default + it
@@ -788,7 +788,8 @@ def _try_local_cypher_shell(uri: str, user: str, password: str, timeout_s: float
     cypher_shell = shutil.which("cypher-shell")
     if not cypher_shell:
         print(
-            "[bhgman-tool] WARN: cypher-shell not found; falling back to ssh dgx", file=sys.stderr
+            "[bhgman-tool] WARN: cypher-shell not found; falling back to canonical data-01",
+            file=sys.stderr,
         )
         return None
     print(f"[bhgman-tool] cypher-shell {uri} — KG audit", file=sys.stderr)
@@ -817,7 +818,7 @@ def _try_local_cypher_shell(uri: str, user: str, password: str, timeout_s: float
         return 0
     print(
         f"[bhgman-tool] WARN: direct cypher-shell failed rc={result.returncode}; "
-        "falling back to ssh dgx",
+        "falling back to canonical data-01",
         file=sys.stderr,
     )
     if result.stderr:
@@ -826,23 +827,33 @@ def _try_local_cypher_shell(uri: str, user: str, password: str, timeout_s: float
 
 
 def cmd_status(_args: argparse.Namespace) -> int:
-    """KG audit via local cypher-shell first, then ssh dgx → kubectl fallback."""
+    """KG audit via local relay first, then canonical data-01 container fallback."""
     uri, user, password, timeout_s = _resolve_status_creds()
     local_rc = _try_local_cypher_shell(uri, user, password, timeout_s)
     if local_rc is not None:
         return local_rc
 
-    dgx_host = os.environ.get("SYMPOSIUM_DGX_HOST", "dgx")
-    namespace = os.environ.get("BHGMAN_STATUS_K8S_NAMESPACE") or os.environ.get(
-        "BHGMAN_K8S_NAMESPACE", "data"
+    data_ssh = os.environ.get(
+        "BHGMAN_CANONICAL_NEO4J_SSH", "metahumotonic27@192.168.0.25"
     )
-    pod = os.environ.get("BHGMAN_STATUS_NEO4J_POD") or os.environ.get("BHGMAN_NEO4J_POD", "neo4j-0")
-    print(f"[bhgman-tool] ssh {dgx_host} cypher-shell — KG audit", file=sys.stderr)
+    container = os.environ.get("BHGMAN_CANONICAL_NEO4J_CONTAINER", "canonical-neo4j")
+    container_shell = (
+        'exec cypher-shell -a bolt://127.0.0.1:7687 '
+        '-u "${CANONICAL_NEO4J_USER:-neo4j}" '
+        '-p "$CANONICAL_NEO4J_PASSWORD" --format plain'
+    )
+    remote_command = shlex.join(
+        ["sudo", "docker", "exec", "-i", container, "sh", "-c", container_shell]
+    )
+    print(f"[bhgman-tool] ssh {data_ssh} canonical cypher-shell — KG audit", file=sys.stderr)
     cmd = [
         "ssh",
-        dgx_host,
-        f"kubectl exec -n {shlex.quote(namespace)} {shlex.quote(pod)} -- "
-        f"cypher-shell -u {shlex.quote(user)} -p {shlex.quote(password)} --format plain",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=5",
+        data_ssh,
+        remote_command,
     ]
     try:
         result = subprocess.run(
@@ -853,7 +864,7 @@ def cmd_status(_args: argparse.Namespace) -> int:
         print("[bhgman-tool] FAIL: ssh not available — install OpenSSH client", file=sys.stderr)
         return 2
     except subprocess.TimeoutExpired:
-        print(f"[bhgman-tool] FAIL: timeout — ssh {dgx_host} unreachable", file=sys.stderr)
+        print(f"[bhgman-tool] FAIL: timeout — ssh {data_ssh} unreachable", file=sys.stderr)
         return 2
 
 

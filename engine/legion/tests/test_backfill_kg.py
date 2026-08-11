@@ -6,7 +6,12 @@ PROM 16 follow-up: verify backfill correctness without requiring a live KG.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 
+import pytest
+
+from engine.legion.threshold_derivation import backfill_kg
 from engine.legion.threshold_derivation.backfill_kg import BACKFILL_PLAN, backfill_one
 from engine.legion.threshold_derivation.instrument import DispatchInstrumentLog
 
@@ -20,6 +25,44 @@ class TestBackfillPlan:
     def test_plan_marks_proxies(self) -> None:
         proxy_metrics = [row[2] for row in BACKFILL_PLAN if "proxy" in row[2]]
         assert len(proxy_metrics) == 3
+
+
+class TestBackfillConnectionConfig:
+    def test_password_is_required_without_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("NEO4J_PASSWORD", raising=False)
+        with pytest.raises(SystemExit) as exc:
+            backfill_kg.main([])
+        assert exc.value.code == 2
+
+    def test_connection_defaults_come_from_env(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeDriver:
+            def close(self) -> None:
+                captured["closed"] = True
+
+        class FakeGraphDatabase:
+            @staticmethod
+            def driver(uri: str, auth: tuple[str, str]) -> FakeDriver:
+                captured.update(uri=uri, auth=auth)
+                return FakeDriver()
+
+        monkeypatch.setenv("NEO4J_URI", "bolt://canonical.example:7687")
+        monkeypatch.setenv("NEO4J_USER", "operator")
+        monkeypatch.setenv("NEO4J_PASSWORD", "from-env")
+        monkeypatch.setitem(
+            sys.modules, "neo4j", SimpleNamespace(GraphDatabase=FakeGraphDatabase)
+        )
+        monkeypatch.setattr(backfill_kg, "BACKFILL_PLAN", ())
+
+        assert backfill_kg.main(["--log-path", str(tmp_path / "log.jsonl")]) == 0
+        assert captured == {
+            "uri": "bolt://canonical.example:7687",
+            "auth": ("operator", "from-env"),
+            "closed": True,
+        }
 
 
 class TestBackfillOne:
