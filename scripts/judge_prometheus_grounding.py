@@ -1,4 +1,4 @@
-"""Deterministic judge for LakatosTree_Bhgman6CommanderOoptdd_20260624 / prometheus_grounding_wire.
+"""Direct deterministic measurement for prometheus_grounding_wire.
 
 Recomputes both pre-registered metrics by driving the live legion measure surface:
 

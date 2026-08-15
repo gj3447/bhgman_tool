@@ -2,13 +2,14 @@
 """Fail if any git-TRACKED engine module imports an UNTRACKED engine module.
 
 The CI-parity blind spot that bit us twice: the dev working tree has files CI never sees —
-editable sibling installs (ooptdd) and untracked WIP modules (engine/kg_harness/). A committed
+including untracked WIP modules (engine/kg_harness/). A committed
 file that imports such a module passes locally (the module is present) but dies on CI with
 ModuleNotFoundError. The pytest harness gate runs the working tree, so it can't see this.
 
 This static gate closes it: scan every tracked engine/*.py for `import engine.X` / `from
 engine.X import …` and assert engine.X resolves to a tracked file. Untracked → leak.
 """
+
 from __future__ import annotations
 
 import pathlib

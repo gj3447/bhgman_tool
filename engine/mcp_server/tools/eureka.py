@@ -4,13 +4,13 @@
 이 툴은 legion 우회 없이 실 엔진 경로(engine.eureka.pipeline.run_from_kg + LocalKgStore)를
 단독 노출한다 — infra-0 covenant(번들 결정론 store, 실 Neo4j/키 불요), PROPOSE-only(비파괴).
 
-Honest-count 계약 (ooptdd/eureka_adapter.py 와 동일): 보고 카운트는 stage payload 에서
+Honest-count 계약: 보고 카운트는 stage payload 에서
 RE-DERIVED — '4-induce'.abstract_classes(induced) / '4.5-quality-gate'.survived(survived).
 stages_ok 는 진단 필드일 뿐 성공 지표가 아니다: 빈 KG 에서도 파이프라인 stages 는 green 으로
 돌기 때문에(어댑터가 증명한 fake-green 축) earned 카운트만이 실제 산출을 말한다.
 
-# KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/eureka_mcp_earned_counts
-# KG: eureka-canonical-2026-05-26, finding-ooptdd-bhgman-eureka-adapter-20260624
+# Direct regression: eureka_mcp_earned_counts
+# KG: eureka-canonical-2026-05-26
 """
 
 from __future__ import annotations

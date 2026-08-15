@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # CI-parity harness — reproduce EVERY GitHub Actions gate locally so "green" means CI-green.
 #
-# Why this exists: the integration branch ran NO CI, so local checks (sibling repos installed
-# editable, Python 3.14, a different ruff build) silently diverged from main's CI (no siblings,
+# Why this exists: the integration branch ran NO CI, so local checks (Python 3.14 and a
+# different ruff build) silently diverged from main's CI
 # Python 3.11–3.13, pinned ruff 0.15.12, mypy+deptry hard gates). A merge that was "1727 passed"
 # locally went fully red on main's CI. This script is the single source of truth for CI-green:
 # run it, make every gate GREEN, and the GitHub run matches.
@@ -57,13 +57,11 @@ if want deptry; then
     echo "$out" | grep -E "DEP[0-9]{3}|Found [0-9]+ dependency" | tail -6 | sed 's/^/      /'; red deptry; fi
 fi
 
-# ── gate 5: dependency resolvability WITHOUT sibling path-sources ────────────
-# CI has no ../ooptdd ../ooptdd-loop ../omd, so `uv ... --all-extras` cannot resolve the
-# [tool.uv.sources] path overrides. `uv lock --no-sources` reproduces that exactly (ignores the
-# path overrides → resolves from the registry → the unpublished siblings are not found). Non-
-# mutating: uv.lock is backed up + restored.
+# ── gate 5: dependency resolvability from declared sources ───────────────────
+# `uv lock --no-sources` verifies that tracked package metadata resolves without local path
+# overrides. Non-mutating: uv.lock is backed up and restored.
 if want dep-resolve; then
-  echo "[dep-resolve] uv lock --no-sources (reproduces CI 'ooptdd not found')"
+  echo "[dep-resolve] uv lock --no-sources"
   [ -f uv.lock ] && cp uv.lock /tmp/.uv.lock.bak.$$
   if out=$(timeout 90 uv lock --no-sources 2>&1); then green dep-resolve; else
     echo "$out" | grep -iE "not found|no version|because|conclude" | head -3 | sed 's/^/      /'; red dep-resolve; fi
@@ -72,8 +70,7 @@ fi
 
 # ── gate 6: pytest (engine)  (ci.yml: --all-extras pytest matrix 3.11–3.13) ──
 # NOTE: the full CI matrix (3 Pythons × --all-extras) cannot be reproduced from one interpreter.
-# This runs the local engine suite; it passes here ONLY because the siblings are installed —
-# which is the very gap gate 5 guards. Treat green here as necessary-not-sufficient for CI.
+# This runs the local engine suite. Treat green here as necessary-not-sufficient for CI.
 if want pytest; then
   echo "[pytest] $VENV/pytest -q (tracked engine suite; CI runs --all-extras × py3.11-3.13)"
   # --ignore every UNTRACKED .py — CI checks out HEAD, so untracked WIP tests (engine/kg_harness/

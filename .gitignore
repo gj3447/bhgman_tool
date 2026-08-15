@@ -59,14 +59,3 @@ engine/eureka/vendor/*.tar.gz
 engine/eureka/vendor/*.zip
 .pytest_apt_invariant_results.tsv
 GIT/
-
-# ooptdd-loop run receipts (per-cid, ephemeral); keep golden baselines if any
-.ooptdd/*.json
-!.ooptdd/golden/
-
-# OMD (입체운행물방울) parallel-dev coordinator — SQLite state + WAL sidecars + worktrees
-omd/omd.bhgman.db
-omd/omd.bhgman.db-wal
-omd/omd.bhgman.db-shm
-# OMD git worktrees land in a sibling dir (created by Coordinator(repo=...))
-/../bhgman_tool-omd-worktrees/

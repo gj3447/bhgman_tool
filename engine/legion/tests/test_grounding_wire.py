@@ -1,4 +1,4 @@
-"""external_grounding_ratio 런타임 배선 (ooptdd dev 백로그 #2 — RED artifact, test-first).
+"""external_grounding_ratio 런타임 배선 (RED artifact, test-first).
 
 compute_external_grounding_ratio + update_grounding 은 이미 존재하지만(test_external_grounding_
 ratio.py) **legion 경로에서 죽어 있었다**: _run_acquire 의 acquired dict 에 citation_urls 가
@@ -13,7 +13,7 @@ Goodhart 컨트롤(<0.3 → self-recurse)이 런타임에서 원리적으로 발
   3. (NOVEL) 전부 비접지 citations → <0.3 self-recurse dispatch 가 *실제로 발화* —
      runtime-dead 시절엔 불가능했던 사건.
 
-# KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/prometheus_grounding_wire
+# Direct regression: prometheus_grounding_wire
 # KG: prometheus-grounding-2026-05-05
 """
 

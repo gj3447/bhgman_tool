@@ -6,4 +6,4 @@
 > 이 정직 스텁으로 교체했다 — 복원은 **vendor(파일 실복사)만 허용**, 심링크 재도입 금지
 > (oracle: engine/tests/test_theory_canon.py 가 깨진 심링크 0 을 강제).
 
-이 박스 실재 파일: 없음. 공학 구현은 `engine/prometheus/` + `ooptdd/prometheus_adapter.py` 가 실행 정본.
+이 박스 실재 파일: 없음. 공학 구현은 `engine/prometheus/`가 실행 정본.

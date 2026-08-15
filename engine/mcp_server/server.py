@@ -37,7 +37,7 @@ def build_server() -> Any:
     from .tools.occam import register as register_occam
 
     # eureka_induce — 창조(FCA induction, PROPOSE-only, EARNED counts) 단독 노출 (실체감사 유레카 갭):
-    # KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/eureka_mcp_earned_counts
+    # Direct regression: eureka_mcp_earned_counts
     from .tools.eureka import register as register_eureka
 
     # SYMPOSIUM-absorbed tools (Wave 7 P2-A, 2026-05-14):

@@ -23,7 +23,7 @@ v2 정정 2종 (광역 측정 재배선 2026-07-10, 적대검증 정정 2 — RE
      배치 confidence 가 위로 편향됐다 — escalation 규율("σ 없는 확신은 없다")과 동형으로
      None 은 최고 불확실(0.0)로 계수한다. 후보 0건 = min 정의역 공집합 = 미측정(키 부재).
 
-# KG: LakatosTree_Bhgman6CommanderOoptdd_20260624 (measurement-driven conditional dispatch),
+# Direct regression: measurement-driven conditional dispatch,
 #     7cmd-measurement-driven-conditional-dispatch-2026-05-30
 # KG: bhgman-measurement-rewire-design-20260709 (정정 2: occam 과대계수·σ-None 편향)
 """

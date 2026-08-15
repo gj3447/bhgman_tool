@@ -127,7 +127,7 @@ def _run_induce(ctx: dict) -> dict:
         ok = sum(1 for s in pr.stages if s.ok)
 
         # earned counts (실체감사 유레카 갭): 보고의 머리는 stage payload 에서 재도출한 산출
-        # 카운트 — stages_ok 는 빈 KG 에서도 green 으로 도는 fake-green 축(ooptdd 어댑터가
+        # 카운트 — stages_ok 는 빈 KG 에서도 green 으로 도는 fake-green 축(직접 회귀가
         # 증명: empty CypherRunner → stages_ok=5, concepts=0)이라 진단 필드로 강등.
         def _earned(prefix: str, key: str) -> int:
             for s in pr.stages:
