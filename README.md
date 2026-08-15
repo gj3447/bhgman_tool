@@ -228,7 +228,7 @@ ADRs/        # 아키텍처 결정 기록
 verification/# count-claim 검증 스크립트 + 결과
 gate/ resolver/ → engine/ 하위 (APT v27 A6/A7)
 worked/      # 워크드 예제 (실험·데모, 프로덕션 아님) — worked/README.md
-333q_demo/   # Mermin GHZ 데모 (APT 풀 사이클, nested TS workspace)
+GAME repo    # Mermin GHZ 데모 정본: ../GAME/GAMES/forest-of-reverie/333q_demo
 REVIEWS/     # 외부 재현 스냅샷 (참고용) — REVIEWS/README.md
 bin/ plugins/ assets/  # 헬퍼 스크립트 / Claude 플러그인 매니페스트 / 미디어
 ```

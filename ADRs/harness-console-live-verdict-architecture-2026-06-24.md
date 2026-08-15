@@ -127,7 +127,8 @@ class ProjectAdapter(Protocol):
 Adapter priorities:
 
 1. `PythonRepoAdapter`: Python modules, engines, tests, CLI/MCP entrypoints.
-2. `NodeViteAdapter`: Vite/TypeScript projects such as `333q_demo`.
+2. `NodeViteAdapter`: Vite/TypeScript projects such as the relocated
+   `/home/lagyeongjun/CD/GAME/GAMES/forest-of-reverie/333q_demo` corpus.
 3. `ThreeDProjectAdapter`: scenes, cameras, shaders, assets, interaction loops, render pipeline.
 4. `BeadProjectAdapter`: bead-specific artifacts once the project corpus is present.
 5. `GenericFileAdapter`: fallback for research docs and mixed folders.
