@@ -15,16 +15,10 @@ test below starts RED. The promotion contract it pins:
   4. Honest label: registry category for seed_germinate is 'read' (a dry-run planner
      that writes nothing), no longer 'write'.
   5. Shim-compat: seed_id / spec_name / payload_keys survive the promotion.
-  6. Longinus binding: the PLANNED/BLOCKED status vocabulary literals live verbatim in
-     ``_seed_germinate_impl`` (AST-checked; renamed literal goes UNBOUND).
-
-# KG: LakatosTree_BhgmanJaebaeman_20260702/jbm_s2_seed_germinate_engine
 # KG: 재배맨-v2-subagent-runtime-protocol
 """
 
 from __future__ import annotations
-
-from pathlib import Path
 
 import pytest
 
@@ -36,10 +30,6 @@ from engine.mcp_server.tools.symposium import (
     _seed_germinate_impl,
     seeds_from_payload,
 )
-
-_ROOT = str(Path(__file__).resolve().parents[3])
-_SRC = "engine/mcp_server/tools/symposium.py"
-_KG_ANCHOR = "finding-ooptdd-bhgman-jaebaeman-germinate-20260702"
 
 # A valid 2-seed plan tree: self-anchored root + one child anchored/parented to it.
 _VALID_PAYLOAD = {
@@ -144,20 +134,3 @@ def test_shim_compat_fields_preserved():
     assert resp["spec_name"] == "jbm-s2"
     assert resp["payload_keys"] == ["seeds"]
     assert "next_action" in resp
-
-
-def test_longinus_binding_status_literals():
-    """Longinus binding proof: the load-bearing status vocabulary (PLANNED / BLOCKED)
-    lives verbatim inside _seed_germinate_impl's body — AST-checked, and a renamed
-    literal goes UNBOUND (the binding discriminates)."""
-    pytest.importorskip("ooptdd_loop")
-    from ooptdd_loop.engine.longinus import verify_binding
-    from ooptdd_loop.domain.spec import Longinus
-
-    for literal in ("PLANNED", "BLOCKED"):
-        bound = verify_binding(_ROOT, Longinus(_KG_ANCHOR, _SRC, "_seed_germinate_impl", literal))
-        assert bound.bound is True, f"_seed_germinate_impl should carry '{literal}': {bound.reason}"
-        miss = verify_binding(
-            _ROOT, Longinus(_KG_ANCHOR, _SRC, "_seed_germinate_impl", literal + "_RENAMED")
-        )
-        assert miss.bound is False, "a renamed status literal must NOT bind"

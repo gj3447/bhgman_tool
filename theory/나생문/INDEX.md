@@ -35,7 +35,7 @@ CITATION_TABLE.md · GLOSSARY.md · FINAL_VERDICT.md · LEAN_REGRESSION_AUDIT.md
 24 verified) · 113_LENS_TAXONOMY.md(113 lens 정전, legacy) ·
 taliban_adversarial_runtime_prototype/(Python runtime, 53 pytest) ·
 lean_audit/TalibanAudit.lean(24 theorem, 0 sorry) · PROM_32_REPORT.md + axis_findings(legacy).
-이 박스의 실행 정본은 `engine/naesengmoon/` + `ooptdd/naesengmoon_adapter.py`.
+이 박스의 실행 정본은 `engine/naesengmoon/`이다.
 
 ---
 

@@ -1,4 +1,4 @@
-"""Deterministic judge for LakatosTree_Bhgman6CommanderOoptdd_20260624 / eureka_mcp_earned_counts.
+"""Direct deterministic measurement for eureka_mcp_earned_counts.
 
 Recomputes both pre-registered metrics from live surfaces, never from a self-report:
 
@@ -8,7 +8,7 @@ Recomputes both pre-registered metrics from live surfaces, never from a self-rep
       an independent run_from_kg recomputation; (2) the legion _run_induce payload —
       must carry induced/survived keys with honest zeros on an empty KG. Baseline 0
       (audit wf_376c327b-8f3: no eureka MCP tool at all; legion reported the exact
-      stages_ok metric the ooptdd adapter proved fake-green on an empty KG).
+      stages_ok metric that a direct regression proved fake-green on an empty KG).
 
   novel    empty_kg_zero_discrimination   (judge-P2 independent axis)
       1.0 iff on an EMPTY KG the pipeline stages still run green-ish (stages_ok > 0)

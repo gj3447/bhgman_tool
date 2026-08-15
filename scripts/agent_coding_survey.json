@@ -40,8 +40,6 @@
 
     {"label": "Lesson", "key": "name", "value": "durable-legion-fallback-2026-06-27", "props": {"summary": "Legion run durable seam: DBOS 있으면 사용/없으면 in-proc fallback (분류c). engine/legion/durable.py"}},
     {"label": "Lesson", "key": "name", "value": "legion-stuck-detector-2026-06-27", "props": {"summary": "dispatch 정체감지(StuckDetector)는 깊이캡과 직교 — OpenHands 교훈. engine/legion/stuck_detector.py"}},
-    {"label": "Lesson", "key": "name", "value": "ooptdd-jsonl-queryable-backend-2026-06-27", "props": {"summary": "JSONL 영속·cross-process queryable backend — MemoryBackend process-global 갭 해소. ooptdd backends/jsonl.py"}},
-    {"label": "Lesson", "key": "name", "value": "gen-ai-emit-cid-trace-unify-2026-06-27", "props": {"summary": "gen_ai.* emit + cid≡W3C trace_id 통일 — 전 생태계 단일 트레이스 공간. ooptdd gen_ai_emit.py"}},
     {"label": "Lesson", "key": "name", "value": "agent-coding-survey-local-ingest-2026-06-27", "props": {"summary": "지식 코퍼스 로컬 KG GENERATED mirror (method B, --verify/--apply). engine/kg_local/survey_sync.py"}}
   ],
   "edges": [
@@ -83,8 +81,6 @@
 
     {"src": {"label": "Lesson", "value": "durable-legion-fallback-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
     {"src": {"label": "Lesson", "value": "legion-stuck-detector-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-coding-harness-deepdive-20260627"}},
-    {"src": {"label": "Lesson", "value": "ooptdd-jsonl-queryable-backend-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-durable-engines-deepdive-20260627"}},
-    {"src": {"label": "Lesson", "value": "gen-ai-emit-cid-trace-unify-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}},
     {"src": {"label": "Lesson", "value": "agent-coding-survey-local-ingest-2026-06-27"}, "type": "INFORMED_BY", "dst": {"label": "ResearchFinding", "value": "rf-agent-coding-survey-20260627"}}
   ]
 }

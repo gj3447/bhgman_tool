@@ -1,7 +1,7 @@
 """eureka_induce MCP tool + legion earned-count 승격 (7군단장 실체감사 wf_376c327b-8f3, 유레카 갭).
 
 RED-first: 유레카는 형제 중 유일하게 MCP 전용 툴이 없었고(tools/eureka.py 부재), legion 표면
-(_run_induce)은 자기 ooptdd 어댑터가 empty-KG fake-green 이라고 *증명해 둔* stages_ok 지표로
+(_run_induce)은 직접 회귀가 empty-KG fake-green 이라고 *증명해 둔* stages_ok 지표로
 보고했다(빈 KG 에서 stages_ok=5 green-향 요약). 이 파일이 봉인하는 계약:
 
   1. eureka_induce MCP 툴: run_from_kg 실엔진 경로를 태우고, 카운트는 stage payload
@@ -13,7 +13,7 @@ RED-first: 유레카는 형제 중 유일하게 MCP 전용 툴이 없었고(tool
      강등(요약의 머리는 earned).
   4. 3-file 등록(registry/security/server) 일관성.
 
-# KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/eureka_mcp_earned_counts
+# Direct regression: eureka_mcp_earned_counts
 # KG: eureka-canonical-2026-05-26
 """
 

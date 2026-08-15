@@ -14,7 +14,7 @@ LLM client 부재 시 legion verify 는 upstream-completeness critic 1개(n_eff=
   4. MCP legion_run 응답이 final_verdict(ensemble/n_eff/oracle_legs)를 노출하고, MCP 경로가
      LocalGroundingSource(store) 주입으로 infra-0 에서 n_eff ≥ 2.
 
-# KG: LakatosTree_Bhgman6CommanderOoptdd_20260624/naesengmoon_corroborate_wire
+# Direct regression: naesengmoon_corroborate_wire
 # KG: q-naesengmoon-single-authority
 """
 

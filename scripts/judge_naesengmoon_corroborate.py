@@ -1,4 +1,4 @@
-"""Deterministic judge for LakatosTree_Bhgman6CommanderOoptdd_20260624 / naesengmoon_corroborate_wire.
+"""Direct deterministic measurement for naesengmoon_corroborate_wire.
 
 Recomputes both pre-registered metrics by driving the live verify surface:
 
