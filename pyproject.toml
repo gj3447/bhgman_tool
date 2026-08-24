@@ -37,7 +37,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=4.0",
-    "ruff==0.15.22",  # pinned — must match .pre-commit-config.yaml rev + ci.yml lint job (no skew)
+    "ruff==0.16.4",  # pinned — must match .pre-commit-config.yaml rev + ci.yml lint job (no skew)
     "mypy==2.3.0",  # pinned — pre-commit uvx + CI uv-run must resolve the SAME version (no skew)
     "build>=1.2",
     "twine>=5.1",
