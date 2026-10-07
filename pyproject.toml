@@ -3,7 +3,8 @@ name = "bhgman_tool"
 version = "0.1.0"
 description = "비행기맨(#4 사도)의 공학적 결정화 (Harness) 측 도구 모음. 본 repo = 도구 layer (본질 측 정전은 별도). 17 axes external grounding + 89 Lean 4 verified theorem/lemma (Mathlib-free standalone, lean exit 0; 105 across the lean/ tree incl. the 16-theorem apt_functor_with_mathlib sister-project) + Goodhart safeguard."
 readme = "README.md"
-license = { text = "AGPL-3.0-or-later" }
+license = "LicenseRef-MetaHumotonic-1.2"
+license-files = ["LICENSE", "LICENSE-NOTICE.md", "licenses/pre-mhl-2026-10-07/*", "NOTICE", "COPYRIGHT"]
 authors = [{ name = "gj3447 (METAHUMOTONIC)", email = "gj3447@gmail.com" }]
 requires-python = ">=3.11"
 keywords = [
@@ -22,7 +23,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -182,7 +182,7 @@ Documentation = "https://github.com/gj3447/bhgman_tool/tree/main/docs"
 Changelog = "https://github.com/gj3447/bhgman_tool/commits/main"
 
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
@@ -208,6 +208,8 @@ include = [
   "/README.zh-CN.md",
   "/README.ja-JP.md",
   "/LICENSE",
+  "/LICENSE-NOTICE.md",
+  "/licenses",
   "/pyproject.toml",
 ]
 exclude = [

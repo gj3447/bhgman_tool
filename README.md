@@ -10,7 +10,7 @@
 
 [![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg?style=flat-square)](https://github.com/gj3447/bhgman_tool#status-experimental)
 [![PyPI: not yet published](https://img.shields.io/badge/PyPI-not%20yet%20published-lightgrey.svg?style=flat-square)](docs/PYPI_PUBLISH_STATUS.md)
-[![MIT License](https://img.shields.io/badge/License-AGPL_v3-yellow.svg?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-MHL--1.2-blue)](LICENSE-NOTICE.md)
 [![Lean 4](https://img.shields.io/badge/Lean-4.30.0-purple.svg?style=flat-square)](https://leanprover.github.io/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![Pytest engine](https://img.shields.io/badge/pytest%20engine-378%20PASS-green.svg?style=flat-square)](engine/longinus_drift_audit/tests/)
@@ -258,7 +258,13 @@ Pre-commit 4-ratchet gate runs ruff lint+format, complexipy ≤15, deptry, and 1
 
 ## License
 
-MIT. Author: [gj3447@gmail.com](mailto:gj3447@gmail.com).
+Author: [gj3447@gmail.com](mailto:gj3447@gmail.com).
+
+**MetaHumotonic License 1.2** — [LICENSE](LICENSE); [scope, prior grants and third-party notices](LICENSE-NOTICE.md).
+
+지정한 하드웨어의 접근권한과 전체 관리 권한을 합의한 명세서에 따라 공유하고, **CHU의 일부가 된다**는 참여 원칙을 적용합니다. 실제 접근에는 별도 승인이 필요합니다.
+
+Source-available; not OSI-approved. Existing grants and separately licensed material remain valid.
 
 ---
 
